@@ -16,13 +16,14 @@ internal static class CratisEsmRangeAdmission
         var owners = CratisSelectedSemanticOwners.Enumerate(context).Select(owner => owner.Id).Append(context.Application.Id).ToImmutableHashSet();
         var selected = context.SelectedSlices().Select(located => located.Slice.Id).ToImmutableHashSet();
         var excluded = context.AllSlices.Select(located => located.Slice.Id).Where(id => !selected.Contains(id)).ToImmutableHashSet();
-        var standing = EsmSupportStanding.Evaluate(CratisEsmSupport.Descriptor, request.Model, EsmRangeSurface.Known, EsmRangeSurface.Scope(owners, excluded));
+        var scope = EsmRangeSurface.Scope(owners, excluded);
+        var standing = EsmSupportStanding.Evaluate(CratisEsmSupport.Descriptor, request.Model, EsmRangeSurface.Known, scope);
         return FromFindings(request, standing);
     }
 
     internal static CratisEsmRangeVerdict FromFindings(ArtifactRenderRequest request, EsmSupportStanding standing)
     {
-        if (standing.Version == EsmVersionStanding.Audited) return new(standing, [], []);
+        if (standing.Version == EsmVersionStanding.Audited) return new(standing, [.. standing.UnknownMembers.Select(Finding)], []);
         var pair = $"{request.Model.LanguageVersion}/{request.Model.SemanticVersion}";
         if (standing.Version != EsmVersionStanding.NewerWithinRange)
         {

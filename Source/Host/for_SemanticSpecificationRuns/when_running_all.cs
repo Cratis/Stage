@@ -15,5 +15,5 @@ public class when_running_all : a_specification_endpoint
     [Fact] void should_return_ok() => _status.ShouldEqual(StatusCodes.Status200OK);
     [Fact] void should_return_a_passed_record() => Report.Results.Single().Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
     [Fact] void should_return_the_semantic_report_schema() => Report.SchemaVersion.ShouldEqual("stage-spec-run/1");
-    [Fact] void should_include_the_produced_fact() => Report.Results.Single().Trace!.Facts.Count.ShouldEqual(1);
+    [Fact] void should_include_the_produced_fact() => Report.Results.Single().Trace.Facts.Count.ShouldEqual(1);
 }

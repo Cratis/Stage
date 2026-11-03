@@ -63,8 +63,8 @@ public class when_loading_a_model_with_authentication_and_onboarding : Specifica
     [Fact] void should_carry_the_providers_with_their_kind_and_identity() => string.Join(",", _loaded.Realization.Providers.Select(provider => $"{provider.Kind}:{provider.Identity}")).ShouldEqual("GitHub:GitHub,OpenId:Partner");
     [Fact] void should_carry_every_persona_with_the_roles_that_satisfy_its_policies() => string.Join(",", _loaded.Realization.Personas.Select(persona => $"{persona.Name}:{string.Join('+', persona.Roles)}")).ShouldEqual("Owner:Owner,Staff:Staff");
     [Fact] void should_mark_a_persona_it_could_reduce_to_roles_as_mappable() => _loaded.Realization.Personas.All(persona => persona.Mappable).ShouldBeTrue();
-    [Fact] void should_carry_what_the_model_says_about_sign_up() => _loaded.Realization.Onboarding!.Signup.ShouldEqual("JoinsTenant");
-    [Fact] void should_carry_who_may_invite_and_what_they_may_grant() => $"{string.Join('+', _loaded.Realization.Onboarding!.Invitations.Single().By)}>{string.Join('+', _loaded.Realization.Onboarding!.Invitations.Single().Grant)}".ShouldEqual("Owner>Staff");
+    [Fact] void should_carry_what_the_model_says_about_sign_up() => _loaded.Realization.Onboarding.Signup.ShouldEqual("JoinsTenant");
+    [Fact] void should_carry_who_may_invite_and_what_they_may_grant() => $"{string.Join('+', _loaded.Realization.Onboarding.Invitations.Single().By)}>{string.Join('+', _loaded.Realization.Onboarding.Invitations.Single().Grant)}".ShouldEqual("Owner>Staff");
     [Fact] void should_carry_the_email_template_files() => _loaded.Realization.Texts["Emails/invitation.html"].ShouldEqual("<p>{{invitation.link}}</p>");
     [Fact] void should_carry_the_images_of_the_templates() => _loaded.Realization.Images["logo.png"].ToArray().ShouldEqual(new byte[] { 1, 2, 3 });
     [Fact] void should_leave_out_a_file_that_is_not_an_image() => _loaded.Realization.Images.ContainsKey("notes.txt").ShouldBeFalse();

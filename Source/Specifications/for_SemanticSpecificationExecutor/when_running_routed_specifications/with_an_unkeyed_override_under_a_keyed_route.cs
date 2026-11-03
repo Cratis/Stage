@@ -42,5 +42,5 @@ public class with_an_unkeyed_override_under_a_keyed_route : a_production_routed_
     async Task Because() => await Run(Compile(Unkeyed));
 
     [Fact] void should_refuse_as_unsupported() => _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-    [Fact] void should_report_the_production_route_code() => _result.Unsupported!.Details.StartsWith("STAGE-ESM-036:", StringComparison.Ordinal).ShouldBeTrue();
+    [Fact] void should_report_the_production_route_code() => _result.Unsupported.Details.StartsWith("STAGE-ESM-036:", StringComparison.Ordinal).ShouldBeTrue();
 }

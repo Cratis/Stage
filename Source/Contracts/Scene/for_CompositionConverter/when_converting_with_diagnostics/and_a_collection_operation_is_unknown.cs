@@ -20,7 +20,7 @@ public class and_a_collection_operation_is_unknown : Specification
         var diagnostics = new ConversionDiagnostics();
         var result = CompositionConverter.Exposure(exposure, diagnostics);
 
-        result.Properties.Single().Operations!.ToArray().ShouldEqual([CollectionOperation.Add, CollectionOperation.Remove]);
+        result.Properties.Single().Operations.ToArray().ShouldEqual([CollectionOperation.Add, CollectionOperation.Remove]);
         diagnostics.All.Single().Code.ShouldEqual("STAGE-SCENE-COMPOSITION-001");
         diagnostics.All.Single().Path.ShouldEqual("Shell");
         diagnostics.All.Single().Location.ShouldEqual(location);

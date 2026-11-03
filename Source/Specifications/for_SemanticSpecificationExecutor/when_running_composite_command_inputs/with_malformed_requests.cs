@@ -32,7 +32,7 @@ public class with_malformed_requests : given.a_composite_input
 
     ImmutableArray<SemanticPropertyValue> RequestValues(string shape)
     {
-        var input = _specification.When!.Values[^1];
+        var input = _specification.When.Values[^1];
         var malformed = MalformedValue(shape, (SemanticCompositeValue)input.Value);
 
         return shape switch

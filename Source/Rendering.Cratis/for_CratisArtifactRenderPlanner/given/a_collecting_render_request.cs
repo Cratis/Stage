@@ -19,7 +19,7 @@ public class a_collecting_render_request : a_register_project_render_request
         var execution = SemanticExecutionPlan.Compile(model);
         Xunit.Assert.True(execution.Success, string.Join(Environment.NewLine, execution.Issues));
 
-        return _request with { Model = model, ExecutionPlan = execution.Plan! };
+        return _request with { Model = model, ExecutionPlan = execution.Plan };
     }
 
     protected ArtifactRenderRequest WithGuard(ArtifactRenderRequest request)

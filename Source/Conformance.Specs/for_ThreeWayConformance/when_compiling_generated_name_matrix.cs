@@ -92,7 +92,7 @@ public class when_compiling_generated_name_matrix
     static readonly Lazy<RenderedFile[]> CommonTemplate = new(() =>
     {
         var model = Original;
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(model).Plan;
         var options = new CratisRenderingOptions("Projects", CommonTemplateNamespace);
         var request = new ArtifactRenderRequest(
             model,
@@ -232,9 +232,9 @@ public class when_compiling_generated_name_matrix
         Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Location.SourceTree is null ||
             diagnostic.Location.SourceTree.FilePath == "GlobalUsings.g.cs");
         var errorsByRow = diagnostics.GroupBy(diagnostic => int.Parse(
-                diagnostic.Location.SourceTree!.FilePath.Split('/')[0], CultureInfo.InvariantCulture))
+                diagnostic.Location.SourceTree.FilePath.Split('/')[0], CultureInfo.InvariantCulture))
             .ToDictionary(group => group.Key, group => (IReadOnlyList<string>)[.. group.Select(diagnostic =>
-                $"{diagnostic.Location.SourceTree!.FilePath}: {diagnostic.GetMessage(CultureInfo.InvariantCulture)}")]);
+                $"{diagnostic.Location.SourceTree.FilePath}: {diagnostic.GetMessage(CultureInfo.InvariantCulture)}")]);
 
         // Only the case-only serialization rows need a loaded assembly. The name matrix
         // checks compiler diagnostics; the serialization rows still run the real serializer.
@@ -728,7 +728,7 @@ public class when_compiling_generated_name_matrix
         var plan = SemanticExecutionPlan.Compile(model);
         Assert.True(plan.Success, string.Join("; ", plan.Issues));
         var options = new CratisRenderingOptions("Projects", "Projects");
-        var rendered = CratisRendering.Plan(model, plan.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), options);
+        var rendered = CratisRendering.Plan(model, plan.Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), options);
         Assert.True(rendered.Success, string.Join("; ", rendered.Diagnostics));
         var files = rendered.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
             .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))).ToArray();
@@ -812,7 +812,7 @@ public class when_compiling_generated_name_matrix
                 Specifications = [.. slice.Specifications.Select(ChangeSpec)],
                 Projections = [.. slice.Projections.Select(projection => kind != "readmodel" ? projection : projection with
                 {
-                    Scope = projection.Scope! with
+                    Scope = projection.Scope with
                     {
                         From = [.. projection.Scope.From.Select(block => block with
                         {
@@ -891,7 +891,7 @@ public class when_compiling_generated_name_matrix
     {
         var compiled = SemanticExecutionPlan.Compile(model);
         Assert.True(compiled.Success, $"{row}: {string.Join("; ", compiled.Issues)}");
-        var plan = compiled.Plan!;
+        var plan = compiled.Plan;
         var options = new CratisRenderingOptions("Projects", rootNamespace);
         var request = new ArtifactRenderRequest(
             model,
@@ -1043,7 +1043,7 @@ public class when_compiling_generated_name_matrix
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("matrix"), "matrix", "Matrix.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join("; ", compilation.Diagnostics.Select(diagnostic => diagnostic.Message)));
-        return compilation.Value!.Model;
+        return compilation.Value.Model;
     }
 }
 #endif

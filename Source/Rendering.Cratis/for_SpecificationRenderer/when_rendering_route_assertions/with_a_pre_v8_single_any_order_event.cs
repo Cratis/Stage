@@ -20,7 +20,7 @@ public class with_a_pre_v8_single_any_order_event : Specification
     {
         var model = routed_specifications.SingleAnyOrder(legacy: true);
         _admission = routed_specifications.Plan(model);
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(model).Plan;
         var options = new CratisRenderingOptions("Routed", "Routed");
         var request = new ArtifactRenderRequest(model, plan, CratisRendering.CreateProfile("Routed", options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
         var context = new SemanticApplicationContext(request, options);

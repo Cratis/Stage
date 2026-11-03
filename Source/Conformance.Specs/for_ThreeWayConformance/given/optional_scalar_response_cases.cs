@@ -26,7 +26,7 @@ internal static class optional_scalar_response_cases
     // Screenplay 4.133.3 rejects null literals in authored command fixtures (PLAY0350), while its ESM evaluator
     // accepts optional null inputs. Exercise that typed ESM contract directly without changing the compiler.
     static SemanticSpecification WithNullFixture(SemanticSpecification specification) => specification.Name.EndsWith("Null", StringComparison.Ordinal)
-        ? specification with { When = specification.When! with { Values = [.. specification.When.Values.Select(value => value with { Value = SemanticValue.Null })] } }
+        ? specification with { When = specification.When with { Values = [.. specification.When.Values.Select(value => value with { Value = SemanticValue.Null })] } }
         : specification;
 
     const string Source = """

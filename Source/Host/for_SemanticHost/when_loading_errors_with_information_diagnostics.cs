@@ -75,7 +75,7 @@ public class when_loading_errors_with_information_diagnostics : given.a_model_pa
     [Fact] void should_preserve_warning_severity() => _notes.Count(note => note.Severity == DiagnosticSeverity.Warning).ShouldEqual(1);
     [Fact] void should_expose_notes_to_clients_on_status() => _status.RootElement.GetProperty("notes").GetArrayLength().ShouldEqual(3);
     [Fact] void should_preserve_note_codes_in_json() => _status.RootElement.GetProperty("notes").EnumerateArray().Count(note => note.GetProperty("code").GetString() == "PLAY0270").ShouldEqual(2);
-    [Fact] void should_preserve_note_locations_in_json() => _status.RootElement.GetProperty("notes")[0].GetProperty("source").GetString()!.StartsWith("model.play(", StringComparison.Ordinal).ShouldBeTrue();
+    [Fact] void should_preserve_note_locations_in_json() => _status.RootElement.GetProperty("notes")[0].GetProperty("source").GetString().StartsWith("model.play(", StringComparison.Ordinal).ShouldBeTrue();
     [Fact] void should_keep_only_one_status_issue() => _status.RootElement.GetProperty("issues").GetArrayLength().ShouldEqual(1);
     [Fact] void should_not_format_notes_as_unsupported_plan_responses() => _notes.Exists(note => _refusal.Contains(note.Message, StringComparison.Ordinal)).ShouldBeFalse();
 }

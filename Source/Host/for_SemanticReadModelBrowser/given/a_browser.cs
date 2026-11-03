@@ -25,7 +25,7 @@ public class a_browser : a_routed_model
     protected virtual bool Refused => false;
     protected virtual string Engine => "semantic";
     protected virtual string ModelSource => Source;
-    protected SemanticId ModelId => _semanticRuntime!.Plan.ReadModels.Values.Single(model => model.Name == "ProjectSummary").Id;
+    protected SemanticId ModelId => _semanticRuntime.Plan.ReadModels.Values.Single(model => model.Name == "ProjectSummary").Id;
     protected const string CommandRoute = "/api/projects/registration/register-project/register-project";
     protected const string Payload = """
         {"projectId":"3fa85f64-5717-4562-b3fc-2c963f66afa6","name":"Screenplay","tags":["one","two"],"active":true,"count":7,"address":{"city":"Oslo"}}
@@ -37,7 +37,7 @@ public class a_browser : a_routed_model
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("browser-model"), "browser-model", "Projects.play", ModelSource);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join("; ", compilation.Diagnostics.Select(diagnostic => diagnostic.Message)));
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model, []);
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model, []);
         Assert.True(plan.Success, string.Join("; ", plan.Issues.Select(issue => issue.Details)));
         _facts = Substitute.For<IAppendSemanticFacts, ISemanticFactTail>();
         var tail = ulong.MaxValue;
@@ -51,7 +51,7 @@ public class a_browser : a_routed_model
             tail = tail == ulong.MaxValue ? (ulong)call.Arg<IReadOnlyList<SemanticFact>>().Count - 1 : tail + (ulong)call.Arg<IReadOnlyList<SemanticFact>>().Count;
             return Task.CompletedTask;
         });
-        MapSemanticModel(EventModelLoader.LoadFromSource(ModelSource), plan.Plan!, _facts);
+        MapSemanticModel(EventModelLoader.LoadFromSource(ModelSource), plan.Plan, _facts);
         if (Engine == "eventmodel")
         {
             SemanticReadModelBrowser.MapEventModel(_app);
@@ -63,11 +63,11 @@ public class a_browser : a_routed_model
         }
         else if (Engine == "semantic")
         {
-            SemanticReadModelBrowser.Map(_app, _semanticRuntime!, () => _ready);
+            SemanticReadModelBrowser.Map(_app, _semanticRuntime, () => _ready);
         }
         _app.Urls.Add("http://127.0.0.1:0");
         await _app.StartAsync();
-        var addresses = _app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!;
+        var addresses = _app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>();
         _client = new HttpClient { BaseAddress = new Uri(addresses.Addresses.Single()) };
     }
 

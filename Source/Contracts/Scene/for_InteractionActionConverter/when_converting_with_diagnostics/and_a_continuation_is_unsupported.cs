@@ -25,7 +25,7 @@ public class and_a_continuation_is_unsupported : Specification
             OnResult = branch == "result" ? next : []
         };
         var diagnostics = new ConversionDiagnostics();
-        var result = InteractionActionConverter.Convert(action, diagnostics, "Register.onClick")!;
+        var result = InteractionActionConverter.Convert(action, diagnostics, "Register.onClick");
 
         result.OnSuccess.Concat(result.OnFailure).Concat(result.OnResult).Count().ShouldEqual(1);
         diagnostics.All.Single().Code.ShouldEqual("STAGE-SCENE-ACTION-003");

@@ -25,8 +25,8 @@ public class when_binding_a_manifest : Specification
     [InlineData("\"partials\":[]", "\"partials\":[{\"name\":\"p\",\"template\":\"templates/main.sbn\"}]", KitCodes.DuplicateDeclaration)]
     void should_refuse_incompatible_declarations(string original, string replacement, string code) => given.kit.Load(given.kit.Manifest.Replace(original, replacement, StringComparison.Ordinal)).Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain(code);
 
-    [Fact] void should_load_an_axon_java_kit() => given.kit.Load(given.kit.Manifest).Kit!.Manifest.Target.Id.ShouldEqual("axon");
+    [Fact] void should_load_an_axon_java_kit() => given.kit.Load(given.kit.Manifest).Kit.Manifest.Target.Id.ShouldEqual("axon");
     [Fact] void should_accept_an_older_contract_minor() => given.kit.Load(given.kit.Manifest).Succeeded.ShouldBeTrue();
-    [Fact] void should_preserve_opaque_output_expressions() => given.kit.Load(given.kit.Manifest).Kit!.Manifest.Outputs.Single().Path.ShouldEqual("{{ name }}.java");
+    [Fact] void should_preserve_opaque_output_expressions() => given.kit.Load(given.kit.Manifest).Kit.Manifest.Outputs.Single().Path.ShouldEqual("{{ name }}.java");
     [Fact] void should_refuse_duplicate_output_ids() => given.kit.Load(given.kit.Change("outputs", JsonNode.Parse("""[{"id":"main","template":"a","path":"a"},{"id":"main","template":"b","path":"b"}]"""))).Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain(KitCodes.DuplicateDeclaration);
 }

@@ -27,7 +27,7 @@ public class when_rendering_numbered_enumerations : Specification
         var documents = form.Documents.Select(document => SemanticSourceDocument.Create(catalog.ResolveDocument(document.StableKey), document.StableKey, document.DisplayPath, document.Text));
         var compilation = new SemanticModelCompiler().Compile(corpus.ApplicationName, SemanticDocumentSet.Create([.. documents], catalog));
         compilation.Success.ShouldBeTrue();
-        _model = SemanticModelSerializer.Deserialize(SemanticModelSerializer.Serialize(compilation.Value!.Model));
+        _model = SemanticModelSerializer.Deserialize(SemanticModelSerializer.Serialize(compilation.Value.Model));
     }
 
     void Because() => _plan = invoice_model.Plan(_model);

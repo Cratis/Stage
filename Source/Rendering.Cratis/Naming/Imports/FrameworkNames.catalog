@@ -9,14 +9,18 @@ pin	Cratis.Chronicle	19.114.0
 pin	Cratis.Chronicle.AspNetCore	19.114.0
 pin	Cratis.Chronicle.Testing	19.114.0
 pin	Cratis.Screenplay.Matching	5.1.0
-pin	Cratis.Specifications	4.1.1
-pin	Cratis.Specifications.XUnit	4.1.1
+pin	Cratis.Specifications	5.1.0
+pin	Cratis.Specifications.XUnit	5.1.0
 pin	Microsoft.NET.Test.Sdk	18.11.0
 pin	NSubstitute	6.2.0
 pin	TargetFramework	net10.0
 pin	TargetingPackVersion	10.0.12
 pin	xunit	2.9.3
 pin	xunit.runner.visualstudio	4.0.1
+package	AS	Azure.Core	1.50.0
+package	AS	Azure.Identity	1.17.2
+package	AS	Azure.Security.KeyVault.Certificates	4.6.0
+package	AS	Azure.Security.KeyVault.Secrets	4.6.0
 package	AS	Castle.Core	5.2.1
 package	AS	Cratis	22.146.0
 package	AS	Cratis.Arc	22.146.0
@@ -44,8 +48,8 @@ package	AS	Cratis.Orleans.Storage.MongoDB	1.32.1
 package	AS	Cratis.Screenplay	4.208.0
 package	AS	Cratis.Screenplay.Contexts	4.208.0
 package	AS	Cratis.Screenplay.Matching	5.1.0
-package	AS	Cratis.Specifications	4.1.1
-package	AS	Cratis.Specifications.XUnit	4.1.1
+package	AS	Cratis.Specifications	5.1.0
+package	AS	Cratis.Specifications.XUnit	5.1.0
 package	AS	DnsClient	1.8.0
 package	AS	FluentValidation	12.2.0
 package	AS	Grpc.Core.Api	2.84.0
@@ -106,6 +110,10 @@ package	AS	Humanizer.Core.zh-CN	3.0.10
 package	AS	Humanizer.Core.zh-Hans	3.0.10
 package	AS	Humanizer.Core.zh-Hant	3.0.10
 package	AS	JsonCons.JmesPath	1.0.0
+package	AS	Microsoft.AspNetCore.Authentication.JwtBearer	10.0.0
+package	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect	10.0.0
+package	AS	Microsoft.Bcl.AsyncInterfaces	8.0.0
+package	AS	Microsoft.Bcl.Cryptography	10.0.2
 package	AS	Microsoft.Build.Framework	18.9.6
 package	AS	Microsoft.Build.Utilities.Core	18.9.6
 package	AS	Microsoft.CodeAnalysis.Analyzers	5.9.0
@@ -123,6 +131,23 @@ package	AS	Microsoft.Extensions.Http.Resilience	10.11.0
 package	AS	Microsoft.Extensions.Resilience	10.11.0
 package	AS	Microsoft.Extensions.Telemetry	10.11.0
 package	AS	Microsoft.Extensions.Telemetry.Abstractions	10.11.0
+package	AS	Microsoft.Identity.Abstractions	12.7.0
+package	AS	Microsoft.Identity.Client	4.90.1
+package	AS	Microsoft.Identity.Client.Extensions.Msal	4.83.1
+package	AS	Microsoft.Identity.Web	4.16.1
+package	AS	Microsoft.Identity.Web.Certificate	4.16.1
+package	AS	Microsoft.Identity.Web.Certificateless	4.16.1
+package	AS	Microsoft.Identity.Web.Diagnostics	4.16.1
+package	AS	Microsoft.Identity.Web.TokenAcquisition	4.16.1
+package	AS	Microsoft.Identity.Web.TokenCache	4.16.1
+package	AS	Microsoft.IdentityModel.Abstractions	8.23.0
+package	AS	Microsoft.IdentityModel.JsonWebTokens	8.23.0
+package	AS	Microsoft.IdentityModel.Logging	8.23.0
+package	AS	Microsoft.IdentityModel.LoggingExtensions	8.23.0
+package	AS	Microsoft.IdentityModel.Protocols	8.23.0
+package	AS	Microsoft.IdentityModel.Protocols.OpenIdConnect	8.23.0
+package	AS	Microsoft.IdentityModel.Tokens	8.23.0
+package	AS	Microsoft.IdentityModel.Validators	8.23.0
 package	AS	Microsoft.NET.StringTools	18.9.6
 package	AS	Microsoft.NET.Test.Sdk	18.11.0
 package	AS	Microsoft.OpenApi	2.12.2
@@ -166,6 +191,7 @@ package	AS	Swashbuckle.AspNetCore	10.2.3
 package	AS	Swashbuckle.AspNetCore.Swagger	10.2.3
 package	AS	Swashbuckle.AspNetCore.SwaggerGen	10.2.3
 package	AS	Swashbuckle.AspNetCore.SwaggerUI	10.2.3
+package	AS	System.ClientModel	1.8.0
 package	AS	System.Composition	10.0.1
 package	AS	System.Composition.AttributedModel	10.0.1
 package	AS	System.Composition.Convention	10.0.1
@@ -174,9 +200,11 @@ package	AS	System.Composition.Runtime	10.0.1
 package	AS	System.Composition.TypedParts	10.0.1
 package	AS	System.Configuration.ConfigurationManager	10.0.8
 package	AS	System.IO.Hashing	10.0.3
+package	AS	System.IdentityModel.Tokens.Jwt	8.23.0
 package	AS	System.Memory.Data	10.0.3
 package	AS	System.Reactive	7.0.0
 package	AS	System.Reflection.MetadataLoadContext	10.0.13
+package	AS	System.Security.Cryptography.Pkcs	10.0.14
 package	AS	System.Security.Cryptography.ProtectedData	10.0.8
 package	AS	ZstdSharp.Port	0.7.3
 package	AS	protobuf-net	3.4.40
@@ -265,11 +293,31 @@ using	AS	namespace	System.Threading.Tasks		Microsoft.NET.Sdk.CSharp
 using	AS	namespace	System.Threading.Tasks		compile:NameCatalogApp.GlobalUsings.g.cs
 scope	Cratis
 scope	FluentValidation
+scope	Microsoft.AspNetCore.Authentication
+scope	Microsoft.Identity.Web
 scope	MongoDB
 scope	NSubstitute
 scope	OneOf
 scope	System
 scope	Xunit
+namespace	AS	Azure
+namespace	AS	Azure.Core
+namespace	AS	Azure.Core.Buffers
+namespace	AS	Azure.Core.Cryptography
+namespace	AS	Azure.Core.Diagnostics
+namespace	AS	Azure.Core.Extensions
+namespace	AS	Azure.Core.GeoJson
+namespace	AS	Azure.Core.Json
+namespace	AS	Azure.Core.JsonPatch
+namespace	AS	Azure.Core.Pipeline
+namespace	AS	Azure.Core.Serialization
+namespace	AS	Azure.Core.Shared
+namespace	AS	Azure.Identity
+namespace	AS	Azure.Messaging
+namespace	AS	Azure.Security
+namespace	AS	Azure.Security.KeyVault
+namespace	AS	Azure.Security.KeyVault.Certificates
+namespace	AS	Azure.Security.KeyVault.Secrets
 namespace	AS	Castle
 namespace	AS	Castle.Components
 namespace	AS	Castle.Components.DictionaryAdapter
@@ -744,6 +792,7 @@ namespace	AS	Cratis.Screenplay.Validation
 namespace	AS	Cratis.Screenplay.Workspaces
 namespace	AS	Cratis.Serialization
 namespace	AS	Cratis.Specifications
+namespace	AS	Cratis.Specifications.Resources
 namespace	AS	Cratis.Strings
 namespace	AS	Cratis.Tasks
 namespace	AS	Cratis.Timers
@@ -778,6 +827,10 @@ namespace	AS	FxResources.System.IO
 namespace	AS	FxResources.System.IO.Hashing
 namespace	AS	FxResources.System.Memory
 namespace	AS	FxResources.System.Memory.Data
+namespace	AS	FxResources.System.Security
+namespace	AS	FxResources.System.Security.Cryptography
+namespace	AS	FxResources.System.Security.Cryptography.Pkcs
+namespace	AS	FxResources.System.Security.Cryptography.ProtectedData
 namespace	AS	Google
 namespace	AS	Google.Protobuf
 namespace	AS	Google.Protobuf.Reflection
@@ -827,6 +880,10 @@ namespace	AS	HandlebarsDotNet.Runtime
 namespace	AS	HandlebarsDotNet.StringUtils
 namespace	AS	HandlebarsDotNet.ValueProviders
 namespace	AS	Humanizer
+namespace	AS	Internal
+namespace	AS	Internal.Cryptography
+namespace	AS	Internal.Cryptography.Pal
+namespace	AS	Internal.Cryptography.Pal.AnyOS
 namespace	AS	JsonCons
 namespace	AS	JsonCons.JmesPath
 namespace	AS	Jsonite
@@ -842,8 +899,11 @@ namespace	AS	Microsoft.AspNetCore.Authentication
 namespace	AS	Microsoft.AspNetCore.Authentication.Abstractions
 namespace	AS	Microsoft.AspNetCore.Authentication.BearerToken
 namespace	AS	Microsoft.AspNetCore.Authentication.Cookies
+namespace	AS	Microsoft.AspNetCore.Authentication.JwtBearer
 namespace	AS	Microsoft.AspNetCore.Authentication.OAuth
 namespace	AS	Microsoft.AspNetCore.Authentication.OAuth.Claims
+namespace	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect
+namespace	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect.Claims
 namespace	AS	Microsoft.AspNetCore.Authorization
 namespace	AS	Microsoft.AspNetCore.Authorization.Infrastructure
 namespace	AS	Microsoft.AspNetCore.Authorization.Policy
@@ -1215,6 +1275,7 @@ namespace	AS	Microsoft.DotNet.PlatformAbstractions
 namespace	AS	Microsoft.Extensions
 namespace	AS	Microsoft.Extensions.AmbientMetadata
 namespace	AS	Microsoft.Extensions.ApiDescriptions
+namespace	AS	Microsoft.Extensions.Azure
 namespace	AS	Microsoft.Extensions.Caching
 namespace	AS	Microsoft.Extensions.Caching.Distributed
 namespace	AS	Microsoft.Extensions.Caching.Hybrid
@@ -1302,6 +1363,104 @@ namespace	AS	Microsoft.Extensions.Validation.Embedded
 namespace	AS	Microsoft.Extensions.WebEncoders
 namespace	AS	Microsoft.Extensions.WebEncoders.Sources
 namespace	AS	Microsoft.Extensions.WebEncoders.Testing
+namespace	AS	Microsoft.Identity
+namespace	AS	Microsoft.Identity.Abstractions
+namespace	AS	Microsoft.Identity.Client
+namespace	AS	Microsoft.Identity.Client.Advanced
+namespace	AS	Microsoft.Identity.Client.ApiConfig
+namespace	AS	Microsoft.Identity.Client.ApiConfig.Executors
+namespace	AS	Microsoft.Identity.Client.ApiConfig.Parameters
+namespace	AS	Microsoft.Identity.Client.AppConfig
+namespace	AS	Microsoft.Identity.Client.AuthScheme
+namespace	AS	Microsoft.Identity.Client.AuthScheme.Bearer
+namespace	AS	Microsoft.Identity.Client.AuthScheme.PoP
+namespace	AS	Microsoft.Identity.Client.AuthScheme.SSHCertificates
+namespace	AS	Microsoft.Identity.Client.Cache
+namespace	AS	Microsoft.Identity.Client.Cache.Items
+namespace	AS	Microsoft.Identity.Client.Cache.Keys
+namespace	AS	Microsoft.Identity.Client.Core
+namespace	AS	Microsoft.Identity.Client.Extensibility
+namespace	AS	Microsoft.Identity.Client.Extensions
+namespace	AS	Microsoft.Identity.Client.Extensions.Msal
+namespace	AS	Microsoft.Identity.Client.Extensions.Msal.Accessors
+namespace	AS	Microsoft.Identity.Client.Http
+namespace	AS	Microsoft.Identity.Client.Http.Retry
+namespace	AS	Microsoft.Identity.Client.Instance
+namespace	AS	Microsoft.Identity.Client.Instance.Discovery
+namespace	AS	Microsoft.Identity.Client.Instance.Oidc
+namespace	AS	Microsoft.Identity.Client.Instance.Validation
+namespace	AS	Microsoft.Identity.Client.Internal
+namespace	AS	Microsoft.Identity.Client.Internal.Broker
+namespace	AS	Microsoft.Identity.Client.Internal.ClientCredential
+namespace	AS	Microsoft.Identity.Client.Internal.Logger
+namespace	AS	Microsoft.Identity.Client.Internal.Requests
+namespace	AS	Microsoft.Identity.Client.Internal.Requests.Silent
+namespace	AS	Microsoft.Identity.Client.Kerberos
+namespace	AS	Microsoft.Identity.Client.ManagedIdentity
+namespace	AS	Microsoft.Identity.Client.ManagedIdentity.KeyProviders
+namespace	AS	Microsoft.Identity.Client.ManagedIdentity.V2
+namespace	AS	Microsoft.Identity.Client.OAuth2
+namespace	AS	Microsoft.Identity.Client.OAuth2.Throttling
+namespace	AS	Microsoft.Identity.Client.Platforms
+namespace	AS	Microsoft.Identity.Client.Platforms.Features
+namespace	AS	Microsoft.Identity.Client.Platforms.Features.DesktopOs
+namespace	AS	Microsoft.Identity.Client.Platforms.Features.DesktopOs.Kerberos
+namespace	AS	Microsoft.Identity.Client.Platforms.Features.OpenTelemetry
+namespace	AS	Microsoft.Identity.Client.Platforms.Shared
+namespace	AS	Microsoft.Identity.Client.Platforms.Shared.DefaultOSBrowser
+namespace	AS	Microsoft.Identity.Client.Platforms.Shared.Desktop
+namespace	AS	Microsoft.Identity.Client.Platforms.Shared.Desktop.OsBrowser
+namespace	AS	Microsoft.Identity.Client.Platforms.net
+namespace	AS	Microsoft.Identity.Client.Platforms.netstandard
+namespace	AS	Microsoft.Identity.Client.PlatformsCommon
+namespace	AS	Microsoft.Identity.Client.PlatformsCommon.Factories
+namespace	AS	Microsoft.Identity.Client.PlatformsCommon.Interfaces
+namespace	AS	Microsoft.Identity.Client.PlatformsCommon.Shared
+namespace	AS	Microsoft.Identity.Client.RP
+namespace	AS	Microsoft.Identity.Client.Region
+namespace	AS	Microsoft.Identity.Client.SSHCertificates
+namespace	AS	Microsoft.Identity.Client.TelemetryCore
+namespace	AS	Microsoft.Identity.Client.TelemetryCore.Http
+namespace	AS	Microsoft.Identity.Client.TelemetryCore.Internal
+namespace	AS	Microsoft.Identity.Client.TelemetryCore.Internal.Events
+namespace	AS	Microsoft.Identity.Client.TelemetryCore.OpenTelemetry
+namespace	AS	Microsoft.Identity.Client.TelemetryCore.TelemetryClient
+namespace	AS	Microsoft.Identity.Client.UI
+namespace	AS	Microsoft.Identity.Client.Utils
+namespace	AS	Microsoft.Identity.Client.Utils.Windows
+namespace	AS	Microsoft.Identity.Client.WsTrust
+namespace	AS	Microsoft.Identity.Extensions
+namespace	AS	Microsoft.Identity.Extensions.Mac
+namespace	AS	Microsoft.Identity.Web
+namespace	AS	Microsoft.Identity.Web.Certificateless
+namespace	AS	Microsoft.Identity.Web.Diagnostics
+namespace	AS	Microsoft.Identity.Web.Experimental
+namespace	AS	Microsoft.Identity.Web.Extensibility
+namespace	AS	Microsoft.Identity.Web.Hosts
+namespace	AS	Microsoft.Identity.Web.Internal
+namespace	AS	Microsoft.Identity.Web.PostConfigureOptions
+namespace	AS	Microsoft.Identity.Web.Resource
+namespace	AS	Microsoft.Identity.Web.TestOnly
+namespace	AS	Microsoft.Identity.Web.TokenCacheProviders
+namespace	AS	Microsoft.Identity.Web.TokenCacheProviders.Distributed
+namespace	AS	Microsoft.Identity.Web.TokenCacheProviders.InMemory
+namespace	AS	Microsoft.Identity.Web.TokenCacheProviders.Session
+namespace	AS	Microsoft.Identity.Web.Util
+namespace	AS	Microsoft.IdentityModel
+namespace	AS	Microsoft.IdentityModel.Abstractions
+namespace	AS	Microsoft.IdentityModel.JsonWebTokens
+namespace	AS	Microsoft.IdentityModel.Logging
+namespace	AS	Microsoft.IdentityModel.LoggingExtensions
+namespace	AS	Microsoft.IdentityModel.Protocols
+namespace	AS	Microsoft.IdentityModel.Protocols.Configuration
+namespace	AS	Microsoft.IdentityModel.Protocols.OpenIdConnect
+namespace	AS	Microsoft.IdentityModel.Protocols.OpenIdConnect.Configuration
+namespace	AS	Microsoft.IdentityModel.Telemetry
+namespace	AS	Microsoft.IdentityModel.Tokens
+namespace	AS	Microsoft.IdentityModel.Tokens.Configuration
+namespace	AS	Microsoft.IdentityModel.Tokens.Experimental
+namespace	AS	Microsoft.IdentityModel.Tokens.Json
+namespace	AS	Microsoft.IdentityModel.Validators
 namespace	AS	Microsoft.JSInterop
 namespace	AS	Microsoft.JSInterop.Implementation
 namespace	AS	Microsoft.JSInterop.Infrastructure
@@ -1933,6 +2092,9 @@ namespace	AS	System
 namespace	AS	System.Buffers
 namespace	AS	System.Buffers.Binary
 namespace	AS	System.Buffers.Text
+namespace	AS	System.ClientModel
+namespace	AS	System.ClientModel.Internal
+namespace	AS	System.ClientModel.Primitives
 namespace	AS	System.CodeDom
 namespace	AS	System.CodeDom.Compiler
 namespace	AS	System.Collections
@@ -1994,6 +2156,9 @@ namespace	AS	System.IO.IsolatedStorage
 namespace	AS	System.IO.MemoryMappedFiles
 namespace	AS	System.IO.Pipelines
 namespace	AS	System.IO.Pipes
+namespace	AS	System.IdentityModel
+namespace	AS	System.IdentityModel.Tokens
+namespace	AS	System.IdentityModel.Tokens.Jwt
 namespace	AS	System.Linq
 namespace	AS	System.Linq.Expressions
 namespace	AS	System.Net
@@ -2060,6 +2225,11 @@ namespace	AS	System.Security.Authentication
 namespace	AS	System.Security.Authentication.ExtendedProtection
 namespace	AS	System.Security.Claims
 namespace	AS	System.Security.Cryptography
+namespace	AS	System.Security.Cryptography.Asn1
+namespace	AS	System.Security.Cryptography.Asn1.Pkcs12
+namespace	AS	System.Security.Cryptography.Asn1.Pkcs7
+namespace	AS	System.Security.Cryptography.Pkcs
+namespace	AS	System.Security.Cryptography.Pkcs.Asn1
 namespace	AS	System.Security.Cryptography.X509Certificates
 namespace	AS	System.Security.Cryptography.Xml
 namespace	AS	System.Security.Permissions
@@ -5566,24 +5736,41 @@ type	AS	Cratis.Serialization	MissingTargetTypeForDerivedType	class
 type	AS	Cratis.Serialization	NamespacedNamingPolicy	class
 type	AS	Cratis.Serialization	NamingPolicy	class
 type	AS	Cratis.Serialization	TargetTypeMismatchForDerivedType	class
+type	AS	Cratis.Specifications	AmbiguousLifecycleMethod	class
+type	AS	Cratis.Specifications	AssertionFailureRegistration	static
 type	AS	Cratis.Specifications	Catch	static
+type	AS	Cratis.Specifications	PerFactSpecificationLifecycleAttribute	attribute
+type	AS	Cratis.Specifications	ReadableSpecificationNamesAttribute	attribute
 type	AS	Cratis.Specifications	ShouldCollectionExtensions	static
 type	AS	Cratis.Specifications	ShouldComparableExtensions	static
 type	AS	Cratis.Specifications	ShouldEqualityExtensions	static
 type	AS	Cratis.Specifications	ShouldStringExtensions	static
 type	AS	Cratis.Specifications	ShouldTypeExtensions	static
 type	AS	Cratis.Specifications	Specification	class
+type	AS	Cratis.Specifications	SpecificationAssertionException	class
 type	AS	Cratis.Specifications	SpecificationCancelledException	class
+type	AS	Cratis.Specifications	SpecificationDisplayNames	static
 type	AS	Cratis.Specifications	SpecificationMethods`2	static
+type	AS	Cratis.Specifications	SpecificationSessionHook	static
 type	AS	Cratis.Specifications	SpecificationTestAssemblyRunner	class
+type	AS	Cratis.Specifications	SpecificationTestCase	class
 type	AS	Cratis.Specifications	SpecificationTestCaseRunner	class
 type	AS	Cratis.Specifications	SpecificationTestClassRunner	class
 type	AS	Cratis.Specifications	SpecificationTestCollectionRunner	class
 type	AS	Cratis.Specifications	SpecificationTestFramework	class
+type	AS	Cratis.Specifications	SpecificationTestFrameworkDiscoverer	class
 type	AS	Cratis.Specifications	SpecificationTestFrameworkExecutor	class
 type	AS	Cratis.Specifications	SpecificationTestInvoker	class
 type	AS	Cratis.Specifications	SpecificationTestMethodRunner	class
 type	AS	Cratis.Specifications	SpecificationTestRunner	class
+type	AS	Cratis.Specifications	SpecificationTheoryTestCase	class
+type	AS	Cratis.Specifications.Resources	ISpecificationResource	interface
+type	AS	Cratis.Specifications.Resources	ISpecificationResource`1	interface
+type	AS	Cratis.Specifications.Resources	SpecificationLeaseContext	class
+type	AS	Cratis.Specifications.Resources	SpecificationResourceAttribute	attribute
+type	AS	Cratis.Specifications.Resources	SpecificationResourceOrderException	class
+type	AS	Cratis.Specifications.Resources	SpecificationResources	static
+type	AS	Cratis.Specifications.Resources	SpecificationResourcesHook	static
 type	AS	Cratis.Strings	StringExtensions	static
 type	AS	Cratis.Tasks	AsyncManualResetEvent	class
 type	AS	Cratis.Tasks	AwaitableHelpers	static
@@ -5735,6 +5922,131 @@ type	AS	FluentValidation.Validators	RangeValidatorFactory	static
 type	AS	FluentValidation.Validators	RangeValidator`2	class
 type	AS	FluentValidation.Validators	RegularExpressionValidator`1	class
 type	AS	FluentValidation.Validators	StringEnumValidator`1	class
+type	AS	Microsoft.AspNetCore.Authentication	AccessDeniedContext	class
+type	AS	Microsoft.AspNetCore.Authentication	AuthenticateResult	class
+type	AS	Microsoft.AspNetCore.Authentication	AuthenticationBuilder	class
+type	AS	Microsoft.AspNetCore.Authentication	AuthenticationConfigurationProviderExtensions	static
+type	AS	Microsoft.AspNetCore.Authentication	AuthenticationFailureException	class
+type	AS	Microsoft.AspNetCore.Authentication	AuthenticationFeature	class
+type	AS	Microsoft.AspNetCore.Authentication	AuthenticationHandlerProvider	class
+type	AS	Microsoft.AspNetCore.Authentication	AuthenticationHandler`1	class
+type	AS	Microsoft.AspNetCore.Authentication	AuthenticationHttpContextExtensions	static
+type	AS	Microsoft.AspNetCore.Authentication	AuthenticationMiddleware	class
+type	AS	Microsoft.AspNetCore.Authentication	AuthenticationOptions	class
+type	AS	Microsoft.AspNetCore.Authentication	AuthenticationProperties	class
+type	AS	Microsoft.AspNetCore.Authentication	AuthenticationScheme	class
+type	AS	Microsoft.AspNetCore.Authentication	AuthenticationSchemeBuilder	class
+type	AS	Microsoft.AspNetCore.Authentication	AuthenticationSchemeOptions	class
+type	AS	Microsoft.AspNetCore.Authentication	AuthenticationSchemeProvider	class
+type	AS	Microsoft.AspNetCore.Authentication	AuthenticationService	class
+type	AS	Microsoft.AspNetCore.Authentication	AuthenticationTicket	class
+type	AS	Microsoft.AspNetCore.Authentication	AuthenticationToken	class
+type	AS	Microsoft.AspNetCore.Authentication	AuthenticationTokenExtensions	static
+type	AS	Microsoft.AspNetCore.Authentication	Base64UrlTextEncoder	static
+type	AS	Microsoft.AspNetCore.Authentication	BaseContext`1	class
+type	AS	Microsoft.AspNetCore.Authentication	ClaimActionCollectionMapExtensions	static
+type	AS	Microsoft.AspNetCore.Authentication	ClaimActionCollectionUniqueExtensions	static
+type	AS	Microsoft.AspNetCore.Authentication	HandleRequestContext`1	class
+type	AS	Microsoft.AspNetCore.Authentication	HandleRequestResult	class
+type	AS	Microsoft.AspNetCore.Authentication	IAuthenticateResultFeature	interface
+type	AS	Microsoft.AspNetCore.Authentication	IAuthenticationConfigurationProvider	interface
+type	AS	Microsoft.AspNetCore.Authentication	IAuthenticationFeature	interface
+type	AS	Microsoft.AspNetCore.Authentication	IAuthenticationHandler	interface
+type	AS	Microsoft.AspNetCore.Authentication	IAuthenticationHandlerProvider	interface
+type	AS	Microsoft.AspNetCore.Authentication	IAuthenticationRequestHandler	interface
+type	AS	Microsoft.AspNetCore.Authentication	IAuthenticationSchemeProvider	interface
+type	AS	Microsoft.AspNetCore.Authentication	IAuthenticationService	interface
+type	AS	Microsoft.AspNetCore.Authentication	IAuthenticationSignInHandler	interface
+type	AS	Microsoft.AspNetCore.Authentication	IAuthenticationSignOutHandler	interface
+type	AS	Microsoft.AspNetCore.Authentication	IClaimsTransformation	interface
+type	AS	Microsoft.AspNetCore.Authentication	IDataSerializer`1	interface
+type	AS	Microsoft.AspNetCore.Authentication	ISecureDataFormat`1	interface
+type	AS	Microsoft.AspNetCore.Authentication	ISystemClock	interface
+type	AS	Microsoft.AspNetCore.Authentication	JsonDocumentAuthExtensions	static
+type	AS	Microsoft.AspNetCore.Authentication	NoopClaimsTransformation	class
+type	AS	Microsoft.AspNetCore.Authentication	PolicySchemeHandler	class
+type	AS	Microsoft.AspNetCore.Authentication	PolicySchemeOptions	class
+type	AS	Microsoft.AspNetCore.Authentication	PrincipalContext`1	class
+type	AS	Microsoft.AspNetCore.Authentication	PropertiesContext`1	class
+type	AS	Microsoft.AspNetCore.Authentication	PropertiesDataFormat	class
+type	AS	Microsoft.AspNetCore.Authentication	PropertiesSerializer	class
+type	AS	Microsoft.AspNetCore.Authentication	RedirectContext`1	class
+type	AS	Microsoft.AspNetCore.Authentication	RemoteAuthenticationContext`1	class
+type	AS	Microsoft.AspNetCore.Authentication	RemoteAuthenticationEvents	class
+type	AS	Microsoft.AspNetCore.Authentication	RemoteAuthenticationHandler`1	class
+type	AS	Microsoft.AspNetCore.Authentication	RemoteAuthenticationOptions	class
+type	AS	Microsoft.AspNetCore.Authentication	RemoteFailureContext	class
+type	AS	Microsoft.AspNetCore.Authentication	RequestPathBaseCookieBuilder	class
+type	AS	Microsoft.AspNetCore.Authentication	ResultContext`1	class
+type	AS	Microsoft.AspNetCore.Authentication	SecureDataFormat`1	class
+type	AS	Microsoft.AspNetCore.Authentication	SignInAuthenticationHandler`1	class
+type	AS	Microsoft.AspNetCore.Authentication	SignOutAuthenticationHandler`1	class
+type	AS	Microsoft.AspNetCore.Authentication	SystemClock	class
+type	AS	Microsoft.AspNetCore.Authentication	TicketDataFormat	class
+type	AS	Microsoft.AspNetCore.Authentication	TicketReceivedContext	class
+type	AS	Microsoft.AspNetCore.Authentication	TicketSerializer	class
+type	AS	Microsoft.AspNetCore.Authentication.BearerToken	AccessTokenResponse	class
+type	AS	Microsoft.AspNetCore.Authentication.BearerToken	BearerTokenDefaults	static
+type	AS	Microsoft.AspNetCore.Authentication.BearerToken	BearerTokenEvents	class
+type	AS	Microsoft.AspNetCore.Authentication.BearerToken	BearerTokenOptions	class
+type	AS	Microsoft.AspNetCore.Authentication.BearerToken	MessageReceivedContext	class
+type	AS	Microsoft.AspNetCore.Authentication.Cookies	ChunkingCookieManager	class
+type	AS	Microsoft.AspNetCore.Authentication.Cookies	CookieAuthenticationDefaults	static
+type	AS	Microsoft.AspNetCore.Authentication.Cookies	CookieAuthenticationEvents	class
+type	AS	Microsoft.AspNetCore.Authentication.Cookies	CookieAuthenticationHandler	class
+type	AS	Microsoft.AspNetCore.Authentication.Cookies	CookieAuthenticationOptions	class
+type	AS	Microsoft.AspNetCore.Authentication.Cookies	CookieSignedInContext	class
+type	AS	Microsoft.AspNetCore.Authentication.Cookies	CookieSigningInContext	class
+type	AS	Microsoft.AspNetCore.Authentication.Cookies	CookieSigningOutContext	class
+type	AS	Microsoft.AspNetCore.Authentication.Cookies	CookieSlidingExpirationContext	class
+type	AS	Microsoft.AspNetCore.Authentication.Cookies	CookieValidatePrincipalContext	class
+type	AS	Microsoft.AspNetCore.Authentication.Cookies	ICookieManager	interface
+type	AS	Microsoft.AspNetCore.Authentication.Cookies	ITicketStore	interface
+type	AS	Microsoft.AspNetCore.Authentication.Cookies	PostConfigureCookieAuthenticationOptions	class
+type	AS	Microsoft.AspNetCore.Authentication.JwtBearer	AuthenticationFailedContext	class
+type	AS	Microsoft.AspNetCore.Authentication.JwtBearer	ForbiddenContext	class
+type	AS	Microsoft.AspNetCore.Authentication.JwtBearer	JwtBearerChallengeContext	class
+type	AS	Microsoft.AspNetCore.Authentication.JwtBearer	JwtBearerDefaults	static
+type	AS	Microsoft.AspNetCore.Authentication.JwtBearer	JwtBearerEvents	class
+type	AS	Microsoft.AspNetCore.Authentication.JwtBearer	JwtBearerHandler	class
+type	AS	Microsoft.AspNetCore.Authentication.JwtBearer	JwtBearerOptions	class
+type	AS	Microsoft.AspNetCore.Authentication.JwtBearer	JwtBearerPostConfigureOptions	class
+type	AS	Microsoft.AspNetCore.Authentication.JwtBearer	MessageReceivedContext	class
+type	AS	Microsoft.AspNetCore.Authentication.JwtBearer	TokenValidatedContext	class
+type	AS	Microsoft.AspNetCore.Authentication.OAuth	OAuthChallengeProperties	class
+type	AS	Microsoft.AspNetCore.Authentication.OAuth	OAuthCodeExchangeContext	class
+type	AS	Microsoft.AspNetCore.Authentication.OAuth	OAuthConstants	static
+type	AS	Microsoft.AspNetCore.Authentication.OAuth	OAuthCreatingTicketContext	class
+type	AS	Microsoft.AspNetCore.Authentication.OAuth	OAuthDefaults	static
+type	AS	Microsoft.AspNetCore.Authentication.OAuth	OAuthEvents	class
+type	AS	Microsoft.AspNetCore.Authentication.OAuth	OAuthHandler`1	class
+type	AS	Microsoft.AspNetCore.Authentication.OAuth	OAuthOptions	class
+type	AS	Microsoft.AspNetCore.Authentication.OAuth	OAuthTokenResponse	class
+type	AS	Microsoft.AspNetCore.Authentication.OAuth.Claims	ClaimAction	class
+type	AS	Microsoft.AspNetCore.Authentication.OAuth.Claims	ClaimActionCollection	class
+type	AS	Microsoft.AspNetCore.Authentication.OAuth.Claims	CustomJsonClaimAction	class
+type	AS	Microsoft.AspNetCore.Authentication.OAuth.Claims	DeleteClaimAction	class
+type	AS	Microsoft.AspNetCore.Authentication.OAuth.Claims	JsonKeyClaimAction	class
+type	AS	Microsoft.AspNetCore.Authentication.OAuth.Claims	JsonSubKeyClaimAction	class
+type	AS	Microsoft.AspNetCore.Authentication.OAuth.Claims	MapAllClaimsAction	class
+type	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect	AuthenticationFailedContext	class
+type	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect	AuthorizationCodeReceivedContext	class
+type	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect	MessageReceivedContext	class
+type	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect	OpenIdConnectChallengeProperties	class
+type	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect	OpenIdConnectDefaults	static
+type	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect	OpenIdConnectEvents	class
+type	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect	OpenIdConnectHandler	class
+type	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect	OpenIdConnectOptions	class
+type	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect	OpenIdConnectPostConfigureOptions	class
+type	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect	OpenIdConnectRedirectBehavior	enum
+type	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect	PushedAuthorizationBehavior	enum
+type	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect	PushedAuthorizationContext	class
+type	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect	RedirectContext	class
+type	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect	RemoteSignOutContext	class
+type	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect	TokenResponseReceivedContext	class
+type	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect	TokenValidatedContext	class
+type	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect	UserInformationReceivedContext	class
+type	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect.Claims	UniqueJsonKeyClaimAction	class
 type	AS	Microsoft.AspNetCore.Builder	AntiforgeryApplicationBuilderExtensions	static
 type	AS	Microsoft.AspNetCore.Builder	ApplicationBuilder	class
 type	AS	Microsoft.AspNetCore.Builder	ApplicationBuilderExtensions	static
@@ -6179,6 +6491,7 @@ type	AS	Microsoft.Extensions.DependencyInjection	ISupportRequiredService	interfa
 type	AS	Microsoft.Extensions.DependencyInjection	IdentityProviderServiceCollectionExtensions	static
 type	AS	Microsoft.Extensions.DependencyInjection	IdentityServiceCollectionExtensions	static
 type	AS	Microsoft.Extensions.DependencyInjection	JsonProtocolDependencyInjectionExtensions	static
+type	AS	Microsoft.Extensions.DependencyInjection	JwtBearerExtensions	static
 type	AS	Microsoft.Extensions.DependencyInjection	KeyedService	static
 type	AS	Microsoft.Extensions.DependencyInjection	LatencyConsoleExtensions	static
 type	AS	Microsoft.Extensions.DependencyInjection	LatencyContextExtensions	static
@@ -6215,6 +6528,7 @@ type	AS	Microsoft.Extensions.DependencyInjection	OAuthPostConfigureOptions`2	cla
 type	AS	Microsoft.Extensions.DependencyInjection	ObjectFactory	delegate
 type	AS	Microsoft.Extensions.DependencyInjection	ObjectFactory`1	delegate
 type	AS	Microsoft.Extensions.DependencyInjection	OccurrenceLifecycleServiceCollectionExtensions	static
+type	AS	Microsoft.Extensions.DependencyInjection	OpenIdConnectExtensions	static
 type	AS	Microsoft.Extensions.DependencyInjection	OpenTelemetryServicesExtensions	static
 type	AS	Microsoft.Extensions.DependencyInjection	OptionsBuilderConfigurationExtensions	static
 type	AS	Microsoft.Extensions.DependencyInjection	OptionsBuilderDataAnnotationsExtensions	static
@@ -6352,6 +6666,127 @@ type	AS	Microsoft.Extensions.Logging	SamplingLoggerBuilderExtensions	static
 type	AS	Microsoft.Extensions.Logging	TagNameAttribute	attribute
 type	AS	Microsoft.Extensions.Logging	TagProviderAttribute	attribute
 type	AS	Microsoft.Extensions.Logging	TraceSourceFactoryExtensions	static
+type	AS	Microsoft.Identity.Web	AadIssuerValidatorOptions	class
+type	AS	Microsoft.Identity.Web	AccountExtensions	static
+type	AS	Microsoft.Identity.Web	AppServicesAuthenticationBuilderExtensions	static
+type	AS	Microsoft.Identity.Web	AppServicesAuthenticationDefaults	static
+type	AS	Microsoft.Identity.Web	AppServicesAuthenticationHandler	class
+type	AS	Microsoft.Identity.Web	AppServicesAuthenticationInformation	static
+type	AS	Microsoft.Identity.Web	AppServicesAuthenticationOptions	class
+type	AS	Microsoft.Identity.Web	AppServicesAuthenticationTokenAcquisition	class
+type	AS	Microsoft.Identity.Web	ApplicationBuilderExtensions	static
+type	AS	Microsoft.Identity.Web	AuthorizeForScopesAttribute	attribute
+type	AS	Microsoft.Identity.Web	AzureFunctionsAuthenticationHttpContextExtension	static
+type	AS	Microsoft.Identity.Web	AzureIdentityForKubernetesClientAssertion	class
+type	AS	Microsoft.Identity.Web	BeforeOnBehalfOfInitialized	delegate
+type	AS	Microsoft.Identity.Web	BeforeOnBehalfOfInitializedAsync	delegate
+type	AS	Microsoft.Identity.Web	BeforeTokenAcquisitionForApp	delegate
+type	AS	Microsoft.Identity.Web	BeforeTokenAcquisitionForOnBehalfOf	delegate
+type	AS	Microsoft.Identity.Web	BeforeTokenAcquisitionForOnBehalfOfAsync	delegate
+type	AS	Microsoft.Identity.Web	BeforeTokenAcquisitionForTestUser	delegate
+type	AS	Microsoft.Identity.Web	BeforeTokenAcquisitionForTestUserAsync	delegate
+type	AS	Microsoft.Identity.Web	BlazorAuthenticationChallengeHandler	class
+type	AS	Microsoft.Identity.Web	CertificateDescription	class
+type	AS	Microsoft.Identity.Web	CertificateSource	enum
+type	AS	Microsoft.Identity.Web	CertificatelessOptions	class
+type	AS	Microsoft.Identity.Web	ClaimConstants	static
+type	AS	Microsoft.Identity.Web	ClaimsPrincipalExtensions	static
+type	AS	Microsoft.Identity.Web	ClaimsPrincipalFactory	static
+type	AS	Microsoft.Identity.Web	ClientAssertion	class
+type	AS	Microsoft.Identity.Web	ClientAssertionCredentialSourceLoaderParameters	class
+type	AS	Microsoft.Identity.Web	ClientAssertionProviderBase	class
+type	AS	Microsoft.Identity.Web	CloudMetadataServiceCollectionExtensions	static
+type	AS	Microsoft.Identity.Web	Constants	static
+type	AS	Microsoft.Identity.Web	CookiePolicyOptionsExtensions	static
+type	AS	Microsoft.Identity.Web	DefaultCertificateLoader	class
+type	AS	Microsoft.Identity.Web	DefaultCredentialsLoader	class
+type	AS	Microsoft.Identity.Web	DownstreamWebApi	class
+type	AS	Microsoft.Identity.Web	DownstreamWebApiExtensions	static
+type	AS	Microsoft.Identity.Web	DownstreamWebApiGenericExtensions	static
+type	AS	Microsoft.Identity.Web	DownstreamWebApiOptions	class
+type	AS	Microsoft.Identity.Web	HttpRequestMessageAuthenticationExtensions	static
+type	AS	Microsoft.Identity.Web	IAuthRequiredScopeMetadata	interface
+type	AS	Microsoft.Identity.Web	IAuthRequiredScopeOrAppPermissionMetadata	interface
+type	AS	Microsoft.Identity.Web	IAuthenticationSchemeInformationProvider	interface
+type	AS	Microsoft.Identity.Web	ICertificateLoader	interface
+type	AS	Microsoft.Identity.Web	IClientAssertionEnrichmentOptions	interface
+type	AS	Microsoft.Identity.Web	ICredentialsProvider	interface
+type	AS	Microsoft.Identity.Web	IDownstreamWebApi	interface
+type	AS	Microsoft.Identity.Web	IKeyAttestationProvider	interface
+type	AS	Microsoft.Identity.Web	ILoginErrorAccessor	interface
+type	AS	Microsoft.Identity.Web	IMicrosoftIdentityAuthenticationDelegatingHandlerFactory	interface
+type	AS	Microsoft.Identity.Web	ITokenAcquisition	interface
+type	AS	Microsoft.Identity.Web	LoginLogoutEndpointRouteBuilderExtensions	static
+type	AS	Microsoft.Identity.Web	ManagedIdentityClientAssertion	class
+type	AS	Microsoft.Identity.Web	MicrosoftIdentityAppAuthenticationMessageHandler	class
+type	AS	Microsoft.Identity.Web	MicrosoftIdentityAppCallsWebApiAuthenticationBuilder	class
+type	AS	Microsoft.Identity.Web	MicrosoftIdentityAppCallsWebApiAuthenticationBuilderExtension	static
+type	AS	Microsoft.Identity.Web	MicrosoftIdentityAuthenticationBaseMessageHandler	class
+type	AS	Microsoft.Identity.Web	MicrosoftIdentityAuthenticationBaseOptions	class
+type	AS	Microsoft.Identity.Web	MicrosoftIdentityAuthenticationException	class
+type	AS	Microsoft.Identity.Web	MicrosoftIdentityAuthenticationMessageHandlerHttpClientBuilderExtensions	static
+type	AS	Microsoft.Identity.Web	MicrosoftIdentityAuthenticationMessageHandlerOptions	class
+type	AS	Microsoft.Identity.Web	MicrosoftIdentityBaseAuthenticationBuilder	class
+type	AS	Microsoft.Identity.Web	MicrosoftIdentityBlazorServiceCollectionExtensions	static
+type	AS	Microsoft.Identity.Web	MicrosoftIdentityConsentAndConditionalAccessHandler	class
+type	AS	Microsoft.Identity.Web	MicrosoftIdentityHttpClientBuilderExtensions	static
+type	AS	Microsoft.Identity.Web	MicrosoftIdentityMessageHandler	class
+type	AS	Microsoft.Identity.Web	MicrosoftIdentityMessageHandlerOptions	class
+type	AS	Microsoft.Identity.Web	MicrosoftIdentityOptions	class
+type	AS	Microsoft.Identity.Web	MicrosoftIdentityUserAuthenticationMessageHandler	class
+type	AS	Microsoft.Identity.Web	MicrosoftIdentityWebApiAuthenticationBuilder	class
+type	AS	Microsoft.Identity.Web	MicrosoftIdentityWebApiAuthenticationBuilderExtensions	static
+type	AS	Microsoft.Identity.Web	MicrosoftIdentityWebApiAuthenticationBuilderWithConfiguration	class
+type	AS	Microsoft.Identity.Web	MicrosoftIdentityWebApiServiceCollectionExtensions	static
+type	AS	Microsoft.Identity.Web	MicrosoftIdentityWebAppAuthenticationBuilder	class
+type	AS	Microsoft.Identity.Web	MicrosoftIdentityWebAppAuthenticationBuilderExtensions	static
+type	AS	Microsoft.Identity.Web	MicrosoftIdentityWebAppAuthenticationBuilderWithConfiguration	class
+type	AS	Microsoft.Identity.Web	MicrosoftIdentityWebAppServiceCollectionExtensions	static
+type	AS	Microsoft.Identity.Web	MicrosoftIdentityWebChallengeUserException	class
+type	AS	Microsoft.Identity.Web	MsalMtlsHttpClientFactory	class
+type	AS	Microsoft.Identity.Web	OnBehalfOfEventArgs	class
+type	AS	Microsoft.Identity.Web	PolicyBuilderExtensions	static
+type	AS	Microsoft.Identity.Web	PrincipalExtensionsForSecurityTokens	static
+type	AS	Microsoft.Identity.Web	RequiredScopeExtensions	static
+type	AS	Microsoft.Identity.Web	RequiredScopeOrAppPermissionExtensions	static
+type	AS	Microsoft.Identity.Web	ScopeAuthorizationRequirement	class
+type	AS	Microsoft.Identity.Web	ScopeOrAppPermissionAuthorizationRequirement	class
+type	AS	Microsoft.Identity.Web	ServiceCollectionExtensions	static
+type	AS	Microsoft.Identity.Web	TokenAcquirerExtensions	static
+type	AS	Microsoft.Identity.Web	TokenAcquirerFactory	class
+type	AS	Microsoft.Identity.Web	TokenAcquisitionAppTokenCredential	class
+type	AS	Microsoft.Identity.Web	TokenAcquisitionExtensionOptions	class
+type	AS	Microsoft.Identity.Web	TokenAcquisitionOptions	class
+type	AS	Microsoft.Identity.Web	TokenAcquisitionTokenCredential	class
+type	AS	Microsoft.Identity.Web	TokenCacheExtensions	static
+type	AS	Microsoft.Identity.Web.Experimental	CerticateObserverAction	enum
+type	AS	Microsoft.Identity.Web.Experimental	CertificateChangeEventArg	class
+type	AS	Microsoft.Identity.Web.Experimental	ICertificatesObserver	interface
+type	AS	Microsoft.Identity.Web.Extensibility	BaseAuthorizationHeaderProvider	class
+type	AS	Microsoft.Identity.Web.Extensibility	IConfidentialClientApplicationProvider	interface
+type	AS	Microsoft.Identity.Web.Extensibility	TokenAcquisitionOptionsExtensions	static
+type	AS	Microsoft.Identity.Web.Internal	WebApiBuilders	static
+type	AS	Microsoft.Identity.Web.Resource	IJwtBearerMiddlewareDiagnostics	interface
+type	AS	Microsoft.Identity.Web.Resource	IOpenIdConnectMiddlewareDiagnostics	interface
+type	AS	Microsoft.Identity.Web.Resource	JwtBearerMiddlewareDiagnostics	class
+type	AS	Microsoft.Identity.Web.Resource	MicrosoftIdentityIssuerValidatorFactory	class
+type	AS	Microsoft.Identity.Web.Resource	OpenIdConnectMiddlewareDiagnostics	class
+type	AS	Microsoft.Identity.Web.Resource	RequiredScopeAttribute	attribute
+type	AS	Microsoft.Identity.Web.Resource	RequiredScopeOrAppPermissionAttribute	attribute
+type	AS	Microsoft.Identity.Web.Resource	RolesRequiredHttpContextExtensions	static
+type	AS	Microsoft.Identity.Web.Resource	ScopesRequiredHttpContextExtensions	static
+type	AS	Microsoft.Identity.Web.TestOnly	TokenAcquirerFactoryTesting	static
+type	AS	Microsoft.Identity.Web.TokenCacheProviders	CacheSerializerHints	class
+type	AS	Microsoft.Identity.Web.TokenCacheProviders	IMsalTokenCacheProvider	interface
+type	AS	Microsoft.Identity.Web.TokenCacheProviders	MsalAbstractTokenCacheProvider	class
+type	AS	Microsoft.Identity.Web.TokenCacheProviders.Distributed	DistributedTokenCacheAdapterExtension	static
+type	AS	Microsoft.Identity.Web.TokenCacheProviders.Distributed	MsalDistributedTokenCacheAdapter	class
+type	AS	Microsoft.Identity.Web.TokenCacheProviders.Distributed	MsalDistributedTokenCacheAdapterOptions	class
+type	AS	Microsoft.Identity.Web.TokenCacheProviders.InMemory	InMemoryTokenCacheProviderExtension	static
+type	AS	Microsoft.Identity.Web.TokenCacheProviders.InMemory	MsalMemoryTokenCacheOptions	class
+type	AS	Microsoft.Identity.Web.TokenCacheProviders.InMemory	MsalMemoryTokenCacheProvider	class
+type	AS	Microsoft.Identity.Web.TokenCacheProviders.Session	MsalSessionTokenCacheProvider	class
+type	AS	Microsoft.Identity.Web.TokenCacheProviders.Session	SessionTokenCacheProviderExtension	static
 type	AS	MongoDB.Bson	BinaryVectorAttribute	attribute
 type	AS	MongoDB.Bson	BinaryVectorDataType	enum
 type	AS	MongoDB.Bson	BinaryVectorFloat32	class
@@ -8321,6 +8756,61 @@ type	AS	System.Buffers.Text	Base64	static
 type	AS	System.Buffers.Text	Base64Url	static
 type	AS	System.Buffers.Text	Utf8Formatter	static
 type	AS	System.Buffers.Text	Utf8Parser	static
+type	AS	System.ClientModel	ApiKeyCredential	class
+type	AS	System.ClientModel	AsyncCollectionResult`1	class
+type	AS	System.ClientModel	AuthenticationTokenProvider	class
+type	AS	System.ClientModel	BinaryContent	class
+type	AS	System.ClientModel	ClientResult	class
+type	AS	System.ClientModel	ClientResultException	class
+type	AS	System.ClientModel	ClientResult`1	class
+type	AS	System.ClientModel	CollectionResult`1	class
+type	AS	System.ClientModel	ContinuationToken	class
+type	AS	System.ClientModel.Primitives	ActivityExtensions	static
+type	AS	System.ClientModel.Primitives	ApiKeyAuthenticationPolicy	class
+type	AS	System.ClientModel.Primitives	AsyncCollectionResult	class
+type	AS	System.ClientModel.Primitives	AuthenticationPolicy	class
+type	AS	System.ClientModel.Primitives	AuthenticationToken	class
+type	AS	System.ClientModel.Primitives	BearerTokenPolicy	class
+type	AS	System.ClientModel.Primitives	ClientCache	class
+type	AS	System.ClientModel.Primitives	ClientConnection	struct
+type	AS	System.ClientModel.Primitives	ClientConnectionCollection	class
+type	AS	System.ClientModel.Primitives	ClientConnectionProvider	class
+type	AS	System.ClientModel.Primitives	ClientErrorBehaviors	enum
+type	AS	System.ClientModel.Primitives	ClientLoggingOptions	class
+type	AS	System.ClientModel.Primitives	ClientPipeline	class
+type	AS	System.ClientModel.Primitives	ClientPipelineOptions	class
+type	AS	System.ClientModel.Primitives	ClientRetryPolicy	class
+type	AS	System.ClientModel.Primitives	CollectionResult	class
+type	AS	System.ClientModel.Primitives	CredentialKind	enum
+type	AS	System.ClientModel.Primitives	GetTokenOptions	class
+type	AS	System.ClientModel.Primitives	HttpClientPipelineTransport	class
+type	AS	System.ClientModel.Primitives	IJsonModel`1	interface
+type	AS	System.ClientModel.Primitives	IPersistableModel`1	interface
+type	AS	System.ClientModel.Primitives	JsonModelConverter	class
+type	AS	System.ClientModel.Primitives	JsonPatch	struct
+type	AS	System.ClientModel.Primitives	JsonPatch+EncodedValue	struct
+type	AS	System.ClientModel.Primitives	JsonPatch+PropagatorGetter	delegate
+type	AS	System.ClientModel.Primitives	JsonPatch+PropagatorSetter	delegate
+type	AS	System.ClientModel.Primitives	MessageLoggingPolicy	class
+type	AS	System.ClientModel.Primitives	ModelReaderWriter	static
+type	AS	System.ClientModel.Primitives	ModelReaderWriterBuildableAttribute	attribute
+type	AS	System.ClientModel.Primitives	ModelReaderWriterContext	class
+type	AS	System.ClientModel.Primitives	ModelReaderWriterContextTypeAttribute	attribute
+type	AS	System.ClientModel.Primitives	ModelReaderWriterOptions	class
+type	AS	System.ClientModel.Primitives	ModelReaderWriterTypeBuilder	class
+type	AS	System.ClientModel.Primitives	OperationResult	class
+type	AS	System.ClientModel.Primitives	PersistableModelProxyAttribute	attribute
+type	AS	System.ClientModel.Primitives	PipelineMessage	class
+type	AS	System.ClientModel.Primitives	PipelineMessageClassifier	class
+type	AS	System.ClientModel.Primitives	PipelinePolicy	class
+type	AS	System.ClientModel.Primitives	PipelinePosition	enum
+type	AS	System.ClientModel.Primitives	PipelineRequest	class
+type	AS	System.ClientModel.Primitives	PipelineRequestHeaders	class
+type	AS	System.ClientModel.Primitives	PipelineResponse	class
+type	AS	System.ClientModel.Primitives	PipelineResponseHeaders	class
+type	AS	System.ClientModel.Primitives	PipelineTransport	class
+type	AS	System.ClientModel.Primitives	RequestOptions	class
+type	AS	System.ClientModel.Primitives	UserAgentPolicy	class
 type	AS	System.CodeDom.Compiler	GeneratedCodeAttribute	attribute
 type	AS	System.CodeDom.Compiler	IndentedTextWriter	class
 type	AS	System.Collections	ArrayList	class
@@ -9480,6 +9970,15 @@ type	AS	System.IO.Pipes	PipeStream	class
 type	AS	System.IO.Pipes	PipeStreamImpersonationWorker	delegate
 type	AS	System.IO.Pipes	PipeTransmissionMode	enum
 type	AS	System.IO.Pipes	PipesAclExtensions	static
+type	AS	System.IdentityModel.Tokens.Jwt	JsonClaimValueTypes	static
+type	AS	System.IdentityModel.Tokens.Jwt	JwtConstants	static
+type	AS	System.IdentityModel.Tokens.Jwt	JwtHeader	class
+type	AS	System.IdentityModel.Tokens.Jwt	JwtHeaderParameterNames	struct
+type	AS	System.IdentityModel.Tokens.Jwt	JwtPayload	class
+type	AS	System.IdentityModel.Tokens.Jwt	JwtRegisteredClaimNames	struct
+type	AS	System.IdentityModel.Tokens.Jwt	JwtSecurityToken	class
+type	AS	System.IdentityModel.Tokens.Jwt	JwtSecurityTokenConverter	static
+type	AS	System.IdentityModel.Tokens.Jwt	JwtSecurityTokenHandler	class
 type	AS	System.Linq	AsyncEnumerable	static
 type	AS	System.Linq	Enumerable	static
 type	AS	System.Linq	EnumerableExecutor	class
@@ -11268,6 +11767,9 @@ type	AS	System.Security.Cryptography	CompositeMLDsaCng	class
 type	AS	System.Security.Cryptography	CryptoConfig	class
 type	AS	System.Security.Cryptography	CryptoStream	class
 type	AS	System.Security.Cryptography	CryptoStreamMode	enum
+type	AS	System.Security.Cryptography	CryptographicAttributeObject	class
+type	AS	System.Security.Cryptography	CryptographicAttributeObjectCollection	class
+type	AS	System.Security.Cryptography	CryptographicAttributeObjectEnumerator	class
 type	AS	System.Security.Cryptography	CryptographicException	class
 type	AS	System.Security.Cryptography	CryptographicOperations	static
 type	AS	System.Security.Cryptography	CryptographicUnexpectedOperationException	class
@@ -11284,6 +11786,7 @@ type	AS	System.Security.Cryptography	DSAParameters	struct
 type	AS	System.Security.Cryptography	DSASignatureDeformatter	class
 type	AS	System.Security.Cryptography	DSASignatureFormat	enum
 type	AS	System.Security.Cryptography	DSASignatureFormatter	class
+type	AS	System.Security.Cryptography	DataProtectionScope	enum
 type	AS	System.Security.Cryptography	DeriveBytes	class
 type	AS	System.Security.Cryptography	ECAlgorithm	class
 type	AS	System.Security.Cryptography	ECCurve	struct
@@ -11347,6 +11850,7 @@ type	AS	System.Security.Cryptography	PbeEncryptionAlgorithm	enum
 type	AS	System.Security.Cryptography	PbeParameters	class
 type	AS	System.Security.Cryptography	PemEncoding	static
 type	AS	System.Security.Cryptography	PemFields	struct
+type	AS	System.Security.Cryptography	ProtectedData	static
 type	AS	System.Security.Cryptography	RC2	class
 type	AS	System.Security.Cryptography	RC2CryptoServiceProvider	class
 type	AS	System.Security.Cryptography	RNGCryptoServiceProvider	class
@@ -11398,6 +11902,50 @@ type	AS	System.Security.Cryptography	ToBase64Transform	class
 type	AS	System.Security.Cryptography	TripleDES	class
 type	AS	System.Security.Cryptography	TripleDESCng	class
 type	AS	System.Security.Cryptography	TripleDESCryptoServiceProvider	class
+type	AS	System.Security.Cryptography.Pkcs	AlgorithmIdentifier	class
+type	AS	System.Security.Cryptography.Pkcs	CmsRecipient	class
+type	AS	System.Security.Cryptography.Pkcs	CmsRecipientCollection	class
+type	AS	System.Security.Cryptography.Pkcs	CmsRecipientEnumerator	class
+type	AS	System.Security.Cryptography.Pkcs	CmsSigner	class
+type	AS	System.Security.Cryptography.Pkcs	ContentInfo	class
+type	AS	System.Security.Cryptography.Pkcs	EnvelopedCms	class
+type	AS	System.Security.Cryptography.Pkcs	KeyAgreeRecipientInfo	class
+type	AS	System.Security.Cryptography.Pkcs	KeyTransRecipientInfo	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs12Builder	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs12CertBag	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs12ConfidentialityMode	enum
+type	AS	System.Security.Cryptography.Pkcs	Pkcs12Info	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs12IntegrityMode	enum
+type	AS	System.Security.Cryptography.Pkcs	Pkcs12KeyBag	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs12SafeBag	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs12SafeContents	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs12SafeContentsBag	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs12SecretBag	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs12ShroudedKeyBag	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs8PrivateKeyInfo	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs9AttributeObject	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs9ContentType	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs9DocumentDescription	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs9DocumentName	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs9LocalKeyId	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs9MessageDigest	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs9SigningTime	class
+type	AS	System.Security.Cryptography.Pkcs	PublicKeyInfo	class
+type	AS	System.Security.Cryptography.Pkcs	RecipientInfo	class
+type	AS	System.Security.Cryptography.Pkcs	RecipientInfoCollection	class
+type	AS	System.Security.Cryptography.Pkcs	RecipientInfoEnumerator	class
+type	AS	System.Security.Cryptography.Pkcs	RecipientInfoType	enum
+type	AS	System.Security.Cryptography.Pkcs	Rfc3161TimestampRequest	class
+type	AS	System.Security.Cryptography.Pkcs	Rfc3161TimestampToken	class
+type	AS	System.Security.Cryptography.Pkcs	Rfc3161TimestampTokenInfo	class
+type	AS	System.Security.Cryptography.Pkcs	SignedCms	class
+type	AS	System.Security.Cryptography.Pkcs	SignerInfo	class
+type	AS	System.Security.Cryptography.Pkcs	SignerInfoCollection	class
+type	AS	System.Security.Cryptography.Pkcs	SignerInfoEnumerator	class
+type	AS	System.Security.Cryptography.Pkcs	SubjectIdentifier	class
+type	AS	System.Security.Cryptography.Pkcs	SubjectIdentifierOrKey	class
+type	AS	System.Security.Cryptography.Pkcs	SubjectIdentifierOrKeyType	enum
+type	AS	System.Security.Cryptography.Pkcs	SubjectIdentifierType	enum
 type	AS	System.Security.Cryptography.X509Certificates	CertificateRequest	class
 type	AS	System.Security.Cryptography.X509Certificates	CertificateRequestLoadOptions	enum
 type	AS	System.Security.Cryptography.X509Certificates	CertificateRevocationListBuilder	class
@@ -11425,6 +11973,7 @@ type	AS	System.Security.Cryptography.X509Certificates	X509Certificate2Collection
 type	AS	System.Security.Cryptography.X509Certificates	X509Certificate2Enumerator	class
 type	AS	System.Security.Cryptography.X509Certificates	X509CertificateCollection	class
 type	AS	System.Security.Cryptography.X509Certificates	X509CertificateCollection+X509CertificateEnumerator	class
+type	AS	System.Security.Cryptography.X509Certificates	X509CertificateKeyAccessors	static
 type	AS	System.Security.Cryptography.X509Certificates	X509CertificateLoader	static
 type	AS	System.Security.Cryptography.X509Certificates	X509Chain	class
 type	AS	System.Security.Cryptography.X509Certificates	X509ChainElement	class
@@ -11484,6 +12033,7 @@ type	AS	System.Security.Cryptography.Xml	SignedInfo	class
 type	AS	System.Security.Cryptography.Xml	SignedXml	class
 type	AS	System.Security.Cryptography.Xml	Transform	class
 type	AS	System.Security.Cryptography.Xml	TransformChain	class
+type	AS	System.Security.Cryptography.Xml	X509IssuerSerial	struct
 type	AS	System.Security.Cryptography.Xml	XmlDecryptionTransform	class
 type	AS	System.Security.Cryptography.Xml	XmlDsigBase64Transform	class
 type	AS	System.Security.Cryptography.Xml	XmlDsigC14NTransform	class
@@ -12540,19 +13090,26 @@ extensions	AS	Cratis.Orleans.Tenancy	AddTenancy
 extensions	AS	Cratis.Reactive	CompletedBy InvokeAndWrapWithSubject InvokeAndWrapWithTransformSubject
 extensions	AS	Cratis.Reflection	AllBaseAndImplementingTypes CallGenericMethod GetActualReturnType GetAsyncEnumerableElementType GetDefaultConstructor GetEnumerableElementType GetFieldInfo GetInstance GetKeyType GetKeyValuePairs GetMemberExpression GetMethodArguments GetMethodInfo GetNonDefaultConstructor GetNonDefaultConstructorWithGreatestNumberOfParameters GetNullableType GetPropertyInfo GetSettableProperties GetTypeInfoDetails GetTypeString GetValueType HasAttribute HasDefaultConstructor HasInterface HasNonDefaultConstructor HasVisibleProperties Implements ImplementsOpenGeneric Is IsAPrimitiveType IsAsync IsBoolean IsComparable IsDate IsDateOnly IsDateTimeOffset IsDelegate IsDerivedFromOpenGeneric IsDictionary IsEnumerable IsGuid IsNullable IsNullableContext IsNullableReferenceType IsNumericType IsRecord IsString IsTimeOnly IsTimeSpan Unwrap
 extensions	AS	Cratis.Screenplay.Semantics	GetAffectedInstances Keyword
-extensions	AS	Cratis.Specifications	ShouldBeAssignableFrom ShouldBeEmpty ShouldBeFalse ShouldBeGreaterThan ShouldBeGreaterThanOrEqual ShouldBeInRange ShouldBeLessThan ShouldBeLessThanOrEqual ShouldBeNull ShouldBeOfExactType ShouldBeSame ShouldBeTrue ShouldContain ShouldContainOnly ShouldContainSingleItem ShouldEachConformTo ShouldEqual ShouldMatch ShouldNotBeEmpty ShouldNotBeInRange ShouldNotBeNull ShouldNotBeSame ShouldNotBeSimilar ShouldNotContain ShouldNotEqual
+extensions	AS	Cratis.Specifications	ShouldBeAssignableFrom ShouldBeEmpty ShouldBeFalse ShouldBeGreaterThan ShouldBeGreaterThanOrEqual ShouldBeInRange ShouldBeLessThan ShouldBeLessThanOrEqual ShouldBeNull ShouldBeOfExactType ShouldBeSame ShouldBeTrue ShouldContain ShouldContainOnly ShouldContainSingleItem ShouldContainSingleMatching ShouldEachConformTo ShouldEqual ShouldEqualInAnyOrder ShouldEqualInOrder ShouldMatch ShouldNotBeEmpty ShouldNotBeInRange ShouldNotBeNull ShouldNotBeSame ShouldNotBeSimilar ShouldNotContain ShouldNotEqual
 extensions	AS	Cratis.Strings	ToCamelCase ToPascalCase
 extensions	AS	FluentValidation	Cascade ChildRules Configurable Configure CreditCard Custom CustomAsync EmailAddress Empty Equal ExclusiveBetween ForEach GreaterThan GreaterThanOrEqualTo InclusiveBetween IsEnumName IsInEnum Length LessThan LessThanOrEqualTo Matches MaximumLength MinimumLength Must MustAsync NotEmpty NotEqual NotNull Null OverrideIndexer OverridePropertyName PrecisionScale SetAsyncValidator SetInheritanceValidator SetValidator Unless UnlessAsync Validate ValidateAndThrow ValidateAndThrowAsync ValidateAsync When WhenAsync Where WhereAsync WithErrorCode WithMessage WithName WithSeverity WithState
 extensions	AS	FluentValidation.Internal	GetMember
 extensions	AS	FluentValidation.TestHelper	Only ShouldHaveChildValidator TestValidate TestValidateAsync When WhenAll WithCustomState WithErrorCode WithErrorMessage WithMessageArgument WithSeverity WithoutCustomState WithoutErrorCode WithoutErrorMessage WithoutSeverity
+extensions	AS	Microsoft.AspNetCore.Authentication	AuthenticateAsync ChallengeAsync DeleteClaim DeleteClaims ForbidAsync GetSchemeConfiguration GetString GetTokenAsync GetTokenValue GetTokens MapAll MapAllExcept MapCustomJson MapJsonKey MapJsonSubKey MapUniqueJsonKey SignInAsync SignOutAsync StoreTokens UpdateTokenValue
 extensions	AS	Microsoft.AspNetCore.Builder	AddAdditionalAssemblies AddCausation AddCorrelationIdLogEnricher AddCratisArc AddCratisChronicle AddCratisChronicleClient AddHostFiltering AddHsts AddHttpsRedirection AddInitialRequestCultureProvider AddInteractiveServerRenderMode AddRateLimiter AddResponseCompression AllowAnonymous AllowCookieRedirect DefaultModelExpandDepth DefaultModelRendering DefaultModelsExpandDepth DisableAntiforgery DisableCookieRedirect DisableHttpMetrics DisableRateLimiting DisableRequestTimeout DisableValidation DisplayOperationId DisplayRequestDuration DocExpansion EnableDeepLinking EnableFilter EnablePersistAuthorization EnableSwaggerDocumentUrlsEndpoint EnableTryItOutByDefault EnableValidator InjectJavascript InjectStylesheet Map MapAreaControllerRoute MapAreaRoute MapBlazorHub MapConnectionHandler MapConnections MapControllerRoute MapControllers MapCratisEventModel MapDefaultControllerRoute MapDelete MapDynamicControllerRoute MapDynamicPageRoute MapFallback MapFallbackToAreaController MapFallbackToAreaPage MapFallbackToController MapFallbackToFile MapFallbackToPage MapGet MapGroup MapHealthChecks MapHub MapIdentityProvider MapIntrospectionEndpoints MapMethods MapPatch MapPost MapPut MapRazorComponents MapRazorPages MapRoute MapStaticAssets MapSwagger MapSwaggerUI MapWhen MaxDisplayedTags OAuth2RedirectUrl OAuthAdditionalQueryStringParams OAuthAppName OAuthClientId OAuthClientSecret OAuthRealm OAuthScopeSeparator OAuthScopes OAuthUseBasicAuthenticationWithAccessCodeGrant OAuthUsePkce OAuthUsername RequireAuthorization RequireCors RequireHost RequireRateLimiting Run ShortCircuit ShowCommonExtensions ShowExtensions SupportedSubmitMethods SwaggerEndpoint Use UseAntiforgery UseAuthentication UseAuthorization UseCertificateForwarding UseCommandEndpoints UseCookiePolicy UseCors UseCratisArc UseCratisChronicle UseCratisEventModelViewer UseDefaultFiles UseDeveloperExceptionPage UseDirectoryBrowser UseEndpoints UseExceptionHandler UseFileServer UseForwardedHeaders UseHealthChecks UseHostFiltering UseHsts UseHttpLogging UseHttpMethodOverride UseHttpsRedirection UseInvariantCulture UseMiddleware UseMvc UseMvcWithDefaultRoute UseObservableQueryDemultiplexer UseOutputCache UsePathBase UseQueryEndpoints UseRateLimiter UseRequestDecompression UseRequestInterceptor UseRequestTimeouts UseResponseCaching UseResponseCompression UseResponseInterceptor UseRewriter UseRouter UseRouting UseSession UseStaticFiles UseStatusCodePages UseStatusCodePagesWithReExecute UseStatusCodePagesWithRedirects UseSwagger UseSwaggerUI UseW3CLogging UseWebSockets UseWelcomePage UseWhen WithChronicle WithDisplayName WithFormMappingOptions WithFormOptions WithGroupName WithHttpHeaderNamespaceResolver WithHttpLogging WithMetadata WithName WithOrder WithRequestTimeout WithStaticAssets WithSubdomainNamespaceResolver
 extensions	AS	Microsoft.AspNetCore.Hosting	CaptureStartupErrors Configure ConfigureAppConfiguration ConfigureKestrel ConfigureLogging IsDevelopment IsEnvironment IsProduction IsStaging PreferHostingUrls Run RunAsync Start StopAsync SuppressStatusMessages UseConfiguration UseConnectionLogging UseContentRoot UseDefaultServiceProvider UseEnvironment UseHttpSys UseHttps UseIIS UseKestrel UseKestrelCore UseKestrelHttpsConfiguration UseNamedPipes UseQuic UseServer UseShutdownTimeout UseSockets UseStartup UseStaticWebAssets UseSystemd UseUrls UseWebRoot WaitForShutdown WaitForShutdownAsync
 extensions	AS	Microsoft.AspNetCore.Http	Accepts AddEndpointFilter AddEndpointFilterFactory Append AppendCommaSeparatedValues AppendList AppendTrailer CheckTrailersAvailable Clear DeclareTrailer EnableBuffering ExcludeFromDescription Get GetCommaSeparatedValues GetCorrelationId GetDeclaredTrailers GetEndpoint GetInt32 GetServerVariable GetString GetTrailer GetTypedHeaders HasJsonContentType Produces ProducesProblem ProducesValidationProblem ReadFormAsync ReadFromJsonAsync Redirect SendFileAsync SetCommaSeparatedValues SetEndpoint SetInt32 SetString SupportsTrailers WithDescription WithSummary WithTags WriteAsJsonAsync WriteAsync
 extensions	AS	Microsoft.AspNetCore.Routing	EndpointExists EndpointNames GetPathByAction GetPathByName GetPathByPage GetPathByRouteValues GetRouteData GetRouteValue GetUriByAction GetUriByName GetUriByPage GetUriByRouteValues MapDelete MapGet MapIdentityApi MapMiddlewareDelete MapMiddlewareGet MapMiddlewarePost MapMiddlewarePut MapMiddlewareRoute MapMiddlewareVerb MapPost MapPut MapRoute MapShortCircuit MapVerb ParsePathByEndpointName
 extensions	AS	Microsoft.Extensions.Configuration	Add AddApplicationMetadata AddCommandLine AddConfiguration AddEnvironmentVariables AddInMemoryCollection AddIniFile AddIniStream AddJsonFile AddJsonStream AddKeyPerFile AddUserSecrets AddXmlFile AddXmlStream AsEnumerable Bind Exists Get GetConnectionString GetDebugView GetFileLoadExceptionHandler GetFileProvider GetRequiredSection GetValue SetBasePath SetFileLoadExceptionHandler SetFileProvider
-extensions	AS	Microsoft.Extensions.DependencyInjection	ActivateKeyedSingleton ActivateSingleton Add AddActivatedKeyedSingleton AddActivatedSingleton AddAggregateRoots AddAntiforgery AddApiExplorer AddApplicationLogEnricher AddApplicationMetadata AddApplicationPart AddAreaPageRoute AddAsKeyed AddAsyncCheck AddAuthentication AddAuthenticationCore AddAuthorization AddAuthorizationBuilder AddAuthorizationCore AddAuthorizationPolicyEvaluator AddBearerToken AddCQRS AddCacheTagHelper AddCacheTagHelperLimits AddCamelCaseNamingPolicy AddCascadingAuthenticationState AddCascadingValue AddCertificateForwarding AddCheck AddChronicleHealthCheck AddChronicleOccurrenceLifecycle AddCircuitOptions AddCommandAwareDecisionReads AddCompliance AddConnectionResolution AddConnections AddConsoleLatencyDataExporter AddControllers AddControllersAsServices AddControllersFromProjectReferencedAssembles AddControllersWithViews AddCookie AddCookiePolicy AddCookieTempDataProvider AddCorrelationId AddCors AddCratisEventModelViewer AddDataAnnotations AddDataAnnotationsLocalization AddDataProtection AddDefaultLogger AddDefaultNamingPolicy AddDirectoryBrowser AddDistributedMemoryCache AddDocumentAsyncFilterInstance AddDocumentFilterInstance AddDownstreamDependencyMetadata AddEndpointsApiExplorer AddExceptionHandler AddExceptionSummarizer AddExtendedHttpClientLogging AddFormatterMappings AddHealthChecks AddHostedService AddHttpClient AddHttpClientLatencyTelemetry AddHttpClientLogEnricher AddHttpContextAccessor AddHttpLogging AddHttpLoggingInterceptor AddHttpMessageHandler AddHubOptions AddIdentity AddIdentityApiEndpoints AddIdentityProvider AddInteractiveServerComponents AddJsonOptions AddJsonProtocol AddKeyedScoped AddKeyedSingleton AddKeyedTransient AddLatencyContext AddLocalization AddLogEnricher AddLogger AddLogging AddMemoryCache AddMetrics AddMicrosoftIdentityPlatformIdentityAuthentication AddModelBoundOperationFilters AddMvc AddMvcCore AddMvcLocalization AddMvcOptions AddNamedActivitySource AddNamedMeter AddNamespaceNamingPolicy AddNamingPolicy AddNullLatencyContext AddOAuth AddOpenTelemetry AddOperationAsyncFilterInstance AddOperationFilterInstance AddOptions AddOptionsWithValidateOnStart AddOutputCache AddPageRoute AddParameterAsyncFilterInstance AddParameterFilterInstance AddProblemDetails AddProcessLogEnricher AddRazorComponents AddRazorOptions AddRazorPages AddRazorPagesOptions AddRazorViewEngine AddReadModels AddReadModelsForCommand AddRequestBodyAsyncFilterInstance AddRequestBodyFilterInstance AddRequestDecompression AddRequestLocalization AddRequestTimeouts AddResilienceEnricher AddResilienceHandler AddResponseCaching AddRouting AddRoutingCore AddSchemaFilterInstance AddScoped AddSecurityDefinition AddSecurityRequirement AddServer AddServerSideBlazor AddServiceLogEnricher AddSession AddSessionStateTempDataProvider AddSignalRCore AddSingleton AddStandardHedgingHandler AddStandardResilienceHandler AddStaticLogEnricher AddSwaggerGen AddTagHelpersAsServices AddTransient AddTypeActivatedCheck AddTypeDiscovery AddTypedClient AddUnitOfWork AddValidation AddViewComponentsAsServices AddViewLocalization AddViewOptions AddViews AddW3CLogging AddWebEncoders AddXmlDataContractSerializerFormatters AddXmlOptions AddXmlSerializerFormatters AllowAnonymousToAreaFolder AllowAnonymousToAreaPage AllowAnonymousToFolder AllowAnonymousToPage AuthorizeAreaFolder AuthorizeAreaPage AuthorizeFolder AuthorizePage Bind BindConfiguration BuildServiceProvider CacheOutput Configure ConfigureAdditionalHttpMessageHandlers ConfigureAll ConfigureApiBehaviorOptions ConfigureApplicationCookie ConfigureApplicationPartManager ConfigureCors ConfigureExternalCookie ConfigureFilter ConfigureHttpClient ConfigureHttpClientDefaults ConfigureHttpJsonOptions ConfigureHttpMessageHandlerBuilder ConfigureOptions ConfigurePrimaryHttpMessageHandler ConfigureSwagger ConfigureSwaggerGen ConfigureViews CreateAsyncScope CreateScope CurrentTypeUniverse CustomOperationIds CustomSchemaIds DescribeAllParametersInCamelCase DocInclusionPredicate DocumentAsyncFilter DocumentFilter GetKeyedService GetKeyedServices GetRequiredKeyedService GetRequiredService GetService GetServices IgnoreObsoleteActions IgnoreObsoleteProperties IncludeXmlComments InferSecuritySchemes InitializeTagHelper MapType NonNullableReferenceTypesAsRequired OperationAsyncFilter OperationFilter OrderActionsBy ParameterAsyncFilter ParameterFilter PostConfigure PostConfigureAll RedactLoggedHeaders RegisterCheckpointNames RegisterMeasureNames RegisterPersistentService RegisterTagNames RemoveAllLoggers RemoveAllResilienceHandlers RemoveAsKeyed RemoveType RequestBodyAsyncFilter RequestBodyFilter ResolveConflictingActions SchemaFilter SelectDiscriminatorNameUsing SelectDiscriminatorValueUsing SelectSubTypesUsing SetCompatibilityVersion SetCustomDocumentSerializer SetHandlerLifetime SortSchemasWith SupportNonNullableReferenceTypes SwaggerDoc TagActionsBy TryAddActivatedKeyedSingleton TryAddActivatedSingleton TryAddCascadingValue UseAllOfForInheritance UseAllOfToExtendReferenceSchemas UseInlineDefinitionsForEnums UseOneOfForPolymorphism UseSocketsHttpHandler ValidateDataAnnotations ValidateOnStart WithRazorPagesAtContentRoot WithRazorPagesRoot
+extensions	AS	Microsoft.Extensions.DependencyInjection	ActivateKeyedSingleton ActivateSingleton Add AddActivatedKeyedSingleton AddActivatedSingleton AddAggregateRoots AddAntiforgery AddApiExplorer AddApplicationLogEnricher AddApplicationMetadata AddApplicationPart AddAreaPageRoute AddAsKeyed AddAsyncCheck AddAuthentication AddAuthenticationCore AddAuthorization AddAuthorizationBuilder AddAuthorizationCore AddAuthorizationPolicyEvaluator AddBearerToken AddCQRS AddCacheTagHelper AddCacheTagHelperLimits AddCamelCaseNamingPolicy AddCascadingAuthenticationState AddCascadingValue AddCertificateForwarding AddCheck AddChronicleHealthCheck AddChronicleOccurrenceLifecycle AddCircuitOptions AddCommandAwareDecisionReads AddCompliance AddConnectionResolution AddConnections AddConsoleLatencyDataExporter AddControllers AddControllersAsServices AddControllersFromProjectReferencedAssembles AddControllersWithViews AddCookie AddCookiePolicy AddCookieTempDataProvider AddCorrelationId AddCors AddCratisEventModelViewer AddDataAnnotations AddDataAnnotationsLocalization AddDataProtection AddDefaultLogger AddDefaultNamingPolicy AddDirectoryBrowser AddDistributedMemoryCache AddDocumentAsyncFilterInstance AddDocumentFilterInstance AddDownstreamDependencyMetadata AddEndpointsApiExplorer AddExceptionHandler AddExceptionSummarizer AddExtendedHttpClientLogging AddFormatterMappings AddHealthChecks AddHostedService AddHttpClient AddHttpClientLatencyTelemetry AddHttpClientLogEnricher AddHttpContextAccessor AddHttpLogging AddHttpLoggingInterceptor AddHttpMessageHandler AddHubOptions AddIdentity AddIdentityApiEndpoints AddIdentityProvider AddInteractiveServerComponents AddJsonOptions AddJsonProtocol AddJwtBearer AddKeyedScoped AddKeyedSingleton AddKeyedTransient AddLatencyContext AddLocalization AddLogEnricher AddLogger AddLogging AddMemoryCache AddMetrics AddMicrosoftIdentityPlatformIdentityAuthentication AddModelBoundOperationFilters AddMvc AddMvcCore AddMvcLocalization AddMvcOptions AddNamedActivitySource AddNamedMeter AddNamespaceNamingPolicy AddNamingPolicy AddNullLatencyContext AddOAuth AddOpenIdConnect AddOpenTelemetry AddOperationAsyncFilterInstance AddOperationFilterInstance AddOptions AddOptionsWithValidateOnStart AddOutputCache AddPageRoute AddParameterAsyncFilterInstance AddParameterFilterInstance AddProblemDetails AddProcessLogEnricher AddRazorComponents AddRazorOptions AddRazorPages AddRazorPagesOptions AddRazorViewEngine AddReadModels AddReadModelsForCommand AddRequestBodyAsyncFilterInstance AddRequestBodyFilterInstance AddRequestDecompression AddRequestLocalization AddRequestTimeouts AddResilienceEnricher AddResilienceHandler AddResponseCaching AddRouting AddRoutingCore AddSchemaFilterInstance AddScoped AddSecurityDefinition AddSecurityRequirement AddServer AddServerSideBlazor AddServiceLogEnricher AddSession AddSessionStateTempDataProvider AddSignalRCore AddSingleton AddStandardHedgingHandler AddStandardResilienceHandler AddStaticLogEnricher AddSwaggerGen AddTagHelpersAsServices AddTransient AddTypeActivatedCheck AddTypeDiscovery AddTypedClient AddUnitOfWork AddValidation AddViewComponentsAsServices AddViewLocalization AddViewOptions AddViews AddW3CLogging AddWebEncoders AddXmlDataContractSerializerFormatters AddXmlOptions AddXmlSerializerFormatters AllowAnonymousToAreaFolder AllowAnonymousToAreaPage AllowAnonymousToFolder AllowAnonymousToPage AuthorizeAreaFolder AuthorizeAreaPage AuthorizeFolder AuthorizePage Bind BindConfiguration BuildServiceProvider CacheOutput Configure ConfigureAdditionalHttpMessageHandlers ConfigureAll ConfigureApiBehaviorOptions ConfigureApplicationCookie ConfigureApplicationPartManager ConfigureCors ConfigureExternalCookie ConfigureFilter ConfigureHttpClient ConfigureHttpClientDefaults ConfigureHttpJsonOptions ConfigureHttpMessageHandlerBuilder ConfigureOptions ConfigurePrimaryHttpMessageHandler ConfigureSwagger ConfigureSwaggerGen ConfigureViews CreateAsyncScope CreateScope CurrentTypeUniverse CustomOperationIds CustomSchemaIds DescribeAllParametersInCamelCase DocInclusionPredicate DocumentAsyncFilter DocumentFilter GetKeyedService GetKeyedServices GetRequiredKeyedService GetRequiredService GetService GetServices IgnoreObsoleteActions IgnoreObsoleteProperties IncludeXmlComments InferSecuritySchemes InitializeTagHelper MapType NonNullableReferenceTypesAsRequired OperationAsyncFilter OperationFilter OrderActionsBy ParameterAsyncFilter ParameterFilter PostConfigure PostConfigureAll RedactLoggedHeaders RegisterCheckpointNames RegisterMeasureNames RegisterPersistentService RegisterTagNames RemoveAllLoggers RemoveAllResilienceHandlers RemoveAsKeyed RemoveType RequestBodyAsyncFilter RequestBodyFilter ResolveConflictingActions SchemaFilter SelectDiscriminatorNameUsing SelectDiscriminatorValueUsing SelectSubTypesUsing SetCompatibilityVersion SetCustomDocumentSerializer SetHandlerLifetime SortSchemasWith SupportNonNullableReferenceTypes SwaggerDoc TagActionsBy TryAddActivatedKeyedSingleton TryAddActivatedSingleton TryAddCascadingValue UseAllOfForInheritance UseAllOfToExtendReferenceSchemas UseInlineDefinitionsForEnums UseOneOfForPolymorphism UseSocketsHttpHandler ValidateDataAnnotations ValidateOnStart WithRazorPagesAtContentRoot WithRazorPagesRoot
 extensions	AS	Microsoft.Extensions.Hosting	AddCorrelationIdLogEnricher AddCratisArc AddCratisChronicle AddCratisCommands AddCratisQueries AddOpenTelemetry AddOrleans AddOrleansClient ConfigureAppConfiguration ConfigureContainer ConfigureDefaults ConfigureHostOptions ConfigureLogging ConfigureMetrics ConfigureServices ConfigureSlimWebHost ConfigureWebHost ConfigureWebHostDefaults IsDevelopment IsEnvironment IsProduction IsStaging Run RunAsync RunConsoleAsync Start StartAsync StopAsync UseApplicationMetadata UseConsoleLifetime UseContentRoot UseDefaultServiceProvider UseEnvironment UseInvariantCulture UseOrleans UseOrleansClient WaitForShutdown WaitForShutdownAsync
 extensions	AS	Microsoft.Extensions.Logging	AddConfiguration AddConsole AddConsoleFormatter AddDebug AddEventLog AddEventSourceLogger AddFilter AddGlobalBuffer AddJsonConsole AddOpenTelemetry AddRandomProbabilisticSampler AddSampler AddSimpleConsole AddSystemdConsole AddTraceBasedSampler AddTraceSource BeginScope CreateLogger EnableEnrichment EnableRedaction Log LogCritical LogDebug LogError LogInformation LogTrace LogWarning
+extensions	AS	Microsoft.Identity.Web	AddAppServicesAuthentication AddCloudMetadata AddDistributedTokenCache AddDownstreamWebApi AddInMemoryTokenCache AddMicrosoftIdentityAppAuthenticationHandler AddMicrosoftIdentityConsentHandler AddMicrosoftIdentityMessageHandler AddMicrosoftIdentityUserAuthenticationHandler AddMicrosoftIdentityWebApi AddMicrosoftIdentityWebApiAot AddMicrosoftIdentityWebApiAuthentication AddMicrosoftIdentityWebApp AddMicrosoftIdentityWebAppAuthentication AddRequiredScopeAuthorization AddRequiredScopeOrAppPermissionAuthorization AddSessionTokenCaches AddTokenAcquisition AuthenticateAzureFunctionAsync CallWebApiForUserAsync DisallowsSameSiteNone GetAuthenticationOptions GetBootstrapToken GetDisplayName GetDomainHint GetFicTokenAsync GetForUserAsync GetHomeObjectId GetHomeTenantId GetLoginHint GetMsalAccountId GetNameIdentifierId GetObjectId GetTenantId GetUserFlowId HandleSameSiteCookieCompatibility MapLoginAndLogout PostForUserAsync PutForUserAsync RequireScope RequireScopeOrAppPermission ToClaimsPrincipal UseTokenAcquirerFactory WithAuthenticationOptions WithClientAssertion WithExtraBodyParameters
+extensions	AS	Microsoft.Identity.Web.Extensibility	WithCachePartitionKeys
+extensions	AS	Microsoft.Identity.Web.Resource	ValidateAppRole VerifyUserHasAnyAcceptedScope
+extensions	AS	Microsoft.Identity.Web.TokenCacheProviders.Distributed	AddDistributedTokenCaches
+extensions	AS	Microsoft.Identity.Web.TokenCacheProviders.InMemory	AddInMemoryTokenCaches
+extensions	AS	Microsoft.Identity.Web.TokenCacheProviders.Session	AddSessionAppTokenCache AddSessionPerUserTokenCache
 extensions	AS	MongoDB.Bson	ToBson ToBsonDocument ToJson ToServerString
 extensions	AS	MongoDB.Bson.IO	BackpatchSize FindElement FindStringElement ReadBinaryData ReadBinarySubType ReadBoolean ReadBsonType ReadBytes ReadDateTime ReadDecimal128 ReadDouble ReadInt32 ReadInt64 ReadJavaScript ReadJavaScriptWithScope ReadMaxKey ReadMinKey ReadName ReadNull ReadObjectId ReadRawBsonArray ReadRawBsonDocument ReadRegularExpression ReadString ReadSymbol ReadTimestamp ReadUndefined WriteBinaryData WriteBinarySubType WriteBoolean WriteBsonType WriteBytes WriteDateTime WriteDecimal128 WriteDouble WriteInt32 WriteInt64 WriteJavaScript WriteJavaScriptWithScope WriteMaxKey WriteMinKey WriteNull WriteObjectId WriteRawBsonArray WriteRawBsonDocument WriteRegularExpression WriteSlice WriteStartArray WriteStartDocument WriteString WriteSymbol WriteTimestamp WriteUndefined
 extensions	AS	MongoDB.Bson.Serialization	Deserialize GetBaseTypeSerializer GetDerivedTypeSerializer GetDiscriminatorConvention Serialize ToBinaryVector ToBinaryVectorAsArray ToBinaryVectorAsBytes ToBsonBinaryData ToBsonValue
@@ -12575,6 +13132,7 @@ extensions	AS	Orleans.Hosting	AddActivationRebalancer AddActivationRepartitioner
 extensions	AS	Orleans.Runtime	AverageTicksToMilliSeconds BatchIEnumerable CreateGuidKey CreateIntegerKey DeactivateAsync DictionaryToString EnumerableToString Export GetComponent GetGuidKey GetIntegerKey GetStackTrace Import IsClient IsGrainService IsLegacyGrain IsSystemTarget IsTerminating ParticipateIn SafeExecute SafeExecuteAsync TicksToMilliSeconds TimeSpanToString ToGatewayAddress ToGatewayUri ToIPEndPoint TryGetGuidKey TryGetIntegerKey WithBatchSize
 extensions	AS	System	AsMemory AsSpan BinarySearch CommonPrefixLength CompareTo Contains ContainsAny ContainsAnyExcept ContainsAnyExceptInRange ContainsAnyInRange CopyTo Count CountAny Deconstruct EndsWith EnumerateLines EnumerateRunes Equals GetNormalizedLength IndexOf IndexOfAny IndexOfAnyExcept IndexOfAnyExceptInRange IndexOfAnyInRange IsNormalized IsWhiteSpace LastIndexOf LastIndexOfAny LastIndexOfAnyExcept LastIndexOfAnyExceptInRange LastIndexOfAnyInRange Normalize Overlaps Replace ReplaceAny ReplaceAnyExcept Reverse SequenceCompareTo SequenceEqual Sort Split SplitAny StartsWith Subscribe SubscribeSafe ToLower ToLowerInvariant ToTuple ToUpper ToUpperInvariant ToValueTuple Trim TrimEnd TrimStart TryNormalize TryWrite
 extensions	AS	System.Buffers	CopyTo PositionOf ToArray TryReadBigEndian TryReadLittleEndian Write
+extensions	AS	System.ClientModel.Primitives	MarkClientActivityFailed StartClientActivity
 extensions	AS	System.Collections.Frozen	Create ToFrozenDictionary ToFrozenSet
 extensions	AS	System.Collections.Generic	GetDefaultAssets GetDefaultGroup GetDefaultRuntimeFileAssets GetRuntimeAssets GetRuntimeFileAssets GetRuntimeGroup
 extensions	AS	System.Collections.Immutable	BinarySearch Contains Create CreateBuilder CreateRange CreateRangeWithOverwrite Dequeue GetValueOrDefault IndexOf LastIndexOf Pop Remove RemoveRange Replace ToImmutableArray ToImmutableDictionary ToImmutableHashSet ToImmutableList ToImmutableSortedDictionary ToImmutableSortedSet
@@ -12606,7 +13164,7 @@ extensions	AS	System.Runtime.InteropServices	GetAddressOfArrayData GetAddressOfS
 extensions	AS	System.Runtime.Intrinsics	Abs Add AddSaturate All AllWhereAllBitsSet AndNot Any AnyWhereAllBitsSet As AsByte AsDouble AsInt16 AsInt32 AsInt64 AsNInt AsNUInt AsPlane AsQuaternion AsSByte AsSingle AsUInt16 AsUInt32 AsUInt64 AsVector AsVector128 AsVector128Unsafe AsVector2 AsVector256 AsVector3 AsVector4 AsVector512 BitwiseAnd BitwiseOr Ceiling Clamp ClampNative ConditionalSelect ConvertToDouble ConvertToInt32 ConvertToInt32Native ConvertToInt64 ConvertToInt64Native ConvertToSingle ConvertToUInt32 ConvertToUInt32Native ConvertToUInt64 ConvertToUInt64Native CopySign CopyTo Cos Count CountWhereAllBitsSet Create CreateScalar CreateScalarUnsafe CreateSequence DegreesToRadians Divide Dot Equals EqualsAll EqualsAny Exp ExtractMostSignificantBits Floor FusedMultiplyAdd GetElement GetLower GetUpper GreaterThan GreaterThanAll GreaterThanAny GreaterThanOrEqual GreaterThanOrEqualAll GreaterThanOrEqualAny Hypot IndexOf IndexOfWhereAllBitsSet IsEvenInteger IsFinite IsHardwareAccelerated IsInfinity IsInteger IsNaN IsNegative IsNegativeInfinity IsNormal IsOddInteger IsPositive IsPositiveInfinity IsSubnormal IsZero LastIndexOf LastIndexOfWhereAllBitsSet Lerp LessThan LessThanAll LessThanAny LessThanOrEqual LessThanOrEqualAll LessThanOrEqualAny Load LoadAligned LoadAlignedNonTemporal LoadUnsafe Log Log2 Max MaxMagnitude MaxMagnitudeNumber MaxNative MaxNumber Min MinMagnitude MinMagnitudeNumber MinNative MinNumber Multiply MultiplyAddEstimate Narrow NarrowWithSaturation Negate None NoneWhereAllBitsSet OnesComplement RadiansToDegrees Round ShiftLeft ShiftRightArithmetic ShiftRightLogical Shuffle ShuffleNative Sin SinCos Sqrt Store StoreAligned StoreAlignedNonTemporal StoreUnsafe Subtract SubtractSaturate Sum ToScalar ToVector128 ToVector128Unsafe ToVector256 ToVector256Unsafe ToVector512 ToVector512Unsafe Truncate TryCopyTo Widen WidenLower WidenUpper WithElement WithLower WithUpper Xor
 extensions	AS	System.Runtime.Serialization	GetSerializationSurrogateProvider SetSerializationSurrogateProvider
 extensions	AS	System.Security.Claims	FindFirstValue
-extensions	AS	System.Security.Cryptography.X509Certificates	CopyWithPrivateKey GetDSAPrivateKey GetDSAPublicKey GetECDsaPrivateKey GetECDsaPublicKey GetRSAPrivateKey GetRSAPublicKey
+extensions	AS	System.Security.Cryptography.X509Certificates	CopyWithPrivateKey GetCompositeMLDsaPrivateKey GetCompositeMLDsaPublicKey GetDSAPrivateKey GetDSAPublicKey GetECDsaPrivateKey GetECDsaPublicKey GetMLDsaPrivateKey GetMLDsaPublicKey GetMLKemPrivateKey GetMLKemPublicKey GetRSAPrivateKey GetRSAPublicKey GetSlhDsaPrivateKey GetSlhDsaPublicKey
 extensions	AS	System.Security.Principal	GetUserIdAsGuid
 extensions	AS	System.Text	AppendRedacted Convert GetBytes GetChars GetString
 extensions	AS	System.Text.Json	Deserialize DeserializeAsync DeserializeAsyncEnumerable IsReflectionEnabledByDefault Serialize SerializeAsync SerializeToDocument SerializeToElement SerializeToNode SerializeToUtf8Bytes
@@ -14464,17 +15022,21 @@ base	AS	Cratis.Serialization.MissingTargetTypeForDerivedType	System.Exception	-	
 base	AS	Cratis.Serialization.NamespacedNamingPolicy	Cratis.Serialization.NamingPolicy	GetPropertyNameImplementation GetReadModelNameImplementation JsonPropertyNamingPolicy	-
 base	AS	Cratis.Serialization.NamingPolicy	System.Object	GetPropertyName GetPropertyNameImplementation GetReadModelName GetReadModelNameImplementation JsonPropertyNamingPolicy	-
 base	AS	Cratis.Serialization.TargetTypeMismatchForDerivedType	System.Exception	-	-
+base	AS	Cratis.Specifications.AmbiguousLifecycleMethod	System.Exception	-	-
 base	AS	Cratis.Specifications.Specification	System.Object	DisposeAsync InitializeAsync	-
 base	AS	Cratis.Specifications.SpecificationCancelledException	System.Exception	-	-
-base	AS	Cratis.Specifications.SpecificationTestAssemblyRunner	Xunit.Sdk.XunitTestAssemblyRunner	Dispose RunTestCollectionAsync	-
+base	AS	Cratis.Specifications.SpecificationTestAssemblyRunner	Xunit.Sdk.XunitTestAssemblyRunner	BeforeTestAssemblyFinishedAsync Dispose RunTestCollectionAsync	-
+base	AS	Cratis.Specifications.SpecificationTestCase	Xunit.Sdk.XunitTestCase	GetDisplayName	-
 base	AS	Cratis.Specifications.SpecificationTestCaseRunner	Xunit.Sdk.XunitTestCaseRunner	CreateTestRunner	-
 base	AS	Cratis.Specifications.SpecificationTestClassRunner	Xunit.Sdk.XunitTestClassRunner	AfterTestClassStartingAsync BeforeTestClassFinishedAsync RunTestMethodAsync	-
 base	AS	Cratis.Specifications.SpecificationTestCollectionRunner	Xunit.Sdk.XunitTestCollectionRunner	RunTestClassAsync	-
-base	AS	Cratis.Specifications.SpecificationTestFramework	Xunit.Sdk.XunitTestFramework	CreateExecutor	-
+base	AS	Cratis.Specifications.SpecificationTestFramework	Xunit.Sdk.XunitTestFramework	CreateDiscoverer CreateExecutor	-
+base	AS	Cratis.Specifications.SpecificationTestFrameworkDiscoverer	Xunit.Sdk.XunitTestFrameworkDiscoverer	FindTestsForMethod	-
 base	AS	Cratis.Specifications.SpecificationTestFrameworkExecutor	Xunit.Sdk.XunitTestFrameworkExecutor	RunTestCases	-
-base	AS	Cratis.Specifications.SpecificationTestInvoker	Xunit.Sdk.XunitTestInvoker	CreateTestClass	-
+base	AS	Cratis.Specifications.SpecificationTestInvoker	Xunit.Sdk.XunitTestInvoker	CreateTestClass RunAsync	-
 base	AS	Cratis.Specifications.SpecificationTestMethodRunner	Xunit.Sdk.XunitTestMethodRunner	RunTestCaseAsync	-
 base	AS	Cratis.Specifications.SpecificationTestRunner	Xunit.Sdk.XunitTestRunner	InvokeTestMethodAsync	-
+base	AS	Cratis.Specifications.SpecificationTheoryTestCase	Xunit.Sdk.XunitTheoryTestCase	GetDisplayName	-
 base	AS	Cratis.Tasks.TaskFactory	System.Object	Delay Run	-
 base	AS	Cratis.Timers.Timer	System.Object	Dispose	-
 base	AS	Cratis.Timers.TimerFactory	System.Object	Create	-
@@ -14549,6 +15111,97 @@ base	AS	FluentValidation.Validators.PropertyValidator`2	System.Object	GetDefault
 base	AS	FluentValidation.Validators.RangeValidator`2	FluentValidation.Validators.PropertyValidator`2	Compare From GetDefaultMessageTemplate HasError IsValid To	-
 base	AS	FluentValidation.Validators.RegularExpressionValidator`1	FluentValidation.Validators.PropertyValidator`2	Expression GetDefaultMessageTemplate IsValid Name	-
 base	AS	FluentValidation.Validators.StringEnumValidator`1	FluentValidation.Validators.PropertyValidator`2	GetDefaultMessageTemplate IsValid Name	-
+base	AS	Microsoft.AspNetCore.Authentication.AccessDeniedContext	Microsoft.AspNetCore.Authentication.HandleRequestContext`1	AccessDeniedPath Properties ReturnUrl ReturnUrlParameter	-
+base	AS	Microsoft.AspNetCore.Authentication.AuthenticateResult	System.Object	Clone Fail Failure NoResult None Principal Properties Succeeded Success Ticket	-
+base	AS	Microsoft.AspNetCore.Authentication.AuthenticationBuilder	System.Object	AddPolicyScheme AddRemoteScheme AddScheme Services	-
+base	AS	Microsoft.AspNetCore.Authentication.AuthenticationFailureException	System.Exception	-	-
+base	AS	Microsoft.AspNetCore.Authentication.AuthenticationFeature	System.Object	OriginalPath OriginalPathBase	-
+base	AS	Microsoft.AspNetCore.Authentication.AuthenticationHandlerProvider	System.Object	GetHandlerAsync Schemes	-
+base	AS	Microsoft.AspNetCore.Authentication.AuthenticationHandler`1	System.Object	AuthenticateAsync BuildRedirectUri ChallengeAsync ClaimsIssuer Clock Context CreateEventsAsync CurrentUri Events ForbidAsync HandleAuthenticateAsync HandleAuthenticateOnceAsync HandleAuthenticateOnceSafeAsync HandleChallengeAsync HandleForbiddenAsync InitializeAsync InitializeEventsAsync InitializeHandlerAsync Logger Options OptionsMonitor OriginalPath OriginalPathBase Request ResolveTarget Response Scheme TimeProvider UrlEncoder	-
+base	AS	Microsoft.AspNetCore.Authentication.AuthenticationMiddleware	System.Object	Invoke Schemes	-
+base	AS	Microsoft.AspNetCore.Authentication.AuthenticationOptions	System.Object	AddScheme DefaultAuthenticateScheme DefaultChallengeScheme DefaultForbidScheme DefaultScheme DefaultSignInScheme DefaultSignOutScheme RequireAuthenticatedSignIn SchemeMap Schemes	-
+base	AS	Microsoft.AspNetCore.Authentication.AuthenticationProperties	System.Object	AllowRefresh Clone ExpiresUtc GetBool GetDateTimeOffset GetParameter GetString IsPersistent IssuedUtc Items Parameters RedirectUri SetBool SetDateTimeOffset SetParameter SetString	-
+base	AS	Microsoft.AspNetCore.Authentication.AuthenticationScheme	System.Object	DisplayName HandlerType Name	-
+base	AS	Microsoft.AspNetCore.Authentication.AuthenticationSchemeBuilder	System.Object	Build DisplayName HandlerType Name	-
+base	AS	Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions	System.Object	ClaimsIssuer Events EventsType ForwardAuthenticate ForwardChallenge ForwardDefault ForwardDefaultSelector ForwardForbid ForwardSignIn ForwardSignOut TimeProvider Validate	-
+base	AS	Microsoft.AspNetCore.Authentication.AuthenticationSchemeProvider	System.Object	AddScheme GetAllSchemesAsync GetDefaultAuthenticateSchemeAsync GetDefaultChallengeSchemeAsync GetDefaultForbidSchemeAsync GetDefaultSignInSchemeAsync GetDefaultSignOutSchemeAsync GetRequestHandlerSchemesAsync GetSchemeAsync RemoveScheme TryAddScheme	-
+base	AS	Microsoft.AspNetCore.Authentication.AuthenticationService	System.Object	AuthenticateAsync ChallengeAsync ForbidAsync Handlers Options Schemes SignInAsync SignOutAsync Transform	-
+base	AS	Microsoft.AspNetCore.Authentication.AuthenticationTicket	System.Object	AuthenticationScheme Clone Principal Properties	-
+base	AS	Microsoft.AspNetCore.Authentication.AuthenticationToken	System.Object	Name Value	-
+base	AS	Microsoft.AspNetCore.Authentication.BaseContext`1	System.Object	HttpContext Options Request Response Scheme	-
+base	AS	Microsoft.AspNetCore.Authentication.BearerToken.BearerTokenEvents	System.Object	MessageReceivedAsync OnMessageReceived	-
+base	AS	Microsoft.AspNetCore.Authentication.BearerToken.MessageReceivedContext	Microsoft.AspNetCore.Authentication.ResultContext`1	Token	-
+base	AS	Microsoft.AspNetCore.Authentication.Cookies.ChunkingCookieManager	System.Object	AppendResponseCookie ChunkSize DefaultChunkSize DeleteCookie GetRequestCookie ThrowForPartialCookies	-
+base	AS	Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationEvents	System.Object	CheckSlidingExpiration OnCheckSlidingExpiration OnRedirectToAccessDenied OnRedirectToLogin OnRedirectToLogout OnRedirectToReturnUrl OnSignedIn OnSigningIn OnSigningOut OnValidatePrincipal RedirectToAccessDenied RedirectToLogin RedirectToLogout RedirectToReturnUrl SignedIn SigningIn SigningOut ValidatePrincipal	-
+base	AS	Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationHandler	Microsoft.AspNetCore.Authentication.SignInAuthenticationHandler`1	CreateEventsAsync Events FinishResponseAsync HandleAuthenticateAsync HandleChallengeAsync HandleForbiddenAsync HandleSignInAsync HandleSignOutAsync InitializeHandlerAsync	-
+base	AS	Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationOptions	Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions	AccessDeniedPath Cookie CookieManager DataProtectionProvider Events ExpireTimeSpan LoginPath LogoutPath ReturnUrlParameter SessionStore SlidingExpiration TicketDataFormat	-
+base	AS	Microsoft.AspNetCore.Authentication.Cookies.CookieSignedInContext	Microsoft.AspNetCore.Authentication.PrincipalContext`1	-	-
+base	AS	Microsoft.AspNetCore.Authentication.Cookies.CookieSigningInContext	Microsoft.AspNetCore.Authentication.PrincipalContext`1	CookieOptions	-
+base	AS	Microsoft.AspNetCore.Authentication.Cookies.CookieSigningOutContext	Microsoft.AspNetCore.Authentication.PropertiesContext`1	CookieOptions	-
+base	AS	Microsoft.AspNetCore.Authentication.Cookies.CookieSlidingExpirationContext	Microsoft.AspNetCore.Authentication.PrincipalContext`1	ElapsedTime RemainingTime ShouldRenew	-
+base	AS	Microsoft.AspNetCore.Authentication.Cookies.CookieValidatePrincipalContext	Microsoft.AspNetCore.Authentication.PrincipalContext`1	RejectPrincipal ReplacePrincipal ShouldRenew	-
+base	AS	Microsoft.AspNetCore.Authentication.Cookies.PostConfigureCookieAuthenticationOptions	System.Object	PostConfigure	-
+base	AS	Microsoft.AspNetCore.Authentication.HandleRequestContext`1	Microsoft.AspNetCore.Authentication.BaseContext`1	HandleResponse Result SkipHandler	-
+base	AS	Microsoft.AspNetCore.Authentication.HandleRequestResult	Microsoft.AspNetCore.Authentication.AuthenticateResult	Fail Handle Handled NoResult SkipHandler Skipped Success	-
+base	AS	Microsoft.AspNetCore.Authentication.JwtBearer.AuthenticationFailedContext	Microsoft.AspNetCore.Authentication.ResultContext`1	Exception	-
+base	AS	Microsoft.AspNetCore.Authentication.JwtBearer.ForbiddenContext	Microsoft.AspNetCore.Authentication.ResultContext`1	-	-
+base	AS	Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerChallengeContext	Microsoft.AspNetCore.Authentication.PropertiesContext`1	AuthenticateFailure Error ErrorDescription ErrorUri HandleResponse Handled	-
+base	AS	Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents	System.Object	AuthenticationFailed Challenge Forbidden MessageReceived OnAuthenticationFailed OnChallenge OnForbidden OnMessageReceived OnTokenValidated TokenValidated	-
+base	AS	Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerHandler	Microsoft.AspNetCore.Authentication.AuthenticationHandler`1	CreateEventsAsync Events HandleAuthenticateAsync HandleChallengeAsync HandleForbiddenAsync	-
+base	AS	Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerOptions	Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions	Audience Authority AutomaticRefreshInterval Backchannel BackchannelHttpHandler BackchannelTimeout Challenge Configuration ConfigurationManager Events IncludeErrorDetails MapInboundClaims MetadataAddress RefreshInterval RefreshOnIssuerKeyNotFound RequireHttpsMetadata SaveToken SecurityTokenValidators TokenHandlers TokenValidationParameters UseSecurityTokenValidators	-
+base	AS	Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerPostConfigureOptions	System.Object	PostConfigure	-
+base	AS	Microsoft.AspNetCore.Authentication.JwtBearer.MessageReceivedContext	Microsoft.AspNetCore.Authentication.ResultContext`1	Token	-
+base	AS	Microsoft.AspNetCore.Authentication.JwtBearer.TokenValidatedContext	Microsoft.AspNetCore.Authentication.ResultContext`1	SecurityToken	-
+base	AS	Microsoft.AspNetCore.Authentication.NoopClaimsTransformation	System.Object	TransformAsync	-
+base	AS	Microsoft.AspNetCore.Authentication.OAuth.Claims.ClaimAction	System.Object	ClaimType Run ValueType	-
+base	AS	Microsoft.AspNetCore.Authentication.OAuth.Claims.ClaimActionCollection	System.Object	Add Clear GetEnumerator Remove	-
+base	AS	Microsoft.AspNetCore.Authentication.OAuth.Claims.CustomJsonClaimAction	Microsoft.AspNetCore.Authentication.OAuth.Claims.ClaimAction	Resolver Run	-
+base	AS	Microsoft.AspNetCore.Authentication.OAuth.Claims.DeleteClaimAction	Microsoft.AspNetCore.Authentication.OAuth.Claims.ClaimAction	Run	-
+base	AS	Microsoft.AspNetCore.Authentication.OAuth.Claims.JsonKeyClaimAction	Microsoft.AspNetCore.Authentication.OAuth.Claims.ClaimAction	JsonKey Run	-
+base	AS	Microsoft.AspNetCore.Authentication.OAuth.Claims.JsonSubKeyClaimAction	Microsoft.AspNetCore.Authentication.OAuth.Claims.JsonKeyClaimAction	Run SubKey	-
+base	AS	Microsoft.AspNetCore.Authentication.OAuth.Claims.MapAllClaimsAction	Microsoft.AspNetCore.Authentication.OAuth.Claims.ClaimAction	Run	-
+base	AS	Microsoft.AspNetCore.Authentication.OAuth.OAuthChallengeProperties	Microsoft.AspNetCore.Authentication.AuthenticationProperties	Scope ScopeKey SetScope	-
+base	AS	Microsoft.AspNetCore.Authentication.OAuth.OAuthCodeExchangeContext	System.Object	Code Properties RedirectUri	-
+base	AS	Microsoft.AspNetCore.Authentication.OAuth.OAuthCreatingTicketContext	Microsoft.AspNetCore.Authentication.ResultContext`1	AccessToken Backchannel ExpiresIn Identity RefreshToken RunClaimActions TokenResponse TokenType User	-
+base	AS	Microsoft.AspNetCore.Authentication.OAuth.OAuthEvents	Microsoft.AspNetCore.Authentication.RemoteAuthenticationEvents	CreatingTicket OnCreatingTicket OnRedirectToAuthorizationEndpoint RedirectToAuthorizationEndpoint	-
+base	AS	Microsoft.AspNetCore.Authentication.OAuth.OAuthHandler`1	Microsoft.AspNetCore.Authentication.RemoteAuthenticationHandler`1	Backchannel BuildChallengeUrl CreateEventsAsync CreateTicketAsync Events ExchangeCodeAsync FormatScope HandleChallengeAsync HandleRemoteAuthenticateAsync	-
+base	AS	Microsoft.AspNetCore.Authentication.OAuth.OAuthOptions	Microsoft.AspNetCore.Authentication.RemoteAuthenticationOptions	AdditionalAuthorizationParameters AuthorizationEndpoint ClaimActions ClientId ClientSecret Events Scope StateDataFormat TokenEndpoint UsePkce UserInformationEndpoint Validate	-
+base	AS	Microsoft.AspNetCore.Authentication.OAuth.OAuthTokenResponse	System.Object	AccessToken Dispose Error ExpiresIn Failed RefreshToken Response Success TokenType	-
+base	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect.AuthenticationFailedContext	Microsoft.AspNetCore.Authentication.RemoteAuthenticationContext`1	Exception ProtocolMessage	-
+base	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect.AuthorizationCodeReceivedContext	Microsoft.AspNetCore.Authentication.RemoteAuthenticationContext`1	Backchannel HandleCodeRedemption HandledCodeRedemption JwtSecurityToken ProtocolMessage TokenEndpointRequest TokenEndpointResponse	-
+base	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect.Claims.UniqueJsonKeyClaimAction	Microsoft.AspNetCore.Authentication.OAuth.Claims.JsonKeyClaimAction	Run	-
+base	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect.MessageReceivedContext	Microsoft.AspNetCore.Authentication.RemoteAuthenticationContext`1	ProtocolMessage Token	-
+base	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectChallengeProperties	Microsoft.AspNetCore.Authentication.OAuth.OAuthChallengeProperties	MaxAge MaxAgeKey Prompt PromptKey	-
+base	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectEvents	Microsoft.AspNetCore.Authentication.RemoteAuthenticationEvents	AuthenticationFailed AuthorizationCodeReceived MessageReceived OnAuthenticationFailed OnAuthorizationCodeReceived OnMessageReceived OnPushAuthorization OnRedirectToIdentityProvider OnRedirectToIdentityProviderForSignOut OnRemoteSignOut OnSignedOutCallbackRedirect OnTokenResponseReceived OnTokenValidated OnUserInformationReceived PushAuthorization RedirectToIdentityProvider RedirectToIdentityProviderForSignOut RemoteSignOut SignedOutCallbackRedirect TokenResponseReceived TokenValidated UserInformationReceived	-
+base	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectHandler	Microsoft.AspNetCore.Authentication.RemoteAuthenticationHandler`1	Backchannel CreateEventsAsync Events GetUserInformationAsync HandleChallengeAsync HandleRemoteAuthenticateAsync HandleRemoteSignOutAsync HandleRequestAsync HandleSignOutCallbackAsync HtmlEncoder RedeemAuthorizationCodeAsync SignOutAsync	-
+base	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectOptions	Microsoft.AspNetCore.Authentication.RemoteAuthenticationOptions	AdditionalAuthorizationParameters AuthenticationMethod Authority AutomaticRefreshInterval ClaimActions ClientId ClientSecret Configuration ConfigurationManager DisableTelemetry Events GetClaimsFromUserInfoEndpoint MapInboundClaims MaxAge MetadataAddress NonceCookie Prompt ProtocolValidator PushedAuthorizationBehavior RefreshInterval RefreshOnIssuerKeyNotFound RemoteSignOutPath RequireHttpsMetadata Resource ResponseMode ResponseType Scope SecurityTokenValidator SignOutScheme SignedOutCallbackPath SignedOutRedirectUri SkipUnrecognizedRequests StateDataFormat StringDataFormat TokenHandler TokenValidationParameters UsePkce UseSecurityTokenValidator UseTokenLifetime Validate	-
+base	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectPostConfigureOptions	System.Object	PostConfigure	-
+base	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect.RedirectContext	Microsoft.AspNetCore.Authentication.PropertiesContext`1	HandleResponse Handled ProtocolMessage	-
+base	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect.RemoteSignOutContext	Microsoft.AspNetCore.Authentication.RemoteAuthenticationContext`1	ProtocolMessage	-
+base	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect.TokenResponseReceivedContext	Microsoft.AspNetCore.Authentication.RemoteAuthenticationContext`1	ProtocolMessage TokenEndpointResponse	-
+base	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect.TokenValidatedContext	Microsoft.AspNetCore.Authentication.RemoteAuthenticationContext`1	Nonce ProtocolMessage SecurityToken TokenEndpointResponse	-
+base	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect.UserInformationReceivedContext	Microsoft.AspNetCore.Authentication.RemoteAuthenticationContext`1	ProtocolMessage User	-
+base	AS	Microsoft.AspNetCore.Authentication.PolicySchemeHandler	Microsoft.AspNetCore.Authentication.SignInAuthenticationHandler`1	HandleAuthenticateAsync HandleChallengeAsync HandleForbiddenAsync HandleSignInAsync HandleSignOutAsync	-
+base	AS	Microsoft.AspNetCore.Authentication.PolicySchemeOptions	Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions	-	-
+base	AS	Microsoft.AspNetCore.Authentication.PrincipalContext`1	Microsoft.AspNetCore.Authentication.PropertiesContext`1	Principal	-
+base	AS	Microsoft.AspNetCore.Authentication.PropertiesContext`1	Microsoft.AspNetCore.Authentication.BaseContext`1	Properties	-
+base	AS	Microsoft.AspNetCore.Authentication.PropertiesDataFormat	Microsoft.AspNetCore.Authentication.SecureDataFormat`1	-	-
+base	AS	Microsoft.AspNetCore.Authentication.PropertiesSerializer	System.Object	Default Deserialize Read Serialize Write	-
+base	AS	Microsoft.AspNetCore.Authentication.RedirectContext`1	Microsoft.AspNetCore.Authentication.PropertiesContext`1	RedirectUri	-
+base	AS	Microsoft.AspNetCore.Authentication.RemoteAuthenticationContext`1	Microsoft.AspNetCore.Authentication.HandleRequestContext`1	Fail Principal Properties Success	-
+base	AS	Microsoft.AspNetCore.Authentication.RemoteAuthenticationEvents	System.Object	AccessDenied OnAccessDenied OnRemoteFailure OnTicketReceived RemoteFailure TicketReceived	-
+base	AS	Microsoft.AspNetCore.Authentication.RemoteAuthenticationHandler`1	Microsoft.AspNetCore.Authentication.AuthenticationHandler`1	CreateEventsAsync Events GenerateCorrelationId HandleAccessDeniedErrorAsync HandleAuthenticateAsync HandleForbiddenAsync HandleRemoteAuthenticateAsync HandleRequestAsync ShouldHandleRequestAsync SignInScheme ValidateCorrelationId	-
+base	AS	Microsoft.AspNetCore.Authentication.RemoteAuthenticationOptions	Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions	AccessDeniedPath Backchannel BackchannelHttpHandler BackchannelTimeout CallbackPath CorrelationCookie DataProtectionProvider Events RemoteAuthenticationTimeout ReturnUrlParameter SaveTokens SignInScheme Validate	-
+base	AS	Microsoft.AspNetCore.Authentication.RemoteFailureContext	Microsoft.AspNetCore.Authentication.HandleRequestContext`1	Failure Properties	-
+base	AS	Microsoft.AspNetCore.Authentication.RequestPathBaseCookieBuilder	Microsoft.AspNetCore.Http.CookieBuilder	AdditionalPath Build	-
+base	AS	Microsoft.AspNetCore.Authentication.ResultContext`1	Microsoft.AspNetCore.Authentication.BaseContext`1	Fail NoResult Principal Properties Result Success	-
+base	AS	Microsoft.AspNetCore.Authentication.SecureDataFormat`1	System.Object	Protect Unprotect	-
+base	AS	Microsoft.AspNetCore.Authentication.SignInAuthenticationHandler`1	Microsoft.AspNetCore.Authentication.SignOutAuthenticationHandler`1	HandleSignInAsync SignInAsync	-
+base	AS	Microsoft.AspNetCore.Authentication.SignOutAuthenticationHandler`1	Microsoft.AspNetCore.Authentication.AuthenticationHandler`1	HandleSignOutAsync SignOutAsync	-
+base	AS	Microsoft.AspNetCore.Authentication.SystemClock	System.Object	UtcNow	-
+base	AS	Microsoft.AspNetCore.Authentication.TicketDataFormat	Microsoft.AspNetCore.Authentication.SecureDataFormat`1	-	-
+base	AS	Microsoft.AspNetCore.Authentication.TicketReceivedContext	Microsoft.AspNetCore.Authentication.RemoteAuthenticationContext`1	ReturnUri	-
+base	AS	Microsoft.AspNetCore.Authentication.TicketSerializer	System.Object	Default Deserialize Read ReadClaim ReadIdentity Serialize Write WriteClaim WriteIdentity	-
 base	AS	Microsoft.AspNetCore.Builder.ApplicationBuilder	System.Object	ApplicationServices Build New Properties ServerFeatures Use	-
 base	AS	Microsoft.AspNetCore.Builder.AspNetCoreEndpointMapper	System.Object	EndpointExists MapGet MapMethod MapPost	-
 base	AS	Microsoft.AspNetCore.Builder.CausationStartupFilter	System.Object	Configure	-
@@ -14665,6 +15318,60 @@ base	AS	Microsoft.Extensions.Logging.LoggerRedactionOptions	System.Object	ApplyD
 base	AS	Microsoft.Extensions.Logging.Logger`1	System.Object	-	-
 base	AS	Microsoft.Extensions.Logging.LoggingSampler	System.Object	ShouldSample	-
 base	AS	Microsoft.Extensions.Logging.ProviderAliasAttribute	System.Attribute	Alias	-
+base	AS	Microsoft.Identity.Web.AadIssuerValidatorOptions	System.Object	HttpClientName	-
+base	AS	Microsoft.Identity.Web.AppServicesAuthenticationHandler	Microsoft.AspNetCore.Authentication.AuthenticationHandler`1	HandleAuthenticateAsync	-
+base	AS	Microsoft.Identity.Web.AppServicesAuthenticationOptions	Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions	-	-
+base	AS	Microsoft.Identity.Web.AppServicesAuthenticationTokenAcquisition	System.Object	GetAccessTokenForAppAsync GetAccessTokenForUserAsync GetAuthenticationResultForAppAsync GetAuthenticationResultForUserAsync GetEffectiveAuthenticationScheme ReplyForbiddenWithWwwAuthenticateHeader ReplyForbiddenWithWwwAuthenticateHeaderAsync	-
+base	AS	Microsoft.Identity.Web.AuthorizeForScopesAttribute	Microsoft.AspNetCore.Mvc.Filters.ExceptionFilterAttribute	AuthenticationScheme OnException ScopeKeySection Scopes UserFlow	-
+base	AS	Microsoft.Identity.Web.AzureIdentityForKubernetesClientAssertion	Microsoft.Identity.Web.ClientAssertionProviderBase	GetClientAssertionAsync	-
+base	AS	Microsoft.Identity.Web.BlazorAuthenticationChallengeHandler	System.Object	ChallengeUser ChallengeUserWithConfiguredScopesAsync GetUserAsync HandleExceptionAsync IsAuthenticatedAsync	-
+base	AS	Microsoft.Identity.Web.CertificateDescription	Microsoft.Identity.Abstractions.CredentialDescription	Certificate FromBase64Encoded FromCertificate FromKeyVault FromPath FromStoreWithDistinguishedName FromStoreWithSubjectName FromStoreWithThumbprint SourceType X509KeyStorageFlags	-
+base	AS	Microsoft.Identity.Web.CertificatelessOptions	System.Object	IsEnabled ManagedIdentityClientId	-
+base	AS	Microsoft.Identity.Web.ClientAssertionProviderBase	System.Object	Expiry GetClientAssertionAsync GetSignedAssertionAsync GetSignedAssertionWithBindingAsync SupportsTokenBinding	-
+base	AS	Microsoft.Identity.Web.DefaultCertificateLoader	Microsoft.Identity.Web.DefaultCredentialsLoader	LoadAllCertificates LoadFirstCertificate LoadFirstCertificateAsync LoadIfNeeded LoadIfNeededAsync ResetCertificates UserAssignedManagedIdentityClientId	-
+base	AS	Microsoft.Identity.Web.DefaultCredentialsLoader	System.Object	CredentialSourceLoaders CustomSignedAssertionCredentialSourceLoaders LoadCredentialsIfNeededAsync LoadFirstValidCredentialsAsync ResetCredentials	-
+base	AS	Microsoft.Identity.Web.DownstreamWebApi	System.Object	CallWebApiForAppAsync CallWebApiForUserAsync	-
+base	AS	Microsoft.Identity.Web.DownstreamWebApiOptions	Microsoft.Identity.Web.MicrosoftIdentityAuthenticationBaseOptions	BaseUrl Clone CustomizeHttpRequestMessage GetApiUrl HttpMethod RelativePath	-
+base	AS	Microsoft.Identity.Web.Experimental.CertificateChangeEventArg	System.Object	Action Certificate CredentialDescription CredentialSourceLoaderParameters ThrownException	-
+base	AS	Microsoft.Identity.Web.Extensibility.BaseAuthorizationHeaderProvider	System.Object	CreateAuthorizationHeaderAsync CreateAuthorizationHeaderForAppAsync CreateAuthorizationHeaderForUserAsync CreateAuthorizationHeaderInformationAsync CreateAuthorizationHeaderInformationForAppAsync CreateAuthorizationHeaderInformationForUserAsync	-
+base	AS	Microsoft.Identity.Web.ManagedIdentityClientAssertion	Microsoft.Identity.Web.ClientAssertionProviderBase	GetClientAssertionAsync GetSignedAssertionWithBindingAsync SupportsTokenBinding	-
+base	AS	Microsoft.Identity.Web.MicrosoftIdentityAppAuthenticationMessageHandler	Microsoft.Identity.Web.MicrosoftIdentityAuthenticationBaseMessageHandler	SendAsync	-
+base	AS	Microsoft.Identity.Web.MicrosoftIdentityAppCallsWebApiAuthenticationBuilder	Microsoft.Identity.Web.MicrosoftIdentityBaseAuthenticationBuilder	AddDistributedTokenCaches AddInMemoryTokenCaches	-
+base	AS	Microsoft.Identity.Web.MicrosoftIdentityAuthenticationBaseMessageHandler	System.Net.Http.DelegatingHandler	GetOptionsForRequest TokenAcquisition	-
+base	AS	Microsoft.Identity.Web.MicrosoftIdentityAuthenticationBaseOptions	System.Object	AuthenticationScheme GetScopes IsProofOfPossessionRequest Scopes Tenant TokenAcquisitionOptions UserFlow	-
+base	AS	Microsoft.Identity.Web.MicrosoftIdentityAuthenticationException	System.Exception	-	-
+base	AS	Microsoft.Identity.Web.MicrosoftIdentityAuthenticationMessageHandlerOptions	Microsoft.Identity.Web.MicrosoftIdentityAuthenticationBaseOptions	Clone	-
+base	AS	Microsoft.Identity.Web.MicrosoftIdentityBaseAuthenticationBuilder	System.Object	ConfigurationSection Services	-
+base	AS	Microsoft.Identity.Web.MicrosoftIdentityConsentAndConditionalAccessHandler	System.Object	BaseUri ChallengeUser HandleException IsBlazorServer User	-
+base	AS	Microsoft.Identity.Web.MicrosoftIdentityMessageHandler	System.Net.Http.DelegatingHandler	SendAsync	-
+base	AS	Microsoft.Identity.Web.MicrosoftIdentityMessageHandlerOptions	Microsoft.Identity.Abstractions.AuthorizationHeaderProviderOptions	Scopes	-
+base	AS	Microsoft.Identity.Web.MicrosoftIdentityOptions	Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectOptions	AllowWebApiToBeAuthorizedByACL ClientCertificates ClientCredentials ClientCredentialsUsingManagedIdentity DefaultUserFlow Domain EditProfilePolicyId ErrorPath ExtraQueryParameters Instance LegacyCacheCompatibilityEnabled PartitionAppTokenCacheByAudience ResetPasswordPath ResetPasswordPolicyId SendX5C SignUpSignInPolicyId TenantId TokenDecryptionCertificates TokenDecryptionCredentials UseFastUnboundedCache UserAssignedManagedIdentityClientId WithSpaAuthCode	-
+base	AS	Microsoft.Identity.Web.MicrosoftIdentityUserAuthenticationMessageHandler	Microsoft.Identity.Web.MicrosoftIdentityAuthenticationBaseMessageHandler	SendAsync	-
+base	AS	Microsoft.Identity.Web.MicrosoftIdentityWebApiAuthenticationBuilder	Microsoft.Identity.Web.MicrosoftIdentityBaseAuthenticationBuilder	EnableTokenAcquisitionToCallDownstreamApi	-
+base	AS	Microsoft.Identity.Web.MicrosoftIdentityWebApiAuthenticationBuilderWithConfiguration	Microsoft.Identity.Web.MicrosoftIdentityWebApiAuthenticationBuilder	EnableTokenAcquisitionToCallDownstreamApi	-
+base	AS	Microsoft.Identity.Web.MicrosoftIdentityWebAppAuthenticationBuilder	Microsoft.Identity.Web.MicrosoftIdentityBaseAuthenticationBuilder	EnableTokenAcquisitionToCallDownstreamApi OpenIdConnectScheme	-
+base	AS	Microsoft.Identity.Web.MicrosoftIdentityWebAppAuthenticationBuilderWithConfiguration	Microsoft.Identity.Web.MicrosoftIdentityWebAppAuthenticationBuilder	EnableTokenAcquisitionToCallDownstreamApi	-
+base	AS	Microsoft.Identity.Web.MicrosoftIdentityWebChallengeUserException	System.Exception	MsalUiRequiredException Scopes Userflow	-
+base	AS	Microsoft.Identity.Web.OnBehalfOfEventArgs	System.Object	User UserAssertionToken	-
+base	AS	Microsoft.Identity.Web.Resource.JwtBearerMiddlewareDiagnostics	System.Object	Subscribe	-
+base	AS	Microsoft.Identity.Web.Resource.MicrosoftIdentityIssuerValidatorFactory	System.Object	GetAadIssuerValidator	-
+base	AS	Microsoft.Identity.Web.Resource.OpenIdConnectMiddlewareDiagnostics	System.Object	Subscribe	-
+base	AS	Microsoft.Identity.Web.Resource.RequiredScopeAttribute	System.Attribute	AcceptedScope IsReusable RequiredScopesConfigurationKey	-
+base	AS	Microsoft.Identity.Web.Resource.RequiredScopeOrAppPermissionAttribute	System.Attribute	AcceptedAppPermission AcceptedScope RequiredAppPermissionsConfigurationKey RequiredScopesConfigurationKey	-
+base	AS	Microsoft.Identity.Web.ScopeAuthorizationRequirement	System.Object	AllowedValues RequiredScopesConfigurationKey ToString	-
+base	AS	Microsoft.Identity.Web.ScopeOrAppPermissionAuthorizationRequirement	System.Object	AppPermissionAllowedValues RequiredAppPermissionsConfigurationKey RequiredScopesConfigurationKey ScopeAllowedValues ToString	-
+base	AS	Microsoft.Identity.Web.TokenAcquirerFactory	System.Object	Build Configuration DefineConfiguration GetDefaultInstance GetTokenAcquirer PreBuild ServiceProvider Services	-
+base	AS	Microsoft.Identity.Web.TokenAcquisitionAppTokenCredential	Azure.Core.TokenCredential	GetToken GetTokenAsync	-
+base	AS	Microsoft.Identity.Web.TokenAcquisitionExtensionOptions	System.Object	DefaultAppTokenOtelTagsEnricher OnBackgroundTokenRefreshCompleted OnBeforeOnBehalfOfInitialized OnBeforeOnBehalfOfInitializedAsync OnBeforeTokenAcquisitionForApp OnBeforeTokenAcquisitionForOnBehalfOf OnBeforeTokenAcquisitionForOnBehalfOfAsync OnBeforeTokenAcquisitionForTestUser OnBeforeTokenAcquisitionForTestUserAsync	-
+base	AS	Microsoft.Identity.Web.TokenAcquisitionOptions	Microsoft.Identity.Abstractions.AcquireTokenOptions	CancellationToken Clone PoPConfiguration	-
+base	AS	Microsoft.Identity.Web.TokenAcquisitionTokenCredential	Azure.Core.TokenCredential	GetToken GetTokenAsync	-
+base	AS	Microsoft.Identity.Web.TokenCacheProviders.CacheSerializerHints	System.Object	CancellationToken SuggestedCacheExpiry	-
+base	AS	Microsoft.Identity.Web.TokenCacheProviders.Distributed.MsalDistributedTokenCacheAdapter	Microsoft.Identity.Web.TokenCacheProviders.MsalAbstractTokenCacheProvider	ReadCacheBytesAsync RemoveKeyAsync WriteCacheBytesAsync	-
+base	AS	Microsoft.Identity.Web.TokenCacheProviders.Distributed.MsalDistributedTokenCacheAdapterOptions	Microsoft.Extensions.Caching.Distributed.DistributedCacheEntryOptions	DisableL1Cache EnableAsyncL2Write Encrypt L1CacheOptions OnL2CacheFailure	-
+base	AS	Microsoft.Identity.Web.TokenCacheProviders.InMemory.MsalMemoryTokenCacheOptions	System.Object	AbsoluteExpirationRelativeToNow	-
+base	AS	Microsoft.Identity.Web.TokenCacheProviders.InMemory.MsalMemoryTokenCacheProvider	Microsoft.Identity.Web.TokenCacheProviders.MsalAbstractTokenCacheProvider	ReadCacheBytesAsync RemoveKeyAsync WriteCacheBytesAsync	-
+base	AS	Microsoft.Identity.Web.TokenCacheProviders.MsalAbstractTokenCacheProvider	System.Object	ClearAsync GetSuggestedCacheKey Initialize InitializeAsync OnBeforeWriteAsync ReadCacheBytesAsync RemoveKeyAsync WriteCacheBytesAsync	-
+base	AS	Microsoft.Identity.Web.TokenCacheProviders.Session.MsalSessionTokenCacheProvider	Microsoft.Identity.Web.TokenCacheProviders.MsalAbstractTokenCacheProvider	Dispose ReadCacheBytesAsync RemoveKeyAsync WriteCacheBytesAsync	-
 base	AS	MongoDB.Bson.BinaryVector`1	System.Object	Data DataType	-
 base	AS	MongoDB.Bson.BsonArray	MongoDB.Bson.BsonValue	Add AddRange BsonType Capacity Clear Clone CompareTo Contains CopyTo Count Create DeepClone Equals GetEnumerator GetHashCode IndexOf Insert IsReadOnly Item Remove RemoveAt ToArray ToList ToString Values	-
 base	AS	MongoDB.Bson.BsonBinaryData	MongoDB.Bson.BsonValue	BsonType Bytes CompareTo Create Equals GetHashCode SubType ToGuid ToString	-
@@ -15345,6 +16052,46 @@ base	AS	System.Buffers.MemoryPool`1	System.Object	Dispose MaxBufferSize Rent Sha
 base	AS	System.Buffers.ReadOnlySequenceSegment`1	System.Object	Memory Next RunningIndex	-
 base	AS	System.Buffers.SearchValues`1	System.Object	Contains	-
 base	AS	System.CannotUnloadAppDomainException	System.SystemException	-	-
+base	AS	System.ClientModel.ApiKeyCredential	System.Object	Deconstruct Update	-
+base	AS	System.ClientModel.AsyncCollectionResult`1	System.ClientModel.Primitives.AsyncCollectionResult	GetAsyncEnumerator GetValuesFromPageAsync	-
+base	AS	System.ClientModel.AuthenticationTokenProvider	System.Object	CreateTokenOptions GetToken GetTokenAsync	-
+base	AS	System.ClientModel.BinaryContent	System.Object	Create CreateJson Dispose MediaType TryComputeLength WriteTo WriteToAsync	-
+base	AS	System.ClientModel.ClientResult	System.Object	FromOptionalValue FromResponse FromValue GetRawResponse	-
+base	AS	System.ClientModel.ClientResultException	System.Exception	CreateAsync GetRawResponse Status	-
+base	AS	System.ClientModel.ClientResult`1	System.ClientModel.ClientResult	Value	-
+base	AS	System.ClientModel.CollectionResult`1	System.ClientModel.Primitives.CollectionResult	GetEnumerator GetValuesFromPage	-
+base	AS	System.ClientModel.ContinuationToken	System.Object	FromBytes ToBytes	-
+base	AS	System.ClientModel.Primitives.ApiKeyAuthenticationPolicy	System.ClientModel.Primitives.AuthenticationPolicy	CreateBasicAuthorizationPolicy CreateBearerAuthorizationPolicy CreateHeaderApiKeyPolicy Process ProcessAsync	-
+base	AS	System.ClientModel.Primitives.AsyncCollectionResult	System.Object	GetContinuationToken GetRawPagesAsync	-
+base	AS	System.ClientModel.Primitives.AuthenticationPolicy	System.ClientModel.Primitives.PipelinePolicy	-	-
+base	AS	System.ClientModel.Primitives.AuthenticationToken	System.Object	ExpiresOn RefreshOn TokenType TokenValue	-
+base	AS	System.ClientModel.Primitives.BearerTokenPolicy	System.ClientModel.Primitives.AuthenticationPolicy	Process ProcessAsync	-
+base	AS	System.ClientModel.Primitives.ClientCache	System.Object	GetClient	-
+base	AS	System.ClientModel.Primitives.ClientConnectionCollection	System.Collections.ObjectModel.KeyedCollection`2	AddRange GetKeyForItem	-
+base	AS	System.ClientModel.Primitives.ClientConnectionProvider	System.Object	GetAllConnections GetConnection Subclients	-
+base	AS	System.ClientModel.Primitives.ClientLoggingOptions	System.Object	AllowedHeaderNames AllowedQueryParameters AssertNotFrozen EnableLogging EnableMessageContentLogging EnableMessageLogging Freeze LoggerFactory MessageContentSizeLimit	-
+base	AS	System.ClientModel.Primitives.ClientPipelineOptions	System.Object	AddPolicy AssertNotFrozen ClientLoggingOptions EnableDistributedTracing Freeze MessageLoggingPolicy NetworkTimeout RetryPolicy Transport	-
+base	AS	System.ClientModel.Primitives.ClientRetryPolicy	System.ClientModel.Primitives.PipelinePolicy	Default GetNextDelay OnRequestSent OnRequestSentAsync OnSendingRequest OnSendingRequestAsync OnTryComplete Process ProcessAsync ShouldRetry ShouldRetryAsync Wait WaitAsync	-
+base	AS	System.ClientModel.Primitives.CollectionResult	System.Object	GetContinuationToken GetRawPages	-
+base	AS	System.ClientModel.Primitives.GetTokenOptions	System.Object	AuthorizationUrlPropertyName Properties RefreshUrlPropertyName ScopesPropertyName TokenUrlPropertyName	-
+base	AS	System.ClientModel.Primitives.HttpClientPipelineTransport	System.ClientModel.Primitives.PipelineTransport	CreateMessageCore Dispose OnReceivedResponse OnSendingRequest ProcessCore ProcessCoreAsync Shared	-
+base	AS	System.ClientModel.Primitives.JsonModelConverter	System.Text.Json.Serialization.JsonConverter`1	CanConvert Read Write	-
+base	AS	System.ClientModel.Primitives.MessageLoggingPolicy	System.ClientModel.Primitives.PipelinePolicy	Default Process ProcessAsync	-
+base	AS	System.ClientModel.Primitives.ModelReaderWriterBuildableAttribute	System.Attribute	-	-
+base	AS	System.ClientModel.Primitives.ModelReaderWriterContext	System.Object	GetTypeBuilder TryGetTypeBuilder TryGetTypeBuilderCore	-
+base	AS	System.ClientModel.Primitives.ModelReaderWriterOptions	System.Object	Format Json Xml	-
+base	AS	System.ClientModel.Primitives.ModelReaderWriterTypeBuilder	System.Object	AddItem AddItemWithKey BuilderType ConvertCollectionBuilder CreateInstance GetItems ItemType	-
+base	AS	System.ClientModel.Primitives.OperationResult	System.Object	GetRawResponse HasCompleted RehydrationToken SetRawResponse UpdateStatus UpdateStatusAsync WaitForCompletion WaitForCompletionAsync	-
+base	AS	System.ClientModel.Primitives.PipelineMessage	System.Object	Apply BufferResponse CancellationToken Dispose ExtractResponse NetworkTimeout Request Response ResponseClassifier SetProperty TryGetProperty	-
+base	AS	System.ClientModel.Primitives.PipelineMessageClassifier	System.Object	Create Default TryClassify	-
+base	AS	System.ClientModel.Primitives.PipelinePolicy	System.Object	Process ProcessAsync ProcessNext ProcessNextAsync	-
+base	AS	System.ClientModel.Primitives.PipelineRequest	System.Object	ClientRequestId Content ContentCore Dispose Headers HeadersCore Method MethodCore Uri UriCore	-
+base	AS	System.ClientModel.Primitives.PipelineRequestHeaders	System.Object	Add GetEnumerator Remove Set TryGetValue TryGetValues	-
+base	AS	System.ClientModel.Primitives.PipelineResponse	System.Object	BufferContent BufferContentAsync Content ContentStream Dispose Headers HeadersCore IsError IsErrorCore ReasonPhrase Status	-
+base	AS	System.ClientModel.Primitives.PipelineResponseHeaders	System.Object	GetEnumerator TryGetValue TryGetValues	-
+base	AS	System.ClientModel.Primitives.PipelineTransport	System.ClientModel.Primitives.PipelinePolicy	CreateMessage CreateMessageCore Process ProcessAsync ProcessCore ProcessCoreAsync	-
+base	AS	System.ClientModel.Primitives.RequestOptions	System.Object	AddHeader AddPolicy Apply AssertNotFrozen BufferResponse CancellationToken ErrorOptions Freeze SetHeader	-
+base	AS	System.ClientModel.Primitives.UserAgentPolicy	System.ClientModel.Primitives.PipelinePolicy	ApplicationId Assembly Process ProcessAsync UserAgentValue	-
 base	AS	System.CodeDom.Compiler.IndentedTextWriter	System.IO.TextWriter	Close DefaultTabString DisposeAsync Encoding Flush FlushAsync Indent InnerWriter NewLine OutputTabs OutputTabsAsync Write WriteAsync WriteLine WriteLineAsync WriteLineNoTabs WriteLineNoTabsAsync	-
 base	AS	System.Collections.ArrayList	System.Object	Adapter Add AddRange BinarySearch Capacity Clear Clone Contains CopyTo Count FixedSize GetEnumerator GetRange IndexOf Insert InsertRange IsFixedSize IsReadOnly IsSynchronized Item LastIndexOf ReadOnly Remove RemoveAt RemoveRange Repeat Reverse SetRange Sort SyncRoot Synchronized ToArray TrimToSize	-
 base	AS	System.Collections.CaseInsensitiveComparer	System.Object	Compare Default DefaultInvariant	-
@@ -15811,6 +16558,10 @@ base	AS	System.IO.TextReader	System.MarshalByRefObject	Close Dispose Null Peek R
 base	AS	System.IO.TextWriter	System.MarshalByRefObject	Close CoreNewLine CreateBroadcasting Dispose DisposeAsync Encoding Flush FlushAsync FormatProvider NewLine Null Synchronized Write WriteAsync WriteLine WriteLineAsync	-
 base	AS	System.IO.UnmanagedMemoryAccessor	System.Object	CanRead CanWrite Capacity Dispose Initialize IsOpen Read ReadArray ReadBoolean ReadByte ReadChar ReadDecimal ReadDouble ReadInt16 ReadInt32 ReadInt64 ReadSByte ReadSingle ReadUInt16 ReadUInt32 ReadUInt64 Write WriteArray	-
 base	AS	System.IO.UnmanagedMemoryStream	System.IO.Stream	CanRead CanSeek CanWrite Capacity Dispose Flush FlushAsync Initialize Length Position PositionPointer Read ReadAsync ReadByte Seek SetLength Write WriteAsync WriteByte	-
+base	AS	System.IdentityModel.Tokens.Jwt.JwtHeader	System.Collections.Generic.Dictionary`2	Alg Base64UrlDeserialize Base64UrlEncode Cty Enc EncryptingCredentials IV Kid SerializeToJson SigningCredentials Typ X5c X5t Zip	-
+base	AS	System.IdentityModel.Tokens.Jwt.JwtPayload	System.Collections.Generic.Dictionary`2	Acr Actort AddClaim AddClaims Amr Aud AuthTime Azp Base64UrlDeserialize Base64UrlEncode CHash Claims Deserialize Exp Expiration Iat Iss IssuedAt Jti Nbf Nonce NotBefore SerializeToJson Sub ValidFrom ValidTo	-
+base	AS	System.IdentityModel.Tokens.Jwt.JwtSecurityToken	Microsoft.IdentityModel.Tokens.SecurityToken	Actor Audiences Claims EncodedHeader EncodedPayload EncryptingCredentials Header Id InnerToken IssuedAt Issuer Payload RawAuthenticationTag RawCiphertext RawData RawEncryptedKey RawHeader RawInitializationVector RawPayload RawSignature SecurityKey SignatureAlgorithm SigningCredentials SigningKey Subject ToString UnsafeToString ValidFrom ValidTo	-
+base	AS	System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler	Microsoft.IdentityModel.Tokens.SecurityTokenHandler	CanReadToken CanValidateToken CanWriteToken CreateActorValue CreateClaimsIdentity CreateEncodedJwt CreateJwtSecurityToken CreateToken DecryptToken DefaultInboundClaimFilter DefaultInboundClaimTypeMap DefaultMapInboundClaims DefaultOutboundAlgorithmMap DefaultOutboundClaimTypeMap InboundClaimFilter InboundClaimTypeMap JsonClaimTypeProperty MapInboundClaims OutboundAlgorithmMap OutboundClaimTypeMap ReadJwtToken ReadToken ResolveIssuerSigningKey ResolveTokenDecryptionKey ShortClaimTypeProperty TokenType ValidateAudience ValidateIssuer ValidateIssuerSecurityKey ValidateLifetime ValidateSignature ValidateToken ValidateTokenAsync ValidateTokenPayload ValidateTokenReplay WriteToken	-
 base	AS	System.InvalidCastException	System.SystemException	-	-
 base	AS	System.InvalidOperationException	System.SystemException	-	-
 base	AS	System.InvalidTimeZoneException	System.Exception	-	-
@@ -16348,6 +17099,9 @@ base	AS	System.Security.Cryptography.MLKem	System.Object	Algorithm Decapsulate D
 base	AS	System.Security.Cryptography.MaskGenerationMethod	System.Object	GenerateMask	-
 base	AS	System.Security.Cryptography.PKCS1MaskGenerationMethod	System.Security.Cryptography.MaskGenerationMethod	GenerateMask HashName	-
 base	AS	System.Security.Cryptography.PasswordDeriveBytes	System.Security.Cryptography.DeriveBytes	CryptDeriveKey Dispose GetBytes HashName IterationCount Reset Salt	-
+base	AS	System.Security.Cryptography.Pkcs.Pkcs12SafeBag	System.Object	Attributes Encode EncodedBagValue GetBagId TryEncode	-
+base	AS	System.Security.Cryptography.Pkcs.Pkcs9AttributeObject	System.Security.Cryptography.AsnEncodedData	CopyFrom Oid	-
+base	AS	System.Security.Cryptography.Pkcs.RecipientInfo	System.Object	EncryptedKey KeyEncryptionAlgorithm RecipientIdentifier Type Version	-
 base	AS	System.Security.Cryptography.RC2	System.Security.Cryptography.SymmetricAlgorithm	Create EffectiveKeySize EffectiveKeySizeValue KeySize	-
 base	AS	System.Security.Cryptography.RSA	System.Security.Cryptography.AsymmetricAlgorithm	Create Decrypt DecryptValue Encrypt EncryptValue ExportParameters ExportRSAPrivateKey ExportRSAPrivateKeyPem ExportRSAPublicKey ExportRSAPublicKeyPem FromXmlString GetMaxOutputSize HashData ImportEncryptedPkcs8PrivateKey ImportFromEncryptedPem ImportFromPem ImportParameters ImportPkcs8PrivateKey ImportRSAPrivateKey ImportRSAPublicKey ImportSubjectPublicKeyInfo KeyExchangeAlgorithm SignData SignHash SignatureAlgorithm ToXmlString TryDecrypt TryEncrypt TryExportEncryptedPkcs8PrivateKey TryExportPkcs8PrivateKey TryExportRSAPrivateKey TryExportRSAPrivateKeyPem TryExportRSAPublicKey TryExportRSAPublicKeyPem TryExportSubjectPublicKeyInfo TryHashData TrySignData TrySignHash VerifyData VerifyHash	-
 base	AS	System.Security.Cryptography.RSAOAEPKeyExchangeDeformatter	System.Security.Cryptography.AsymmetricKeyExchangeDeformatter	DecryptKeyExchange Parameters SetKey	-

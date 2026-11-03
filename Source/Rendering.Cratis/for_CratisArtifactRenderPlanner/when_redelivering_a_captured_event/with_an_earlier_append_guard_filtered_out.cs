@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #if DEBUG
+using Cratis.Chronicle.EventSequences;
 using Cratis.Chronicle.Reactors;
 using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
@@ -19,18 +20,24 @@ public class with_an_earlier_append_guard_filtered_out : given.a_captured_delive
         })]
     });
 
-    void Because() => Render();
+    EventForEventSourceId _effect = null!;
+    ReactorDelivery _delivery = null!;
 
-    [Fact]
-    public async Task should_key_by_the_modeled_append_position_not_the_returned_list_position()
+    async Task Because()
     {
+        Render();
         var first = Fact(0);
         (await Effects(first)).Length.ShouldEqual(2);
         _history.Add(first);
         var changed = Fact(1, "delivered");
-        var effect = (await Effects(changed)).Single();
-        var delivery = ReactorDelivery.For(Reactor(), changed.Context);
-        effect.IdempotencyKey.ShouldEqual(delivery.IdempotencyKeyFor($"{delivery.Reactor}/1"));
+        _effect = (await Effects(changed)).Single();
+        _delivery = ReactorDelivery.For(Reactor(), changed.Context);
+    }
+
+    [Fact]
+    public void should_key_by_the_modeled_append_position_not_the_returned_list_position()
+    {
+        _effect.IdempotencyKey.ShouldEqual(_delivery.IdempotencyKeyFor($"{_delivery.Reactor}/1"));
     }
 }
 #endif

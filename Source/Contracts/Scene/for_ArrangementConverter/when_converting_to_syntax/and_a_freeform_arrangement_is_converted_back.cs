@@ -21,8 +21,8 @@ public class and_a_freeform_arrangement_is_converted_back : Specification
 
     void Because()
     {
-        _syntax = ArrangementConverter.ToSyntax(_arrangement)!;
-        _converted = (FreeformSlotArrangement)ArrangementConverter.Convert(_syntax)!;
+        _syntax = ArrangementConverter.ToSyntax(_arrangement);
+        _converted = (FreeformSlotArrangement)ArrangementConverter.Convert(_syntax);
     }
 
     [Fact] void should_be_a_freeform_arrangement() => _syntax.Mode.ShouldEqual(ArrangementMode.Freeform);

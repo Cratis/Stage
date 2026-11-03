@@ -21,5 +21,5 @@ public class when_round_tripping_mixed_case_and_underscore_keys : Specification
     }
 
     [Fact] void should_preserve_the_canonical_catalog() => _valid.ShouldBeTrue();
-    [Fact] void should_keep_every_key() => _catalog!.Locales["en"].Keys.ShouldContainOnly(["invoice.B", "invoice.a", "invoice_c"]);
+    [Fact] void should_keep_every_key() => _catalog.Locales["en"].Keys.ShouldContainOnly(["invoice.B", "invoice.a", "invoice_c"]);
 }

@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Xml.Linq;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticAutomationArtifactRenderer.given;
@@ -13,6 +14,8 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
+// Each fact installs its own probe and requires an independent workspace and artifact hashes.
+[PerFactSpecificationLifecycle]
 public class when_verifying_mixed_reaction_refusals_against_the_pinned_kernel : a_generated_application
 {
     const string InnerTest = "Reactions.KernelProbe.MixedRefusalProbe.should_prove_retention_acknowledgement_and_durable_redelivery";
@@ -34,13 +37,17 @@ public class when_verifying_mixed_reaction_refusals_against_the_pinned_kernel : 
         }
     }
 
-#pragma warning disable CRSPEC0004 // MongoFact derives from FactAttribute and is discovered by xUnit.
+    [Fact]
+    public void should_render_default_probe_without_running_the_framework() => Install(false);
+
+    [Fact]
+    public void should_render_atomic_probe_without_running_the_framework() => Install(true);
+
     [MongoFact]
     public Task should_match_default_refusal_and_redelivery_when_configured() => Verify(false);
 
     [MongoFact]
     public Task should_match_atomic_refusal_and_redelivery_when_configured() => Verify(true);
-#pragma warning restore CRSPEC0004
 
     async Task Verify(bool atomic)
     {
@@ -116,9 +123,9 @@ public class when_verifying_mixed_reaction_refusals_against_the_pinned_kernel : 
     {
         XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
         var document = XDocument.Parse(trx);
-        var result = Assert.Single(document.Descendants(ns + "UnitTestResult"));
-        Assert.Equal(InnerTest, (string?)result.Attribute("testName"));
-        Assert.Equal("Passed", (string?)result.Attribute("outcome"));
+        var result = Assert.Single(GeneratedTestResults.Read(document));
+        Assert.True(result.Matches(fullName: InnerTest));
+        Assert.Equal("Passed", result.Outcome);
         var counters = Assert.Single(document.Descendants(ns + "Counters"));
         Assert.Equal("1", (string?)counters.Attribute("total"));
         Assert.Equal("1", (string?)counters.Attribute("executed"));

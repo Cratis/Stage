@@ -34,7 +34,7 @@ public class when_importing_common_for_command_specification_values : Specificat
         var options = new CratisRenderingOptions("InvoiceApp", "Invoices");
         var request = new ArtifactRenderRequest(
             model,
-            SemanticExecutionPlan.Compile(model).Plan!,
+            SemanticExecutionPlan.Compile(model).Plan,
             CratisRendering.CreateProfile(model.Application.Name, options),
             new(ArtifactRenderScopeKind.Application, model.Application.Id));
         _context = new(request, options);

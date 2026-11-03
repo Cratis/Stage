@@ -26,8 +26,8 @@ public class when_running_filtered_query_specifications : Specification
         {
             Modules = [module with { Features = [feature with { Slices = [slice with { Specifications = [.. slice.Specifications.Select(specification => specification with { GivenReadModels = [] })] }] }] }]
         };
-        _unseeded = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, application)).Plan!;
-        _plan = SemanticExecutionPlan.Compile(model).Plan!;
+        _unseeded = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, application)).Plan;
+        _plan = SemanticExecutionPlan.Compile(model).Plan;
     }
 
     async Task Because()
@@ -40,5 +40,5 @@ public class when_running_filtered_query_specifications : Specification
     [Fact] void should_run_both_canonical_filtered_specifications() => _report.Results.Select(result => result.Outcome).ShouldContainOnly(SemanticSpecificationOutcome.Passed, SemanticSpecificationOutcome.Passed);
     [Fact] void should_match_the_reference() => _plan.Specifications.Values.ShouldEachConformTo(specification => new SemanticSpecificationRunner().Run(_plan, specification.Id).Passed);
     [Fact] void should_refuse_missing_query_state_instead_of_passing() => _unseededReport.Results.Select(result => result.Outcome).Distinct().ShouldContainOnly(SemanticSpecificationOutcome.Unsupported);
-    [Fact] void should_report_a_typed_query_state_refusal() => _unseededReport.Results.All(result => result.Unsupported!.Capability == StageExecutionCapability.Query).ShouldBeTrue();
+    [Fact] void should_report_a_typed_query_state_refusal() => _unseededReport.Results.All(result => result.Unsupported.Capability == StageExecutionCapability.Query).ShouldBeTrue();
 }

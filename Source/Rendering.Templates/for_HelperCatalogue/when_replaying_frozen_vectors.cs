@@ -73,7 +73,7 @@ public class when_replaying_frozen_vectors : for_TemplatePreparer.given.a_kit
     {
         if (vector.Text is not null) string.Concat(output.Segments.Cast<TemplateTextSegment>().Select(segment => segment.Text)).ShouldEqual(vector.Text);
         if (vector.Gap is not null) output.Gaps.Single().Code.ShouldEqual(vector.Gap);
-        if (!vector.Segments.IsDefault) output.Segments.Select(Describe).ShouldEqual(vector.Segments);
+        if (!vector.Segments.IsDefault) output.Segments.Select(Describe).ShouldEqualInOrder([.. vector.Segments]);
     }
 
     static string Describe(TemplateSegment segment) => segment switch

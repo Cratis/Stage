@@ -27,12 +27,12 @@ public class when_rendering_reaction_observer_filters
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         var files = Files(plan);
         Assert.Empty(RenderedOutput.Errors(files));
-        var type = RenderedOutput.Load(files).GetType("Filters.Work.Processing.FollowUp.Worker")!;
+        var type = RenderedOutput.Load(files).GetType("Filters.Work.Processing.FollowUp.Worker");
         if (withStream)
         {
             var attribute = Assert.Single(type.GetCustomAttributes(false), attribute => attribute.GetType().IsGenericType);
             Assert.Equal(typeof(FromEventSourceAttribute<>), attribute.GetType().GetGenericTypeDefinition());
-            Assert.Equal("stored-notes", attribute.GetType().GetProperty("Stream")!.GetValue(attribute));
+            Assert.Equal("stored-notes", attribute.GetType().GetProperty("Stream").GetValue(attribute));
         }
         else
         {
@@ -101,7 +101,7 @@ public class when_rendering_reaction_observer_filters
         var slice = model.Application.Modules.Single().Features.Single().Slices.Single();
         var scope = scoped ? new ArtifactRenderScope(ArtifactRenderScopeKind.Slice, slice.Id) : new ArtifactRenderScope(ArtifactRenderScopeKind.Application, model.Application.Id);
 
-        return CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, scope, new("Filters", "Filters"));
+        return CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, scope, new("Filters", "Filters"));
     }
 
     static RenderedFile[] Files(ArtifactRenderPlan plan) => [.. plan.Artifacts

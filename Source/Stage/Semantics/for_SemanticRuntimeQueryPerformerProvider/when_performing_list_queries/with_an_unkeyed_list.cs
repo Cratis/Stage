@@ -14,5 +14,5 @@ public class with_an_unkeyed_list : given.a_list_query_runtime
     async Task Because() => await Perform("AllProjects", QueryArguments.Empty);
 
     [Fact] void should_expose_no_parameters() => _performer.Parameters.ShouldBeEmpty();
-    [Fact] void should_preserve_every_instance() => ((object[])_result!).Cast<DynamicReadModel>().Select(model => model.Id).ShouldContainOnly("project-1", "project-2", "project-3");
+    [Fact] void should_preserve_every_instance() => ((object[])_result).Cast<DynamicReadModel>().Select(model => model.Id).ShouldContainOnly("project-1", "project-2", "project-3");
 }

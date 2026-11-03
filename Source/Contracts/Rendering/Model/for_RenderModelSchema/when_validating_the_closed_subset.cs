@@ -24,7 +24,7 @@ public class when_validating_the_closed_subset : Specification
     [InlineData("{\"const\":\"a\"}", "\"a\"", "\"b\"")]
     void should_accept_the_valid_document_and_reject_a_single_keyword_violation(string schema, string valid, string invalid)
     {
-        var validator = new given.strict_schema_validator(JsonNode.Parse(schema)!);
+        var validator = new given.strict_schema_validator(JsonNode.Parse(schema));
         using var accepted = JsonDocument.Parse(valid);
         using var rejected = JsonDocument.Parse(invalid);
         validator.Validate(accepted.RootElement).ShouldBeTrue();
@@ -35,12 +35,12 @@ public class when_validating_the_closed_subset : Specification
     [InlineData("{\"minLength\":1}")]
     [InlineData("{\"anyOf\":[true,{\"pattern\":\"x\"}]}")]
     [InlineData("{\"properties\":{\"unused\":{\"format\":\"date\"}}}")]
-    void should_throw_on_unsupported_keywords_even_in_unvisited_branches(string schema) => Catch.Exception(() => _ = new given.strict_schema_validator(JsonNode.Parse(schema)!)).ShouldBeOfExactType<given.unsupported_schema_keyword>();
+    void should_throw_on_unsupported_keywords_even_in_unvisited_branches(string schema) => Catch.Exception(() => _ = new given.strict_schema_validator(JsonNode.Parse(schema))).ShouldBeOfExactType<given.unsupported_schema_keyword>();
 
     [Fact]
     void should_resolve_array_indices_and_escaped_reference_tokens()
     {
-        var schema = JsonNode.Parse("""{"properties":{"a/b~c":{"anyOf":[{"type":"integer"}]}},"$ref":"#/properties/a~1b~0c/anyOf/0"}""")!;
+        var schema = JsonNode.Parse("""{"properties":{"a/b~c":{"anyOf":[{"type":"integer"}]}},"$ref":"#/properties/a~1b~0c/anyOf/0"}""");
         using var valid = JsonDocument.Parse("1");
         using var invalid = JsonDocument.Parse("false");
         var validator = new given.strict_schema_validator(schema);

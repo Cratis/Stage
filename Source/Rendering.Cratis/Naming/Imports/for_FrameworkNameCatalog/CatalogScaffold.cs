@@ -38,7 +38,7 @@ static class CatalogScaffold
         foreach (var input in new CratisBackendApplicationScaffold().Create(request))
         {
             var path = Path.Combine(directory.FullName, input.Name["cratis-scaffold:text:".Length..]);
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
             await File.WriteAllBytesAsync(path, [.. input.Bytes]);
         }
 
@@ -83,7 +83,7 @@ static class CatalogScaffold
     static async Task<string> Run(string directory, params string[] arguments)
     {
         // Bounded so a local run does not start every generated application's build at once.
-        using var slot = await GeneratedApplicationBuilds.Enter();
+        using var slot = await GeneratedApplicationBuilds.Enter(new(nameof(CatalogScaffold), "dotnet", arguments));
         var start = new ProcessStartInfo("dotnet")
         {
             WorkingDirectory = directory,
@@ -96,7 +96,7 @@ static class CatalogScaffold
         start.Environment["MSBUILDDISABLENODEREUSE"] = "1";
         start.Environment["DOTNET_CLI_USE_MSBUILD_SERVER"] = "0";
         foreach (var argument in GeneratedApplicationBuilds.Capped("dotnet", arguments)) start.ArgumentList.Add(argument);
-        using var process = Process.Start(start)!;
+        using var process = Process.Start(start);
         var output = process.StandardOutput.ReadToEndAsync();
         var error = process.StandardError.ReadToEndAsync();
         await process.WaitForExitAsync().WaitAsync(TimeSpan.FromMinutes(8));

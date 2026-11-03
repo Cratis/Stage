@@ -29,11 +29,11 @@ public class with_an_unused_rule_concept : Specification
                 Specifications = [.. slice.Specifications.Where(specification => specification.Name != "GeneratorBodyNotExecuted")]
             }] }] }]
         });
-        _plan = SemanticExecutionPlan.Compile(model).Plan!;
+        _plan = SemanticExecutionPlan.Compile(model).Plan;
     }
 
     void Because() => _admission = new(_plan);
 
-    [Fact] void should_keep_the_rule_concept_in_the_model() => _plan.Model.Application.Concepts.ShouldContain(concept => concept.Generation!.Kind == "implementation");
+    [Fact] void should_keep_the_rule_concept_in_the_model() => _plan.Model.Application.Concepts.ShouldContain(concept => concept.Generation.Kind == "implementation");
     [Fact] void should_admit_the_live_application() => _admission.Blocking.ShouldBeEmpty();
 }

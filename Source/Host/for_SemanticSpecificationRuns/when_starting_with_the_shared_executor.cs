@@ -80,13 +80,13 @@ public class when_starting_with_the_shared_executor : Specification
         using var run = await _http.PostAsync(SemanticSpecificationRuns.Route, content);
         var reportBody = await run.Content.ReadAsStringAsync();
         Assert.True(run.IsSuccessStatusCode, $"Run returned {(int)run.StatusCode}: {reportBody}");
-        _report = SemanticSpecificationRunReportFile.Read(reportBody)!;
+        _report = SemanticSpecificationRunReportFile.Read(reportBody);
         using var status = await _http.GetAsync("/stage/status");
         _status = status.StatusCode;
-        _stageStatus = JsonSerializer.Deserialize<StageStatus>(await status.Content.ReadAsStringAsync(), StageJson.Options)!;
+        _stageStatus = JsonSerializer.Deserialize<StageStatus>(await status.Content.ReadAsStringAsync(), StageJson.Options);
         using var deps = JsonDocument.Parse(await File.ReadAllTextAsync(Path.ChangeExtension(typeof(SemanticHost).Assembly.Location, ".deps.json")));
         _dependencies = [.. deps.RootElement.GetProperty("libraries").EnumerateObject().Select(entry => entry.Name.Split('/')[0])];
-        _handlers = [.. _app.Services.GetRequiredService<ICommandHandlerProviders>().Handlers.Select(handler => handler.CommandType.Assembly.GetName().Name!)];
+        _handlers = [.. _app.Services.GetRequiredService<ICommandHandlerProviders>().Handlers.Select(handler => handler.CommandType.Assembly.GetName().Name)];
     }
 
     [Fact] void should_leave_chronicle_artifact_registration_to_stage() => _app.Services.GetRequiredService<IOptions<ChronicleAspNetCoreOptions>>().Value.AutoDiscoverAndRegister.ShouldBeFalse();

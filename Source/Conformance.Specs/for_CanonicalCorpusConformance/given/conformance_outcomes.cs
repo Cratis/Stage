@@ -160,7 +160,7 @@ public static partial class conformance_outcomes
         if (!IdentifierName.IsMatch(model.Application.Name))
         {
             model = ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, model.Application with { Name = name });
-            plan = SemanticExecutionPlan.Compile(model, []).Plan!;
+            plan = SemanticExecutionPlan.Compile(model, []).Plan;
         }
 
         var source = conformance_source_bodies.Compile(vector);

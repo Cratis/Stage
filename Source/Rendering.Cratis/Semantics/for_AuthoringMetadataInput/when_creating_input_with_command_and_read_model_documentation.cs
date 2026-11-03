@@ -21,12 +21,12 @@ public class when_creating_input_with_command_and_read_model_documentation : Spe
     {
         var input = AuthoringMetadataInput.Create(_compilation);
         input.ShouldNotBeNull();
-        _accepted = AuthoringMetadataInput.TryRead(input!, _compilation.Model, out _catalog);
+        _accepted = AuthoringMetadataInput.TryRead(input, _compilation.Model, out _catalog);
     }
 
     [Fact] void should_admit_the_metadata_it_creates() => _accepted.ShouldBeTrue();
-    [Fact] void should_key_command_documentation_by_its_semantic_identity() => _catalog!.Entries[Command().Id.ToString()].ShouldEqual(new AuthoringMetadataInput.Metadata("Registers <project> & name", "# Command <notes> & details\n\n- **Keep** the requested name."));
-    [Fact] void should_key_read_model_documentation_by_its_semantic_identity() => _catalog!.Entries[ReadModel().Id.ToString()].ShouldEqual(new AuthoringMetadataInput.Metadata("Shows <project> & name", "# View <notes> & details\n\n- `name` may contain <markup> & text."));
+    [Fact] void should_key_command_documentation_by_its_semantic_identity() => _catalog.Entries[Command().Id.ToString()].ShouldEqual(new AuthoringMetadataInput.Metadata("Registers <project> & name", "# Command <notes> & details\n\n- **Keep** the requested name."));
+    [Fact] void should_key_read_model_documentation_by_its_semantic_identity() => _catalog.Entries[ReadModel().Id.ToString()].ShouldEqual(new AuthoringMetadataInput.Metadata("Shows <project> & name", "# View <notes> & details\n\n- `name` may contain <markup> & text."));
 
     SemanticCommand Command() => _compilation.Model.Application.Modules.Single().Features.Single().Slices[0].Commands.Single();
     SemanticReadModel ReadModel() => _compilation.Model.Application.Modules.Single().Features.Single().Slices[^1].ReadModels.Single();

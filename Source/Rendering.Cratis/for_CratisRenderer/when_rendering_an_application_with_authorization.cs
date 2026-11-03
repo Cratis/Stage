@@ -27,9 +27,9 @@ public class when_rendering_an_application_with_authorization : an_application_w
         var assembly = RenderedOutput.Load(_codeOutput.Files);
         _register = assembly.GetTypes().Single(type => type.Name == "RegisterInvoice");
         var summary = assembly.GetTypes().Single(type => type.Name == "InvoiceSummary");
-        _all = summary.GetMethod("All")!;
-        _mine = summary.GetMethod("Mine")!;
-        _authenticatedOnly = summary.GetMethod("AuthenticatedOnly")!;
+        _all = summary.GetMethod("All");
+        _mine = summary.GetMethod("Mine");
+        _authenticatedOnly = summary.GetMethod("AuthenticatedOnly");
     }
 
     // Asserted as joined text rather than an empty collection so a failure names the compilation errors.

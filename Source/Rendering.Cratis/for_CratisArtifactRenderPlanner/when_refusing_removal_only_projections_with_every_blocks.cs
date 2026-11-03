@@ -39,10 +39,10 @@ public class when_refusing_removal_only_projections_with_every_blocks : Specific
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("removal-every"), "removal-every", "Removal.play", Source);
         var compilation = new SemanticModelCompiler().Compile("Billing", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success, string.Join(Environment.NewLine, execution.Issues));
-        _plan = CratisRendering.Plan(model, execution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Billing", "Billing"));
+        _plan = CratisRendering.Plan(model, execution.Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Billing", "Billing"));
     }
 
     [Fact] void should_not_render() => _plan.Success.ShouldBeFalse();

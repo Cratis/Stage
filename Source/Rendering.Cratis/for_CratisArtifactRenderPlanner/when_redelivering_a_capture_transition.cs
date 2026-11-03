@@ -49,7 +49,7 @@ public class when_redelivering_a_capture_transition : given.a_translation_applic
 
     [Fact] void should_append_the_transition_once_after_a_lost_acknowledgment() => _log.Committed.Select(effect => effect.Event.GetType().Name).ShouldEqual(["Added", "StatusRecorded"]);
     [Fact] void should_retry_the_same_effect_key_from_the_prefix_before_the_delivered_position() => _log.Attempts[1].Single().IdempotencyKey.ShouldEqual(_log.Attempts[2].Single().IdempotencyKey);
-    [Fact] void should_preserve_the_transition_value_despite_later_inbox_records() => _log.Committed.Last().Event.GetType().GetProperty("Status")!.GetValue(_log.Committed.Last().Event).ShouldEqual("delivered");
+    [Fact] void should_preserve_the_transition_value_despite_later_inbox_records() => _log.Committed.Last().Event.GetType().GetProperty("Status").GetValue(_log.Committed.Last().Event).ShouldEqual("delivered");
     [Fact] void should_route_the_transition_to_the_record_key_not_the_foreign_stream() => _log.Committed.ShouldEachConformTo(effect => effect.EventSourceId.Value == "parcel");
 
     AppendedEvent Fact(ulong sequence, string status) => new(
@@ -58,15 +58,15 @@ public class when_redelivering_a_capture_transition : given.a_translation_applic
 
     object Arrived(string status)
     {
-        var constructor = _assembly.GetType("Contracts.Shipping.Tracking.Receive.Arrived", throwOnError: true)!.GetConstructors().Single();
+        var constructor = _assembly.GetType("Contracts.Shipping.Tracking.Receive.Arrived", throwOnError: true).GetConstructors().Single();
         return constructor.Invoke([.. constructor.GetParameters().Select(parameter => string.Equals(parameter.Name, "Id", StringComparison.OrdinalIgnoreCase) ? "parcel" : status)]);
     }
 
     async Task Deliver(AppendedEvent fact)
     {
-        var reactor = Activator.CreateInstance(_assembly.GetType("Contracts.Shipping.Tracking.Receive.Feed", throwOnError: true)!, _store)!;
+        var reactor = Activator.CreateInstance(_assembly.GetType("Contracts.Shipping.Tracking.Receive.Feed", throwOnError: true), _store);
         var delivery = ReactorDelivery.For(reactor, fact.Context);
-        var effects = await (Task<IEnumerable<object>>)reactor.GetType().GetMethod("OnArrived")!.Invoke(reactor, [fact.Content, fact.Context, delivery])!;
+        var effects = await (Task<IEnumerable<object>>)reactor.GetType().GetMethod("OnArrived").Invoke(reactor, [fact.Content, fact.Context, delivery]);
         var result = await new EventsForEventSourceIdResultHandler().Handle(new ReactorContext(fact.Context, reactor, []) { Delivery = delivery }, _store, effects);
         result.IsSuccess.ShouldBeTrue();
     }

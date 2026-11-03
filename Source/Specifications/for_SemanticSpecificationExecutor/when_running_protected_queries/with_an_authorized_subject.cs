@@ -29,5 +29,5 @@ public class with_an_authorized_subject : a_projected_specification
 
     [Fact] void should_compare_the_authorized_result() => _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
     [Fact] void should_match_the_reference() => _reference.Passed.ShouldBeTrue();
-    [Fact] void should_expose_the_query_result() => _result.Trace!.Queries.Count.ShouldEqual(1);
+    [Fact] void should_expose_the_query_result() => _result.Trace.Queries.Count.ShouldEqual(1);
 }

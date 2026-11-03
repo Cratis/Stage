@@ -66,40 +66,26 @@ internal static class SemanticReadModelSpecificationRenderer
         var builder = Builder(behavior, located, readModel, context);
         var scope = new SemanticReadModelSpecificationScope(builder, types, context, located);
         var seeds = SemanticProjectionSpecificationSeeds.For(specification, readModel.Id).ToArray();
-        var needsCommon = seeds.Any(seed => readModel.Properties.Any(property => SemanticTypeSystem.ValueNeedsCommon(
-            seed.Values.Single(value => value.TargetProperty == property.Id).Value, property.Type)));
         var readModelName = types.SliceType(readModel.Id, readModel.Name);
 
-        context.Docs(specification.Id).Render(builder)
+        context.Docs(specification.Id).Render(builder, $"Specifies {Identifiers.ToWords(specification.Name)}.")
             .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable")
             .Line($"readonly global::Cratis.Chronicle.Testing.ReadModels.ReadModelScenario<{readModelName}> _scenario = new();")
             .Line(SemanticSpecificationValuesRenderer.Declarations)
             .BlankLine()
             .OpenBlock(givenEvents.Count == 0 && replay.Count == 0 && seeds.Length == 0 ? "void Establish()" : "async global::System.Threading.Tasks.Task Establish()");
         if (seeds.Length > 0) SemanticProjectionSpecificationSeeds.Render(builder, specification, readModel, types);
-        needsCommon |= SemanticReadModelSpecificationGivens.Render(scope, givenEvents);
-        needsCommon |= SemanticReadModelSpecificationReplay.Render(scope, specification, command, replay);
+        SemanticReadModelSpecificationGivens.Render(scope, givenEvents);
+        SemanticReadModelSpecificationReplay.Render(scope, specification, command, replay);
 
         builder.EndBlock()
             .BlankLine();
-        needsCommon |= SemanticReadModelSpecificationExpectations.Render(scope, new(readModel, expected, reducer is not null, absentIndex));
+        SemanticReadModelSpecificationExpectations.Render(scope, new(readModel, expected, reducer is not null, absentIndex));
 
-        builder.Line("public void Dispose() => _scenario.Dispose();").EndBlock();
-        if (needsCommon)
-        {
-            builder.Using(context.CommonNamespace);
-        }
+        builder.Line("/// <inheritdoc/>").Line("public void Dispose() => _scenario.Dispose();").EndBlock();
         var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]);
 
-        // Decided from the rendered content, as the non-semantic renderer does: only a culture-invariant
-        // parse needs the namespace, and emitting it regardless leaves an unused using in every file.
-        var content = types.SpecificationContent(builder);
-        if (SpecificationValues.NeedsGlobalization(content))
-        {
-            content = types.SpecificationContent(builder.Using("System.Globalization"));
-        }
-
-        return new(path, content);
+        return new(path, types.SpecificationContent(builder));
     }
 
     static CSharpCodeBuilder Builder(
@@ -111,8 +97,6 @@ internal static class SemanticReadModelSpecificationRenderer
         return context.SpecificationBuilder()
             .Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
             .Using("Cratis.Chronicle.Testing.ReadModels")
-            .Using("Cratis.Specifications")
-            .Using("Xunit")
-            .Using(SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(readModel.Id).Path));
+            .Using("Cratis.Specifications");
     }
 }

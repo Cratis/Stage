@@ -31,7 +31,7 @@ public class when_invoking_root_string_lookups : given.a_root_string_key_slice
             }
 
             var assembly = RenderedOutput.Load([file]);
-            var model = assembly.GetType("OrdersApp.Sales.Orders.Summary.OrderReadModel", throwOnError: true)!;
+            var model = assembly.GetType("OrdersApp.Sales.Orders.Summary.OrderReadModel", throwOnError: true);
             var attribute = Assert.Single(model.GetCustomAttributesData(), attribute => attribute.AttributeType.Name == "FromEventAttribute`1");
 
             // C# supplies the existing optional key/parentKey constructor defaults in metadata.
@@ -44,7 +44,7 @@ public class when_invoking_root_string_lookups : given.a_root_string_key_slice
             argument.TypedValue.Value.ShouldEqual(value);
             model.GetProperties(BindingFlags.Public | BindingFlags.Instance).Select(property => property.Name).ShouldContainOnly("Total");
             Assert.Single(model.GetConstructors()).GetParameters().Select(parameter => parameter.Name).ShouldContainOnly("Total");
-            var method = model.GetMethod(query.Length == 0 ? "OrderReadModelById" : "OrderById", BindingFlags.Public | BindingFlags.Static)!;
+            var method = model.GetMethod(query.Length == 0 ? "OrderReadModelById" : "OrderById", BindingFlags.Public | BindingFlags.Static);
 
             // Declared as the event source id, not the string it is stored as: Arc validates the argument it
             // coerces to the declared parameter type, so a raw string parameter would reach the lookup
@@ -52,7 +52,7 @@ public class when_invoking_root_string_lookups : given.a_root_string_key_slice
             method.GetParameters()[1].ParameterType.ShouldEqual(typeof(EventSourceId));
             method.GetParameters()[1].Name.ShouldEqual(query.Contains("by lookup", StringComparison.Ordinal) ? "lookup" : "id");
             var readModels = Substitute.For<IReadModels>();
-            await (Task)method.Invoke(null, [readModels, new EventSourceId(value)])!;
+            await (Task)method.Invoke(null, [readModels, new EventSourceId(value)]);
             var call = Assert.Single(readModels.ReceivedCalls());
             call.GetMethodInfo().Name.ShouldEqual(nameof(IReadModels.GetInstanceById));
             call.GetMethodInfo().GetGenericArguments().ShouldContainOnly(model);

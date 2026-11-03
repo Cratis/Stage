@@ -27,10 +27,10 @@ public class when_round_tripping_a_report : Cratis.Specifications.Specification
             [],
             null)]);
 
-    void Because() => _restored = SemanticSpecificationRunReportFile.Read(SemanticSpecificationRunReportFile.Write(_report))!;
+    void Because() => _restored = SemanticSpecificationRunReportFile.Read(SemanticSpecificationRunReportFile.Write(_report));
 
     [Fact] void should_preserve_the_schema() => _restored.SchemaVersion.ShouldEqual("stage-spec-run/1");
-    [Fact] void should_preserve_the_unsupported_capability() => _restored.Results.Single().Unsupported!.Capability.ShouldEqual(StageExecutionCapability.Projection);
+    [Fact] void should_preserve_the_unsupported_capability() => _restored.Results.Single().Unsupported.Capability.ShouldEqual(StageExecutionCapability.Projection);
     [Fact] void should_preserve_the_identity() => _restored.Results.Single().SpecificationId.ShouldEqual("sem1:specification");
     [Fact] void should_report_a_completed_unsupported_run() => _restored.Completed.ShouldBeTrue();
 }

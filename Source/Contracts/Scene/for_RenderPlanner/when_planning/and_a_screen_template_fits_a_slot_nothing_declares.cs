@@ -19,8 +19,8 @@ public class and_a_screen_template_fits_a_slot_nothing_declares : an_application
     void Because() => _result = RenderPlanner.Plan(_application, _catalog);
 
     [Fact] void should_not_consider_the_application_renderable() => _result.IsComplete.ShouldBeFalse();
-    [Fact] void should_report_the_template_as_unplaced() => Finding()!.Kind.ShouldEqual(RenderFindingKind.ScreenTemplateUnplaced);
-    [Fact] void should_name_the_template_that_found_no_home() => Finding()!.Subject.ShouldEqual("MasterDetail");
+    [Fact] void should_report_the_template_as_unplaced() => Finding().Kind.ShouldEqual(RenderFindingKind.ScreenTemplateUnplaced);
+    [Fact] void should_name_the_template_that_found_no_home() => Finding().Subject.ShouldEqual("MasterDetail");
     [Fact] void should_place_nothing() => _result.Targets[0].ScreenTemplates.Placements.ShouldBeEmpty();
 
     RenderFinding? Finding() =>

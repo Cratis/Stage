@@ -49,7 +49,7 @@ public class with_executable_value_accessors
         Assert.True(plan.Success, opaque_policy_model.Errors(plan));
         var assembly = opaque_policy_model.Compile(plan);
         var money = assembly.GetTypes().Single(type => type.Name == "Money");
-        Assert.True(validation_body_model.Validate(assembly, "PlaceOrder", Activator.CreateInstance(money, 5m)!).IsValid);
+        Assert.True(validation_body_model.Validate(assembly, "PlaceOrder", Activator.CreateInstance(money, 5m)).IsValid);
     }
 
     [Fact]

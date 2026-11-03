@@ -39,20 +39,20 @@ public class when_the_topbar_declares_application_toolbar_buttons : given.a_tran
     {
         var compiled = new Cratis.Screenplay.ScreenplayCompiler().Compile(Shell);
         Assert.True(compiled.Success, string.Join("; ", compiled.Diagnostics.Select(diagnostic => $"{diagnostic.Code} {diagnostic.Message}")));
-        _application = new ScreenplaySceneVisitor().Convert(compiled.Value!);
+        _application = new ScreenplaySceneVisitor().Convert(compiled.Value);
     }
 
     Cratis.Scene.Model.Navigation.NavigationRegion Topbar => _application.Navigation.Application.Regions.Single();
-    Cratis.Scene.Model.Navigation.NavigationButton Place => Topbar.Buttons!.Single(button => button.Id == "place");
+    Cratis.Scene.Model.Navigation.NavigationButton Place => Topbar.Buttons.Single(button => button.Id == "place");
 
     [Fact] void should_still_convert_the_items_beside_the_buttons() => Topbar.Items.Single().Id.ShouldEqual("shop");
-    [Fact] void should_carry_every_button() => Topbar.Buttons!.Select(button => button.Id).ShouldContainOnly("place", "help");
+    [Fact] void should_carry_every_button() => Topbar.Buttons.Select(button => button.Id).ShouldContainOnly("place", "help");
     [Fact] void should_carry_the_title() => Place.Title.ShouldEqual("Place order");
     [Fact] void should_write_the_slice_as_the_qualified_id() => Place.Slice.ShouldEqual("Shop.Orders.PlaceOrder");
     [Fact] void should_carry_the_emphasis() => Place.Emphasis.ShouldEqual(Cratis.Scene.Model.Toolbar.ToolbarEmphasis.Primary);
     [Fact] void should_carry_the_icon() => Place.Icon.ShouldEqual("plus");
     [Fact] void should_carry_the_policy() => Place.Authorize.ShouldEqual("IsBuyer");
-    [Fact] void should_leave_the_slice_of_a_button_that_names_none_empty() => Topbar.Buttons!.Single(button => button.Id == "help").Slice.ShouldBeNull();
-    [Fact] void should_leave_the_policy_of_a_button_that_names_none_empty() => Topbar.Buttons!.Single(button => button.Id == "help").Authorize.ShouldBeNull();
+    [Fact] void should_leave_the_slice_of_a_button_that_names_none_empty() => Topbar.Buttons.Single(button => button.Id == "help").Slice.ShouldBeNull();
+    [Fact] void should_leave_the_policy_of_a_button_that_names_none_empty() => Topbar.Buttons.Single(button => button.Id == "help").Authorize.ShouldBeNull();
     [Fact] void should_not_report_the_buttons_as_omitted() => _application.ConversionDiagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-SCENE-NAV-001");
 }

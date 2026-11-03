@@ -40,11 +40,11 @@ public class a_stored_typed_event : Specification
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("typed-event"), "typed-event", "Typed.play", source);
         var compiled = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
-        _typedPlan = SemanticExecutionPlan.Compile(compiled.Value!.Model).Plan!;
+        _typedPlan = SemanticExecutionPlan.Compile(compiled.Value.Model).Plan;
         var contract = _typedPlan.Events.Values.Single();
         var schema = JsonSchema.FromJson(SemanticSchemas.Schema(contract.Properties, _typedPlan.Model.Application));
         var converter = new ExpandoObjectConverter(new TypeFormats());
-        var documentJson = JsonNode.Parse($$"""{"projectId":"3fa85f64-5717-4562-b3fc-2c963f66afa6","value":{{jsonValue}}}""")!.AsObject();
+        var documentJson = JsonNode.Parse($$"""{"projectId":"3fa85f64-5717-4562-b3fc-2c963f66afa6","value":{{jsonValue}}}""").AsObject();
         var expando = converter.ToExpandoObject(documentJson, schema);
         _converted = ((IDictionary<string, object?>)expando)["value"];
         _stored = new AppendedEventResponse

@@ -24,7 +24,7 @@ public class when_planning_an_unhandled_primitive : a_register_project_render_re
                 .. model.Application.Concepts.Skip(1)]
         };
         typeof(ExecutableSemanticModel)
-            .GetField("<Application>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetField("<Application>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)
             .SetValue(model, application);
         _plan = _planner.Plan(_request with { Model = model });
     }

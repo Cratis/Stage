@@ -16,5 +16,5 @@ public class with_a_query_string : a_browser_page
     void Destroy() => _response.Dispose();
 
     [Fact] void should_redirect_before_serving_the_page() => _response.StatusCode.ShouldEqual(HttpStatusCode.Found);
-    [Fact] void should_preserve_the_query_string() => _response.Headers.Location!.OriginalString.ShouldEqual("../read-models?model=Project%20Summary&refresh=true");
+    [Fact] void should_preserve_the_query_string() => _response.Headers.Location.OriginalString.ShouldEqual("../read-models?model=Project%20Summary&refresh=true");
 }

@@ -22,7 +22,7 @@ public class when_creating_a_profile_with_conversion_diagnostics : Specification
     }
 
     [Fact] void should_refuse_conversion_errors() => _error.ShouldBeOfExactType<InvalidArtifactRenderContract>();
-    [Fact] void should_name_the_conversion_error() => _error!.Message.ShouldContain("STAGE-SCENE-ARRANGEMENT-002: Unsupported container");
+    [Fact] void should_name_the_conversion_error() => _error.Message.ShouldContain("STAGE-SCENE-ARRANGEMENT-002: Unsupported container");
     [Fact] void should_not_refuse_warnings() => _warning.ShouldBeNull();
 
     static SceneApplication Scene(DiagnosticSeverity severity) => new([], [], [], [], [], [])

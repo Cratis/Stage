@@ -22,12 +22,12 @@ public class when_refusing_nullable_query_validation_gaps : Specification
         if (!key) source = source.Replace("query InvoicesById => observable InvoiceSummary[]\n        by invoiceId InvoiceId", "query InvoicesById => observable InvoiceSummary[]\n        filter invoiceId InvoiceId optional", StringComparison.Ordinal);
         var model = invoice_model.Compile(source);
         var options = new CratisRenderingOptions("InvoiceApp", "Invoices");
-        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
         var context = new SemanticApplicationContext(request, options);
         var located = context.SelectedSlices().Single(value => value.Slice.Queries.Length > 0);
         var slice = key ? located.Slice with
         {
-            Queries = [.. located.Slice.Queries.Select(query => query with { Argument = query.Argument! with { Type = query.Argument!.Type with { IsOptional = true } } })]
+            Queries = [.. located.Slice.Queries.Select(query => query with { Argument = query.Argument with { Type = query.Argument.Type with { IsOptional = true } } })]
         } : located.Slice;
         var diagnostics = SemanticCratisAdmission.Evaluate(context, [located with { Slice = slice }]);
         diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-ESM-010" && diagnostic.Message.Contains("Arc skips validation for null arguments", StringComparison.Ordinal)).ShouldBeTrue();

@@ -20,12 +20,19 @@ public class with_authored_screen_partitions : a_partitioned_screen_plan
     // Recomputed for Screenplay 4.254.0: the scaffold now emits the published matcher pin.
     // Recomputed for Chronicle 19.112.1, Arc 22.143.0 and Fundamentals 7.27.0: the scaffold now emits those package pins and the matching npm Arc pins.
     // Recomputed for the Microsoft.Extensions.Telemetry.Abstractions 10.11.0 pin (Cratis/Chronicle#5442): the backend scaffold now emits its central package version and the specifications project reference.
-    // Recomputed for Screenplay 4.258.0 and Arc 22.146.0 from the merged scaffold.
-    // Recomputed for npm @cratis/scene 4.86.0: the frontend scaffold now emits the matching Scene package pins.
+    // Re-frozen for #497's generated XML documentation and used-only specification imports;
+    // Cratis.Specifications 5.1.0 and train 8b's Screenplay 4.256.0 / Arc 22.146.0 pins;
+    // Components 4.37.0 and Scene 4.86.0 (the scaffold now emits those npm pins);
+    // Components 4.38.1 (only the npm package pin changes).
+    // Recomputed for merged Screenplay 4.258.0, Arc 22.146.0 and npm @cratis/scene 4.86.0.
     // Recomputed for Screenplay 4.259.0: the scaffold now emits the published matcher pin.
-    // Recomputed for Cratis/Stage#926: the scaffold now hosts an Orleans silo, pins Cratis.Orleans 1.33.1 and moves to Chronicle 19.114.0.
+    // Re-frozen for Cratis/Stage#120 merged with train 10: authentication artifacts and host wiring on top of the train 10 output.
+    // Re-frozen for Cratis/Stage#937: only Directory.Packages.props pins Pkcs to 10.0.14 and documents Xml runtime servicing.
+    // Recomputed for Screenplay 5.0.0: the scaffold emits the 5.0.0 matcher pin.
     // Recomputed for Screenplay 5.1.0: the scaffold emits the 5.1.0 matcher pin.
-    const string Before = "65aecc6e1ea50300dd22b9739fbdae5ac70f62fece70123f974dfc6c0bdb1a74";
+    // Re-frozen after merging main (Screenplay 5.1.0) into train 10: the 4.259.0-era constants were stale.
+    const string Before = "6518cc5900270e1b8277810b6263767ac60f02d066b2b8df48a9aff84cb7c01a";
+    // Recomputed for Cratis/Stage#926: the scaffold now hosts an Orleans silo, pins Cratis.Orleans 1.33.1 and moves to Chronicle 19.114.0.
 
     void Because() => _application = AppPlan(_profile);
 

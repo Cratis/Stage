@@ -4,6 +4,9 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.CodeGeneration;
+using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
+using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 
@@ -216,15 +219,15 @@ public static class event_context_projection_model
                 name String
               readmodel ContextTotal
                 name String key
-                occurred DateTime
+                correlation Uuid
               projection ContextProjection => ContextTotal
                 from ContextRecorded key name
                   name = name
-                  occurred = $eventContext.occurred
+                  correlation = $eventContext.correlationId
               query ByName => ContextTotal?
                 by name String
               query Since => ContextTotal[]
-                filter occurred DateTime
+                filter correlation Uuid
         """;
 
     public const string InAJoin = Header + """
@@ -236,8 +239,8 @@ public static class event_context_projection_model
                 label String
               readmodel ContextTotal
                 name String key
-                label String
-                seen DateTime
+                label String optional
+                seen DateTime optional
               projection ContextProjection => ContextTotal
                 from ContextRecorded key name
                   name = name
@@ -263,11 +266,26 @@ public static class event_context_projection_model
                 from ContextRecorded key name
                   name = name
                 children notes identified by noteId
-                  from ContextNoted
-                    noteId = noteId
+                  from ContextNoted key noteId
+                    parent name
                     seen = $eventContext.occurred
               query AllContextTotals => ContextTotal[]
         """;
+
+    public static string Source(ArtifactRenderPlan plan) => string.Join('\n', plan.Artifacts.Select(artifact => System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
+
+    public static void AssertSucceeds(ArtifactRenderPlan plan) =>
+        Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
+
+    public static void AssertCompiles(ArtifactRenderPlan plan)
+    {
+        AssertSucceeds(plan);
+        Assert.NotEmpty(plan.Artifacts);
+        var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
+            .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
+        var errors = RenderedOutput.Errors(files);
+        Assert.True(errors.Count == 0, string.Join(Environment.NewLine, errors));
+    }
 
     public static ArtifactRenderPlan Plan(string source, bool strict = false, string? slice = null)
     {
@@ -279,11 +297,11 @@ public static class event_context_projection_model
             throw new InvalidOperationException(string.Join(Environment.NewLine, compilation.Diagnostics.Select(_ => $"{_.Code} {_.Severity}: {_.Message}")));
         }
 
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var options = new CratisRenderingOptions("ContextApp", "Context") { Strict = strict };
 
-        // Screenplay leaves the unexecutable event-context mappings out of the execution plan; the renderer decides what to do with them.
-        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model, []).Plan!, CratisRendering.CreateProfile(model.Application.Name, options), slice is null
+        // Rendering admission is independent of the reference execution plan's supported context paths.
+        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model, []).Plan, CratisRendering.CreateProfile(model.Application.Name, options), slice is null
             ? new(ArtifactRenderScopeKind.Application, model.Application.Id)
             : new(ArtifactRenderScopeKind.Slice, model.Application.Modules.SelectMany(module => module.Features).SelectMany(feature => feature.Slices).Single(candidate => candidate.Name == slice).Id))
         {

@@ -87,7 +87,7 @@ public class a_composite_key_runtime : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("billing"), "billing", "Billing.play", source);
         var compilation = new SemanticModelCompiler().Compile("Billing", SemanticDocumentSet.Create([document], catalog));
         compilation.Success.ShouldBeTrue();
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         var appender = Substitute.For<IAppendSemanticFacts, ISemanticFactTail>();
         var facts = new List<SemanticFact>();
         ((ISemanticFactTail)appender).Tail().Returns(_ => facts.Count == 0 ? ulong.MaxValue : (ulong)facts.Count - 1);

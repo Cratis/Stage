@@ -17,11 +17,11 @@ public class with_an_offsetless_datetime_invocation : given.a_reaction_plan
 
         // Valid source literals require offsets. Inject malformed transport data after plan validation to exercise invocation preparation.
         var expression = (SemanticValueExpression)_plan.Reactions.Single().Triggers.Single().Invokes.Single().Mappings.Single(mapping => mapping.Source is SemanticValueExpression).Source;
-        typeof(SemanticValueExpression).GetField("<Value>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(expression, SemanticValue.Text("2026-01-01T00:00:00"));
+        typeof(SemanticValueExpression).GetField("<Value>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(expression, SemanticValue.Text("2026-01-01T00:00:00"));
     }
 
     async Task Because() => await Execute();
 
     [Fact] void should_match_reference_rejection() => AssertMatchesReference();
-    [Fact] void should_preserve_the_offset_failure() => _result.Trace!.Rejection.ShouldEqual("DateTime command property 'at' requires an explicit offset or Z.");
+    [Fact] void should_preserve_the_offset_failure() => _result.Trace.Rejection.ShouldEqual("DateTime command property 'at' requires an explicit offset or Z.");
 }

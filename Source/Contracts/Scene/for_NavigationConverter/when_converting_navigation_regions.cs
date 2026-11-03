@@ -52,11 +52,11 @@ public class when_converting_navigation_regions : given.a_translated_application
 
     [Fact] void should_convert_both_application_regions() => Navigation.Application.Regions.Select(region => region.Region).ShouldContainOnly(NavigationRegionKind.Topbar, NavigationRegionKind.Sidebar);
     [Fact] void should_leave_the_application_regions_without_a_mode() => Navigation.Application.Regions.All(region => region.Mode is null).ShouldBeTrue();
-    [Fact] void should_convert_the_logo() => (Navigation.Application.Logo!.Image, Navigation.Application.Logo.Title).ShouldEqual(("/acme.svg", "Acme"));
+    [Fact] void should_convert_the_logo() => (Navigation.Application.Logo.Image, Navigation.Application.Logo.Title).ShouldEqual(("/acme.svg", "Acme"));
     [Fact] void should_convert_the_item_title_icon_and_module_target() => (Region(NavigationRegionKind.Topbar).Items[0].Title, Region(NavigationRegionKind.Topbar).Items[0].Icon, Region(NavigationRegionKind.Topbar).Items[0].Target).ShouldEqual(("Sales", "receipt", new DestinationReference(Module: "Shop")));
     [Fact] void should_convert_a_feature_target_and_slot() => (Region(NavigationRegionKind.Topbar).Items[1].Target, Region(NavigationRegionKind.Topbar).Items[1].Slot).ShouldEqual((new DestinationReference(Module: "Support", Feature: "Tickets"), "side"));
     [Fact] void should_keep_a_localized_title_as_written() => Region(NavigationRegionKind.Topbar).Items[1].Title.ShouldEqual("$strings.nav.support");
-    [Fact] void should_convert_sub_items() => Region(NavigationRegionKind.Sidebar).Items[0].Children!.Select(item => item.Id).ShouldContainOnly("orders", "returns");
+    [Fact] void should_convert_sub_items() => Region(NavigationRegionKind.Sidebar).Items[0].Children.Select(item => item.Id).ShouldContainOnly("orders", "returns");
     [Fact] void should_leave_an_item_without_sub_items_with_none() => Region(NavigationRegionKind.Topbar).Items[0].Children.ShouldBeNull();
     [Fact] void should_describe_only_the_modules_that_declare_regions() => Navigation.Modules.Select(module => module.Module).ShouldContainOnly("Shop", "Support");
     [Fact] void should_convert_an_extending_region() => Navigation.Modules.Single(module => module.Module == "Shop").Regions.Single(region => region.Region == NavigationRegionKind.Sidebar).Mode.ShouldEqual(NavigationRegionMode.Extend);

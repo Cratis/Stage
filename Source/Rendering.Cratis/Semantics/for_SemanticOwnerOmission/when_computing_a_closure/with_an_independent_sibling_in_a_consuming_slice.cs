@@ -55,11 +55,11 @@ public class with_an_independent_sibling_in_a_consuming_slice : given.an_omissio
     }
 
     [Fact] void should_be_provable() => _omission.ShouldNotBeNull();
-    [Fact] void should_include_every_declaration_of_the_consuming_slice() => _omission!.Closure.ShouldContain(_siblings);
+    [Fact] void should_include_every_declaration_of_the_consuming_slice() => _omission.Closure.ShouldContain(_siblings);
     [Fact] void should_not_reach_the_event_without_sibling_expansion() => _dependents.ShouldNotContain(_registerProject.Events.Single().Id);
     [Fact] void should_not_reach_the_consumer_without_sibling_expansion() => _dependents.ShouldNotContain(_projectLookup.Projections.Single().Id);
-    [Fact] void should_include_the_independent_command_after_expanding_the_consuming_slice() => _omission!.Closure.ShouldContain(_projectLookup.Commands.Single().Id);
+    [Fact] void should_include_the_independent_command_after_expanding_the_consuming_slice() => _omission.Closure.ShouldContain(_projectLookup.Commands.Single().Id);
     [Fact] void should_not_reach_the_independent_command_through_the_event_alone() => _index.Dependents(_registerProject.Events.Single().Id).ShouldNotContain(_projectLookup.Commands.Single().Id);
-    [Fact] void should_not_include_the_composite_the_event_depends_on() => _omission!.Closure.ShouldNotContain(_composite);
-    [Fact] void should_not_include_an_unrelated_composite() => _omission!.Closure.ShouldNotContain(_unrelated);
+    [Fact] void should_not_include_the_composite_the_event_depends_on() => _omission.Closure.ShouldNotContain(_composite);
+    [Fact] void should_not_include_an_unrelated_composite() => _omission.Closure.ShouldNotContain(_unrelated);
 }

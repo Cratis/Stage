@@ -41,7 +41,7 @@ public class a_stored_enumeration_event : Specification
         var declarations = numbered ? source.Replace("  draft\n  issued", "  draft = -1\n  issued = 90", StringComparison.Ordinal) : source;
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("enumeration-event"), "enumeration-event", "Invoices.play", declarations);
         var compiled = new SemanticModelCompiler().Compile("Invoices", SemanticDocumentSet.Create([document], catalog));
-        _plan = SemanticExecutionPlan.Compile(compiled.Value!.Model).Plan!;
+        _plan = SemanticExecutionPlan.Compile(compiled.Value.Model).Plan;
         var contract = _plan.Events.Values.Single();
 
         // The rendered application's Chronicle schema, not the Host's current string schema (Stage#310).
@@ -49,7 +49,7 @@ public class a_stored_enumeration_event : Specification
             ? """{"type":"object","properties":{"status":{"type":"integer","enum":[-1,90],"x-enumNames":["Draft","Issued"]}}}"""
             : """{"type":"object","properties":{"status":{"type":"integer","enum":[0,1],"x-enumNames":["Draft","Issued"]}}}""");
         var converter = new ExpandoObjectConverter(new TypeFormats());
-        var content = converter.ToExpandoObject(JsonNode.Parse($$"""{"status":{{jsonValue}}}""")!.AsObject(), schema);
+        var content = converter.ToExpandoObject(JsonNode.Parse($$"""{"status":{{jsonValue}}}""").AsObject(), schema);
         _converted = ((IDictionary<string, object?>)content)["status"];
         _stored = new AppendedEventResponse
         {

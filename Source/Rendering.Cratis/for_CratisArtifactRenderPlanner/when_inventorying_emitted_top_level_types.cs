@@ -67,7 +67,7 @@ public class when_inventorying_emitted_top_level_types : a_register_project_rend
         {
             Modules = [module with { Features = [feature with { Slices = [.. slices] }] }]
         });
-        Check(name, new(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile(model.Application.Name, _options), new(ArtifactRenderScopeKind.Application, model.Application.Id)), _options);
+        Check(name, new(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile(model.Application.Name, _options), new(ArtifactRenderScopeKind.Application, model.Application.Id)), _options);
         should_catalog_every_emitted_top_level_type();
     }
 

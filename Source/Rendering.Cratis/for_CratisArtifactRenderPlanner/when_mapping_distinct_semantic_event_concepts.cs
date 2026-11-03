@@ -47,7 +47,7 @@ public class when_mapping_distinct_semantic_event_concepts : Specification
         }
 
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var plan = invoice_model.Plan(compilation.Value!.Model);
+        var plan = invoice_model.Plan(compilation.Value.Model);
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         var artifact = plan.Artifacts.Single(candidate => string.Equals(candidate.RelativePath, "Inventory/Stock/Move/Move.cs", StringComparison.Ordinal));
         var content = Encoding.UTF8.GetString(artifact.Bytes.AsSpan());

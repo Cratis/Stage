@@ -17,7 +17,7 @@ public class an_artifact_render_request : Specification
         var applicationAddress = SemanticAddress.ForApplication(applicationIdentity);
         var application = new SemanticApplication(SemanticId.Create(applicationAddress), "Projects", [], [], []);
         var model = ExecutableSemanticModel.Create(LanguageVersion.V1, SemanticVersion.V1, application);
-        var executionPlan = SemanticExecutionPlan.Compile(model).Plan!;
+        var executionPlan = SemanticExecutionPlan.Compile(model).Plan;
         var profile = ArtifactRenderProfile.Create("cratis", "1", "Cratis.Stage.Rendering.Cratis", "1", []);
         _request = new(model, executionPlan, profile, new(ArtifactRenderScopeKind.Application, application.Id));
     }

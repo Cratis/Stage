@@ -44,7 +44,7 @@ public class with_v1_explicit_source_identity : Specification
         var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
         Assert.True(result.Outcome == SemanticSpecificationOutcome.Passed,
             $"{result.Outcome}: {result.Unsupported?.Details} {string.Join(';', result.Failures)}");
-        result.Trace!.Facts.Count.ShouldEqual(factCount);
+        result.Trace.Facts.Count.ShouldEqual(factCount);
         result.Trace.Facts[0].EventContract.ShouldEqual(plan.Events.Values.Single(contract => contract.Name == "ProjectRegistered").Id.ToString());
         result.Trace.Facts[^1].EventContract.ShouldEqual(plan.Events.Values.Single(contract => contract.Name == (factCount == 1 ? "ProjectRegistered" : "ProjectFollowed")).Id.ToString());
         Assert.All(result.Trace.Facts, fact =>
@@ -55,7 +55,7 @@ public class with_v1_explicit_source_identity : Specification
         var readModel = plan.ReadModels.Values.Single();
         var projected = Assert.Single(result.Trace.ReadModels);
         projected.Key.ShouldEqual($"{readModel.Id}:\"project-1\"");
-        var values = JsonSerializer.Deserialize<Dictionary<string, string>>(projected.Value)!;
+        var values = JsonSerializer.Deserialize<Dictionary<string, string>>(projected.Value);
         values[readModel.Properties.Single(property => property.Name == "key").Id.ToString()].ShouldEqual("\"project-1\"");
         values[readModel.Properties.Single(property => property.Name == "name").Id.ToString()].ShouldEqual("\"hello\"");
     }
@@ -101,9 +101,9 @@ public class with_v1_explicit_source_identity : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("model"), "model", "Model.play", source);
         var compilation = new SemanticModelCompiler().Compile("ExplicitSourceIdentity", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        var compiled = SemanticExecutionPlan.Compile(compilation.Value!.Model);
+        var compiled = SemanticExecutionPlan.Compile(compilation.Value.Model);
         Assert.NotNull(compiled.Plan);
 
-        return compiled.Plan!;
+        return compiled.Plan;
     }
 }

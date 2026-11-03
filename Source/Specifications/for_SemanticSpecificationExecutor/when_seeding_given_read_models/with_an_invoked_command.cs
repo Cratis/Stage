@@ -48,5 +48,5 @@ public class with_an_invoked_command : a_reaction_plan
     Task Because() => Execute();
 
     [Fact] void should_share_the_root_seed_with_the_invocation() => AssertMatchesReference();
-    [Fact] void should_append_the_invoked_command_fact() => _result.Trace!.Facts.Count.ShouldEqual(2);
+    [Fact] void should_append_the_invoked_command_fact() => _result.Trace.Facts.Count.ShouldEqual(2);
 }

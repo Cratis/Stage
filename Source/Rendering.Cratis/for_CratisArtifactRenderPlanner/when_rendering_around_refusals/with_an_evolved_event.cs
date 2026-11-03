@@ -34,7 +34,7 @@ public class with_an_evolved_event : given.a_refused_specification
             [.. current.EventContracts.Select(contract => contract.Address)],
             [new(eventAddress, new(2))]).Catalog;
         var model = Compile(form with { IdentityCatalogBytes = [.. SemanticIdentityCatalogSerializer.Serialize(advanced)] }).Model;
-        _request = OptIn(_original with { Model = model, ExecutionPlan = SemanticExecutionPlan.Compile(model).Plan! });
+        _request = OptIn(_original with { Model = model, ExecutionPlan = SemanticExecutionPlan.Compile(model).Plan });
     }
 
     void Because() => _plan = _planner.Plan(_request);

@@ -19,7 +19,7 @@ public class when_refusing_unrendered_subject_inputs : Specification
     {
         var parsed = new ScreenplayCompiler().Parse(Prefix + directive);
         Assert.True(parsed.Success, string.Join(Environment.NewLine, parsed.Diagnostics));
-        var syntax = parsed.Value!;
+        var syntax = parsed.Value;
         AssertRefusal(Catch.Exception(() => new ScreenplayEventModelVisitor().Visit(syntax)), input, binding);
         AssertRefusal(Catch.Exception(() => new ScreenplaySceneVisitor().Visit(syntax)), input, binding);
     }

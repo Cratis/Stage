@@ -50,7 +50,7 @@ public class when_delivering_typed_keys : Specification
     [Fact]
     public async Task should_execute_the_frozen_v32_typed_given_and_projection()
     {
-        var plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(EsmGoldenVectors.Get(32).Bytes.AsSpan())).Plan!;
+        var plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(EsmGoldenVectors.Get(32).Bytes.AsSpan())).Plan;
         var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
         Assert.True(result.Outcome == SemanticSpecificationOutcome.Passed, $"{result.Unsupported?.Details} {string.Join(';', result.Failures)}");
         new SemanticSpecificationRunner().Run(plan, plan.Specifications.Keys.Single()).Passed.ShouldBeTrue();
@@ -63,7 +63,7 @@ public class when_delivering_typed_keys : Specification
         var plan = WithKey(model, SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Boolean), new SemanticBooleanValue(true));
         var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
         result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-        Assert.StartsWith("STAGE-ESM-052:", result.Unsupported!.Details, StringComparison.Ordinal);
+        Assert.StartsWith("STAGE-ESM-052:", result.Unsupported.Details, StringComparison.Ordinal);
     }
 
     static SemanticExecutionPlan WithKey(ExecutableSemanticModel model, SemanticTypeReference type, SemanticValue key)

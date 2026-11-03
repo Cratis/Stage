@@ -85,5 +85,5 @@ public class when_the_projection_declares_what_is_still_unrendered : Specificati
     void Because() => _error = Catch.Exception(() => new StateViewSliceRenderer().Render(_applicationSet.Slices.Single(), _applicationSet, "CratisApp"));
 
     [Fact] void should_reject_root_level_clear() => _error.ShouldBeOfExactType<UnsupportedLegacyProjection>();
-    [Fact] void should_name_the_blocking_diagnostic() => _error!.Message.ShouldContain(UnsupportedLegacyProjection.DiagnosticCode);
+    [Fact] void should_name_the_blocking_diagnostic() => _error.Message.ShouldContain(UnsupportedLegacyProjection.DiagnosticCode);
 }

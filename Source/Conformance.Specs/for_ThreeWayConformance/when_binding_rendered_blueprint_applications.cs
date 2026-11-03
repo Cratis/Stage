@@ -21,7 +21,7 @@ public class when_binding_rendered_blueprint_applications
     static readonly (string Blueprint, string RelativePath, string Reason)[] _allowList = [];
 
     public static TheoryData<string> Blueprints() =>
-        [.. Directory.GetDirectories(Path.Combine(Root(), "Verification", "live-blueprints", "models")).Select(Path.GetFileName).Order(StringComparer.Ordinal)!];
+        [.. Directory.GetDirectories(Path.Combine(Root(), "Verification", "live-blueprints", "models")).Select(Path.GetFileName).Order(StringComparer.Ordinal)];
 
     [Theory]
     [MemberData(nameof(Blueprints))]
@@ -109,7 +109,7 @@ public class when_binding_rendered_blueprint_applications
     {
         var directory = Directory.GetParent(path);
         while (directory is not null && !Directory.Exists(Path.Combine(directory.FullName, "Verification"))) directory = directory.Parent;
-        return directory!.FullName;
+        return directory.FullName;
     }
 }
 #endif

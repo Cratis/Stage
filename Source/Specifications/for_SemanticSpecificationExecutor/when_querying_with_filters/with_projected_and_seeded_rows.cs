@@ -19,7 +19,7 @@ public class with_projected_and_seeded_rows : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("app"), "app", "application.play", Source());
         var compilation = new SemanticModelCompiler().Compile("QueryFilters", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        _plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        _plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         _report = await new SemanticSpecificationExecutor().Run(_plan, new([]), new());
         _reference = [.. _report.Results.Select(result => new SemanticSpecificationRunner().Run(_plan, SemanticId.Parse(result.SpecificationId)).Passed)];
     }

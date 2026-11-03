@@ -19,8 +19,8 @@ public class when_refusing_v10_syntax : Specification
     {
         var parsed = new ScreenplayCompiler().Parse("module Work\n  feature Completion\n    slice Automation Complete\n      event Started\n      " + construct);
         Assert.True(parsed.Success, string.Join(Environment.NewLine, parsed.Diagnostics));
-        var error = Catch.Exception(() => new ReactionIdentitySyntaxAdmission().VisitApplication(parsed.Value!));
-        var visitorError = Catch.Exception(() => new ScreenplayEventModelVisitor().Visit(parsed.Value!));
+        var error = Catch.Exception(() => new ReactionIdentitySyntaxAdmission().VisitApplication(parsed.Value));
+        var visitorError = Catch.Exception(() => new ScreenplayEventModelVisitor().Visit(parsed.Value));
         AssertCode(error, code);
         AssertCode(visitorError, code);
     }

@@ -28,6 +28,6 @@ public class and_it_was_authored_in_each_form : Specification
     [Fact] void should_not_treat_a_literal_as_a_key() => _literal.StringsKey.ShouldBeNull();
     [Fact] void should_strip_the_prefix_from_a_strings_reference() => _stringsReference.StringsKey.ShouldEqual("confirmCancel");
     [Fact] void should_not_treat_a_strings_reference_as_text() => _stringsReference.Text.ShouldBeNull();
-    [Fact] void should_treat_anything_else_as_a_binding() => _binding.Binding!.Path.ShouldEqual("state.message");
+    [Fact] void should_treat_anything_else_as_a_binding() => _binding.Binding.Path.ShouldEqual("state.message");
     [Fact] void should_not_treat_a_binding_as_text() => _binding.Text.ShouldBeNull();
 }

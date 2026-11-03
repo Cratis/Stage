@@ -40,7 +40,7 @@ public class when_a_command_generates_its_identifier : Specification
     {
         var syntax = new ScreenplayCompiler().Compile(Source);
         syntax.Success.ShouldBeTrue();
-        var scene = new ScreenplaySceneVisitor().Visit(syntax.Value!);
+        var scene = new ScreenplaySceneVisitor().Visit(syntax.Value);
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Buying"));
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("model"), "model", "model.play", Source);
         var compilation = new SemanticModelCompiler().Compile("Buying", SemanticDocumentSet.Create([document], catalog));
@@ -60,12 +60,12 @@ public class when_a_command_generates_its_identifier : Specification
             [new Form("CreatePurchaseOrderForm", "CreatePurchaseOrder", null, [], FormGenerationMode.Auto)],
             []);
 
-        _result = SceneSynthesizer.Synthesize(scene with { Screens = [screen] }, compilation.Value!.Model);
+        _result = SceneSynthesizer.Synthesize(scene with { Screens = [screen] }, compilation.Value.Model);
     }
 
     ExternalComponent Placed => _result.Screens.Single().SlotContent[DefaultLayout.ContentSlotName].OfType<ExternalComponent>().Single();
 
-    [Fact] void should_not_ask_for_the_generated_identifier() => ((IReadOnlyList<FormField>)Placed.Properties["fields"]!).Select(field => field.Name).ShouldContainOnly(["supplierId"]);
-    [Fact] void should_not_carry_the_generated_identifier_in_the_form_schema() => ((string)Placed.Properties[SceneSynthesizer.SchemaProperty]!).ShouldNotContain("purchaseOrderId");
-    [Fact] void should_still_carry_what_the_person_enters() => ((string)Placed.Properties[SceneSynthesizer.SchemaProperty]!).ShouldContain("supplierId");
+    [Fact] void should_not_ask_for_the_generated_identifier() => ((IReadOnlyList<FormField>)Placed.Properties["fields"]).Select(field => field.Name).ShouldContainOnly(["supplierId"]);
+    [Fact] void should_not_carry_the_generated_identifier_in_the_form_schema() => ((string)Placed.Properties[SceneSynthesizer.SchemaProperty]).ShouldNotContain("purchaseOrderId");
+    [Fact] void should_still_carry_what_the_person_enters() => ((string)Placed.Properties[SceneSynthesizer.SchemaProperty]).ShouldContain("supplierId");
 }

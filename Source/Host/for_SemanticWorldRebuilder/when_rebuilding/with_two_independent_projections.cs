@@ -47,7 +47,7 @@ public class with_two_independent_projections : a_rebuildable_world
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("two-mirrors"), "two-mirrors", "Mirrors.play", source);
         var compiled = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compiled.Success, string.Join("; ", compiled.Diagnostics.Select(diagnostic => diagnostic.Message)));
-        var plan = SemanticExecutionPlan.Compile(compiled.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compiled.Value.Model).Plan;
         var accessor = Substitute.For<IChronicleServicesAccessor>();
         _services = Substitute.For<IServices>();
         accessor.Services.Returns(_services);

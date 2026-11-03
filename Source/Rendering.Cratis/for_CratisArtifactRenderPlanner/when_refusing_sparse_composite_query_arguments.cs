@@ -34,7 +34,7 @@ public class when_refusing_sparse_composite_query_arguments : Specification
                     by invoiceKey InvoiceKey
             """);
         var options = new CratisRenderingOptions("InvoiceApp", "Invoices");
-        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
         var context = new SemanticApplicationContext(request, options);
         var located = context.SelectedSlices().Single();
         var original = a_projected_query_validation_model.Compile().Application.Modules.Single().Features.Single().Slices.SelectMany(slice => slice.Specifications).Single(specification => specification.Name == "InvalidKey");

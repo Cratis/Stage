@@ -48,13 +48,13 @@ public class with_generated_defects_after_command_checks : Specification
         ((ISemanticFactTail)appender).Tail().Returns(ulong.MaxValue);
         var runtime = SemanticRuntimeHosting.Create(plan, appender);
         using var lifetime = (IDisposable)runtime;
-        var payload = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json)!;
+        var payload = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
         var principal = new ClaimsPrincipal(new ClaimsIdentity([], authenticated ? "spec" : null));
         var occurrence = new SemanticCommandOccurrence(new(2026, 1, 2, 3, 4, 5, 678, TimeSpan.Zero), "subject", "name", "user");
 
         foreach (var validateOnly in new[] { true, false })
         {
-            SemanticExecutionResult outcome = null!;
+            SemanticExecutionResult outcome = null;
             var error = await Catch.Exception(async () => outcome = await runtime.Execute(plan.Commands.Values.Single(), payload, principal, occurrence, validateOnly));
             if (expected is { } category)
             {

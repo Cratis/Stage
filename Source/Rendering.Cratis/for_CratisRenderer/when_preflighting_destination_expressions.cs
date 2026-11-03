@@ -33,7 +33,7 @@ public class when_preflighting_destination_expressions : a_multi_slice_applicati
                   event Changed
             """);
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics.Select(diagnostic => diagnostic.Message)));
-        var application = compilation.Value!;
+        var application = compilation.Value;
         var module = application.Modules.Single();
         var feature = module.Features.Single();
         var slice = feature.Slices.Single();

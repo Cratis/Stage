@@ -11,5 +11,5 @@ public class with_a_constraint_violation : when_settling_reactions.given.a_react
         new(Action: "when trigger Arrived\n  item = \"one\"", Policy: "trigger Arrived\n  item String", Declarations: "constraint Once\n  unique event Followed\n  message \"Already followed\""));
     Task Because() => Execute();
     [Fact] void should_reject_like_the_reference() => AssertMatchesReference();
-    [Fact] void should_preserve_the_constraint_name() => _result.Trace!.RejectionCode.ShouldEqual("Once");
+    [Fact] void should_preserve_the_constraint_name() => _result.Trace.RejectionCode.ShouldEqual("Once");
 }

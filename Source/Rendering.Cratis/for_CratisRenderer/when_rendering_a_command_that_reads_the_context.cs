@@ -80,8 +80,8 @@ public class when_rendering_a_command_that_reads_the_context : an_application_re
     [Fact] void should_not_ask_for_arcs_command_context() => _handler.ShouldNotContain("Commands.CommandContext");
     [Fact] void should_read_the_time_the_command_was_received() => _occurred.ShouldEqual(DateTimeOffset.FromUnixTimeMilliseconds(_receipt.ToUnixTimeMilliseconds()));
     [Fact] void should_not_read_the_wall_clock() => _handler.ShouldNotContain("UtcNow");
-    [Fact] void should_refuse_a_missing_receipt() => _missingReceipt.InnerException!.GetType().Name.ShouldEqual("CommandReceiptTimeUnavailable");
-    [Fact] void should_refuse_an_unset_receipt() => _unsetReceipt.InnerException!.GetType().Name.ShouldEqual("CommandReceiptTimeUnavailable");
+    [Fact] void should_refuse_a_missing_receipt() => _missingReceipt.InnerException.GetType().Name.ShouldEqual("CommandReceiptTimeUnavailable");
+    [Fact] void should_refuse_an_unset_receipt() => _unsetReceipt.InnerException.GetType().Name.ShouldEqual("CommandReceiptTimeUnavailable");
     [Fact] void should_translate_the_tenant_from_the_tenant_accessor() => _handler.ShouldContain("PortableTenantValues.Translate(tenants.Current.Value");
     [Fact] void should_import_the_tenant_translation() => _handler.ShouldContain("using AcmeBilling.GeneratedTenancy;");
     [Fact] void should_translate_default_in_the_generated_handler() => _tenants[TenantId.Default.Value].ShouldEqual(Screenplay.Contexts.TenantId.Default.Value);

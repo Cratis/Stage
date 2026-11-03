@@ -21,7 +21,7 @@ public class with_a_publication_reading_the_event_source : a_source_observabilit
         var feature = module.Features.Single();
         var slice = feature.Slices.Single(candidate => candidate.Projections.Length > 0);
         var projection = slice.Projections.Single();
-        var scope = projection.Scope!;
+        var scope = projection.Scope;
         var contribution = scope.From.Single();
         var observing = contribution with
         {
@@ -41,7 +41,7 @@ public class with_a_publication_reading_the_event_source : a_source_observabilit
     {
         var model = SemanticModelSerializer.Deserialize(PublicEventsCorpus.V9.EsmBytes.AsSpan());
         var slice = SemanticVersionFeatures.Slices(model.Application).Single(candidate => candidate.Specifications.Length > 0);
-        var appended = slice.Specifications[0].WhenAppended!;
+        var appended = slice.Specifications[0].WhenAppended;
         var context = CreateContext(model, slice.Id);
         var fact = new SemanticSpecificationEvent(appended.EventContract, appended.Values);
         var exception = Assert.Throws<InvalidOperationException>(() =>

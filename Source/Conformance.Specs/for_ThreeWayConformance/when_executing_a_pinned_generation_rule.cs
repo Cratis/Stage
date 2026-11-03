@@ -21,7 +21,7 @@ public class when_executing_a_pinned_generation_rule : Specification
     {
         var corpus = GenerationFixturesCorpus.V21;
         var model = SemanticModelSerializer.Deserialize(corpus.EsmBytes.AsSpan());
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(model).Plan;
         var expected = corpus.SpecificationExpectations.Single(expectation => expectation.Name == "GeneratorBodyNotExecuted");
         _reference = new SemanticSpecificationRunner().Run(plan, expected.Specification);
         _stage = (await new SemanticSpecificationExecutor().Run(plan, new([expected.Specification]), new())).Results.Single();

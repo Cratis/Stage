@@ -20,7 +20,7 @@ public class when_building_actual_v29 : a_generated_application
         Assert.True(execution.Success, string.Join(Environment.NewLine, execution.Issues));
         return CratisRendering.Plan(
             model,
-            execution.Plan!,
+            execution.Plan,
             new(ArtifactRenderScopeKind.Application, model.Application.Id),
             new("AcmeAdmissions", "AcmeAdmissions"));
     }

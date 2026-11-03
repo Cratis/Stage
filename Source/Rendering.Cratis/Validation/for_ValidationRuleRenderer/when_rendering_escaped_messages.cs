@@ -30,10 +30,10 @@ public class when_rendering_escaped_messages : Specification
             }
             """;
         var assembly = RenderedOutput.Load([new RenderedFile("MessageProbe.cs", code)]);
-        var probe = assembly.GetType("MessageProbe")!;
-        var validator = (IValidator)Activator.CreateInstance(assembly.GetType("MessageProbeValidator")!)!;
-        var instance = Activator.CreateInstance(probe, string.Empty)!;
-        var context = (IValidationContext)Activator.CreateInstance(typeof(ValidationContext<>).MakeGenericType(probe), instance)!;
+        var probe = assembly.GetType("MessageProbe");
+        var validator = (IValidator)Activator.CreateInstance(assembly.GetType("MessageProbeValidator"));
+        var instance = Activator.CreateInstance(probe, string.Empty);
+        var context = (IValidationContext)Activator.CreateInstance(typeof(ValidationContext<>).MakeGenericType(probe), instance);
         validator.Validate(context).Errors.Single().ErrorMessage.ShouldEqual(message);
     }
 }

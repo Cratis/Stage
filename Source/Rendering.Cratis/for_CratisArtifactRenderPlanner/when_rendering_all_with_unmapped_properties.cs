@@ -53,11 +53,11 @@ public class when_rendering_all_with_unmapped_properties : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("all"), "all", "All.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join("; ", compilation.Diagnostics.Select(diagnostic => diagnostic.Message)));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success, string.Join("; ", execution.Issues));
 
-        return CratisRendering.Plan(model, execution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
+        return CratisRendering.Plan(model, execution.Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
     }
 }
 #endif

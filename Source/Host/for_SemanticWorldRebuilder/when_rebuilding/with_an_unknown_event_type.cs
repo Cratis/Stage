@@ -18,5 +18,5 @@ public class with_an_unknown_event_type : a_rebuildable_world
     }
 
     [Fact] void should_refuse_with_the_unknown_type() => _error.ShouldBeOfExactType<SemanticWorldRebuildRefused>();
-    [Fact] void should_name_the_unknown_type() => _error!.Message.ShouldContain("UnknownEvent");
+    [Fact] void should_name_the_unknown_type() => _error.Message.ShouldContain("UnknownEvent");
 }

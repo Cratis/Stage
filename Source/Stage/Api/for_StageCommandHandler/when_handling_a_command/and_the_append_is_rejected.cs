@@ -19,5 +19,5 @@ public class and_the_append_is_rejected : given.a_command_handler
     async Task Because() => _error = await Catch.Exception(() => HandlerFor("invoiceId").Handle(ContextFor("{\"invoiceId\":\"33333333-3333-3333-3333-333333333333\"}")).AsTask());
 
     [Fact] void should_fail_instead_of_returning_the_payload() => _error.ShouldBeOfExactType<ProducedEventAppendRejected>();
-    [Fact] void should_report_the_reason() => _error!.Message.ShouldEqual("Append rejected");
+    [Fact] void should_report_the_reason() => _error.Message.ShouldEqual("Append rejected");
 }

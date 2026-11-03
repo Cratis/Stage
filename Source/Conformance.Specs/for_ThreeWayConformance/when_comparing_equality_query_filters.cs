@@ -54,7 +54,7 @@ public class when_comparing_equality_query_filters(when_comparing_equality_query
                 GivenEvents = [],
                 GivenReadModels = [.. specification.GivenEvents.Select(fact => new SemanticSpecificationReadModel(
                     readModel.Id,
-                    fact.EventSource!.Value,
+                    fact.EventSource.Value,
                     [.. fact.Values.Select(value => new SemanticPropertyValue(readModel.Properties.Single(property => property.Name == ReadModelPropertyName(value.TargetProperty)).Id, value.Value))]))]
             }).ToArray();
             var application = model.Application with
@@ -62,7 +62,7 @@ public class when_comparing_equality_query_filters(when_comparing_equality_query
                 Modules = [module with { Features = [feature with { Slices = [.. feature.Slices.Select(value => value.Id == slice.Id ? value with { Specifications = [.. seeded] } : value)] }] }]
             };
             var candidate = ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, application);
-            var plan = SemanticExecutionPlan.Compile(candidate).Plan!;
+            var plan = SemanticExecutionPlan.Compile(candidate).Plan;
             ReferencePassed = new SemanticSpecificationRunner().Run(plan, seeded[0].Id).Passed;
             WrongReferencePassed = new SemanticSpecificationRunner().Run(plan, seeded[1].Id).Passed;
             OptionalPropertyReferencePassed = new SemanticSpecificationRunner().Run(plan, seeded[2].Id).Passed;
@@ -73,25 +73,24 @@ public class when_comparing_equality_query_filters(when_comparing_equality_query
                 Modules = [module with { Features = [feature with { Slices = [.. feature.Slices.Select(value => value.Id == slice.Id ? value with { Specifications = [.. seeded], Projections = [] } : value)] }] }]
             };
             var stageModel = ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, stageApplication);
-            var stagePlan = SemanticExecutionPlan.Compile(stageModel).Plan!;
+            var stagePlan = SemanticExecutionPlan.Compile(stageModel).Plan;
             StageResults = [.. (await new SemanticSpecificationExecutor().Run(stagePlan, new([.. seeded.Select(specification => specification.Id)]), new())).Results];
             AddGeneratedSpecification("QueryFilters.cs", a_query_filter_model.OptionalPropertyProbe);
             Warnings = BuildWarnings(await Run("query-filters-build.log", "build", "InvoiceApp.csproj", "-c", "Debug", "-warnaserror", "--nologo"));
             await Run("query-filters-test.log", true, "test", "InvoiceApp.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo", "--logger", "trx;LogFileName=query-filters.trx", "--results-directory", _evidence.FullName);
             var trx = XDocument.Load(Path.Combine(_evidence.FullName, "query-filters.trx"));
-            XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
-            var results = trx.Descendants(ns + "UnitTestResult").ToArray();
-            CorrectOutcome = Outcome("when_filtering_invoices_is_queried");
-            WrongOutcome = Outcome("when_filtering_wrong_invoices_is_queried");
-            ProbeOutcome = Outcome("should_apply_required_optional_and_keyed_filters");
-            OptionalPropertyProbeOutcome = Outcome("should_exclude_null_properties_from_required_filters");
+            var results = GeneratedTestResults.Read(trx);
+            CorrectOutcome = Outcome(className: "when_filtering_invoices_is_queried");
+            WrongOutcome = Outcome(className: "when_filtering_wrong_invoices_is_queried");
+            ProbeOutcome = Outcome(methodName: "should_apply_required_optional_and_keyed_filters");
+            OptionalPropertyProbeOutcome = Outcome(methodName: "should_exclude_null_properties_from_required_filters");
 
-            string Outcome(string name)
+            string Outcome(string? className = null, string? methodName = null)
             {
-                var selected = results.Where(result => ((string)result.Attribute("testName")!).Contains(name, StringComparison.Ordinal)).ToArray();
+                var selected = results.Where(result => result.Matches(className: className, methodName: methodName)).ToArray();
                 selected.ShouldNotBeEmpty();
 
-                return selected.All(result => (string)result.Attribute("outcome")! == "Passed") ? "Passed" : "Failed";
+                return selected.All(result => result.Outcome == "Passed") ? "Passed" : "Failed";
             }
 
             string ReadModelPropertyName(SemanticId propertyId)

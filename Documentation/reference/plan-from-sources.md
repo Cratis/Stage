@@ -98,7 +98,7 @@ var scaffold = CratisRendering.PlanScaffold(options);
 The scaffold includes application configuration at `.cratis/stage/rendering.json`:
 
 ```json
-{"version":3,"application":"Shop","reducerConvention":"self","projectionConvention":"model-bound"}
+{"version":4,"application":"Shop","reducerConvention":"self","projectionConvention":"model-bound"}
 ```
 
 On subsequent renders, the host reads that file and resolves it back into the profile:
@@ -117,10 +117,12 @@ overloads through `CratisPlanOptions.Profile`, and to scaffold planning.
 The canonical input is named `cratis-rendering:reducer-convention`.
 Its application name must match; its reducer convention must be `classic` or `self`.
 Versions `1` and `2` retain fluent scoped projections and their existing bytes.
-Version `3` requires `projectionConvention: "model-bound"`. It optionally carries the
+Versions `3` and `4` require `projectionConvention: "model-bound"`. They optionally carry the
 same non-empty, sorted `readModels` overrides as version `2`; the canonical property
 order is `version`, `application`, `reducerConvention`, `projectionConvention`, then
-`readModels` when present.
+`readModels` when present. Version `4` has the same properties as version `3`; only
+the version number differs, and it selects model-bound running totals and clears.
+Older Stage versions refuse version `4` instead of silently rendering fluent projections.
 `ReducerConventionInput.Read` refuses malformed, duplicate-field, unknown-version,
 and unsupported configuration with `InvalidArtifactRenderContract`. Invalid inputs
 submitted directly to planning produce `STAGE-CRATIS-001` and no artifacts.
@@ -136,20 +138,33 @@ that do not pass the input continue to render classic models.
 
 ### Model-bound scoped projections
 
-New applications select version `3`. A From-only scoped projection with flat property
-or event-source-id assignments renders `[FromEvent<T>]`, `[NoAutoMap]`, and explicit
-`[SetFrom<T>]` or `[SetFromContext<T>]` attributes on its read model instead of a separate
-`IProjectionFor<T>` class. Shapes not expressible by these attributes—including joins,
-children, removals, every/all mappings, counters, nested paths, and composite keys—keep
-the fluent renderer. Selecting this convention does not turn projections into reducers.
+New applications select version `4`. Version `3` renders a From-only scoped projection
+with flat property or event-source-id assignments as `[FromEvent<T>]`, `[NoAutoMap]`, and
+explicit `[SetFrom<T>]` or `[SetFromContext<T>]` attributes on its read model instead of a
+separate `IProjectionFor<T>` class. Version `4` adds running totals and clears to that
+shape: `add` and `subtract` by one event property render `[AddFrom<T>]` and
+`[SubtractFrom<T>]`, `increment` and `decrement` render `[Increment<T>]` and
+`[Decrement<T>]`, `clear` of an optional property renders `[ClearWith<T>]`, and a zero
+start (`add total by 0`) renders nothing. The generated application then carries no
+`#pragma warning disable` for these projections. A version `4` source that uses none of
+these operators renders exactly as version `3` does.
+
+Some shapes stay fluent permanently because the attributes cannot express them: composite
+keys; `every` with literals or `exclude children`; and two `from` blocks for the same
+event. Joins, children, removals, `every`/`all` mappings, nested paths, products of two event
+values, literal assignments, constant keys and a `clear` of a property nothing else sets also keep
+the fluent renderer in version `4`. Selecting this convention does not turn projections
+into reducers.
 
 Existing applications can opt in by editing `.cratis/stage/rendering.json`: set
-`version` to `3`, add `"projectionConvention":"model-bound"`, and keep their existing
-`reducerConvention` and any `readModels` overrides. This changes eligible projections'
+`version` to `3` (flat assignments) or `4` (also running totals and clears), add
+`"projectionConvention":"model-bound"`, and keep their existing `reducerConvention` and any
+`readModels` overrides. Moving from version `3` to `4` changes the identity of the newly
+eligible projections just as moving from `1` or `2` does. This changes eligible projections'
 observer identity from the fluent projection type to the read model's full type name.
 Plan a rebuild/replay and remove obsolete generated fluent projection files before
 using the new output; Stage does not migrate projection observer state or remove those
-files automatically. Keep version `1` or `2` to preserve existing projection identity.
+files automatically. Keep version `1`, `2` or `3` to preserve existing projection identity.
 Older Stage versions refuse version `3` configuration rather than silently ignoring it.
 
 ### Migrating a classic read model

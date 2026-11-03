@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { subjectFormOf } from './stageActionSubject';
+import { actionSubjectOf, subjectFormOf, type ScreenRows } from './stageActionSubject';
 import { createContext, useContext, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { ComponentProps, CSSProperties, ReactNode } from 'react';
@@ -11,6 +11,7 @@ import { ArcContext } from '@cratis/arc.react';
 import { DateOnly } from '@cratis/fundamentals';
 import { registeredCommand, commandOutcome, withHostedBasePath } from './commandExecutor';
 import { CommandForm as NativeCommandForm, withCommandFormFieldBinding } from '@cratis/arc.react/commands';
+import { Button } from '@cratis/components/Common';
 import { CheckboxField, InputTextField, NumberField, CalendarField, DropdownField } from '@cratis/components/CommandForm';
 import { navigateToScreen } from './stageNavigation';
 import { useStageData, useStageQuery } from './stageData';
@@ -20,6 +21,9 @@ import { asCommandValue, humanize, missingMember, schemaPropertiesOf } from './s
 import type { SchemaProperty } from './stageFormSchema';
 import { StageValueField } from './StageValueFields';
 import { useScreenRows } from './stageScreenTables';
+import { withReferenceField } from './StageReferenceField';
+import { useInteractionScope } from '@cratis/scene.react';
+import { formContinuation } from './stageFormContinuation';
 
 export { schemaPropertiesOf };
 export type { SchemaProperty };
@@ -43,36 +47,53 @@ interface NativeFormProperties {
 
 interface StageCommandFormProps {
     element: ExternalComponent;
+
+    /** Offers a Cancel button beside the submit when the dialog around the form has none of its own. */
+    cancellable?: boolean;
 }
 
 interface StageCommandContent {
     [key: string]: unknown;
 }
 
+// Only inferred creation is about no row; an explicit item subject still supplies its parent bindings.
+function commandFormSubject(element: ExternalComponent, rows: ScreenRows) {
+    const creates = actionSubjectOf(element) === undefined && element.properties.createsEntity === true;
+    const subjectRows = creates ? { selectableRows: [], selectedRows: [] } : rows;
+    return subjectFormOf(element, subjectRows);
+}
+
 /** Renders an authored screen form through Cratis Arc's native CommandForm boundary. */
-export function StageCommandForm({ element }: StageCommandFormProps) {
+export function StageCommandForm({ element, cancellable }: StageCommandFormProps) {
     const data = useStageData();
     const arc = useContext(ArcContext);
     const closeDialog = useContext(StageDialogContext);
     const footer = useContext(StageDialogFooterContext);
     const section = useRef<HTMLElement>(null);
     const form = useMemo(() => formProperties(element), [element]);
+    const interactionScope = useInteractionScope();
+    const continuation = formContinuation(element, form, interactionScope);
     const schema = useMemo(() => schemaProperties(element), [element]);
     const hasSchemaMetadata = typeof element.properties.schema === 'string';
     const fields = useMemo(() => form ? fieldsFor(form, schema) : [], [form, schema]);
     const commandType = form ? registeredCommand(form.command, text(element, 'typeName'), text(element, 'route')) : undefined;
-    const submitLabel = text(element, 'submitLabel') || 'Submit';
+    const submitLabel = submitLabelOf(element, form);
     const argumentValues = useArgumentValues(element, fields, data.resolveArgument);
     const answered = usePopulatedValues(element, schema, data);
 
     // The answer is a new object each time the query is read again; only a different answer is a different starting point for the form.
     const populationKey = JSON.stringify(answered ?? null);
     const populated = useMemo(() => answered, [populationKey]);
-    const { selectableRows, selectedRows, rowAction, subjectValues } = subjectFormOf(element, useScreenRows());
+    const rows = useScreenRows();
+    const { selectableRows, selectedRows, rowAction, subjectValues } = commandFormSubject(element, rows);
+    const suppliedReferences = useMemo(() => suppliedReferenceValues(schema, data.parameters, selectedRows, subjectValues), [schema, selectedRows, data.parameters, subjectValues]);
+    const askedFields = useMemo(() => referenceFieldsToAsk(fields, suppliedReferences), [fields, suppliedReferences]);
 
     // What the action binds from its subject row wins over the session, which only holds what nobody chose.
-    const initialValues = useMemo(() => ({ ...populated, ...sessionIdentifiers(fields, schema, data.parameters, selectedRows, selectableRows, rowAction), ...subjectValues, ...initialCommandValues(fields, data.parameters) }), [populated, fields, schema, data.parameters, selectedRows, selectableRows, rowAction, subjectValues]);
-    const renderedFields = useMemo(() => form ? renderFields(form, fields, schema) : undefined, [form, fields, schema]);
+    const initialValues = useMemo(() => ({ ...populated, ...sessionIdentifiers(fields, schema, data.parameters, selectedRows, selectableRows, rowAction), ...suppliedReferences, ...subjectValues, ...initialCommandValues(fields, data.parameters) }), [populated, fields, schema, data.parameters, selectedRows, selectableRows, rowAction, suppliedReferences, subjectValues]);
+    // A reference supplied after mounting hides its picker, but must also update the native command without resetting other edits.
+    const currentValues = useMemo(() => ({ ...Object.fromEntries(Object.keys(suppliedReferences).map(name => [name, initialValues[name]])), ...argumentValues }), [suppliedReferences, initialValues, argumentValues]);
+    const renderedFields = useMemo(() => form ? renderFields(form, askedFields, schema) : undefined, [form, askedFields, schema]);
     const unsupportedSchemaMessages = useMemo(() => form ? unsupportedSchemaMessagesFor(fields, schema) : [], [form, fields, schema]);
     const unsupportedGeometryMessages = useMemo(() => form ? unsupportedGeometryMessagesFor(form.layout, fields) : [], [form, fields]);
     const [messages, setMessages] = useState<string[]>([]);
@@ -84,7 +105,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
         return <UnsupportedForm form={form} messages={[`The modeled command “${form.command}” has no form fields or schema metadata, so Stage will not submit an empty command body.`]} />;
     }
 
-    if (unsupportedSchemaMessages.length > 0) return <UnsupportedForm form={form} messages={unsupportedSchemaMessages} />;
+    if (unsupportedSchemaMessages.length + continuation.messages.length > 0) return <UnsupportedForm form={form} messages={[...unsupportedSchemaMessages, ...continuation.messages]} />;
 
     return (
         <section ref={section} className='stage-command-form' data-command={form.command} data-generation-mode={form.generationMode}>
@@ -92,7 +113,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
                 key={populationKey}
                 command={commandType}
                 initialValues={initialValues}
-                currentValues={argumentValues}
+                currentValues={currentValues}
                 validateOn='both'
                 validateAllFieldsOnChange
                 onBeforeExecute={command => withHostedBasePath(command, arc.apiBasePath)}
@@ -100,25 +121,52 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
                 onValidationFailure={validation => setMessages(unboundValidationMessages(fields, validation))}
                 onException={exceptionMessages => setMessages(exceptionMessages)}
                 onFailed={result => setMessages(commandOutcome(form.command, result).messages)}
-                onSuccess={() => {
-                    setMessages([]);
+                onSuccess={async response => {
                     data.refreshAfterCommand();
-
-                    // The action's `navigate to` is where the shopper goes once the command succeeded - the basket after adding to it.
-                    const destination = text(element, 'navigateToScreen');
-                    if (destination) navigateToScreen(destination, {});
-                    closeDialog?.();
+                    const completed = (findings: string[], navigated: boolean) => {
+                        setMessages(findings);
+                        if (!findings.length) leaveAfterSubmit(element, navigated, closeDialog);
+                    };
+                    try {
+                        await continuation.complete(response, completed);
+                    } catch (error) {
+                        completed([error instanceof Error ? error.message : String(error)], false);
+                    }
                 }}>
                 {unsupportedGeometryMessages.map(message => <p key={message} role='alert' className='stage-form-error'>{message}</p>)}
                 {renderedFields}
                 {messages.map(message => <p key={message} role='alert' className='stage-form-error'>{message}</p>)}
                 {footer
                     // In a dialog the submit sits in the footer beside Cancel; it submits the form it belongs to.
-                    ? createPortal(<button type='button' className='scene-slice-dialog-submit' onClick={() => section.current?.querySelector('form')?.requestSubmit()}>{submitLabel}</button>, footer)
-                    : <button type='submit' className='stage-command-form__submit'>{submitLabel}</button>}
+                    ? createPortal(<Button type='button' className='scene-slice-dialog-submit' onClick={() => section.current?.querySelector('form')?.requestSubmit()}>{submitLabel}</Button>, footer)
+                    : <FormActions submitLabel={submitLabel} cancellable={cancellable} />}
             </NativeCommandForm>
         </section>
     );
+}
+
+/** The label the form submits under: the one the model gave the action, else the command's own, else 'Submit'. */
+function submitLabelOf(element: ExternalComponent, form: NativeFormProperties | undefined): string {
+    return text(element, 'submitLabel') || form?.label || 'Submit';
+}
+
+/** The submit button, with Cancel beside it when the form asks for one and a dialog around it can be closed. */
+function FormActions({ submitLabel, cancellable }: { submitLabel: string; cancellable?: boolean }) {
+    const closeDialog = useContext(StageDialogContext);
+    return (
+        <div className='stage-command-form__actions'>
+            <Button type='submit'>{submitLabel}</Button>
+            {cancellable && closeDialog && <Button type='button' variant='outline' onClick={closeDialog}>Cancel</Button>}
+        </div>
+    );
+}
+
+/** Findings keep the form open to show them, so this runs only for a clean submit. A continuation that already navigated owns the destination. */
+function leaveAfterSubmit(element: ExternalComponent, navigated: boolean, closeDialog: (() => void) | undefined) {
+    // The action's `navigate to` is where the shopper goes once the command succeeded - the basket after adding to it.
+    const destination = text(element, 'navigateToScreen');
+    if (destination && !navigated) navigateToScreen(destination, {});
+    closeDialog?.();
 }
 
 function UnsupportedForm({ form, messages }: { form: NativeFormProperties; messages: string[] }) {
@@ -136,7 +184,7 @@ function formProperties(element: ExternalComponent): NativeFormProperties | unde
     const fields = Array.isArray(element.properties.fields) ? element.properties.fields.filter(isRecord) as unknown as FormField[] : [];
     return {
         command,
-        label: text(element, 'label', command),
+        label: text(element, 'label') || humanize(command),
         fields,
         generationMode: generationModeFor(element.properties.generationMode),
         layout: layoutFor(element.properties.layout),
@@ -181,7 +229,7 @@ function renderField(field: FormField, schema: SchemaProperty[], placement?: For
     const title = field.label ?? field.name;
     const accessor = (command: unknown) => (command as Record<string, unknown>)[property];
     const required = descriptor?.required ?? true;
-    const fieldElement = (() => {
+    const fieldElement = withReferenceField(descriptor, { value: accessor, fieldName: property, title, required }, (() => {
         if (descriptor?.options) {
             const options = descriptor.options.map(option => ({ value: option, label: humanize(option) }));
             return <DropdownField value={accessor} fieldName={property} title={title} required={required} options={options} optionValue='value' optionLabel='label' />;
@@ -192,10 +240,10 @@ function renderField(field: FormField, schema: SchemaProperty[], placement?: For
         switch (descriptor?.type ?? 'text') {
             case 'number': return <NumberField value={accessor} fieldName={property} title={title} required={required} />;
             case 'boolean': return <CheckboxField value={accessor} fieldName={property} label={title} required={required} />;
-            case 'date': return <StageCalendarField value={accessor} fieldName={property} title={title} required={required} showIcon showTime={descriptor?.withTime} />;
+            case 'date': return <StageCalendarField value={accessor} fieldName={property} title={title} required={required} showIcon isNonModal showTime={descriptor?.withTime} />;
             default: return <InputTextField value={accessor} fieldName={property} title={title} required={required} />;
         }
-    })();
+    })());
 
     const style = placementStyle(placement);
     return (
@@ -285,6 +333,17 @@ export function sessionIdentifiers(fields: FormField[], schema: SchemaProperty[]
     }
 
     return values;
+}
+
+function suppliedReferenceValues(schema: SchemaProperty[], parameters: Record<string, string>, selectedRows: Record<string, unknown>[], subjectValues: StageCommandContent): StageCommandContent {
+    return Object.fromEntries(schema.filter(property => property.reference).flatMap(property => {
+        const value = parameters[property.name] || subjectValues[property.name] || selectedIdentifier(property, selectedRows) || (suppliedWithoutAsking({ ...property, required: true }, parameters) ? suppliedIdentifier(property, parameters) : undefined);
+        return value === undefined ? [] : [[property.name, value]];
+    }));
+}
+
+function referenceFieldsToAsk(fields: FormField[], supplied: StageCommandContent): FormField[] {
+    return fields.filter(field => !Object.hasOwn(supplied, field.sourceProperty ?? field.name));
 }
 
 /**

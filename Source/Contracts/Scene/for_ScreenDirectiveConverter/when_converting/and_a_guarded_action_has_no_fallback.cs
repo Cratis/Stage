@@ -17,7 +17,7 @@ public class and_a_guarded_action_has_no_fallback : given.a_guarded_action
     [Fact] void should_carry_the_label() => _result.Properties["label"].ShouldEqual(_action.Label);
     [Fact] void should_carry_the_alternatives() => Alternatives.Count.ShouldEqual(1);
     [Fact] void should_carry_the_alternative_command() => Alternatives[0]["command"].ShouldEqual("SendInvoice");
-    [Fact] void should_carry_the_condition() => ((Dictionary<string, object?>)Alternatives[0]["condition"]!)["operator"].ShouldEqual("Equal");
+    [Fact] void should_carry_the_condition() => ((Dictionary<string, object?>)Alternatives[0]["condition"])["operator"].ShouldEqual("Equal");
     [Fact] void should_not_invent_a_fallback() => _result.Properties.ContainsKey("otherwise").ShouldBeFalse();
 
     List<Dictionary<string, object?>> Alternatives => (List<Dictionary<string, object?>>)_result.Properties["alternatives"]!;

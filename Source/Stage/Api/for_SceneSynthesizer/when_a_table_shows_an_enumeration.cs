@@ -24,6 +24,6 @@ public class when_a_table_shows_an_enumeration : given.a_scene_model
         .OfType<ExternalComponent>().Single(element => element.ComponentName == "core:table")
         .Slots["columns"].OfType<ExternalComponent>().Single(column => Equals(column.Properties["property"], "stage"));
 
-    [Fact] void should_carry_the_semantic_enumeration_members() => ((IReadOnlyList<string>)_semanticColumn.Properties["options"]!).ShouldContainOnly("planned", "active");
-    [Fact] void should_carry_the_legacy_enumeration_members() => ((IReadOnlyList<string>)_legacyColumn.Properties["options"]!).ShouldContainOnly("planned", "active");
+    [Fact] void should_carry_the_semantic_enumeration_members() => ((IReadOnlyList<string>)_semanticColumn.Properties["options"]).ShouldContainOnly("planned", "active");
+    [Fact] void should_carry_the_legacy_enumeration_members() => ((IReadOnlyList<string>)_legacyColumn.Properties["options"]).ShouldContainOnly("planned", "active");
 }

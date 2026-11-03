@@ -20,11 +20,19 @@ public class with_an_authored_scene : a_screen_composition_render
     // Recomputed for Screenplay 4.254.0: the scaffold now emits the published matcher pin.
     // Recomputed for Chronicle 19.112.1, Arc 22.143.0 and Fundamentals 7.27.0: the scaffold now emits those package pins and the matching npm Arc pins.
     // Recomputed for the Microsoft.Extensions.Telemetry.Abstractions 10.11.0 pin (537a7b80, Cratis/Chronicle#5442): the backend scaffold now emits its central package version and the specifications project reference.
-    // Recomputed for npm @cratis/scene 4.86.0: the frontend scaffold now emits the matching Scene package pins.
+    // Re-frozen for #497's generated XML documentation and used-only specification imports;
+    // Cratis.Specifications 5.1.0 and train 8b's Screenplay 4.256.0 / Arc 22.146.0 pins;
+    // Components 4.37.0 and Scene 4.86.0 (npm pins and changed authored Scene output);
+    // Components 4.38.1 (only the npm package pin changes).
+    // Recomputed for merged Screenplay 4.258.0 and npm @cratis/scene 4.86.0.
     // Recomputed for Screenplay 4.259.0: the scaffold now emits the published matcher pin.
-    // Recomputed for Cratis/Stage#926: the scaffold now hosts an Orleans silo, pins Cratis.Orleans 1.33.1 and moves to Chronicle 19.114.0.
+    // Re-frozen for Cratis/Stage#120 merged with train 10: authentication artifacts and host wiring on top of the train 10 output.
+    // Re-frozen for Cratis/Stage#937: only Directory.Packages.props pins Pkcs to 10.0.14 and documents Xml runtime servicing.
+    // Recomputed for Screenplay 5.0.0: the scaffold emits the 5.0.0 matcher pin.
     // Recomputed for Screenplay 5.1.0: the scaffold emits the 5.1.0 matcher pin.
-    const string Before = "f3af06e0c94c103c55806abaace4c907b8c1879737668ec2250923be86084394";
+    // Re-frozen after merging main (Screenplay 5.1.0) into train 10: the 4.259.0-era constants were stale.
+    const string Before = "47f22b22b80b58b82f4ac97e354c75ecd5e552cc9fd9a1d0f901934a08fb0d9d";
+    // Recomputed for Cratis/Stage#926: the scaffold now hosts an Orleans silo, pins Cratis.Orleans 1.33.1 and moves to Chronicle 19.114.0.
 
     ArtifactRenderPlan _plan = null!;
 

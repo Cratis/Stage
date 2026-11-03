@@ -53,7 +53,7 @@ public sealed class CratisFrontendApplicationScaffold
             (".frontend/vite-env.d.ts", ViteEnvironment()),
             (".frontend/vite.config.ts", ViteConfig(request.UsesPrimeReact)),
             (".gitignore", GitIgnore()),
-            (".yarnrc.yml", "nodeLinker: node-modules"),
+            (".yarnrc.yml", "nodeLinker: node-modules\nnpmPreapprovedPackages:\n  - \"@cratis/*\""),
             ("package.json", PackageJson(request)),
             ("tsconfig.json", RootTsConfig())
         };
@@ -536,7 +536,7 @@ public sealed class CratisFrontendApplicationScaffold
         """;
 
     static string FrontendTsConfig() =>
-        """
+        /*lang=json*/ """
         {
             "compilerOptions": {
                 "target": "ES2022",
@@ -581,7 +581,7 @@ public sealed class CratisFrontendApplicationScaffold
         """;
 
     static string NodeTsConfig() =>
-        """
+        /*lang=json*/ """
         {
             "compilerOptions": {
                 "composite": true,
@@ -597,7 +597,7 @@ public sealed class CratisFrontendApplicationScaffold
         """;
 
     static string RootTsConfig() =>
-        """
+        /*lang=json*/ """
         {
             "extends": "./.frontend/tsconfig.json"
         }

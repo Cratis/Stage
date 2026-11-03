@@ -20,7 +20,7 @@ public class with_a_projection_chronicle_cannot_mirror : a_rebuildable_world
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("unmirrored"), "unmirrored", "Unmirrored.play", source);
         var compiled = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compiled.Success, string.Join("; ", compiled.Diagnostics.Select(diagnostic => diagnostic.Message)));
-        var plan = SemanticExecutionPlan.Compile(compiled.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compiled.Value.Model).Plan;
         Assert.True(plan.ReadModels.Values.Single().Properties.Single(property => property.Name == "name").Type.IsOptional, source);
         _world = SemanticWorldRebuilder.Create(plan, [_event], 0);
     }

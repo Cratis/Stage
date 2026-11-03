@@ -1,12 +1,14 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Scene;
+using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using SceneElements = Cratis.Scene.Model.Elements;
 
@@ -100,6 +102,11 @@ internal static class StageSceneDocument
             }
         }
 
+        document["responseContracts"] = new CommandResponseContracts(context.Application, numericEnumerations: true).From(
+            document,
+            name => JsonNamingPolicy.CamelCase.ConvertName(GeneratedPascalCase.From(name)),
+            context.MemberNames.WireProperty);
+        ResponseMemberNames.Apply(document, name => JsonNamingPolicy.CamelCase.ConvertName(GeneratedPascalCase.From(name)));
         GeneratedSceneMemberNames.Arguments(document, commands.ToDictionary(pair => pair.Key, pair => pair.Value.Names, StringComparer.Ordinal));
         return CanonicalSceneJson.Write(document);
     }
@@ -235,6 +242,7 @@ internal static class StageSceneDocument
                     if (form is not null)
                     {
                         properties["form"] = form["name"]?.DeepClone();
+                        properties["onSubmit"] = form["onSubmit"]?.DeepClone();
                         properties["generationMode"] = form["generationMode"]?.DeepClone();
                         properties["layout"] = form["layout"]?.DeepClone();
                         if (form["populateSource"] is { } populateSource)
@@ -266,7 +274,8 @@ internal static class StageSceneDocument
             ["label"] = form["name"]?.DeepClone(),
             ["generationMode"] = form["generationMode"]?.DeepClone(),
             ["layout"] = form["layout"]?.DeepClone(),
-            ["fields"] = form["fields"]?.DeepClone() ?? new JsonArray()
+            ["fields"] = form["fields"]?.DeepClone() ?? new JsonArray(),
+            ["onSubmit"] = form["onSubmit"]?.DeepClone() ?? new JsonArray()
         };
         ApplyCommandMetadata(properties, command, commands.GetValueOrDefault(command), form["fields"]);
         element["properties"] = properties;

@@ -30,7 +30,7 @@ public class when_locating_errors_in_a_query_performer_body : given.a_source_pla
     {
         var loaded = await SemanticModelLoader.LoadAsync(_root, [], null, _planOptions.ApplicationName);
         Assert.True(loaded.Success, string.Join("; ", loaded.Diagnostics));
-        _performers = loaded.Loaded!;
+        _performers = loaded.Loaded;
         _result = CratisRendering.PlanFrom(_performers, _featureSelection, _planOptions);
     }
 

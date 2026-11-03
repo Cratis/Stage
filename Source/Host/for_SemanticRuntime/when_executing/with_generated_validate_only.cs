@@ -21,6 +21,6 @@ public class with_generated_validate_only : a_generated_runtime
         _second = (SemanticAccepted)await Execute();
     }
 
-    [Fact] void should_generate_fresh_values_per_execution() => ((SemanticScalarExecutionResponse)_first.Response!).Value.ShouldNotEqual(((SemanticScalarExecutionResponse)_second.Response!).Value);
+    [Fact] void should_generate_fresh_values_per_execution() => ((SemanticScalarExecutionResponse)_first.Response).Value.ShouldNotEqual(((SemanticScalarExecutionResponse)_second.Response).Value);
     [Fact] async Task should_not_append_during_validation() => await ((IAppendSemanticFacts)_appender).DidNotReceive().Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>());
 }

@@ -39,9 +39,9 @@ public class a_projection_with_optional_properties : a_command_only_plan
         };
         var updatedProjection = projection with
         {
-            Scope = projection.Scope! with
+            Scope = projection.Scope with
             {
-                From = [.. projection.Scope!.From.Select(root => root with
+                From = [.. projection.Scope.From.Select(root => root with
                 {
                     Mappings = [.. root.Mappings.Where(_ => !OnlyOptional), .. eventProperties.Select((property, index) => new SemanticProjectionMapping([properties[index].Id], SemanticProjectionOperation.Set, new SemanticProjectionEventProperty([property.Id])))]
                 })]
@@ -82,6 +82,6 @@ public class a_projection_with_optional_properties : a_command_only_plan
         };
         var compilation = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(_originalModel.LanguageVersion, _originalModel.SemanticVersion, changed));
         Assert.Empty(compilation.Issues);
-        _plan = compilation.Plan!;
+        _plan = compilation.Plan;
     }
 }

@@ -20,7 +20,7 @@ public class when_comparing_v14_query_filter_corpora : Specification
     {
         var vector = QueryFiltersCorpus.V14;
         var model = SemanticModelSerializer.Deserialize(vector.EsmBytes.AsSpan());
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(model).Plan;
         var stage = await new SemanticSpecificationExecutor().Run(plan, new([.. plan.Specifications.Keys]), new());
         stage.Results.Select(result => result.Name).ShouldContainOnly("DistinctCalls", "ReversedRows");
         foreach (var expectation in vector.SpecificationExpectations)

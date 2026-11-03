@@ -34,13 +34,13 @@ public class a_range_model : Specification
     {
         _model = model;
         var options = new CratisRenderingOptions("Contracts", "Contracts");
-        _request = new(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        _request = new(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
         _context = new(_request, options);
     }
 
     protected void Versions(uint languageMajor, uint languageMinor, uint semanticMajor, uint semanticMinor)
     {
-        typeof(ExecutableSemanticModel).GetField("<LanguageVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(_model, new LanguageVersion(languageMajor, languageMinor));
-        typeof(ExecutableSemanticModel).GetField("<SemanticVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(_model, new SemanticVersion(semanticMajor, semanticMinor));
+        typeof(ExecutableSemanticModel).GetField("<LanguageVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(_model, new LanguageVersion(languageMajor, languageMinor));
+        typeof(ExecutableSemanticModel).GetField("<SemanticVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(_model, new SemanticVersion(semanticMajor, semanticMinor));
     }
 }

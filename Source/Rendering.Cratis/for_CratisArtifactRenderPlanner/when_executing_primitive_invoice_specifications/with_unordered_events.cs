@@ -13,8 +13,8 @@ public class with_unordered_events(with_unordered_events.context fixture) : ICla
 {
     [Fact] void should_build_debug_without_warnings() => fixture.DebugWarnings.ShouldBeEmpty();
     [Fact] void should_build_release_without_warnings() => fixture.ReleaseWarnings.ShouldBeEmpty();
-    [Fact] void should_run_the_generated_multiset_specification() => fixture.Results.Count(_ => _.Name.Contains("should_append_the_expected_event_multiset", StringComparison.Ordinal)).ShouldEqual(1);
-    [Fact] void should_run_the_generated_success_and_count_specifications() => fixture.Results.Count(_ => _.Name.Contains("should_succeed", StringComparison.Ordinal) || _.Name.Contains("should_append_exactly_2_events", StringComparison.Ordinal)).ShouldEqual(2);
+    [Fact] void should_run_the_generated_multiset_specification() => fixture.Results.Count(_ => _.Matches(methodName: "should_append_the_expected_event_multiset")).ShouldEqual(1);
+    [Fact] void should_run_the_generated_success_and_count_specifications() => fixture.Results.Count(_ => _.Matches(methodName: "should_succeed") || _.Matches(methodName: "should_append_exactly_2_events")).ShouldEqual(2);
     [Fact] void should_pass_every_generated_specification() => (fixture.Results.Length > 0 && fixture.Results.All(_ => _.Outcome == "Passed")).ShouldBeTrue();
 
     internal const string Source = """

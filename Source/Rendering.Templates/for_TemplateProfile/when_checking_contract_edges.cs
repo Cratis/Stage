@@ -33,8 +33,8 @@ public class when_checking_contract_edges : for_TemplatePreparer.given.a_kit
     [InlineData("throwing_operation_body", "Missing", "STAGE-DEGRADE-999")]
     public void should_refuse_gap_misuse(string role, string intent, string code)
     {
-        using var plan = TemplateProfile.Prepare(Kit("{{ gap '" + role + "' '" + intent + "' 'model' '" + code + "' }}"), new given.a_language()).Templates!.BeginPlan(TemplateBudget.Default);
-        plan.Render("main.scriban", JsonSerializer.SerializeToElement(new { model = new { } })).Refusal!.Code.ShouldEqual(TemplateCodes.Input);
+        using var plan = TemplateProfile.Prepare(Kit("{{ gap '" + role + "' '" + intent + "' 'model' '" + code + "' }}"), new given.a_language()).Templates.BeginPlan(TemplateBudget.Default);
+        plan.Render("main.scriban", JsonSerializer.SerializeToElement(new { model = new { } })).Refusal.Code.ShouldEqual(TemplateCodes.Input);
     }
 
     [Theory]
@@ -42,18 +42,18 @@ public class when_checking_contract_edges : for_TemplatePreparer.given.a_kit
     [InlineData(20, true)]
     public void should_refuse_unbounded_or_multiline_gap_intent(int length, bool newline)
     {
-        using var plan = TemplateProfile.Prepare(Kit("{{ gap 'disabled_specification' model.intent 'model' }}"), new given.a_language()).Templates!.BeginPlan(TemplateBudget.Default);
+        using var plan = TemplateProfile.Prepare(Kit("{{ gap 'disabled_specification' model.intent 'model' }}"), new given.a_language()).Templates.BeginPlan(TemplateBudget.Default);
         var input = JsonSerializer.SerializeToElement(new { model = new { intent = new string('x', length) + (newline ? "\n" : string.Empty) } });
-        plan.Render("main.scriban", input).Refusal!.Code.ShouldEqual(TemplateCodes.Input);
+        plan.Render("main.scriban", input).Refusal.Code.ShouldEqual(TemplateCodes.Input);
     }
 
     [Fact]
     public void should_keep_same_named_types_in_distinct_namespaces()
     {
-        using var plan = TemplateProfile.Prepare(Kit("{{ for reference in model.types; type.ref reference; end }}"), new given.a_language()).Templates!.BeginPlan(TemplateBudget.Default);
+        using var plan = TemplateProfile.Prepare(Kit("{{ for reference in model.types; type.ref reference; end }}"), new given.a_language()).Templates.BeginPlan(TemplateBudget.Default);
         using var input = JsonDocument.Parse("""{"model":{"types":[{"kind":"concept","target":"customer","isCollection":false,"isOptional":false},{"kind":"composite","target":"other","isCollection":false,"isOptional":false}]}}""");
         var result = plan.Render("main.scriban", input.RootElement);
-        result.Output!.Segments[0].ShouldEqual(new TemplateSymbolSegment(TemplateSymbolKind.Reference, new("Domain", "Customer")));
+        result.Output.Segments[0].ShouldEqual(new TemplateSymbolSegment(TemplateSymbolKind.Reference, new("Domain", "Customer")));
         result.Output.Segments[1].ShouldEqual(new TemplateSymbolSegment(TemplateSymbolKind.Reference, new("Other", "Customer")));
     }
 
@@ -79,14 +79,14 @@ public class when_checking_contract_edges : for_TemplatePreparer.given.a_kit
         var kit = when_rendering_partials.WithPartials(Kit("{{ wrap section 'body' }}a{{ end }}"), ("leaf", "{{ wrap section 'body' }}b{{ end }}"));
         var prepared = TemplateProfile.Prepare(kit, new given.a_language());
         prepared.Diagnostics.ShouldBeEmpty();
-        prepared.Templates!.Sections.Count.ShouldEqual(2);
+        prepared.Templates.Sections.Count.ShouldEqual(2);
     }
 
     [Fact]
     public void should_refuse_unknown_primitive_spelling_without_leaking_a_clr_exception()
     {
-        using var plan = TemplateProfile.Prepare(Kit("{{ type.ref model.type }}"), new given.a_language()).Templates!.BeginPlan(TemplateBudget.Default);
+        using var plan = TemplateProfile.Prepare(Kit("{{ type.ref model.type }}"), new given.a_language()).Templates.BeginPlan(TemplateBudget.Default);
         using var input = JsonDocument.Parse("""{"model":{"type":{"kind":"primitive","primitive":"invented","isCollection":false,"isOptional":false}}}""");
-        plan.Render("main.scriban", input.RootElement).Refusal!.Code.ShouldEqual(TemplateCodes.Input);
+        plan.Render("main.scriban", input.RootElement).Refusal.Code.ShouldEqual(TemplateCodes.Input);
     }
 }

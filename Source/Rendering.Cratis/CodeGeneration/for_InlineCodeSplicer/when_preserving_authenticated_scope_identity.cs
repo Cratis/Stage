@@ -35,7 +35,7 @@ public class when_preserving_authenticated_scope_identity : Specification
     void should_allow_formatting_and_nonboundary_generated_expression_substitution()
     {
         var registry = new InlineCodeTokens();
-        var token = registry.Issue(Code("return;"), Site).Token!;
+        var token = registry.Issue(Code("return;"), Site).Token;
         var original = $"class H {{ void Run() {{ var generated = \"[Stage::value]\"; {token} }} }}";
         var finished = $"// Finished skeleton\nclass H\n{{\n    void Run()\n    {{\n        var generated = \"Finished\";\n        {token}\n    }}\n}}";
         var result = InlineCodeSplicer.Splice(finished, registry, original);
@@ -47,7 +47,7 @@ public class when_preserving_authenticated_scope_identity : Specification
     static void AssertRefused(string original, string finished)
     {
         var registry = new InlineCodeTokens();
-        var token = registry.Issue(Code("return;"), Site).Token!.ToString();
+        var token = registry.Issue(Code("return;"), Site).Token.ToString();
         var result = InlineCodeSplicer.Splice(finished.Replace("SLOT", token, StringComparison.Ordinal), registry, original.Replace("SLOT", token, StringComparison.Ordinal));
         Assert.Null(result.Text);
         var diagnostic = Assert.Single(result.Diagnostics);

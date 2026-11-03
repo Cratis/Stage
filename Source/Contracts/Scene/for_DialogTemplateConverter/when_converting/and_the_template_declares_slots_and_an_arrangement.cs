@@ -38,6 +38,6 @@ public class and_the_template_declares_slots_and_an_arrangement : Specification
     [Fact] void should_carry_the_template_name() => _result.Name.ShouldEqual("RegisterInvoiceDialog");
     [Fact] void should_carry_the_slots_it_offers() => _result.Slots.Select(slot => slot.Name).ShouldEqual(["body", "actions"]);
     [Fact] void should_use_a_flow_arrangement() => _result.Arrangement.ShouldBeOfExactType<FlowArrangement>();
-    [Fact] void should_arrange_the_slots_as_a_column() => ((FlowColumn)((FlowArrangement)_result.Arrangement!).Root).Kind.ShouldEqual(FlowContainerKind.Column);
+    [Fact] void should_arrange_the_slots_as_a_column() => ((FlowColumn)((FlowArrangement)_result.Arrangement).Root).Kind.ShouldEqual(FlowContainerKind.Column);
     [Fact] void should_provide_no_content_of_its_own() => _result.Content.ShouldBeNull();
 }

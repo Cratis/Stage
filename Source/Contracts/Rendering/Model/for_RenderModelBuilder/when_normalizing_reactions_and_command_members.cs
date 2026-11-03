@@ -38,15 +38,15 @@ public class when_normalizing_reactions_and_command_members : given.a_response_o
         RunsAs = new(SemanticReactionIdentityKind.System, ["operator"])
     });
 
-    [Fact] void should_keep_observer_filter() => _reaction.From!.Source.ShouldEqual(Id("source"));
-    [Fact] void should_keep_runs_as_roles() => _reaction.RunsAs!.Roles.ShouldEqual(["operator"]);
+    [Fact] void should_keep_observer_filter() => _reaction.From.Source.ShouldEqual(Id("source"));
+    [Fact] void should_keep_runs_as_roles() => _reaction.RunsAs.Roles.ShouldEqual(["operator"]);
     [Fact] void should_keep_trigger_order_and_kind() => _reaction.Triggers.Single().Kind.ShouldEqual(SemanticReactionTriggerKind.Event);
     [Fact] void should_keep_trigger_body_reference() => _reaction.Triggers.Single().RequirementId.ShouldEqual("body");
     [Fact] void should_keep_invocation_command() => _reaction.Triggers.Single().Invokes.Single().Command.ShouldEqual(_command.Id);
     [Fact] void should_keep_refusal_selector() => _reaction.Triggers.Single().Invokes.Single().OnRefused.Single().Selector.ShouldEqual("any");
     [Fact] void should_keep_nested_refusal_productions() => _reaction.Triggers.Single().Invokes.Single().OnRefused.Single().Produces.Single().EventContract.ShouldEqual(Id("event"));
     [Fact] void should_keep_production_tags() => _reaction.Triggers.Single().Produces.Single().Tags.ShouldEqual(["tag"]);
-    [Fact] void should_keep_destination_type() => _reaction.Triggers.Single().Produces.Single().DestinationType!.Primitive.ShouldEqual(SemanticPrimitiveType.Text);
+    [Fact] void should_keep_destination_type() => _reaction.Triggers.Single().Produces.Single().DestinationType.Primitive.ShouldEqual(SemanticPrimitiveType.Text);
     [Fact] void should_keep_mapping_target() => _reaction.Triggers.Single().Produces.Single().Mappings.Single().TargetProperty.ShouldEqual(_command.Properties[0].Id);
     [Fact] void should_reject_unknown_trigger_kinds() => Assert.Throws<InvalidArtifactRenderContract>(() => _normalizer.Reaction(new(Id("reaction"), "Unknown", [_trigger with { Kind = SemanticReactionTriggerKind.Unknown }])));
 
@@ -70,8 +70,8 @@ public class when_normalizing_reactions_and_command_members : given.a_response_o
         var payload = _normalizer.Command(command, _slice);
         payload.Reads.Single().Name.ShouldEqual("current");
         payload.Requirements.Single().Message.ShouldEqual("required");
-        payload.Route!.Stream.ShouldEqual(Id("stream"));
-        payload.Destination!.Value.ShouldBeNull();
+        payload.Route.Stream.ShouldEqual(Id("stream"));
+        payload.Destination.Value.ShouldBeNull();
         payload.Produces.Single().Mappings.Single().Source.TypeState.ShouldEqual(RenderTypeState.Resolved);
     }
 

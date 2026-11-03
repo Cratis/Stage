@@ -21,7 +21,7 @@ public class when_attaching_routes_to_synthesized_screens : for_StageEndpointMap
     void Establish()
     {
         var command = RouteModels.Command("PlaceOrder", "PlaceOrder");
-        command = command with { Command = command.Command! with { Schema = "{}" } };
+        command = command with { Command = command.Command with { Schema = "{}" } };
         var model = RouteModels.Model(command, RouteModels.Query("OrderReport"));
         MapModel(model);
         _endpoints = new CompositeEndpointDataSource(((IEndpointRouteBuilder)_app).DataSources);

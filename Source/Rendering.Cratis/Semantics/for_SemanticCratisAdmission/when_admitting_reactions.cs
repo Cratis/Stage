@@ -60,6 +60,20 @@ public class when_admitting_reactions : for_SemanticAutomationArtifactRenderer.g
         _plan.Artifacts.ShouldBeEmpty();
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void should_refuse_mixed_effects_across_triggers_on_one_event_in_atomic_batches(bool invocationFirst)
+    {
+        SetContext(Compile("reaction batches atomic\n" + Source));
+        var production = _located.Slice.Reactions.Single(reaction => reaction.Name == "Acknowledge");
+        var invocation = _located.Slice.Reactions.Single(reaction => reaction.Name == "CompletePositive").Triggers.Single();
+        ReplaceAutomation(_located.Slice with { Reactions = [production with { Triggers = invocationFirst ? [invocation, production.Triggers.Single()] : [production.Triggers.Single(), invocation] }] });
+        Plan();
+        _plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-037"]);
+        _plan.Artifacts.ShouldBeEmpty();
+    }
+
     [Fact]
     public void should_omit_command_specifications_that_cascade_into_reactions()
     {

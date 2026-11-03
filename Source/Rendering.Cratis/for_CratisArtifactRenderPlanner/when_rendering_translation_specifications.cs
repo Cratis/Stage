@@ -39,7 +39,7 @@ public class when_rendering_translation_specifications : given.a_translation_spe
         {
             Specifications = [.. slice.Specifications.Select(specification => specification with
             {
-                ThenEvents = [.. specification.ThenEvents, new SemanticSpecificationEvent(specification.WhenAppended!.EventContract, specification.WhenAppended.Values)]
+                ThenEvents = [.. specification.ThenEvents, new SemanticSpecificationEvent(specification.WhenAppended.EventContract, specification.WhenAppended.Values)]
             })]
         } : slice);
         var plan = Plan(changed);
@@ -54,7 +54,7 @@ public class when_rendering_translation_specifications : given.a_translation_spe
         {
             Specifications = [.. slice.Specifications.Select(specification => specification with
             {
-                GivenEvents = [new(specification.WhenAppended!.EventContract, specification.WhenAppended.Values)
+                GivenEvents = [new(specification.WhenAppended.EventContract, specification.WhenAppended.Values)
                 {
                     EventSource = specification.WhenAppended.EventSource
                 }]

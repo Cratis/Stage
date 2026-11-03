@@ -338,6 +338,10 @@ locally and in CI, and caps each `dotnet build` or `dotnet test` at three MSBuil
 STAGE_MAX_PARALLEL_APP_BUILDS=2 dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj -c Debug
 ```
 
+Set `STAGE_GENERATED_APP_TIMINGS` to a TSV path (one path per test project) to record the caller, tool and verb,
+configuration, slot wait and slot hold seconds; CI shards include it in their `specs-*` artifacts.
+Set `STAGE_GENERATED_APP_BINLOG=1` to keep a binlog per build/restore in the spec's evidence directory.
+
 Release treats warnings as errors. Both Dockerfiles consume prebuilt, framework-dependent publish output;
 `./dockerize.sh` publishes the host and specification runner and then builds both images.
 

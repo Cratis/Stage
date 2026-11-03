@@ -24,6 +24,6 @@ public class and_a_later_projection_refuses : when_settling_reactions.given.a_pr
     }
 
     [Fact] void should_refuse_the_projection() => _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-    [Fact] void should_identify_the_projection_capability() => _result.Unsupported!.Capability.ShouldEqual(StageExecutionCapability.Projection);
+    [Fact] void should_identify_the_projection_capability() => _result.Unsupported.Capability.ShouldEqual(StageExecutionCapability.Projection);
     [Fact] void should_append_none_of_the_batch() => Assert.True(_worldFacts <= 1, $"{_worldFacts} facts were appended");
 }

@@ -144,7 +144,7 @@ public class with_keyed_state : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("app"), "app", "application.play", Source);
         var compilation = new SemanticModelCompiler().Compile("SeededState", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        _plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        _plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         var executor = new SemanticSpecificationExecutor();
         _report = await executor.Run(_plan, new([]), new());
         _repeated = await executor.Run(_plan, new([]), new());
@@ -156,7 +156,7 @@ public class with_keyed_state : Specification
         var wrong = original with { ThenReadModels = [expected with { Values = [.. expected.Values.Select(value => value.Value is SemanticNumberValue ? value with { Value = SemanticValue.Number(999) } : value)] }] };
         var application = _plan.Model.Application with { Modules = [module with { Features = [feature with { Slices = [slice with { Specifications = [wrong] }] }] }] };
         var candidate = ExecutableSemanticModel.Create(_plan.Model.LanguageVersion, _plan.Model.SemanticVersion, application);
-        _wrong = await executor.Run(SemanticExecutionPlan.Compile(candidate).Plan!, new([]), new());
+        _wrong = await executor.Run(SemanticExecutionPlan.Compile(candidate).Plan, new([]), new());
     }
 
     [Fact] void should_execute_every_seeded_case() => Assert.All(_report.Results, result => Assert.True(result.Outcome == SemanticSpecificationOutcome.Passed, $"{result.Name}: {result.Outcome}; {result.Unsupported?.Details}; {string.Join(';', result.Failures)}"));

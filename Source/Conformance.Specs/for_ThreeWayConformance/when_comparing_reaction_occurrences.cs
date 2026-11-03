@@ -76,7 +76,7 @@ public class when_comparing_reaction_occurrences : a_reaction_plan
             new(Action: Action(action), Declarations: "command Record\n  item String identifier\n  seen DateTime\n  produces Noted\n    for item\n    notedAt = seen"));
         await Execute();
         AssertMatchesReference();
-        _result.Trace!.Rejection.ShouldEqual(((SemanticRejected)_reference.Execution).Details);
+        _result.Trace.Rejection.ShouldEqual(((SemanticRejected)_reference.Execution).Details);
     }
 
     [Theory]
@@ -115,13 +115,13 @@ public class when_comparing_reaction_occurrences : a_reaction_plan
             new(Action: Action(action), Authorization: "validate\n  item not empty message \"required\""));
         await Execute();
         AssertMatchesReference();
-        _result.Trace!.Rejection.ShouldEqual(((SemanticRejected)_reference.Execution).Details);
+        _result.Trace.Rejection.ShouldEqual(((SemanticRejected)_reference.Execution).Details);
     }
 
     void AssertExactFacts()
     {
         var reference = ((SemanticAccepted)_reference.Execution).Facts;
-        var actual = _result.Trace!.Facts;
+        var actual = _result.Trace.Facts;
         actual.Count.ShouldEqual(reference.Length);
         for (var index = 0; index < reference.Length; index++)
         {

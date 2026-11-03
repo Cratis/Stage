@@ -11,5 +11,5 @@ public class when_serving_the_workbench : given.an_api_pipeline
 {
     Task Because() => Execute("/workbench");
 
-    [Fact] void should_not_add_an_identity() => _context.User.Identity!.IsAuthenticated.ShouldBeFalse();
+    [Fact] void should_not_add_an_identity() => _context.User.Identity.IsAuthenticated.ShouldBeFalse();
 }

@@ -16,9 +16,9 @@ public class a_translation_source : a_translation_application
         Assert.True(syntax.Success, string.Join(';', syntax.Diagnostics));
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Contracts"));
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("app"), "app", "app.play", source);
-        var bound = new SemanticModelBinder().Bind("Contracts", syntax.Value!, SemanticDocumentSet.Create([document], catalog));
+        var bound = new SemanticModelBinder().Bind("Contracts", syntax.Value, SemanticDocumentSet.Create([document], catalog));
         Assert.True(bound.Success, string.Join(';', bound.Diagnostics));
-        return bound.Value!.Model;
+        return bound.Value.Model;
     }
 }
 #endif

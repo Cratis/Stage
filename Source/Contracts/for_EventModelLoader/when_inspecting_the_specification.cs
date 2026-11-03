@@ -20,8 +20,8 @@ public class when_inspecting_the_specification : given.a_compiled_invoicing_mode
 
     [Fact] void should_name_the_specification() => _specification.Name.ShouldEqual("RegistersAnInvoice");
     [Fact] void should_have_no_given_events() => _specification.Given.Count.ShouldEqual(0);
-    [Fact] void should_capture_the_when_command() => _specification.When!.Name.ShouldEqual("RegisterInvoice");
-    [Fact] void should_link_the_when_to_the_command() => _specification.When!.CommandId.ShouldEqual(_slice.Command!.Id);
+    [Fact] void should_capture_the_when_command() => _specification.When.Name.ShouldEqual("RegisterInvoice");
+    [Fact] void should_link_the_when_to_the_command() => _specification.When.CommandId.ShouldEqual(_slice.Command.Id);
     [Fact] void should_render_the_when_values() => WhenValue("invoiceNumber").ShouldEqual("INV-000001");
     [Fact] void should_have_a_single_then_event() => _specification.ThenEvents.Count.ShouldEqual(1);
     [Fact] void should_name_the_then_event() => _specification.ThenEvents[0].Name.ShouldEqual("InvoiceRegistered");
@@ -30,7 +30,7 @@ public class when_inspecting_the_specification : given.a_compiled_invoicing_mode
 
     string? WhenValue(string property)
     {
-        using var values = JsonDocument.Parse(_specification.When!.Values);
+        using var values = JsonDocument.Parse(_specification.When.Values);
 
         return values.RootElement.GetProperty(property).GetString();
     }

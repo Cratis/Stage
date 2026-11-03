@@ -110,7 +110,7 @@ public class when_rendering_temporal_claim_targets : Specification
     {
         var (assembly, model) = _applications[primitive];
         var query = model.Application.Modules.Single().Features.Single().Slices.SelectMany(slice => slice.Queries).Single();
-        var target = assembly.GetTypes().Single(type => type.Name == "InvoiceSummary").GetMethod("InvoiceById")!;
+        var target = assembly.GetTypes().Single(type => type.Name == "InvoiceSummary").GetMethod("InvoiceById");
         var resource = new QueryContext("InvoiceById", CorrelationId.New(), Paging.NotPaged, Sorting.None, new QueryArguments { ["invoiceId"] = argument });
         return Allows(assembly, model, query.Id, target, resource, claim);
     }
@@ -120,7 +120,7 @@ public class when_rendering_temporal_claim_targets : Specification
         var (assembly, model) = _applications[primitive];
         var command = model.Application.Modules.Single().Features.Single().Slices.SelectMany(slice => slice.Commands).Single();
         var type = assembly.GetTypes().Single(type => type.Name == "IssueInvoice");
-        var instance = Activator.CreateInstance(type, Concept(primitive, "InvoiceId", Typed(primitive, canonical)), "North", deadline is null ? null : Concept(primitive, "Deadline", Typed(primitive, deadline)))!;
+        var instance = Activator.CreateInstance(type, Concept(primitive, "InvoiceId", Typed(primitive, canonical)), "North", deadline is null ? null : Concept(primitive, "Deadline", Typed(primitive, deadline)));
         return Allows(assembly, model, command.Id, type, new CommandContext(CorrelationId.New(), type, instance, [], CommandContextValues.Empty), claim);
     }
 
@@ -135,7 +135,7 @@ public class when_rendering_temporal_claim_targets : Specification
             _ => deadline is null ? SemanticValue.Null : SemanticValue.Text(deadline)
         })).ToImmutableArray();
         var request = SemanticExecutionRequest.Create(command.Id, values, []) with { Caller = new(true, [], [new("OWNER", claim)]) };
-        return new SemanticEvaluator().Execute(SemanticExecutionPlan.Compile(model).Plan!, SemanticWorld.Empty, request) is not SemanticRejected { Category: SemanticRejectionCategory.Unauthorized };
+        return new SemanticEvaluator().Execute(SemanticExecutionPlan.Compile(model).Plan, SemanticWorld.Empty, request) is not SemanticRejected { Category: SemanticRejectionCategory.Unauthorized };
     }
 
     object Concept(string primitive, string name, object value) => Activator.CreateInstance(_applications[primitive].Assembly.GetTypes().Single(type => type.Name == name), value)!;
@@ -144,7 +144,7 @@ public class when_rendering_temporal_claim_targets : Specification
 
     static bool Allows(Assembly assembly, ExecutableSemanticModel model, SemanticId operation, MemberInfo target, object resource, string claim)
     {
-        var policy = (IAuthorizationPolicy)Activator.CreateInstance(assembly.GetTypes().Single(type => type.Name == policy_names.ClassOf(model, operation)))!;
+        var policy = (IAuthorizationPolicy)Activator.CreateInstance(assembly.GetTypes().Single(type => type.Name == policy_names.ClassOf(model, operation)));
         var principal = new ClaimsPrincipal(new ClaimsIdentity([new Claim("OWNER", claim)], "fixture"));
         return policy.IsAuthorized(new(principal, target, resource), CancellationToken.None).AsTask().GetAwaiter().GetResult();
     }

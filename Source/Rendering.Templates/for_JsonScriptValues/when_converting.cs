@@ -15,7 +15,7 @@ public class when_converting : Specification
     void Because()
     {
         using var document = JsonDocument.Parse("{\"count\":12,\"price\":1.25,\"items\":[true,null,\"ok\"]}");
-        _value = (ScriptObject)JsonScriptValues.Convert(document.RootElement, 100)!;
+        _value = (ScriptObject)JsonScriptValues.Convert(document.RootElement, 100);
     }
 
     [Fact] void should_keep_integral_numbers() => _value["count"].ShouldBeOfExactType<long>();

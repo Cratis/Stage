@@ -183,6 +183,13 @@ internal static class GeneratedTypeNames
         // The scaffold declares Registration; the selection-independent Policies.cs implements it and
         // adds PolicyValues. Operations that share an effective policy share one `{name}Policy` declaration.
         foreach (var name in Names("GeneratedPolicies", "Registration", application.Id, "Generated")) yield return name;
+
+        // The scaffold declares the optional Entra ID sign-in types in every application.
+        foreach (var type in new[] { "Authentication", "AuthenticationPerimeter", "AuthenticationSettings", "InvalidAuthenticationConfiguration" })
+        {
+            foreach (var name in Names("GeneratedAuthentication", type, application.Id, "Generated")) yield return name;
+        }
+
         if (selectedSlices.Any(located => located.Slice.Commands.Any(command => SemanticAnonymousAccess.RequiresCaller(command.Authorization, application.Policies)) ||
             located.Slice.Queries.Any(query => SemanticAnonymousAccess.RequiresCaller(query.Authorization, application.Policies))))
         {

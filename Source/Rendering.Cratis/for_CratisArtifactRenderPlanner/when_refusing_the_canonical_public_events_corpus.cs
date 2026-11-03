@@ -29,7 +29,7 @@ public class when_refusing_the_canonical_public_events_corpus : given.a_translat
 
     void Because() => _plan = CratisRendering.Plan(
         _model,
-        SemanticExecutionPlan.Compile(_model).Plan!,
+        SemanticExecutionPlan.Compile(_model).Plan,
         new(ArtifactRenderScopeKind.Application, _model.Application.Id),
         new(_model.Application.Name, _model.Application.Name));
 

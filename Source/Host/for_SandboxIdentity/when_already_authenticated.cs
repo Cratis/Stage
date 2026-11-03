@@ -13,6 +13,6 @@ public class when_already_authenticated : given.an_api_pipeline
 
     Task Because() => Execute();
 
-    [Fact] void should_replace_the_existing_identity() => _context.User.Identity!.Name.ShouldEqual("Ada");
+    [Fact] void should_replace_the_existing_identity() => _context.User.Identity.Name.ShouldEqual("Ada");
     [Fact] void should_remove_incoming_privileges() => _context.User.IsInRole("Staff").ShouldBeFalse();
 }

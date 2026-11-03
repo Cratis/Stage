@@ -24,7 +24,8 @@ public class with_the_default_composition : a_register_project_render_request
     // Recomputed for Screenplay 4.259.0: the scaffold now emits the published matcher pin.
     // Recomputed for Cratis/Stage#926: the scaffold now hosts an Orleans silo, pins Cratis.Orleans 1.33.1 and moves to Chronicle 19.114.0.
     // Recomputed for Screenplay 5.1.0: the scaffold emits the 5.1.0 matcher pin.
-    const string Before = "edd0f8ef10d6522fde1aefa17c8ca4da9e0a56166c2884b7b10407363e28f3f4";
+    // Recomputed for npm React 19.3.1, PrimeReact 11.2.2, Fundamentals 7.27.1 and Specifications 4.1.3: the scaffold now emits those package pins.
+    const string Before = "35fec435e5f691f267dd4e7f58e734b04b00f382eb932e63b5764fb212e820cf";
 
     ArtifactRenderPlan _plan = null!;
 

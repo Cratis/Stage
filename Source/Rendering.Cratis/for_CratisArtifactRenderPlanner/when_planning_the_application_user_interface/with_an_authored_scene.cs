@@ -31,7 +31,7 @@ public class with_an_authored_scene : a_screen_composition_render
     // Recomputed for Screenplay 5.0.0: the scaffold emits the 5.0.0 matcher pin.
     // Recomputed for Screenplay 5.1.0: the scaffold emits the 5.1.0 matcher pin.
     // Re-frozen after merging main (Screenplay 5.1.0) into train 10: the 4.259.0-era constants were stale.
-    const string Before = "47f22b22b80b58b82f4ac97e354c75ecd5e552cc9fd9a1d0f901934a08fb0d9d";
+    const string Before = "75feae1bf5f70da6da5e358d3ddf55deeb1f8c56e5bb1ea2da8a40dbccc3314b";
     // Recomputed for Cratis/Stage#926: the scaffold now hosts an Orleans silo, pins Cratis.Orleans 1.33.1 and moves to Chronicle 19.114.0.
 
     ArtifactRenderPlan _plan = null!;

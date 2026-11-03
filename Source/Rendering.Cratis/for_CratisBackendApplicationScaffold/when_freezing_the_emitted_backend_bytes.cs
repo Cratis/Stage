@@ -21,7 +21,7 @@ public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
     // Re-frozen when Debug specifications gained the Chronicle.Testing telemetry dependency.
     // Re-frozen for #120: authentication inputs, host wiring, sign-in instructions and Identity.Web references.
     // Re-frozen for #937: Directory.Packages.props pins Pkcs to 10.0.14 and documents Xml runtime servicing.
-    const string FrozenDigest = "ac80a154ddc489f34ffadd3cc744138eac43b5db62d3592caabfd92445d559fa";
+    const string FrozenDigest = "c7c1776d2d8777d75a010d1b08e143918389df3343d378ec2a0499510ed87ba6";
 
     // Frozen when the license header became the caller's choice: generated C# carries none by default.
     const string SeparateSpecificationsDigest = "13f01249306839c0248d9b2edfce00b1761e27f4a94721605201666fd0edfb1e";
@@ -31,7 +31,7 @@ public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
 
     // Re-frozen for #424: the scaffold places using directives outside the namespace.
     // Re-frozen for #660: only Directory.Build.props gains CratisReadProtection On.
-    const string FrozenRepositoryRootDigest = "c7b9681ef0b7458acd6060e72efa2bfa5237f7289e1a5969a79d0bb55bebec18";
+    const string FrozenRepositoryRootDigest = "13912da5741faedbf11b5bff96516c0b1d131ba2e6a0b0e46d0ec878cca13649";
     // Re-frozen for Cratis/Stage#926: the application hosts an Orleans silo; every earlier digest re-frozen with it.
     // Re-frozen for Chronicle 19.114.0 and Cratis.Orleans 1.33.1 with the telemetry callback registration removed; every earlier digest re-frozen with it.
 

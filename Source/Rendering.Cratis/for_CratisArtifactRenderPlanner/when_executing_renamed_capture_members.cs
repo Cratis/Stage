@@ -9,10 +9,10 @@ using Cratis.Chronicle.EventSequences;
 using Cratis.Chronicle.Reactors;
 using Cratis.Screenplay.CanonicalCorpus;
 using Cratis.Screenplay.Semantics.Serialization;
+using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 using NSubstitute;
 using Xunit;
-using Cratis.Specifications;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 

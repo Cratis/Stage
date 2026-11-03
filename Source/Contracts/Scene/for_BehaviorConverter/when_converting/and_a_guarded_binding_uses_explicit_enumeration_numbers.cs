@@ -2,7 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Text.Json;
-using System.Text.Json.Nodes;
+using Cratis.Scene.Model.Guards;
+using Cratis.Screenplay;
 using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Syntax;
 using Cratis.Specifications;
@@ -29,11 +30,17 @@ public class and_a_guarded_binding_uses_explicit_enumeration_numbers : Specifica
 
     void Because()
     {
+        var parsed = new ScreenplayCompiler().Parse("""
+            concept Status : Enum
+              open = 1
+              closed = 0
+            type Row
+              status Status
+            """);
+        Assert.True(parsed.Success, string.Join(Environment.NewLine, parsed.Diagnostics));
         var scope = new BehaviorScope(new Dictionary<string, BehaviorSyntax> { ["CloseRow"] = _syntax }, [])
         {
-            Subject = "Row",
-            Enumerations = new Dictionary<string, IReadOnlyDictionary<string, IReadOnlyList<string>>> { ["Row"] = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase) { ["status"] = ["open", "closed"] } },
-            EnumerationNumbers = new Dictionary<string, IReadOnlyDictionary<string, IReadOnlyList<int>>> { ["Row"] = new Dictionary<string, IReadOnlyList<int>>(StringComparer.OrdinalIgnoreCase) { ["status"] = [1, 0] } }
+            Subject = new(new(parsed.Value!), [], [new("Row", false, false, SourceLocation.Start)])
         };
         _result = scope.Resolve([_syntax], [new UsesBehaviorSyntax("CloseRow", [], SourceLocation.Start)], "Rows");
     }
@@ -45,14 +52,14 @@ public class and_a_guarded_binding_uses_explicit_enumeration_numbers : Specifica
     {
         foreach (var behavior in _result)
         {
-            behavior.Bindings.Count.ShouldEqual(2);
-            foreach (var binding in behavior.Bindings)
-            {
-                var selection = JsonSerializer.SerializeToNode(binding.Condition!.Value)!.AsObject();
-                selection["alternatives"]![0]!["enumeration"]!.ToJsonString().ShouldEqual("[\"open\",\"closed\"]");
-                selection["alternatives"]![0]!["enumerationNumbers"]!.ToJsonString().ShouldEqual("[1,0]");
-                SceneGuards.CanRunBinding(new JsonObject { ["path"] = binding.Condition.Path, ["value"] = selection }).ShouldBeTrue();
-            }
+            behavior.Bindings.Count.ShouldEqual(1);
+            var binding = behavior.Bindings[0];
+            binding.Condition.ShouldBeNull();
+            binding.Otherwise.Count.ShouldEqual(1);
+            var condition = Assert.IsType<ComparisonGuardCondition>(binding.Alternatives[0].Condition);
+            JsonSerializer.Serialize(condition.Enumeration).ShouldEqual("[\"open\",\"closed\"]");
+            JsonSerializer.Serialize(condition.EnumerationNumbers).ShouldEqual("[1,0]");
+            SceneGuards.CanEvaluate(condition).ShouldBeTrue();
         }
     }
 

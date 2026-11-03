@@ -49,19 +49,27 @@ public static class BehaviorConverter
     /// <param name="path">The owning attachment path.</param>
     /// <returns>The behavior with supported bindings and actions.</returns>
     public static SceneModel.Behavior Convert(ScreenplaySyntax.BehaviorSyntax behavior, Func<string, IReadOnlyList<string>?>? enumerationOf, ConversionDiagnostics? diagnostics, string path) =>
-        Convert(behavior, enumerationOf, null, diagnostics, path);
+        Convert(behavior, enumerationOf, diagnostics, path, null);
 
-    /// <summary>
-    /// Converts a behavior with enumeration member names and explicit numbers while collecting omissions.
-    /// </summary>
+    /// <summary>Converts a behavior using declared guard field types.</summary>
+    /// <param name="behavior">The behavior to convert.</param>
+    /// <param name="enumerationOf">The guard enumeration resolver.</param>
+    /// <param name="diagnostics">The conversion diagnostics.</param>
+    /// <param name="path">The attachment path.</param>
+    /// <param name="isStringField">The known string field resolver.</param>
+    /// <returns>The converted behavior.</returns>
+    public static SceneModel.Behavior Convert(ScreenplaySyntax.BehaviorSyntax behavior, Func<string, IReadOnlyList<string>?>? enumerationOf, ConversionDiagnostics? diagnostics, string path, Func<string, bool>? isStringField) =>
+        new(behavior.Name, [.. behavior.Bindings.SelectMany(binding => ConvertBinding(binding, enumerationOf, diagnostics, path, isStringField))], behavior.Order);
+
+    /// <summary>Converts a behavior with explicit enumeration wire numbers.</summary>
     /// <param name="behavior">The behavior to convert.</param>
     /// <param name="enumerationOf">The enumeration members for guard fields.</param>
     /// <param name="enumerationNumbersOf">The explicit numbers in member order.</param>
-    /// <param name="diagnostics">The collector, or null for legacy throwing behavior.</param>
-    /// <param name="path">The owning attachment path.</param>
-    /// <returns>The behavior with supported bindings and actions.</returns>
+    /// <param name="diagnostics">The conversion diagnostics.</param>
+    /// <param name="path">The attachment path.</param>
+    /// <returns>The converted behavior.</returns>
     public static SceneModel.Behavior Convert(ScreenplaySyntax.BehaviorSyntax behavior, Func<string, IReadOnlyList<string>?>? enumerationOf, Func<string, IReadOnlyList<int>?>? enumerationNumbersOf, ConversionDiagnostics? diagnostics, string path) =>
-        new(behavior.Name, [.. behavior.Bindings.SelectMany(binding => ConvertBinding(binding, enumerationOf, enumerationNumbersOf, diagnostics, path))], behavior.Order);
+        new(behavior.Name, [.. behavior.Bindings.SelectMany(binding => ConvertBinding(binding, enumerationOf, diagnostics, path, null, condition => SceneGuards.ConvertToCondition(condition, enumerationOf, null, enumerationNumbersOf)))], behavior.Order);
 
     /// <summary>
     /// Converts a sequence of <see cref="ScreenplaySyntax.BehaviorSyntax"/> into Scene behaviors.
@@ -110,10 +118,11 @@ public static class BehaviorConverter
         return null;
     }
 
-    // An unguarded binding is one Scene binding. A guarded one - `when ... otherwise` - becomes one binding per branch
-    // with the same trigger, in authored order, each conditioned on being the branch that holds for the subject (see
-    // SceneGuards), so the Scene interaction engine runs exactly one of them.
-    static IEnumerable<SceneModel.InteractionBinding> ConvertBinding(ScreenplaySyntax.InteractionBindingSyntax binding, Func<string, IReadOnlyList<string>?>? enumerationOf, Func<string, IReadOnlyList<int>?>? enumerationNumbersOf, ConversionDiagnostics? diagnostics, string path)
+    internal static SceneModel.Behavior ConvertResolved(ScreenplaySyntax.BehaviorSyntax behavior, Func<string, GuardFieldType> field, ConversionDiagnostics? diagnostics, string path) =>
+        new(behavior.Name, [.. behavior.Bindings.SelectMany(binding => ConvertBinding(binding, null, diagnostics, path, null, condition => SceneGuardConversion.FromResolved(condition, field).ToCondition()))], behavior.Order);
+
+    // Scene owns ordered first-match selection for guarded interaction alternatives.
+    static IEnumerable<SceneModel.InteractionBinding> ConvertBinding(ScreenplaySyntax.InteractionBindingSyntax binding, Func<string, IReadOnlyList<string>?>? enumerationOf, ConversionDiagnostics? diagnostics, string path, Func<string, bool>? isStringField, Func<ScreenplaySyntax.ConditionSyntax, global::Cratis.Scene.Model.Guards.GuardCondition>? convertCondition = null)
     {
         var trigger = ConvertTrigger(binding.Trigger, diagnostics, path);
         if (trigger is null) yield break;
@@ -127,26 +136,14 @@ public static class BehaviorConverter
             yield break;
         }
 
-        var conditions = alternatives.Select(alternative => (object?)SceneGuards.Convert(alternative.Condition, enumerationOf, enumerationNumbersOf)).ToList();
-        for (var index = 0; index < alternatives.Length; index++)
-        {
-            yield return new(
-                trigger,
-                [.. alternatives[index].Actions.Select(action => InteractionActionConverter.Convert(action, diagnostics, path)).OfType<SceneModel.InteractionAction>()],
-                Guard(new Dictionary<string, object?> { ["kind"] = "firstMatch", ["index"] = index, ["alternatives"] = conditions }));
-        }
-
-        if (binding.Otherwise is not null)
-        {
-            yield return new(
-                trigger,
-                [.. binding.Otherwise.Actions.Select(action => InteractionActionConverter.Convert(action, diagnostics, path)).OfType<SceneModel.InteractionAction>()],
-                Guard(new Dictionary<string, object?> { ["kind"] = "otherwise", ["alternatives"] = conditions }));
-        }
+        yield return new(
+            trigger,
+            [],
+            Alternatives: [.. alternatives.Select(alternative => new SceneModel.InteractionAlternative(
+                convertCondition is null ? SceneGuards.ConvertToCondition(alternative.Condition, enumerationOf, isStringField) : convertCondition(alternative.Condition),
+                [.. alternative.Actions.Select(action => InteractionActionConverter.Convert(action, diagnostics, path)).OfType<SceneModel.InteractionAction>()]))],
+            Otherwise: binding.Otherwise is null ? null : [.. binding.Otherwise.Actions.Select(action => InteractionActionConverter.Convert(action, diagnostics, path)).OfType<SceneModel.InteractionAction>()]);
     }
-
-    static SceneCommon.BindingExpression Guard(Dictionary<string, object?> selection) =>
-        new(SceneGuards.GuardPath, Value: selection);
 
     /// <summary>
     /// Normalizes an interval to seconds, which is the one unit the model carries.

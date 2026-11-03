@@ -31,11 +31,6 @@ public sealed record BehaviorScope(
     public IReadOnlyDictionary<string, IReadOnlyDictionary<string, IReadOnlyList<int>>>? EnumerationNumbers { get; init; }
 
     /// <summary>
-    /// Gets the read model the nearest <c language="csharp">data</c> declaration reads, which a guard's <c language="csharp">item</c> is.
-    /// </summary>
-    public string? Subject { get; init; }
-
-    /// <summary>
     /// Gets the modules, features and slices of the application, which a toolbar button's slice reference resolves against.
     /// </summary>
     public Cratis.Scene.Model.Structure.ApplicationStructure? Structure { get; init; }
@@ -60,6 +55,15 @@ public sealed record BehaviorScope(
     /// </summary>
     public static BehaviorScope None => new(new Dictionary<string, ScreenplaySyntax.BehaviorSyntax>(StringComparer.Ordinal), []);
 
+    internal GuardContexts? GuardContexts { get; init; }
+
+    internal GuardSubject? Subject { get; init; }
+
+    /// <summary>Whether a guard path resolves to a known string field on the nearest data subject.</summary>
+    /// <param name="path">The guard field path.</param>
+    /// <returns>True only for a resolved string field.</returns>
+    public bool IsStringField(string path) => FieldType(path).Kind == GuardFieldKind.Text;
+
     /// <summary>
     /// Creates a scope from a document's declarations.
     /// </summary>
@@ -71,6 +75,7 @@ public sealed record BehaviorScope(
         {
             Enumerations = EnumerationsIn(syntax),
             EnumerationNumbers = EnumerationNumbersIn(syntax),
+            GuardContexts = new(syntax),
             Structure = StructureConverter.Convert(syntax),
             CommandResponses = syntax.Modules.SelectMany(module => Slices(module.Features)).SelectMany(slice => slice.Commands ?? [])
                 .GroupBy(command => command.Name, StringComparer.Ordinal)
@@ -83,37 +88,12 @@ public sealed record BehaviorScope(
     /// </summary>
     /// <param name="path">The guard field, such as <c language="csharp">item.status</c>.</param>
     /// <returns>The members, or null when the field is not an enumeration or the subject is not known.</returns>
-    public IReadOnlyList<string>? EnumerationOf(string path)
-    {
-        if (Subject is null || Enumerations is null || !path.StartsWith(SceneGuards.SubjectPrefix, StringComparison.Ordinal))
-        {
-            return null;
-        }
+    public IReadOnlyList<string>? EnumerationOf(string path) => FieldType(path).Members;
 
-        var field = path[SceneGuards.SubjectPrefix.Length..];
-        if (Enumerations.TryGetValue(Subject, out var fields) && fields.TryGetValue(field, out var members))
-        {
-            return members;
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Gets the explicit numbers of the enumeration a guard's subject field has, in declared member order.
-    /// </summary>
-    /// <param name="path">The guard field, such as <c language="csharp">item.status</c>.</param>
-    /// <returns>The numbers, or null when the field is not explicitly numbered or the subject is not known.</returns>
-    public IReadOnlyList<int>? EnumerationNumbersOf(string path)
-    {
-        if (Subject is null || EnumerationNumbers is null || !path.StartsWith(SceneGuards.SubjectPrefix, StringComparison.Ordinal))
-        {
-            return null;
-        }
-
-        var field = path[SceneGuards.SubjectPrefix.Length..];
-        return EnumerationNumbers.TryGetValue(Subject, out var fields) && fields.TryGetValue(field, out var numbers) ? numbers : null;
-    }
+    /// <summary>Gets explicit enumeration numbers in declared member order.</summary>
+    /// <param name="path">The guard field path.</param>
+    /// <returns>The wire numbers, or null for an implicit enumeration or unknown field.</returns>
+    public IReadOnlyList<int>? EnumerationNumbersOf(string path) => FieldType(path).MemberNumbers;
 
     /// <summary>
     /// Resolves what is attached at one point.
@@ -126,7 +106,13 @@ public sealed record BehaviorScope(
         IEnumerable<ScreenplaySyntax.BehaviorSyntax> inline,
         IEnumerable<ScreenplaySyntax.UsesBehaviorSyntax> used,
         string subject) =>
-        BehaviorAttachments.Convert(inline, used, Declared, subject, Findings, EnumerationOf, EnumerationNumbersOf, Diagnostics);
+        GuardContexts is null
+            ? BehaviorAttachments.Convert(inline, used, Declared, subject, Findings, EnumerationOf, EnumerationNumbersOf, Diagnostics)
+            : BehaviorAttachments.ConvertResolved(inline, used, subject, this);
+
+    internal BehaviorScope At(ScreenplaySyntax.SyntaxNode site) => this with { Subject = GuardContexts?.At(site) };
+
+    internal GuardFieldType FieldType(string path) => Subject?.Field(path) ?? GuardFieldType.Unknown("No attachment subject");
 
     static Dictionary<string, IReadOnlyDictionary<string, IReadOnlyList<string>>> EnumerationsIn(ScreenplaySyntax.ApplicationSyntax syntax)
     {

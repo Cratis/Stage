@@ -13,6 +13,6 @@ export { executeRegisteredCommand, registeredCommand, useStageCommandExecutor } 
 export { hostedBasePath } from './hostedBasePath';
 export { registeredQuery, performQuery, subscribeQuery, registerQueryRouteResolver } from './queryExecutor';
 export { StageCommandForm } from './StageCommandForm';
-export { StageGuardedAction } from './StageGuardedAction';
+export { StageSceneGuardedAction as StageGuardedAction } from './stageData';
 export { StageDataProvider, useStageData, useStageQuery, dataChanged } from './stageData';
 export { createStageSliceInvoker, sliceFieldsFrom } from './stageSlices';

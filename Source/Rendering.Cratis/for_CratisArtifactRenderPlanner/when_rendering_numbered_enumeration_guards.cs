@@ -2,7 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
+using Cratis.Scene.Engine.Guards;
 using Cratis.Screenplay;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
@@ -73,7 +75,7 @@ public class when_rendering_numbered_enumeration_guards : Specification
     {
         var comparisons = Descendants(JsonNode.Parse(_implicitDocument)!).OfType<JsonObject>()
             .Where(node => node["kind"]?.ToString() == "comparison").ToArray();
-        comparisons.Length.ShouldEqual(3);
+        comparisons.Length.ShouldEqual(2);
         foreach (var comparison in comparisons)
         {
             comparison["enumeration"]!.ToJsonString().ShouldEqual("[\"draft\",\"issued\"]");
@@ -85,12 +87,12 @@ public class when_rendering_numbered_enumeration_guards : Specification
     {
         var comparisons = Descendants(JsonNode.Parse(json)!).OfType<JsonObject>()
             .Where(node => node["kind"]?.ToString() == "comparison").ToArray();
-        comparisons.Length.ShouldEqual(3);
+        comparisons.Length.ShouldEqual(2);
         foreach (var comparison in comparisons)
         {
             comparison["enumeration"]!.ToJsonString().ShouldEqual("[\"draft\",\"issued\"]");
             comparison["enumerationNumbers"]!.ToJsonString().ShouldEqual("[1,0]");
-            SceneGuards.CanEvaluate((object)comparison).ShouldBeTrue();
+            GuardConditions.CanEvaluate(JsonSerializer.SerializeToElement(comparison)).ShouldBeTrue();
         }
     }
 

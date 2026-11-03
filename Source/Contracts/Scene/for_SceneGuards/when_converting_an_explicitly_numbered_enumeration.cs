@@ -22,8 +22,20 @@ public class when_converting_an_explicitly_numbered_enumeration : Specification
     [Fact] void should_preserve_reordered_member_identity() => JsonSerializer.Serialize(_result["left"]).ShouldEqual("{\"kind\":\"comparison\",\"left\":{\"subject\":\"item.status\"},\"operator\":\"Equal\",\"right\":\"open\",\"enumeration\":[\"open\",\"closed\"],\"enumerationNumbers\":[1,0]}");
     [Fact] void should_preserve_sparse_negative_numbers_on_the_other_operand() => JsonSerializer.Serialize(((IDictionary<string, object?>)_result["right"]!)["enumerationNumbers"]).ShouldEqual("[-1,4,90]");
     [Fact] void should_preserve_member_order_on_the_other_operand() => JsonSerializer.Serialize(((IDictionary<string, object?>)_result["right"]!)["enumeration"]).ShouldEqual("[\"draft\",\"issued\",\"cancelled\"]");
-    [Fact] void should_keep_the_untyped_entry_point_unchanged() => JsonSerializer.Serialize(SceneGuards.Convert(_status)).ShouldEqual("{\"kind\":\"comparison\",\"left\":{\"subject\":\"item.status\"},\"operator\":\"Equal\",\"right\":\"open\"}");
-    [Fact] void should_omit_numbers_for_the_names_only_entry_point() => SceneGuards.Convert(_status, _ => ["open", "closed"]).ContainsKey("enumerationNumbers").ShouldBeFalse();
+    [Fact] void should_keep_the_untyped_entry_point_unchanged() => JsonSerializer.Serialize(SceneGuards.Convert(_status, null, null)).ShouldEqual("{\"kind\":\"comparison\",\"left\":{\"subject\":\"item.status\"},\"operator\":\"Equal\",\"right\":\"open\"}");
+    [Fact] void should_omit_numbers_for_the_names_only_entry_point() => SceneGuards.Convert(_status, _ => ["open", "closed"], null).ContainsKey("enumerationNumbers").ShouldBeFalse();
     [Fact] void should_omit_numbers_without_members() => SceneGuards.Convert(_status, _ => null, _ => [1, 0]).ContainsKey("enumerationNumbers").ShouldBeFalse();
     [Fact] void should_omit_absent_numbers() => SceneGuards.Convert(_status, _ => ["open", "closed"], _ => null).ContainsKey("enumerationNumbers").ShouldBeFalse();
+
+    [Fact]
+    void should_resolve_each_comparison_once()
+    {
+        var calls = 0;
+        SceneGuards.ConvertToCondition(_status, _ =>
+        {
+            calls++;
+            return ["open", "closed"];
+        });
+        calls.ShouldEqual(1);
+    }
 }

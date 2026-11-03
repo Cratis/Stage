@@ -104,20 +104,39 @@ public static class BehaviorAttachments
         ICollection<RenderFinding> findings,
         Func<string, IReadOnlyList<string>?>? enumerationOf,
         ConversionDiagnostics? diagnostics) =>
-        Convert(inline, used, declared, subject, findings, enumerationOf, null, diagnostics);
+        Convert(inline, used, declared, subject, findings, enumerationOf, diagnostics, null);
 
-    /// <summary>
-    /// Resolves attachments with enumeration member names and explicit numbers while collecting omissions.
-    /// </summary>
+    /// <summary>Resolves attached behaviors with known guard field types.</summary>
     /// <param name="inline">The inline behaviors.</param>
-    /// <param name="used">The named behavior references.</param>
-    /// <param name="declared">The named declarations.</param>
-    /// <param name="subject">The owning attachment path.</param>
+    /// <param name="used">The behavior references.</param>
+    /// <param name="declared">The declared behaviors.</param>
+    /// <param name="subject">The attachment path.</param>
+    /// <param name="findings">The unresolved-reference findings.</param>
+    /// <param name="enumerationOf">The guard enumeration resolver.</param>
+    /// <param name="diagnostics">The conversion diagnostics.</param>
+    /// <param name="isStringField">The known string field resolver.</param>
+    /// <returns>The attached behaviors.</returns>
+    public static IReadOnlyList<SceneModel.Behavior> Convert(
+        IEnumerable<ScreenplaySyntax.BehaviorSyntax> inline,
+        IEnumerable<ScreenplaySyntax.UsesBehaviorSyntax> used,
+        IReadOnlyDictionary<string, ScreenplaySyntax.BehaviorSyntax> declared,
+        string subject,
+        ICollection<RenderFinding> findings,
+        Func<string, IReadOnlyList<string>?>? enumerationOf,
+        ConversionDiagnostics? diagnostics,
+        Func<string, bool>? isStringField) =>
+        ConvertCore(inline, used, declared, subject, findings, behavior => BehaviorConverter.Convert(behavior, enumerationOf, diagnostics, subject, isStringField));
+
+    /// <summary>Resolves attachments with explicit enumeration wire numbers.</summary>
+    /// <param name="inline">The inline behaviors.</param>
+    /// <param name="used">The behavior references.</param>
+    /// <param name="declared">The declared behaviors.</param>
+    /// <param name="subject">The attachment path.</param>
     /// <param name="findings">The unresolved-reference findings.</param>
     /// <param name="enumerationOf">The enumeration members for guard fields.</param>
     /// <param name="enumerationNumbersOf">The explicit numbers in member order.</param>
-    /// <param name="diagnostics">The collector, or null for legacy throwing behavior.</param>
-    /// <returns>The resolved behaviors.</returns>
+    /// <param name="diagnostics">The conversion diagnostics.</param>
+    /// <returns>The attached behaviors.</returns>
     public static IReadOnlyList<SceneModel.Behavior> Convert(
         IEnumerable<ScreenplaySyntax.BehaviorSyntax> inline,
         IEnumerable<ScreenplaySyntax.UsesBehaviorSyntax> used,
@@ -126,7 +145,40 @@ public static class BehaviorAttachments
         ICollection<RenderFinding> findings,
         Func<string, IReadOnlyList<string>?>? enumerationOf,
         Func<string, IReadOnlyList<int>?>? enumerationNumbersOf,
-        ConversionDiagnostics? diagnostics)
+        ConversionDiagnostics? diagnostics) =>
+        ConvertCore(inline, used, declared, subject, findings, behavior => BehaviorConverter.Convert(behavior, enumerationOf, enumerationNumbersOf, diagnostics, subject));
+
+    internal static IReadOnlyList<SceneModel.Behavior> ConvertResolved(
+        IEnumerable<ScreenplaySyntax.BehaviorSyntax> inline,
+        IEnumerable<ScreenplaySyntax.UsesBehaviorSyntax> used,
+        string subject,
+        BehaviorScope scope)
+    {
+        var attached = new List<(SourceLocation Location, ScreenplaySyntax.BehaviorSyntax Behavior, ScreenplaySyntax.SyntaxNode Site)>();
+        foreach (var behavior in inline) attached.Add((behavior.Location, behavior, behavior));
+        foreach (var uses in used)
+        {
+            if (scope.Declared.TryGetValue(uses.Behavior, out var behavior))
+            {
+                attached.Add((uses.Location, behavior, uses));
+            }
+            else
+            {
+                scope.Findings.Add(new(RenderFindingKind.BehaviorNotFound, subject, $"'{subject}' uses the behavior '{uses.Behavior}', which the document does not declare."));
+            }
+        }
+
+        return [.. attached.OrderBy(entry => entry.Location.Line).ThenBy(entry => entry.Location.Column)
+            .Select(entry => BehaviorConverter.ConvertResolved(entry.Behavior, scope.At(entry.Site).FieldType, scope.Diagnostics, subject))];
+    }
+
+    static IReadOnlyList<SceneModel.Behavior> ConvertCore(
+        IEnumerable<ScreenplaySyntax.BehaviorSyntax> inline,
+        IEnumerable<ScreenplaySyntax.UsesBehaviorSyntax> used,
+        IReadOnlyDictionary<string, ScreenplaySyntax.BehaviorSyntax> declared,
+        string subject,
+        ICollection<RenderFinding> findings,
+        Func<ScreenplaySyntax.BehaviorSyntax, SceneModel.Behavior> convert)
     {
         var attached = new List<(SourceLocation Location, ScreenplaySyntax.BehaviorSyntax Behavior)>();
 
@@ -154,7 +206,7 @@ public static class BehaviorAttachments
             .. attached
                 .OrderBy(entry => entry.Location.Line)
                 .ThenBy(entry => entry.Location.Column)
-                .Select(entry => BehaviorConverter.Convert(entry.Behavior, enumerationOf, enumerationNumbersOf, diagnostics, subject))
+                .Select(entry => convert(entry.Behavior))
         ];
     }
 }

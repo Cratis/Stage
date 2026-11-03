@@ -19,7 +19,7 @@ import { readableValue } from './readableValue';
 import { createsEntity, humanize, schemaPropertiesOf, type SchemaProperty } from './stageFormSchema';
 import { registeredCommand } from './commandExecutor';
 import { navigateToScreen } from './stageNavigation';
-import { isGuardedAction, StageGuardedAction } from './StageGuardedAction';
+import { isGuardedAction, StageSceneGuardedAction as StageGuardedAction } from './stageData';
 import { useRowInteractions } from './stageRowInteractions';
 import { StageConfirmDialog } from './StageConfirmDialog';
 import { stageConfirmDialogComponent } from './stageDialogScreens';
@@ -491,6 +491,7 @@ export const stageComponents: Record<string, ComponentType<RegisteredProps>> = {
     ...(coreComponents as Record<string, ComponentType<RegisteredProps>>),
     'core:table': StageTable,
     'core:action': StageAction,
+    'core:guarded-action': StageGuardedAction,
     'core:toolbarItem': StageToolbarItem,
     'core:sliceDialog': StageSliceDialog as ComponentType<RegisteredProps>,
     [stageCommandFormComponent]: StageCommandForm,

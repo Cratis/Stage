@@ -30,7 +30,7 @@ internal static partial class SemanticSpecificationAdmission
         SemanticSlice slice,
         ICollection<ArtifactRenderDiagnostic> diagnostics)
     {
-        foreach (var specification in SemanticOpaqueBodyDependencies.WithoutUncontrolledClockSpecifications(SemanticCommandBodyAdmission.WithoutBodySpecifications(WithoutReactionCascades(context, slice, diagnostics), context, diagnostics), context, diagnostics))
+        foreach (var specification in WithoutDivergentRootJoins(SemanticOpaqueBodyDependencies.WithoutUncontrolledClockSpecifications(SemanticCommandBodyAdmission.WithoutBodySpecifications(WithoutReactionCascades(context, slice, diagnostics), context, diagnostics), context, diagnostics), context, diagnostics))
         {
             if (TryRefuseUnboundEventMetadata(context, specification, diagnostics))
             {
@@ -131,7 +131,7 @@ internal static partial class SemanticSpecificationAdmission
     static bool CanRenderSpecification(SemanticApplicationContext context, SemanticSpecification specification, bool reactionInvocation = false, bool foreignInvocationExpectations = false) =>
         HasRenderableQueryExpectations(context, specification) && (CanRenderQueryOnly(context, specification) ||
                 (HasRenderableCallerAndCommand(context, specification, out var command, reactionInvocation) &&
-                    HasRenderableGivenEvents(context, specification) && GivenKeysMatchProjectedProperties(context, specification) &&
+                    HasRenderableOrderedGivenEvents(context, specification) && GivenKeysMatchProjectedProperties(context, specification) &&
                     !AssertsUncontrolledOccurrence(context.Application, specification, command!) &&
                     !GivenEventsViolateConstraints(context, specification) && CanSeedProjectedAbsence(context, specification) &&
                     CommandValuesMatch(context, specification, command!) &&

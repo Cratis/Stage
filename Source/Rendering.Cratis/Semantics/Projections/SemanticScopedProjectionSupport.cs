@@ -57,7 +57,7 @@ internal static class SemanticScopedProjectionSupport
     {
         var roots = scope.From.ToDictionary(from => from.EventContract);
         var roles = scope.From.Select(from => (from.EventContract, Role: "root", from.Key))
-            .Concat(scope.Joins.Select(join => (join.EventContract, Role: "join", Key: SemanticProjectionKey.EventSourceIdentity)))
+            .Concat(scope.Joins.Select(join => (join.EventContract, Role: "join", Key: join.Key ?? SemanticProjectionKey.EventSourceIdentity)))
             .Concat(scope.Removals.Select(removal => (removal.EventContract, Role: "removal", removal.Key)))
             .Concat(NestedRoles(scope));
         foreach (var occurrences in roles.GroupBy(role => role.EventContract).Select(group => group.ToArray()).Where(NeedsRoleCheck))
@@ -143,6 +143,21 @@ internal static class SemanticScopedProjectionSupport
     internal static bool ConstantKeySupported(SemanticProjectionKey key) =>
         key is SemanticProjectionValueKey { Value: SemanticProjectionLiteral { Value: SemanticTextValue text } } &&
         text.Value.Length > 0 && FluentTextLiteral().IsMatch(text.Value);
+
+    /// <summary>
+    /// Admits default joins and required, type-matched scalar event-property keys on root joins.
+    /// </summary>
+    /// <param name="key">The join's correlation key.</param>
+    /// <param name="on">The joined read-model property.</param>
+    /// <param name="event">The joined event contract.</param>
+    /// <param name="context">The indexed semantic application.</param>
+    /// <returns>Whether Chronicle can preserve the join key.</returns>
+    internal static bool RootJoinKeySupported(SemanticProjectionKey? key, SemanticProperty on, SemanticEventContract @event, SemanticApplicationContext context) =>
+        key is null or SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity } ||
+        (key is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var id] } property } &&
+         @event.Properties.SingleOrDefault(candidate => candidate.Id == id) is { Type: { IsOptional: false, IsCollection: false } type } &&
+         type.Kind is SemanticTypeReferenceKind.Primitive or SemanticTypeReferenceKind.Concept &&
+         type == on.Type with { IsOptional = false } && PathSupported(property.Path, @event.Properties, context));
 
     static bool KeySupported(SemanticProjectionKey key, SemanticEventContract @event, SemanticApplicationContext context) =>
         key is SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity } ||
@@ -847,8 +862,10 @@ internal static class SemanticScopedProjectionSupport
             scope.Joins.Any(join => !JoinSupported(join)) ? "A join has an unsupported correlation key or mapping." : null;
 
         bool JoinSupported(SemanticProjectionJoin join) =>
-            context.Events.TryGetValue(join.EventContract, out var @event) && join.Key is null &&
-            properties.Any(_ => _.Id == join.On) && (!child || join.On == identity) && MappingsSupported(join.Mappings, properties, @event, context, _protectedIdentity, false);
+            context.Events.TryGetValue(join.EventContract, out var @event) &&
+            properties.SingleOrDefault(property => property.Id == join.On) is { } on &&
+            (IsRoot ? RootJoinKeySupported(join.Key, on, @event, context) : join.Key is null) &&
+            (!child || join.On == identity) && MappingsSupported(join.Mappings, properties, @event, context, _protectedIdentity, false);
 
         string? RemovalRejection()
         {

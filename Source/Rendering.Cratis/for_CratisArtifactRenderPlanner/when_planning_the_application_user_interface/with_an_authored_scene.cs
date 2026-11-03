@@ -24,7 +24,7 @@ public class with_an_authored_scene : a_screen_composition_render
     // Recomputed for Screenplay 4.259.0: the scaffold now emits the published matcher pin.
     // Recomputed for Cratis/Stage#926: the scaffold now hosts an Orleans silo, pins Cratis.Orleans 1.33.1 and moves to Chronicle 19.114.0.
     // Recomputed for Screenplay 5.1.0: the scaffold emits the 5.1.0 matcher pin.
-    const string Before = "67b8f16bb7208b1ea55da296fc89448a97dc6fce9eb0359683f43829f731ae20";
+    const string Before = "892165dac4cccb1550c73d9650258136174be165f8491c8db0722c40bf04813e";
 
     ArtifactRenderPlan _plan = null!;
 

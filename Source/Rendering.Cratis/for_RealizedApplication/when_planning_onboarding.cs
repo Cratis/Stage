@@ -45,7 +45,7 @@ public class when_planning_onboarding : given.a_model_with_authentication_and_on
     [Fact] void should_reference_herald_and_the_ante_contracts() => Text($"{Application}.csproj").ShouldContain("Cratis.Showrunner.Herald");
     [Fact] void should_register_onboarding_with_the_application() => Text("Program.cs").ShouldContain($"{Application}.GeneratedOnboarding.Registration.Register(builder);");
     [Fact] void should_reference_box_office_for_the_offering() => Text($"{Application}.csproj").ShouldContain("Cratis.Showrunner.BoxOffice\"");
-    [Fact] void should_pin_box_office() => Text("Directory.Packages.props").ShouldContain("Cratis.Showrunner.BoxOffice\" Version=\"1.13.0\"");
+    [Fact] void should_pin_box_office() => Text("Directory.Packages.props").ShouldContain("Cratis.Showrunner.BoxOffice\" Version=\"1.14.0\"");
     [Fact] void should_declare_the_default_offering_the_model_names() => Text("GeneratedOnboarding/OnboardingRegistration.cs").ShouldContain(".DefaultOffering(\"Starter\")");
     [Fact] void should_declare_a_product_that_is_the_same_for_every_render() => Text("GeneratedOnboarding/OnboardingRegistration.cs").ShouldContain($".Product(Guid.Parse(\"{Realization.RealizationArtifacts.ProductId(Application)}\"))");
     [Fact] void should_add_box_office_and_its_offering() => Text("GeneratedOnboarding/OnboardingRegistration.cs").ShouldContain("builder.AddBoxOffice();");

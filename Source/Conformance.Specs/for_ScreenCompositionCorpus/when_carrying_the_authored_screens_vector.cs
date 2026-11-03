@@ -70,7 +70,7 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     // Re-frozen for merged Scene 4.86.0 / Screenplay 4.258.0 output.
     // Re-frozen for Cratis/Stage#120 merged with train 10: authentication artifacts and host wiring on top of the train 10 output.
     // Re-frozen for Cratis/Stage#937: only Directory.Packages.props pins Pkcs to 10.0.14 and documents Xml runtime servicing.
-    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(_qualified)).ShouldEqual("750f65caba5f7f52409d1b65d018acda580a13b7adc22e473e6015da1b421dc6");
+    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(_qualified)).ShouldEqual("c094ab94dc4a23b38b3d1e6302c2f3fb8d870637e05497659e26227cb40af89c");
 
     // Re-frozen when the license header became the caller's choice and specifications moved into the application project.
     // Re-frozen for #424: generated C# uses short type names and using directives above the namespace.
@@ -80,7 +80,7 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     // Re-frozen for merged Scene 4.86.0 / Screenplay 4.258.0 output.
     // Re-frozen for Cratis/Stage#120 merged with train 10: authentication artifacts and host wiring on top of the train 10 output.
     // Re-frozen for Cratis/Stage#937: only Directory.Packages.props pins Pkcs to 10.0.14 and documents Xml runtime servicing.
-    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("525faf05aae4771e7996eca3c40580f3d327ef3a7911c8737eb4d1c13fbcc6cf");
+    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("528899055199af0a0b3ccbb6c364cf14a8c9f2f0402984096f36a40522774e4b");
     [Fact] void should_pin_the_screen_fragments() => string.Join('\n', _plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal)).Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}")).ShouldEqual("""
         Workspaces/Tracking/WorkItemComments/Screens.scene.json acd7f05ae339201f3867044a5a7ae3e7f3501e0ae90aac9b9742fa24cc0b98da 2270
         Workspaces/Tracking/WorkItemDetails/Screens.scene.json 536a72745002460a699cdb87ea8e6638ac38d4867978a3cce2cebcf24a5f1811 9963

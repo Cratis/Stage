@@ -6,6 +6,7 @@ using Xunit;
 
 namespace Cratis.Stage.Host.Published.for_PublishedOptions;
 
+[PerFactSpecificationLifecycle]
 public class when_naming_the_event_store : a_published_configuration
 {
     [Fact] void should_derive_the_name_from_the_published_name() => Options().EventStoreFor("my-shop").ShouldEqual("app-my-shop");

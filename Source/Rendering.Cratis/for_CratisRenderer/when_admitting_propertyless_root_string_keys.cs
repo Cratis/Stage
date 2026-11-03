@@ -13,6 +13,7 @@ using NativeScreenplayCompiler = Cratis.Screenplay.ScreenplayCompiler;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 
+[PerFactSpecificationLifecycle]
 public class when_admitting_propertyless_root_string_keys : a_multi_slice_application
 {
     [Theory]

@@ -9,6 +9,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
+[PerFactSpecificationLifecycle]
 public class when_exercising_translation_specifications : given.a_translation_specification_application
 {
     const string OtherKey = "9fa85f64-5717-4562-b3fc-2c963f66afa9";

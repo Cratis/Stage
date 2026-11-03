@@ -10,6 +10,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_reading_capture_state;
 
+[PerFactSpecificationLifecycle]
 public class with_a_rendered_source_key_specification : given.a_translation_specification_application
 {
     [Fact]

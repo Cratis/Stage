@@ -9,6 +9,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_StateViewSliceRenderer;
 
+[PerFactSpecificationLifecycle]
 public class when_admitting_root_string_keys : given.a_root_string_key_slice
 {
     [Theory]

@@ -13,6 +13,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 
+[PerFactSpecificationLifecycle]
 public class a_generated_application : a_register_project_render_request
 {
     protected DirectoryInfo _evidence = null!;

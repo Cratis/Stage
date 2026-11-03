@@ -14,6 +14,7 @@ using NativeScreenplayCompiler = Cratis.Screenplay.ScreenplayCompiler;
 
 namespace Cratis.Stage.Rendering.Cratis.for_StateViewSliceRenderer;
 
+[PerFactSpecificationLifecycle]
 public class when_admitting_effective_root_composite_keys : Specification
 {
     const string Composite = """

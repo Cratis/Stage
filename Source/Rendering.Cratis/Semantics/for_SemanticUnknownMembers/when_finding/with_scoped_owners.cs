@@ -9,6 +9,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticUnknownMembers.when_finding;
 
+[PerFactSpecificationLifecycle]
 public class with_scoped_owners : a_populated_model
 {
     [Fact]

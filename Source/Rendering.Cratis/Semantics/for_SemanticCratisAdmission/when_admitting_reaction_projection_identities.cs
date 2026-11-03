@@ -10,6 +10,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticCratisAdmission;
 
+[PerFactSpecificationLifecycle]
 public class when_admitting_reaction_projection_identities : for_SemanticAutomationArtifactRenderer.given.an_automation
 {
     const string ProjectionSource = """

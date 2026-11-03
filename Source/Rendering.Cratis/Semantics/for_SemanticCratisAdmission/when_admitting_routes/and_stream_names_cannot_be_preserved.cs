@@ -5,9 +5,11 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticStateChangeArtifactRenderer.given;
 using Xunit;
+using Cratis.Specifications;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticCratisAdmission.when_admitting_routes;
 
+[PerFactSpecificationLifecycle]
 public class and_stream_names_cannot_be_preserved : a_routed_command
 {
     [Theory]

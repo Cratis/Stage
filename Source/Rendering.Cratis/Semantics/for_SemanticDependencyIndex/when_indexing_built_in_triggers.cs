@@ -7,6 +7,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticDependencyIndex;
 
+[PerFactSpecificationLifecycle]
 public class when_indexing_built_in_triggers : given.a_dependency_index
 {
     [Theory]

@@ -7,6 +7,7 @@ using Xunit;
 
 namespace Cratis.Stage.Host.Export.for_StageExport;
 
+[PerFactSpecificationLifecycle]
 public class when_the_request_is_invalid : given.an_exportable_model
 {
     [Fact] async Task should_refuse_a_version_that_is_not_semantic() => (await Assert.ThrowsAsync<StageExportRefused>(() => StageExport.Run(Request(Output("a")) with { ApplicationVersion = "latest" }))).Message.ShouldContain("semantic version");

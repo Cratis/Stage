@@ -12,9 +12,11 @@ using Cratis.Screenplay.Semantics.Serialization;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 using NSubstitute;
 using Xunit;
+using Cratis.Specifications;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
+[PerFactSpecificationLifecycle]
 public class when_executing_renamed_capture_members : given.a_translation_specification_application
 {
     const string First = "3fa85f64-5717-4562-b3fc-2c963f66afa6";

@@ -47,6 +47,80 @@ describe('a guard', () => {
     });
 });
 
+const numberedComparison = (right: unknown = 'open', operator = 'Equal') => ({
+    kind: 'comparison', left: { subject: 'item.status' }, operator, right,
+    enumeration: ['open', 'closed'], enumerationNumbers: [1, 0],
+});
+const numberedSelection = (conditions: unknown[], kind = 'firstMatch', index = 0) => ({ kind, index, alternatives: conditions });
+
+describe('when comparing explicitly numbered enumeration members', () => {
+    it('should use reordered identity rather than ordinal or crossed identity', () => {
+        expect(evaluateCondition(numberedComparison(), { status: 1 })).toBe(true);
+        expect(evaluateCondition(numberedComparison(), { status: 0 })).toBe(false);
+        expect(evaluateCondition(numberedComparison('closed'), { status: 0 })).toBe(true);
+        expect(evaluateCondition(numberedComparison('closed'), { status: 1 })).toBe(false);
+        expect(evaluateCondition(numberedComparison('closed', 'NotEqual'), { status: 0 })).toBe(false);
+        expect(evaluateCondition(numberedComparison('closed', 'NotEqual'), { status: 1 })).toBe(true);
+    });
+    it('should preserve sparse negative numbers without accepting the ordinal', () => {
+        const condition = { ...numberedComparison('draft'), enumeration: ['draft', 'issued', 'cancelled'], enumerationNumbers: [-1, 4, 90] };
+        expect(evaluateCondition(condition, { status: -1 })).toBe(true);
+        expect(evaluateCondition(condition, { status: 0 })).toBe(false);
+        expect(evaluateCondition({ ...condition, right: 'cancelled' }, { status: 90 })).toBe(true);
+        expect(evaluateCondition({ ...condition, operator: 'NotEqual' }, { status: 0 })).toBe(false);
+    });
+    it('should work in both mixed primitive directions and preserve case-insensitive names', () => {
+        expect(evaluateCondition(numberedComparison(1), { status: 'open' })).toBe(true);
+        expect(evaluateCondition(numberedComparison(0), { status: 'open' })).toBe(false);
+        expect(evaluateCondition(numberedComparison('OPEN'), { status: 'Open' })).toBe(true);
+    });
+    it('should fail closed on unknown explicit values for both equality operators and directions', () => {
+        for (const operator of ['Equal', 'NotEqual']) {
+            expect(evaluateCondition(numberedComparison('open', operator), { status: 90 })).toBe(false);
+            expect(evaluateCondition(numberedComparison(90, operator), { status: 'open' })).toBe(false);
+            expect(evaluateCondition(numberedComparison('missing', operator), { status: 1 })).toBe(false);
+        }
+    });
+    it('should compose logically and select the first alternative', () => {
+        const conditions = [numberedComparison(), numberedComparison('closed')];
+        expect(evaluateCondition({ kind: 'logical', operator: 'And', left: conditions[0], right: numberedComparison('closed', 'NotEqual') }, { status: 1 })).toBe(true);
+        expect(firstMatch(conditions, { status: 0 })).toBe(1);
+        expect(resolveGuard(numberedSelection(conditions, 'firstMatch', 1), { status: 0 })).toBe(true);
+        expect(resolveGuard(numberedSelection(conditions, 'otherwise'), { status: 0 })).toBe(false);
+    });
+    it('should retain implicit ordinals and strict untyped equality', () => {
+        const implicit = { kind: 'comparison', left: { subject: 'item.status' }, operator: 'Equal', right: 'open', enumeration: ['open', 'closed'] };
+        const untyped = { kind: 'comparison', left: { subject: 'item.status' }, operator: 'Equal', right: 'open' };
+        expect(evaluateCondition(implicit, { status: 0 })).toBe(true);
+        expect(evaluateCondition(untyped, { status: 'open' })).toBe(true);
+        expect(evaluateCondition(untyped, { status: 0 })).toBe(false);
+    });
+});
+
+const malformedEnumerationNumbers = [
+    { enumerationNumbers: [1, 1] }, { enumerationNumbers: [1] }, { enumerationNumbers: [1.5, 0] },
+    { enumerationNumbers: ['1', 0] }, { enumerationNumbers: null }, { enumerationNumbers: 1 },
+    { enumerationNumbers: [Number.NaN, 0] }, { enumerationNumbers: [Number.POSITIVE_INFINITY, 0] },
+    { enumeration: undefined }, { enumeration: null }, { enumeration: ['open', 0] },
+    { enumerationNumbers: undefined },
+];
+
+describe('when enumeration number metadata is malformed', () => {
+    for (const [index, metadata] of malformedEnumerationNumbers.entries()) {
+        it(`should fail closed for malformed mapping ${index}`, () => {
+            const condition = { ...numberedComparison(), ...metadata };
+            expect(canEvaluate([condition])).toBe(false);
+            expect(evaluateCondition(condition, { status: 1 })).toBeUndefined();
+            expect(firstMatch([condition], { status: 1 })).toBeUndefined();
+            expect(resolveGuard(numberedSelection([condition]), { status: 1 })).toBeUndefined();
+            expect(resolveGuard(numberedSelection([condition], 'otherwise'), { status: 1 })).toBeUndefined();
+            for (const operator of ['And', 'Or']) {
+                expect(evaluateCondition({ kind: 'logical', operator, left: numberedComparison(), right: condition }, { status: 1 })).toBeUndefined();
+            }
+        });
+    }
+});
+
 describe('first-match alternatives', () => {
     const closed = { ...open, right: 'closed' };
 

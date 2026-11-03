@@ -87,6 +87,22 @@ public sealed record BehaviorScope(
     }
 
     /// <summary>
+    /// Gets the explicit numbers of the enumeration a guard's subject field has, in declared member order.
+    /// </summary>
+    /// <param name="path">The guard field, such as <c language="csharp">item.status</c>.</param>
+    /// <returns>The numbers, or null when the field is not explicitly numbered or the subject is not known.</returns>
+    public IReadOnlyList<int>? EnumerationNumbersOf(string path)
+    {
+        if (Subject is null || EnumerationNumbers is null || !path.StartsWith(SceneGuards.SubjectPrefix, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        var field = path[SceneGuards.SubjectPrefix.Length..];
+        return EnumerationNumbers.TryGetValue(Subject, out var fields) && fields.TryGetValue(field, out var numbers) ? numbers : null;
+    }
+
+    /// <summary>
     /// Resolves what is attached at one point.
     /// </summary>
     /// <param name="inline">The inline <c language="csharp">on</c> blocks written there.</param>
@@ -97,7 +113,7 @@ public sealed record BehaviorScope(
         IEnumerable<ScreenplaySyntax.BehaviorSyntax> inline,
         IEnumerable<ScreenplaySyntax.UsesBehaviorSyntax> used,
         string subject) =>
-        BehaviorAttachments.Convert(inline, used, Declared, subject, Findings, EnumerationOf, Diagnostics);
+        BehaviorAttachments.Convert(inline, used, Declared, subject, Findings, EnumerationOf, EnumerationNumbersOf, Diagnostics);
 
     static Dictionary<string, IReadOnlyDictionary<string, IReadOnlyList<string>>> EnumerationsIn(ScreenplaySyntax.ApplicationSyntax syntax)
     {

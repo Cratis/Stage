@@ -269,7 +269,7 @@ public static class ScreenDirectiveConverter
             ["alternatives"] = action.Alternatives.Select(alternative => new Dictionary<string, object?>
             {
                 ["command"] = alternative.Command,
-                ["condition"] = SceneGuards.Convert(alternative.Condition, scope.EnumerationOf),
+                ["condition"] = SceneGuards.Convert(alternative.Condition, scope.EnumerationOf, scope.EnumerationNumbersOf),
                 ["arguments"] = ConvertArguments(alternative.Arguments),
             }).ToList(),
         };

@@ -48,6 +48,8 @@ export interface ComparisonCondition {
     right: unknown;
     /** The members of the enumeration the field is, in declared order, when it is one. */
     enumeration?: string[];
+    /** The explicit wire numbers, parallel to the declared members; absent for implicit ordinals. */
+    enumerationNumbers?: number[];
 }
 
 /** Combines two conditions. */
@@ -93,19 +95,19 @@ function isLiteral(value: unknown): boolean {
 /**
  * Names the enumeration member a field holds.
  *
- * The backend sends an enumeration as its ordinal, while Screenplay names the member (`item.status == "open"`), so a
- * number is read as the position in the declared members. A string is the member's name in any casing.
+ * A numeric field uses the explicit wire numbers when supplied, or its declaration position otherwise.
+ * A string is the member's name in any casing.
  */
-function enumerationMember(field: unknown, enumeration: string[]): unknown {
-    if (typeof field === 'number') return enumeration[field];
+function enumerationMember(field: unknown, enumeration: string[], enumerationNumbers?: number[]): unknown {
+    if (typeof field === 'number') return enumeration[enumerationNumbers === undefined ? field : enumerationNumbers.indexOf(field)];
     if (typeof field === 'string') return enumeration.find(member => member.toLowerCase() === field.toLowerCase());
     return undefined;
 }
 
-function compare(field: unknown, operator: string, literal: unknown, enumeration?: string[]): boolean | undefined {
+function compare(field: unknown, operator: string, literal: unknown, enumeration?: string[], enumerationNumbers?: number[]): boolean | undefined {
     if (enumeration !== undefined && (operator === 'Equal' || operator === 'NotEqual')) {
-        const member = enumerationMember(field, enumeration);
-        const named = typeof literal === 'string' ? enumeration.find(candidate => candidate.toLowerCase() === literal.toLowerCase()) : undefined;
+        const member = enumerationMember(field, enumeration, enumerationNumbers);
+        const named = typeof literal === 'string' || enumerationNumbers !== undefined ? enumerationMember(literal, enumeration, enumerationNumbers) : undefined;
         if (member === undefined || named === undefined) return false;
         return operator === 'Equal' ? member === named : member !== named;
     }
@@ -126,6 +128,14 @@ function compare(field: unknown, operator: string, literal: unknown, enumeration
     }
 }
 
+function validEnumerationNumbers(condition: Record<string, unknown>, enumeration: string[] | undefined): boolean {
+    if (!Object.hasOwn(condition, 'enumerationNumbers')) return true;
+    const numbers = condition.enumerationNumbers;
+    return enumeration !== undefined && Array.isArray(numbers) && numbers.length === enumeration.length &&
+        numbers.every(number => typeof number === 'number' && Number.isFinite(number) && Number.isInteger(number)) &&
+        new Set(numbers).size === numbers.length;
+}
+
 /**
  * Evaluates one condition against a subject.
  *
@@ -143,7 +153,8 @@ export function evaluateCondition(condition: unknown, subject: Record<string, un
         const left = subjectPath(condition.left);
         if (typeof left !== 'string' || !left.startsWith(subjectPrefix) || typeof condition.operator !== 'string' || !isLiteral(condition.right)) return undefined;
         const enumeration = Array.isArray(condition.enumeration) && condition.enumeration.every(member => typeof member === 'string') ? condition.enumeration as string[] : undefined;
-        return compare(valueAt(subject, left.slice(subjectPrefix.length)), condition.operator, condition.right, enumeration);
+        if (!validEnumerationNumbers(condition, enumeration)) return undefined;
+        return compare(valueAt(subject, left.slice(subjectPrefix.length)), condition.operator, condition.right, enumeration, condition.enumerationNumbers as number[] | undefined);
     }
 
     if (condition.kind === 'logical') {

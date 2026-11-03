@@ -74,7 +74,17 @@ public static class SceneGuards
     /// <param name="enumerationOf">Gives the members of an enumeration-typed field, in declared order.</param>
     /// <returns>The Scene form. A comparison against an enumeration carries its members as <c language="shell">enumeration</c>, because
     /// the backend sends an enumeration as its ordinal while Screenplay names the member.</returns>
-    public static IDictionary<string, object?> Convert(ScreenplaySyntax.ConditionSyntax condition, Func<string, IReadOnlyList<string>?>? enumerationOf)
+    public static IDictionary<string, object?> Convert(ScreenplaySyntax.ConditionSyntax condition, Func<string, IReadOnlyList<string>?>? enumerationOf) =>
+        Convert(condition, enumerationOf, null);
+
+    /// <summary>
+    /// Converts an authored condition, carrying explicit enumeration numbers when available.
+    /// </summary>
+    /// <param name="condition">The authored condition.</param>
+    /// <param name="enumerationOf">The enumeration members in declared order.</param>
+    /// <param name="enumerationNumbersOf">The explicit numbers in the same member order.</param>
+    /// <returns>The Scene form, omitting numbers when the field has no explicit numbering.</returns>
+    public static IDictionary<string, object?> Convert(ScreenplaySyntax.ConditionSyntax condition, Func<string, IReadOnlyList<string>?>? enumerationOf, Func<string, IReadOnlyList<int>?>? enumerationNumbersOf)
     {
         switch (condition)
         {
@@ -89,6 +99,10 @@ public static class SceneGuards
                 if (enumerationOf?.Invoke(comparison.Left) is { } members)
                 {
                     converted["enumeration"] = members;
+                    if (enumerationNumbersOf?.Invoke(comparison.Left) is { } numbers)
+                    {
+                        converted["enumerationNumbers"] = numbers;
+                    }
                 }
 
                 return converted;
@@ -96,9 +110,9 @@ public static class SceneGuards
                 return new Dictionary<string, object?>
                 {
                     ["kind"] = "logical",
-                    ["left"] = Convert(logical.Left, enumerationOf),
+                    ["left"] = Convert(logical.Left, enumerationOf, enumerationNumbersOf),
                     ["operator"] = logical.Operator.ToString(),
-                    ["right"] = Convert(logical.Right, enumerationOf),
+                    ["right"] = Convert(logical.Right, enumerationOf, enumerationNumbersOf),
                 };
             default:
                 return new Dictionary<string, object?> { ["kind"] = condition.GetType().Name };
@@ -226,7 +240,7 @@ public static class SceneGuards
                 node["left"] is JsonObject left && (Text(left[SubjectKey]) ?? Text(left["path"])) is { } path && path.StartsWith(SubjectPrefix, StringComparison.Ordinal) && path.Length > SubjectPrefix.Length &&
                 Text(node["operator"]) is { } comparison && _comparisonOperators.Contains(comparison) &&
                 (node["right"] is null || node["right"] is JsonValue) &&
-                IsMemberOfItsEnumeration(node),
+                IsMemberOfItsEnumeration(node) && ValidEnumerationNumbers(node),
             "logical" =>
                 Text(node["operator"]) is { } logical && _logicalOperators.Contains(logical) && CanEvaluate(node["left"]) && CanEvaluate(node["right"]),
             _ => false,
@@ -238,6 +252,24 @@ public static class SceneGuards
         comparison["enumeration"] is not JsonArray members ||
         Text(comparison["right"]) is not { } literal ||
         members.Any(member => string.Equals(Text(member), literal, StringComparison.OrdinalIgnoreCase));
+
+    static bool ValidEnumerationNumbers(JsonObject condition)
+    {
+        if (!condition.ContainsKey("enumerationNumbers")) return true;
+        if (condition["enumeration"] is not JsonArray members || condition["enumerationNumbers"] is not JsonArray numbers) return false;
+        if (members.Count != numbers.Count) return false;
+        if (members.Any(member => Text(member) is null)) return false;
+
+        var parsed = numbers.Select(EnumerationNumber).ToArray();
+        return parsed.All(number => number is not null) && parsed.Distinct().Count() == numbers.Count;
+    }
+
+    static double? EnumerationNumber(JsonNode? node)
+    {
+        if (node is not JsonValue value || value.GetValueKind() != JsonValueKind.Number) return null;
+        if (!double.TryParse(value.ToJsonString(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var number)) return null;
+        return double.IsFinite(number) && Math.Truncate(number) == number ? number : null;
+    }
 
     static JsonNode? ToNode(object? value) => value switch
     {

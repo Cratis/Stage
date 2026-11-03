@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { actionSubjectOf, subjectFormOf, type ScreenRows } from './stageActionSubject';
+import { actionCreatesEntity, subjectFormOf, type ScreenRows } from './stageActionSubject';
 import { createContext, useContext, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { ComponentProps, CSSProperties, ReactNode } from 'react';
@@ -57,10 +57,15 @@ interface StageCommandContent {
 }
 
 // Only inferred creation is about no row; an explicit item subject still supplies its parent bindings.
-function commandFormSubject(element: ExternalComponent, rows: ScreenRows) {
-    const creates = actionSubjectOf(element) === undefined && element.properties.createsEntity === true;
-    const subjectRows = creates ? { selectableRows: [], selectedRows: [] } : rows;
-    return subjectFormOf(element, subjectRows);
+function commandFormSubject(element: ExternalComponent, rows: ScreenRows, schema: string | undefined) {
+    if (!actionCreatesEntity(element, schema)) return subjectFormOf(element, rows);
+    return { ...subjectFormOf(element, { selectableRows: [], selectedRows: [] }), rowAction: false };
+}
+
+function useCommandSchema(element: ExternalComponent, routes: StageDataState['routes']) {
+    const schemaText = text(element, 'schema') || routes?.commandSchemas?.[text(element, 'command')];
+    const schema = useMemo(() => schemaPropertiesOf(schemaText ?? ''), [schemaText]);
+    return { schemaText, schema, hasSchemaMetadata: typeof schemaText === 'string' };
 }
 
 /** Renders an authored screen form through Cratis Arc's native CommandForm boundary. */
@@ -73,8 +78,7 @@ export function StageCommandForm({ element, cancellable }: StageCommandFormProps
     const form = useMemo(() => formProperties(element), [element]);
     const interactionScope = useInteractionScope();
     const continuation = formContinuation(element, form, interactionScope);
-    const schema = useMemo(() => schemaProperties(element), [element]);
-    const hasSchemaMetadata = typeof element.properties.schema === 'string';
+    const { schemaText, schema, hasSchemaMetadata } = useCommandSchema(element, data.routes);
     const fields = useMemo(() => form ? fieldsFor(form, schema) : [], [form, schema]);
     const commandType = form ? registeredCommand(form.command, text(element, 'typeName'), text(element, 'route')) : undefined;
     const submitLabel = submitLabelOf(element, form);
@@ -85,7 +89,7 @@ export function StageCommandForm({ element, cancellable }: StageCommandFormProps
     const populationKey = JSON.stringify(answered ?? null);
     const populated = useMemo(() => answered, [populationKey]);
     const rows = useScreenRows();
-    const { selectableRows, selectedRows, rowAction, subjectValues } = commandFormSubject(element, rows);
+    const { selectableRows, selectedRows, rowAction, subjectValues } = commandFormSubject(element, rows, schemaText);
     const suppliedReferences = useMemo(() => suppliedReferenceValues(schema, data.parameters, selectedRows, subjectValues), [schema, selectedRows, data.parameters, subjectValues]);
     const askedFields = useMemo(() => referenceFieldsToAsk(fields, suppliedReferences), [fields, suppliedReferences]);
 
@@ -641,10 +645,6 @@ function unsupportedGeometryMessagesFor(layout: CommandFormLayout | undefined, f
         .map(column => `Column ${column.index} combines a fractional width with maxWidth; Stage keeps the fractional track and ignores maxWidth for that column.`);
 
     return [...placementMessages, ...columnMessages];
-}
-
-function schemaProperties(element: ExternalComponent): SchemaProperty[] {
-    return schemaPropertiesOf(text(element, 'schema'));
 }
 
 function text(element: ExternalComponent, name: string, fallback = ''): string {

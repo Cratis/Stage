@@ -68,6 +68,25 @@ internal static class FrozenScaffoldPins
             {
                 text = text.Replace($"\"@cratis/{pin.Id}\": \"{pin.Current}\"", $"\"@cratis/{pin.Id}\": \"{pin.Baseline}\"", StringComparison.Ordinal);
             }
+
+            (string Id, string Current, string Baseline)[] externalPins =
+            [
+                ("@primereact/core", frontend.PrimeReactPackageVersion, "11.2.0"),
+                ("@primereact/headless", frontend.PrimeReactPackageVersion, "11.2.0"),
+                ("@primereact/hooks", frontend.PrimeReactPackageVersion, "11.2.0"),
+                ("@primereact/styles", frontend.PrimeReactPackageVersion, "11.2.0"),
+                ("@primereact/types", frontend.PrimeReactPackageVersion, "11.2.0"),
+                ("@primereact/ui", frontend.PrimeReactPackageVersion, "11.2.0"),
+                ("primereact", frontend.PrimeReactPackageVersion, "11.2.0"),
+                ("react", frontend.ReactPackageVersion, "19.3.0"),
+                ("react-dom", frontend.ReactDomPackageVersion, "19.3.0"),
+                ("@types/node", frontend.TypesNodePackageVersion, "26.6.4"),
+                ("@vitejs/plugin-react", frontend.VitePluginReactPackageVersion, "6.1.1")
+            ];
+            foreach (var pin in externalPins)
+            {
+                text = text.Replace($"\"{pin.Id}\": \"{pin.Current}\"", $"\"{pin.Id}\": \"{pin.Baseline}\"", StringComparison.Ordinal);
+            }
         }
 
         text = WithoutYarnChanges(text, previous);

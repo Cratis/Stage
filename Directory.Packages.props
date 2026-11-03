@@ -31,7 +31,7 @@
     <PackageVersion Include="Cratis.Orleans.Chronicle" Version="1.33.1" />
     <PackageVersion Include="Cratis.Chronicle" Version="19.114.0" />
     <!-- Only the multi-service repository scaffold emits this pin (Stage references no Aspire package). It matches the Aspire version of Chronicle and Studio. -->
-    <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.6.1" />
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.6.4" />
     <PackageVersion Include="Cratis.Chronicle.AspNetCore" Version="19.114.0" />
     <PackageVersion Include="Cratis.Chronicle.Contracts" Version="19.114.0" />
     <PackageVersion Include="Cratis.Chronicle.Testing" Version="19.114.0" />
@@ -53,7 +53,7 @@
     <PackageVersion Include="Cratis.Screenplay.Matching" Version="$(CratisScreenplayVersion)" />
     <!-- Spec-only: the released conformance corpus consumed by the Cratis renderer's planner fixtures, at the Screenplay version the renderer compiles with. -->
     <PackageVersion Include="Cratis.Screenplay.CanonicalCorpus" Version="$(CratisScreenplayVersion)" />
-    <PackageVersion Include="Cratis.Templates" Version="1.8.1" />
+    <PackageVersion Include="Cratis.Templates" Version="1.8.3" />
     <PackageVersion Include="Scriban" Version="[7.5.3]" />
     <!-- Microsoft -->
     <!-- Audited reducer-binding references, embedded in the renderer for runtime-only hosts. -->
@@ -67,15 +67,15 @@
         outright rather than substituted.
     -->
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.9.0" />
-    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.402" />
-    <PackageVersion Include="Microsoft.TemplateEngine.Abstractions" Version="10.0.402" />
-    <PackageVersion Include="Microsoft.TemplateEngine.Edge" Version="10.0.402" />
-    <PackageVersion Include="Microsoft.TemplateEngine.Orchestrator.RunnableProjects" Version="10.0.402" />
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.403" />
+    <PackageVersion Include="Microsoft.TemplateEngine.Abstractions" Version="10.0.403" />
+    <PackageVersion Include="Microsoft.TemplateEngine.Edge" Version="10.0.403" />
+    <PackageVersion Include="Microsoft.TemplateEngine.Orchestrator.RunnableProjects" Version="10.0.403" />
     <!-- OpenAPI -->
-    <PackageVersion Include="Scalar.AspNetCore" Version="2.18.0" />
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.18.7" />
     <!-- Reverse proxy for the Chronicle Workbench, which the bundled kernel serves on its own unpublished port. -->
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
-    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.14" />
     <!-- Sign-in for the rendered application host; the emitted host pins the same version. -->
     <PackageVersion Include="Microsoft.Identity.Web" Version="4.16.1" />
     <!-- Direct references activate these patched versions above the vulnerable Identity.Web transitive minimums. -->

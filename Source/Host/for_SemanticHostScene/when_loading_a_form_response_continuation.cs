@@ -5,6 +5,7 @@ using Cratis.Scene.Model.Common;
 using Cratis.Scene.Model.Elements;
 using Cratis.Scene.Model.Interactions;
 using Cratis.Specifications;
+using Cratis.Stage.Api;
 using Cratis.Stage.Contracts.Scene;
 using Cratis.Stage.Host.for_SemanticRuntime.given;
 using Xunit;

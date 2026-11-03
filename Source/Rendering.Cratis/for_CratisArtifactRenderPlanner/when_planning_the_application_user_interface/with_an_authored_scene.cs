@@ -30,7 +30,8 @@ public class with_an_authored_scene : a_screen_composition_render
     // Re-frozen for Cratis/Stage#937: only Directory.Packages.props gains the Xml pin and aligns Pkcs to 10.0.14.
     // Recomputed for Screenplay 5.0.0: the scaffold emits the 5.0.0 matcher pin.
     // Recomputed for Screenplay 5.1.0: the scaffold emits the 5.1.0 matcher pin.
-    const string Before = "912b9f27341b04a07fddc996c21845bbc5ae977f53c472fca9fa4247ba7b3f59";
+    // Re-frozen after merging main (Screenplay 5.1.0) into train 10: the 4.259.0-era constants were stale.
+    const string Before = "2b48b7ad8be3663a9b2b4674b024d8a5a293b82936deca736f396bef6ef08447";
 
     ArtifactRenderPlan _plan = null!;
 

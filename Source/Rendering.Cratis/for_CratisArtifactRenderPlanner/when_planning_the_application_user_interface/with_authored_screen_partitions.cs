@@ -30,7 +30,8 @@ public class with_authored_screen_partitions : a_partitioned_screen_plan
     // Re-frozen for Cratis/Stage#937: only Directory.Packages.props gains the Xml pin and aligns Pkcs to 10.0.14.
     // Recomputed for Screenplay 5.0.0: the scaffold emits the 5.0.0 matcher pin.
     // Recomputed for Screenplay 5.1.0: the scaffold emits the 5.1.0 matcher pin.
-    const string Before = "708e231b984482668e98bdb6a9756fce4672bc87a5af0c84ae3f44894d506991";
+    // Re-frozen after merging main (Screenplay 5.1.0) into train 10: the 4.259.0-era constants were stale.
+    const string Before = "5ec927735be0b7aa1d095bdf639b242d0b9ab28c0c21455f7c3b4ed3be6a3a6d";
 
     void Because() => _application = AppPlan(_profile);
 

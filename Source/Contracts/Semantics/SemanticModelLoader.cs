@@ -159,7 +159,8 @@ public static partial class SemanticModelLoader
         if (!result.Success)
         {
             throw new InvalidSemanticModel([.. result.Diagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error && diagnostic.Code != "STAGE-PLAN-003")
-                .Select(diagnostic => diagnostic.Source is null ? diagnostic.Message : $"{diagnostic.Source}: {diagnostic.Message}")]) { Notes = result.Notes };
+                .Select(diagnostic => diagnostic.Source is null ? diagnostic.Message : $"{diagnostic.Source}: {diagnostic.Message}")])
+            { Notes = result.Notes };
         }
 
         return result.Loaded!;

@@ -18,7 +18,8 @@ public class when_rendering_a_reactor : an_automation_slice
 
     void Because() => _file = _renderer.Render(_detectorSlice, _applicationSet, "CratisApp");
 
-    [Fact] void should_place_the_file_under_its_own_slice_folder() =>
+    [Fact]
+    void should_place_the_file_under_its_own_slice_folder() =>
         _file.RelativePath.ShouldEqual(Path.Combine("Billing", "Invoices", "DetectOverdueInvoices", "DetectOverdueInvoices.cs"));
     [Fact] void should_declare_the_reactor_class() => _file.Content.ShouldContain("public class OverdueInvoiceDetector : IReactor");
     [Fact] void should_use_the_authored_description_as_summary() => _file.Content.ShouldContain("/// Detects overdue invoices");

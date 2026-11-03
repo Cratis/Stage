@@ -65,10 +65,13 @@ public class when_running_event_source_removals : Specification
             var feature = module.Features.Single();
             var slice = feature.Slices.Single(slice => !slice.Specifications.IsEmpty);
             var specification = slice.Specifications.Single();
-            specification = specification with { WhenAppended = specification.WhenAppended with
+            specification = specification with
             {
-                EventSource = new(SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.WholeNumber), SemanticValue.Number(42))
-            } };
+                WhenAppended = specification.WhenAppended with
+                {
+                    EventSource = new(SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.WholeNumber), SemanticValue.Number(42))
+                }
+            };
             model = ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, model.Application with
             {
                 Modules = [module with { Features = [feature with { Slices = [.. feature.Slices.Select(candidate => candidate.Id == slice.Id ? slice with

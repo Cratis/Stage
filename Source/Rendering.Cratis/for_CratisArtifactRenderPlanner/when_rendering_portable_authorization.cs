@@ -91,7 +91,8 @@ public class when_rendering_portable_authorization : Specification
     }
 
     [Fact] void should_plan_both_protected_operations() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_register_both_named_policies()
+    [Fact]
+    void should_register_both_named_policies()
     {
         var services = new ServiceCollection();
         _assembly.GetType("Invoices.GeneratedPolicies.Registration").GetMethod("Register").Invoke(null, [services]);
@@ -103,7 +104,8 @@ public class when_rendering_portable_authorization : Specification
     [Fact] void should_deny_anonymous_callers() => Allows(_commandPolicy, _command, _commandResource, Principal(false, "Staff", "invoice-one", "North")).ShouldBeFalse();
     [Fact] void should_allow_matching_role_claim_and_subject() => Allows(_commandPolicy, _command, _commandResource, Principal(true, "Staff", "invoice-one", "North")).ShouldBeTrue();
     [Fact] void should_allow_the_alternative_department_claim() => Allows(_commandPolicy, _command, _commandResource, Principal(true, null, "invoice-one", "North", "Sales")).ShouldBeTrue();
-    [Fact] void should_allow_a_repeated_claim_when_one_value_matches() => Allows(_commandPolicy, _command, _commandResource, new ClaimsPrincipal(new ClaimsIdentity(
+    [Fact]
+    void should_allow_a_repeated_claim_when_one_value_matches() => Allows(_commandPolicy, _command, _commandResource, new ClaimsPrincipal(new ClaimsIdentity(
         [new("department", "Other"), new("DEPARTMENT", "Sales"), new("owner", "invoice-one"), new("region", "North")], "fixture"))).ShouldBeTrue();
     [Fact] void should_deny_wrong_casing_of_the_role() => Allows(_commandPolicy, _command, _commandResource, Principal(true, "staff", "invoice-one", "North")).ShouldBeFalse();
     [Fact] void should_deny_wrong_casing_of_the_claim_value() => Allows(_commandPolicy, _command, _commandResource, Principal(true, "Staff", "invoice-one", "north")).ShouldBeFalse();
@@ -111,7 +113,8 @@ public class when_rendering_portable_authorization : Specification
     [Fact] void should_deny_an_anonymous_query() => Allows(_queryPolicy, _query.GetMethod("InvoiceById"), _queryResource, Principal(false, "Staff", "invoice-one", null)).ShouldBeFalse();
     [Fact] void should_allow_an_authorized_query() => Allows(_queryPolicy, _query.GetMethod("InvoiceById"), _queryResource, Principal(true, "Staff", "invoice-one", null)).ShouldBeTrue();
     [Fact] void should_deny_a_query_for_another_subject() => Allows(_queryPolicy, _query.GetMethod("InvoiceById"), _queryResource, Principal(true, "Staff", "invoice-two", null)).ShouldBeFalse();
-    [Fact] void should_deny_a_query_without_its_key() => Allows(
+    [Fact]
+    void should_deny_a_query_without_its_key() => Allows(
         _queryPolicy,
         _query.GetMethod("InvoiceById"),
         _queryResource with { Arguments = QueryArguments.Empty },

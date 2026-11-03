@@ -29,13 +29,16 @@ public class and_one_property_states_both : Specification
         SourceLocation.Start)
     ]);
 
-    [Fact] void should_only_carry_the_property_that_has_a_rule_left() =>
+    [Fact]
+    void should_only_carry_the_property_that_has_a_rule_left() =>
         _converted.Select(rules => rules.PropertyName).ShouldContainOnly(["amount"]);
 
-    [Fact] void should_carry_the_rule_stating_a_fixed_value() =>
+    [Fact]
+    void should_carry_the_rule_stating_a_fixed_value() =>
         _converted.Single().Rules.OfType<GreaterThanOrEqual>().Single().Threshold.ShouldEqual(0d);
 
-    [Fact] void should_not_carry_the_rule_stating_another_property() =>
+    [Fact]
+    void should_not_carry_the_rule_stating_another_property() =>
         _converted.Single().Rules.OfType<LessThan>().ShouldBeEmpty();
 
     static ValidationRuleSyntax Rule(string property, ValidationRuleKind kind, ExpressionSyntax value) =>

@@ -49,7 +49,9 @@ public class when_checking_enumeration_numbers : Specification
         }
         SceneGuards.CanEvaluate(new JsonObject
         {
-            ["kind"] = "logical", ["operator"] = "Or", ["left"] = comparison.DeepClone(),
+            ["kind"] = "logical",
+            ["operator"] = "Or",
+            ["left"] = comparison.DeepClone(),
             ["right"] = Comparison("\"enumeration\":[\"open\",\"closed\"]")
         }).ShouldBeFalse();
     }

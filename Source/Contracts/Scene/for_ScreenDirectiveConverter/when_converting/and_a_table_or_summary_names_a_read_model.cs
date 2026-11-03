@@ -32,9 +32,11 @@ public class and_a_table_or_summary_names_a_read_model : Specification
             "InvoiceList")[0];
     }
 
-    [Fact] void should_carry_the_tables_read_model_under_the_property_a_route_resolves_against() =>
+    [Fact]
+    void should_carry_the_tables_read_model_under_the_property_a_route_resolves_against() =>
         _table.Properties[SceneElementProperties.TypeName].ShouldEqual("InvoiceSummary");
 
-    [Fact] void should_carry_the_summarys_read_model_under_the_same_property() =>
+    [Fact]
+    void should_carry_the_summarys_read_model_under_the_same_property() =>
         _summary.Properties[SceneElementProperties.TypeName].ShouldEqual("InvoiceSummary");
 }

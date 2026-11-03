@@ -59,9 +59,12 @@ internal static class routed_specifications
         var module = model.Application.Modules.Single();
         var feature = module.Features.Single();
         var slice = feature.Slices.Single();
-        var changed = slice with { Specifications = [.. slice.Specifications.Select(specification => specification.Name == name
+        var changed = slice with
+        {
+            Specifications = [.. slice.Specifications.Select(specification => specification.Name == name
             ? specification with { ThenEvents = [specification.ThenEvents[0] with { Route = null, Unrouted = true }] }
-            : specification)] };
+            : specification)]
+        };
         return ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, model.Application with
         {
             Modules = [module with { Features = [feature with { Slices = [changed] }] }]

@@ -68,9 +68,13 @@ internal static class SemanticReadModelBrowser
         {
             return new
             {
-                id = model.Id.ToString(), model.Name, module,
-                feature = located.Feature, slice = located.Slice.Name,
-                properties = Properties(model, runtime.Plan.Model.Application), instances = (int?)null,
+                id = model.Id.ToString(),
+                model.Name,
+                module,
+                feature = located.Feature,
+                slice = located.Slice.Name,
+                properties = Properties(model, runtime.Plan.Model.Application),
+                instances = (int?)null,
                 unsupported = refused
             };
         }
@@ -79,9 +83,13 @@ internal static class SemanticReadModelBrowser
 
         return new
         {
-            id = model.Id.ToString(), model.Name, module,
-            feature = located.Feature, slice = located.Slice.Name,
-            properties = Properties(model, runtime.Plan.Model.Application), instances = instances.Length
+            id = model.Id.ToString(),
+            model.Name,
+            module,
+            feature = located.Feature,
+            slice = located.Slice.Name,
+            properties = Properties(model, runtime.Plan.Model.Application),
+            instances = instances.Length
         };
     }
 
@@ -108,7 +116,9 @@ internal static class SemanticReadModelBrowser
         return Fault(runtime) ?? Results.Json(
             new
             {
-                id = model.Id.ToString(), model.Name, properties = Properties(model, application),
+                id = model.Id.ToString(),
+                model.Name,
+                properties = Properties(model, application),
                 instances = instances.Select(instance => new
                 {
                     key = SemanticQueryKeys.ToObject(instance.Key, model, application),

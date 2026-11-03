@@ -58,41 +58,51 @@ public class and_one_of_them_is_observable : Specification
         return builder.ToString();
     }
 
-    [Fact] void should_return_a_subject_of_the_collection_for_an_observable_collection_query() =>
+    [Fact]
+    void should_return_a_subject_of_the_collection_for_an_observable_collection_query() =>
         Render(Collection("LiveInvoices", observable: true))
             .ShouldContain("public static ISubject<IEnumerable<InvoiceSummary>> LiveInvoices(IMongoCollection<InvoiceSummary> collection) => collection.Observe();");
 
-    [Fact] void should_return_a_subject_of_one_instance_for_an_observable_query_naming_an_identifying_parameter() =>
+    [Fact]
+    void should_return_a_subject_of_one_instance_for_an_observable_query_naming_an_identifying_parameter() =>
         Render(By("LiveForInvoice", "invoiceNumber", observable: true))
             .ShouldContain("public static ISubject<InvoiceSummary> LiveForInvoice(IMongoCollection<InvoiceSummary> collection, string invoiceNumber) => collection.ObserveById(invoiceNumber);");
 
-    [Fact] void should_return_a_subject_of_one_instance_for_an_observable_query_answering_the_model_itself() =>
+    [Fact]
+    void should_return_a_subject_of_one_instance_for_an_observable_query_answering_the_model_itself() =>
         Render(Single("LiveSummary", observable: true))
             .ShouldContain("public static ISubject<InvoiceSummary> LiveSummary(IMongoCollection<InvoiceSummary> collection, string id) => collection.ObserveById(id);");
 
     // Returned directly. A live query behind a Task has to be awaited before anything can subscribe to it, which
     // is the one-shot read the document asked it not to be.
-    [Fact] void should_not_wrap_a_live_query_in_a_task() =>
+    [Fact]
+    void should_not_wrap_a_live_query_in_a_task() =>
         Render(Collection("LiveInvoices", observable: true)).ShouldNotContain("Task<ISubject");
 
-    [Fact] void should_import_the_namespace_the_subject_lives_in() =>
+    [Fact]
+    void should_import_the_namespace_the_subject_lives_in() =>
         Render(Collection("LiveInvoices", observable: true)).ShouldContain("using System.Reactive.Subjects;");
 
-    [Fact] void should_not_import_it_when_nothing_the_slice_declares_is_observable() =>
+    [Fact]
+    void should_not_import_it_when_nothing_the_slice_declares_is_observable() =>
         Render(Collection("Invoices", observable: false)).ShouldNotContain("using System.Reactive.Subjects;");
 
-    [Fact] void should_leave_a_query_the_document_does_not_mark_observable_a_one_shot_read() =>
+    [Fact]
+    void should_leave_a_query_the_document_does_not_mark_observable_a_one_shot_read() =>
         Render(Collection("Invoices", observable: false))
             .ShouldContain("public static IQueryable<InvoiceSummary> Invoices(IMongoCollection<InvoiceSummary> collection) => collection.AsQueryable();");
 
-    [Fact] void should_leave_a_by_query_the_document_does_not_mark_observable_a_one_shot_read() =>
+    [Fact]
+    void should_leave_a_by_query_the_document_does_not_mark_observable_a_one_shot_read() =>
         Render(By("ForInvoice", "invoiceNumber", observable: false))
             .ShouldContain("public static async Task<InvoiceSummary?> ForInvoice(IReadModels readModels, EventSourceId invoiceNumber)");
 
-    [Fact] void should_render_each_query_as_what_the_document_declares_it_to_be() =>
+    [Fact]
+    void should_render_each_query_as_what_the_document_declares_it_to_be() =>
         Render(Collection("Invoices", observable: false), Collection("LiveInvoices", observable: true))
             .ShouldContain("IQueryable<InvoiceSummary> Invoices(");
 
-    [Fact] void should_still_treat_an_observable_query_as_fully_rendered() =>
+    [Fact]
+    void should_still_treat_an_observable_query_as_fully_rendered() =>
         QueryRenderer.IsFullyRendered(Collection("LiveInvoices", observable: true)).ShouldBeTrue();
 }

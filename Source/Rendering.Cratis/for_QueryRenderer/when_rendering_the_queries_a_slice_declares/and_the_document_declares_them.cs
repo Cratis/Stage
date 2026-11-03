@@ -39,26 +39,33 @@ public class and_the_document_declares_them : Specification
         return builder.ToString();
     }
 
-    [Fact] void should_name_a_collection_query_after_the_document() =>
+    [Fact]
+    void should_name_a_collection_query_after_the_document() =>
         Render(Collection("OverdueInvoices")).ShouldContain("IQueryable<InvoiceSummary> OverdueInvoices(");
 
-    [Fact] void should_render_every_declared_query() =>
+    [Fact]
+    void should_render_every_declared_query() =>
         Render(Collection("All"), Collection("Mine")).ShouldContain("Mine(");
 
-    [Fact] void should_read_one_instance_when_the_query_names_an_identifying_parameter() =>
+    [Fact]
+    void should_read_one_instance_when_the_query_names_an_identifying_parameter() =>
         Render(By("ForInvoice", "invoiceNumber")).ShouldContain("Task<InvoiceSummary?> ForInvoice(IReadModels readModels, EventSourceId invoiceNumber)");
 
-    [Fact] void should_not_invent_the_fixed_pair_when_the_document_declares_a_query() =>
+    [Fact]
+    void should_not_invent_the_fixed_pair_when_the_document_declares_a_query() =>
         Render(Collection("OverdueInvoices")).ShouldNotContain("InvoiceSummaryById");
 
-    [Fact] void should_still_give_a_read_model_with_no_declared_query_a_way_in() =>
+    [Fact]
+    void should_still_give_a_read_model_with_no_declared_query_a_way_in() =>
         Render().ShouldContain("InvoiceSummaryById");
 
-    [Fact] void should_treat_a_performer_backed_query_as_not_fully_rendered() =>
+    [Fact]
+    void should_treat_a_performer_backed_query_as_not_fully_rendered() =>
         QueryRenderer.IsFullyRendered(
             Collection("Bespoke") with { Performer = new PerformerSyntax(new FileReferenceSyntax("Q.cs", SourceLocation.Start), null, SourceLocation.Start) })
             .ShouldBeFalse();
 
-    [Fact] void should_treat_a_plain_declared_query_as_fully_rendered() =>
+    [Fact]
+    void should_treat_a_plain_declared_query_as_fully_rendered() =>
         QueryRenderer.IsFullyRendered(Collection("All")).ShouldBeTrue();
 }

@@ -19,13 +19,16 @@ public class with_a_rendered_table : Specification
     {
         _records = [new(new("STAGE-PLAN-004", "UnsupportedQuery", "Orders"), 501, null),
             new(refusal_dispositions.InvalidGeneration, null, "Deliberately invalid fixture")];
-        _previous = new() { Vectors = new Dictionary<string, IReadOnlyDictionary<conformance_surface, expected_conformance_cell>>
+        _previous = new()
         {
-            ["V1"] = new Dictionary<conformance_surface, expected_conformance_cell>
+            Vectors = new Dictionary<string, IReadOnlyDictionary<conformance_surface, expected_conformance_cell>>
             {
-                [conformance_surface.Renderer] = new("refused", _records)
+                ["V1"] = new Dictionary<conformance_surface, expected_conformance_cell>
+                {
+                    [conformance_surface.Renderer] = new("refused", _records)
+                }
             }
-        } };
+        };
         _actual = new Dictionary<string, IReadOnlyDictionary<conformance_surface, conformance_observation>>
         {
             ["V1"] = new Dictionary<conformance_surface, conformance_observation>

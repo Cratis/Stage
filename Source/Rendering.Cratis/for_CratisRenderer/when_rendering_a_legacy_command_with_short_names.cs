@@ -25,10 +25,13 @@ public class when_rendering_a_legacy_command_with_short_names : an_application_r
     [Fact] void should_shorten_the_receipt_time() => _handler.ShouldContain("CommandReceiptTime.OccurredAtReceipt(");
     [Fact] void should_import_the_receipt_time() => _handler.ShouldContain("using AcmeBilling.GeneratedCommands;");
     [Fact] void should_shorten_the_operation_accessor() => _handler.ShouldContain("Handle(IOperationContextAccessor operation");
-    [Fact] void should_resolve_the_operation_accessor_through_the_project_global_usings() =>
+    [Fact]
+    void should_resolve_the_operation_accessor_through_the_project_global_usings() =>
         FrameworkNameCatalog.Current.GlobalUsings(GeneratedProjects.Application).ShouldContain("Cratis.Arc");
-    [Fact] void should_retain_the_tenant_translation_support_file() =>
+    [Fact]
+    void should_retain_the_tenant_translation_support_file() =>
         _codeOutput.Files.Any(file => file.RelativePath == Path.Combine("GeneratedTenancy", "PortableTenantValues.cs")).ShouldBeTrue();
-    [Fact] void should_retain_the_receipt_time_support_file() =>
+    [Fact]
+    void should_retain_the_receipt_time_support_file() =>
         _codeOutput.Files.Any(file => file.RelativePath == Path.Combine("GeneratedCommands", "CommandReceiptTime.cs")).ShouldBeTrue();
 }

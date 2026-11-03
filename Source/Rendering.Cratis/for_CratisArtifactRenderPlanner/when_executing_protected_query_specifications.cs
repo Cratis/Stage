@@ -92,7 +92,8 @@ public class when_executing_protected_query_specifications : a_generated_applica
         _results = await Run("query-tests.log", "test", "-c", "Debug", "--no-build");
     }
 
-    [Fact] void should_build_and_pass_allowed_and_denied_query_specifications()
+    [Fact]
+    void should_build_and_pass_allowed_and_denied_query_specifications()
     {
         BuildWarnings(_debug).ShouldEqual(string.Empty);
         BuildWarnings(_release).ShouldEqual(string.Empty);

@@ -14,8 +14,10 @@ public class when_rendering_concepts_and_validators : concepts
 
     void Because() => _files = [.. _applicationSet.Concepts.Values.Select(concept => ConceptRenderer.Render(concept, _applicationSet, "AcmeBilling"))];
 
-    [Fact] void should_inventory_every_emitted_declaration() =>
+    [Fact]
+    void should_inventory_every_emitted_declaration() =>
         InventoryAssertions.Missing(_files, _applicationSet, "AcmeBilling").ShouldBeEmpty();
-    [Fact] void should_inventory_the_concept_validator() =>
+    [Fact]
+    void should_inventory_the_concept_validator() =>
         LegacyGeneratedTypes.For(_applicationSet, "AcmeBilling").Any(type => type.Name == "DiscountPercentageValidator").ShouldBeTrue();
 }

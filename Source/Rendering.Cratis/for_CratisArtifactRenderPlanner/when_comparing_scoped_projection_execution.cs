@@ -24,7 +24,8 @@ public class when_comparing_scoped_projection_execution(when_comparing_scoped_pr
     [Fact] void should_admit_identity_only_all() => when_rejecting_unsupported_scoped_projections.VerifyFromAllAdmission();
     [Fact] void should_materialize_an_unrelated_source_in_the_reference() => fixture.AllExpected.ShouldEqual(JsonSerializer.Serialize(new[] { new { projectId = First, lastSeen = First }, new { projectId = Second, lastSeen = Second } }));
 
-    [Fact] void should_apply_the_all_literals_to_an_unrelated_instance_in_the_reference() => fixture.AllLiteralExpected.ShouldEqual(JsonSerializer.Serialize(new[]
+    [Fact]
+    void should_apply_the_all_literals_to_an_unrelated_instance_in_the_reference() => fixture.AllLiteralExpected.ShouldEqual(JsonSerializer.Serialize(new[]
     {
         new { projectId = First, label = "fixed", title = "named", score = "12.5" },
         new { projectId = Second, label = "fixed", title = "named", score = "12.5" }

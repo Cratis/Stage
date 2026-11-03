@@ -19,9 +19,11 @@ public class and_implementation_requirements_are_supplied : given.a_provenance_r
 
     [Fact] void should_record_one_distinct_entry_per_requirement() => _plan.InputProvenance.Implementations.Length.ShouldEqual(3);
     [Fact] void should_sort_by_requirement_id() => _plan.InputProvenance.Implementations.Select(_ => _.RequirementId).ShouldEqual(["r1", "r2", "r3"]);
-    [Fact] void should_record_the_requirement_fields() => _plan.InputProvenance.Implementations[1].ShouldEqual(
+    [Fact]
+    void should_record_the_requirement_fields() => _plan.InputProvenance.Implementations[1].ShouldEqual(
         new("r2", SemanticImplementationRole.QueryPerformer, SemanticAddress.ForApplication(ApplicationIdentity.Create("Other")), null, "perform.cs", "bb"));
-    [Fact] void should_record_an_unresolved_file_with_an_empty_hash() =>
+    [Fact]
+    void should_record_an_unresolved_file_with_an_empty_hash() =>
         _plan.InputProvenance.Implementations[2].ShouldEqual(
             new("r3", SemanticImplementationRole.CommandHandler, SemanticAddress.ForApplication(ApplicationIdentity.Create("Projects")), "csharp", "missing.cs", string.Empty));
 }

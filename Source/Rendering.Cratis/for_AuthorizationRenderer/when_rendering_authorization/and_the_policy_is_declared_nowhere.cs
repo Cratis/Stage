@@ -16,7 +16,8 @@ public class and_the_policy_is_declared_nowhere : an_application_with_policies
     void Because() => _error = Catch.Exception(() => Render(Authorize("Nonexistent")));
 
     [Fact] void should_block_the_artifact() => _error.ShouldBeOfExactType<AuthorizationCannotBeRendered>();
-    [Fact] void should_report_that_nothing_declares_it() =>
+    [Fact]
+    void should_report_that_nothing_declares_it() =>
         _error.Message.ShouldEqual(
             "STAGE-AUTH-001: Command 'RegisterInvoice' references policy 'Nonexistent', which nothing declares. The artifact was not rendered because " +
             "faithful authorization requires the future Screenplay-owned portable policy backend.");

@@ -120,7 +120,8 @@ public class when_executing_command_receipt_time : a_generated_application
         _tests = await Run("receipt-tests.log", "test", "-c", "Debug", "--no-build");
     }
 
-    [Fact] void should_execute_the_receipt_time_contract()
+    [Fact]
+    void should_execute_the_receipt_time_contract()
     {
         BuildWarnings(_debug).ShouldEqual(string.Empty);
         _tests.ShouldContain("Passed!");

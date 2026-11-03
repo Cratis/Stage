@@ -120,7 +120,8 @@ public class when_executing_re_admitted_scoped_projections : a_generated_applica
         _tests = await Run("readmission-test.log", "test", "-c", "Debug", "--no-build");
     }
 
-    [Fact] void should_build_and_execute_every_re_admitted_projection()
+    [Fact]
+    void should_build_and_execute_every_re_admitted_projection()
     {
         BuildWarnings(_debug).ShouldEqual(string.Empty);
         BuildWarnings(_release).ShouldEqual(string.Empty);

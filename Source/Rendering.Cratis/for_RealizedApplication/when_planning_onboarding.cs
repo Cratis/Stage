@@ -33,7 +33,7 @@ public class when_planning_onboarding : given.a_model_with_authentication_and_on
         Text("GeneratedOnboarding/InvitationPublisher.cs").ShouldContain("EventStoreNamespaceName.Default");
     [Fact] void should_publish_an_invitation_once() => Text("GeneratedOnboarding/InvitationPublisher.cs").ShouldContain("new IdempotencyKey($\"invitation:{context.EventSourceId}\")");
     [Fact] void should_protect_the_address_of_the_invitee_in_the_event_log() => Text("GeneratedOnboarding/OnboardingEvents.cs").ShouldContain("[property: PII] string Email");
-    [Fact] void should_observe_the_six_outcomes_of_ante() => new[] { "InvitationTokenIssued", "InvitationRejected", "InvitationToJoinTenantAccepted", "InvitationToCreateTenantAccepted", "OrganizationRegistrationCompleted", "LegalTermsAccepted" }
+    [Fact] void should_observe_the_seven_outcomes_of_ante() => new[] { "InvitationTokenIssued", "InvitationRejected", "InvitationToJoinTenantAccepted", "InvitationToCreateTenantAccepted", "OrganizationRegistrationCompleted", "OrganizationRegistrationDeclined", "LegalTermsAccepted" }
         .Where(outcome => !Text("GeneratedOnboarding/AnteOutcomes.cs").Contains($"({outcome} @event", StringComparison.Ordinal)).ShouldBeEmpty();
     [Fact] void should_provision_each_outcome_once() => Text("GeneratedOnboarding/Provisioning.cs").ShouldContain("AppendOnce(eventSourceId, @event, new IdempotencyKey(key))");
     [Fact] void should_send_the_invitation_through_herald_with_the_link_on_the_public_origin() => Text("GeneratedOnboarding/OnboardingEmails.cs").ShouldContain("/invite/{issued.Token}");
@@ -44,12 +44,27 @@ public class when_planning_onboarding : given.a_model_with_authentication_and_on
     [Fact] void should_render_the_images_of_the_templates() => _plan.Artifacts.Single(artifact => artifact.RelativePath == "Emails/images/logo.png").Bytes.ToArray().ShouldEqual(Png);
     [Fact] void should_reference_herald_and_the_ante_contracts() => Text($"{Application}.csproj").ShouldContain("Cratis.Showrunner.Herald");
     [Fact] void should_register_onboarding_with_the_application() => Text("Program.cs").ShouldContain($"{Application}.GeneratedOnboarding.Registration.Register(builder);");
-    [Fact] void should_say_the_offering_is_not_rendered() => Codes.ShouldContain("STAGE-ONBOARDING-001");
-    [Fact] void should_not_reference_box_office() => _plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) || artifact.RelativePath.EndsWith(".csproj", StringComparison.Ordinal))
-        .Where(artifact => Text(artifact.RelativePath).Contains("BoxOffice", StringComparison.OrdinalIgnoreCase)).ShouldBeEmpty();
+    [Fact] void should_reference_box_office_for_the_offering() => Text($"{Application}.csproj").ShouldContain("Cratis.Showrunner.BoxOffice\"");
+    [Fact] void should_pin_box_office() => Text("Directory.Packages.props").ShouldContain("Cratis.Showrunner.BoxOffice\" Version=\"1.13.0\"");
+    [Fact] void should_declare_the_default_offering_the_model_names() => Text("GeneratedOnboarding/OnboardingRegistration.cs").ShouldContain(".DefaultOffering(\"Starter\")");
+    [Fact] void should_declare_a_product_that_is_the_same_for_every_render() => Text("GeneratedOnboarding/OnboardingRegistration.cs").ShouldContain($".Product(Guid.Parse(\"{Realization.RealizationArtifacts.ProductId(Application)}\"))");
+    [Fact] void should_add_box_office_and_its_offering() => Text("GeneratedOnboarding/OnboardingRegistration.cs").ShouldContain("builder.AddBoxOffice();");
+    [Fact] void should_start_the_tenant_from_a_reactor_on_the_provisioned_tenant() => Text("GeneratedOnboarding/OnboardingOffering.cs").ShouldContain("Task Provisioned(OnboardingTenantProvisioned @event) => offering.Start(@event.TenantName)");
+    [Fact] void should_not_start_the_tenant_while_provisioning_it() => Text("GeneratedOnboarding/Provisioning.cs").ShouldNotContain("offering");
+    [Fact] void should_start_the_tenant_by_its_namespace_name() => Text("GeneratedOnboarding/OnboardingOffering.cs").ShouldContain("offering.StartTenant(tenant, OrganizationFor(tenant))");
+    [Fact] void should_let_a_missing_offer_fail_the_start_so_chronicle_retries_it() => Text("GeneratedOnboarding/OnboardingOffering.cs").ShouldContain("DefaultOfferingNotPublished or DefaultOfferingNotDeclared or TenantNotStarted)");
+    [Fact] void should_log_the_reason_before_rethrowing() => Text("GeneratedOnboarding/OnboardingOffering.cs").ShouldContain("NotStarted(logger, tenant, exception.Message);\n            throw;");
+    [Fact] void should_not_emit_the_retired_offering_not_rendered_diagnostic() => Codes.ShouldNotContain("STAGE-ONBOARDING-001");
+    [Fact] void should_say_what_the_operator_must_publish() => Codes.ShouldContain("STAGE-ONBOARDING-008");
     [Fact] void should_say_a_tenant_invitation_has_no_command() => Codes.ShouldContain("STAGE-ONBOARDING-002");
     [Fact] void should_record_a_rejected_invitation_for_an_administrator() => Text("GeneratedOnboarding/AnteOutcomes.cs").ShouldContain("provisioning.InvitationRejected(context.EventSourceId.Value, @event)");
     [Fact] void should_record_a_rejected_invitation_once() => Text("GeneratedOnboarding/Provisioning.cs").ShouldContain("new OnboardingInvitationRejected(rejected.Reason.ToString()), $\"{nameof(InvitationRejected)}:{invitation}\"");
     [Fact] void should_not_email_the_invitee_of_a_rejected_invitation() => Text("GeneratedOnboarding/OnboardingEmails.cs").Contains("InvitationRejected", StringComparison.Ordinal).ShouldBeFalse();
-    [Fact] void should_say_the_declined_email_is_not_sent_yet() => Codes.ShouldContain("STAGE-ONBOARDING-007");
+    [Fact] void should_send_the_declined_email_when_ante_publishes_a_declined_sign_up() => Text("GeneratedOnboarding/AnteOutcomes.cs").ShouldContain("emails.SignupDeclined(context.EventSourceId.Value, @event)");
+    [Fact] void should_send_the_declined_email_with_the_message_of_the_reviewer() => Text("GeneratedOnboarding/OnboardingEmails.cs").ShouldContain("[\"decline.message\"] = declined.Message.Value");
+    [Fact] void should_send_the_declined_email_to_the_address_of_the_sign_up_when_there_is_one() => Text("GeneratedOnboarding/OnboardingEmails.cs").ShouldContain("declined.Email.Value.Length == 0");
+    [Fact] void should_send_the_declined_email_through_the_herald_kind_once_per_registration() => Text("GeneratedOnboarding/OnboardingEmails.cs").ShouldContain("Send(\"signup-declined\", registration, declined.Email.Value");
+    [Fact] void should_declare_the_values_of_the_declined_email() => Text("Emails/signup-declined.json").ShouldContain("decline.message");
+    [Fact] void should_not_emit_the_retired_declined_not_sent_diagnostic() => Codes.ShouldNotContain("STAGE-ONBOARDING-007");
+    [Fact] void should_not_turn_on_sign_up_review() => Text(".runtime/ante.onboarding.json").ShouldNotContain("Review");
 }

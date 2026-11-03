@@ -227,7 +227,9 @@ internal static class MixedReactionRefusalProbeSource
                 finally
                 {
                     app ??= Program.ProbeApplication;
-                    if (app is not null)
+                    // A host that never started cannot be stopped: Orleans throws from StopAsync and that
+                    // exception would replace the startup failure this test must report.
+                    if (app is not null && Program.Started.Task.IsCompletedSuccessfully)
                     {
                         try
                         {

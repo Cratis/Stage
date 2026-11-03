@@ -18,13 +18,13 @@ public class when_seeding_event_sources_that_already_have_events : a_seeding_sto
                   name = "Stoneware mug"
                   price = 12.5
                   featured = true
-                  tags = []
+                  tags none
               for "tee"
                 ProductListed
                   name = "Organic cotton tee"
                   price = 24
                   featured = false
-                  tags = []
+                  tags none
             """);
         _sourcesWithEvents.Add("mug");
     }

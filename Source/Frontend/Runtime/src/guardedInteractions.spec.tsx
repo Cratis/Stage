@@ -67,7 +67,7 @@ function withData(ui: ReactElement) {
     );
 }
 
-function respond(status: string) {
+function respond(status: string | number) {
     const fetched = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
         if (init?.method === 'POST') return Promise.resolve({ ok: true, json: async () => commandResult() });
         if (String(input).startsWith('http://localhost:3000/api/get-work-item')) return Promise.resolve({ ok: true, json: async () => (queryResult({ data: { workItemId, status } })) });
@@ -124,6 +124,26 @@ describe('a guarded action', () => {
         await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
         expect(fetched.mock.calls.find(([, init]) => init?.method === 'POST')?.[1]?.body).toBe(JSON.stringify({ workItemId }));
         if (mode === 'arguments') expect(String(fetched.mock.calls[0][0])).toContain(`workItemId=${workItemId}`);
+    });
+
+    it('executes with the authored number of an explicitly numbered member', async () => {
+        const fetched = respond(1);
+        const condition = { ...isOpen, enumeration: ['open', 'closed'], enumerationNumbers: [1, 0] };
+        withData(<StageAction element={actionIn(details(closeAction({ alternatives: [{ command: 'CloseWorkItem', condition, arguments: { workItemId: { subject: 'item.workItemId' } } }] }))) as never} slots={{}} />);
+
+        fireEvent.click(await screen.findByRole('button', { name: 'Close' }));
+        await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
+        expect(fetched.mock.calls.find(([, init]) => init?.method === 'POST')?.[1]?.body).toBe(JSON.stringify({ workItemId }));
+    });
+
+    it('renders nothing for the declaration position of a renumbered member', async () => {
+        const fetched = respond(0);
+        const condition = { ...isOpen, enumeration: ['open', 'closed'], enumerationNumbers: [1, 0] };
+        withData(<StageAction element={actionIn(details(closeAction({ alternatives: [{ command: 'CloseWorkItem', condition, arguments: { workItemId: { subject: 'item.workItemId' } } }] }))) as never} slots={{}} />);
+
+        await waitFor(() => expect(fetched).toHaveBeenCalled());
+        await new Promise(resolve => setTimeout(resolve, 50));
+        expect(screen.queryByRole('button', { name: 'Close' })).toBeNull();
     });
 
     it('renders nothing when the guard does not hold and the fallback is hidden', async () => {

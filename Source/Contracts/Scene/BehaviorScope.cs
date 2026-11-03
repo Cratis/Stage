@@ -90,6 +90,11 @@ public sealed record BehaviorScope(
     /// <returns>The members, or null when the field is not an enumeration or the subject is not known.</returns>
     public IReadOnlyList<string>? EnumerationOf(string path) => FieldType(path).Members;
 
+    /// <summary>Gets explicit enumeration numbers in declared member order.</summary>
+    /// <param name="path">The guard field path.</param>
+    /// <returns>The wire numbers, or null for an implicit enumeration or unknown field.</returns>
+    public IReadOnlyList<int>? EnumerationNumbersOf(string path) => FieldType(path).MemberNumbers;
+
     /// <summary>
     /// Resolves what is attached at one point.
     /// </summary>
@@ -102,7 +107,7 @@ public sealed record BehaviorScope(
         IEnumerable<ScreenplaySyntax.UsesBehaviorSyntax> used,
         string subject) =>
         GuardContexts is null
-            ? BehaviorAttachments.Convert(inline, used, Declared, subject, Findings, EnumerationOf, Diagnostics)
+            ? BehaviorAttachments.Convert(inline, used, Declared, subject, Findings, EnumerationOf, EnumerationNumbersOf, Diagnostics)
             : BehaviorAttachments.ConvertResolved(inline, used, subject, this);
 
     internal BehaviorScope At(ScreenplaySyntax.SyntaxNode site) => this with { Subject = GuardContexts?.At(site) };

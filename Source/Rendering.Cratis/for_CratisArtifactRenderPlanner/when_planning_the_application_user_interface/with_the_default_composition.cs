@@ -27,7 +27,13 @@ public class with_the_default_composition : a_register_project_render_request
     // Recomputed for merged Screenplay 4.258.0 and npm @cratis/scene 4.86.0.
     // Recomputed for Screenplay 4.259.0: the scaffold now emits the published matcher pin.
     // Re-frozen for Cratis/Stage#120 merged with train 10: authentication artifacts and host wiring on top of the train 10 output.
-    const string Before = "5c6666af74fd84b4e8f4aac44810a39860899daefdeb04a83400a2b5f186e7eb";
+    // Re-frozen for Cratis/Stage#937: only Directory.Packages.props pins Pkcs to 10.0.14 and documents Xml runtime servicing.
+    // Recomputed for Screenplay 5.0.0: the scaffold emits the 5.0.0 matcher pin.
+    // Recomputed for Screenplay 5.1.0: the scaffold emits the 5.1.0 matcher pin.
+    // Re-frozen after merging main (Screenplay 5.1.0) into train 10: the 4.259.0-era constants were stale.
+    // Recaptured by the owning spec for train 11's merged pins and rendering deliveries.
+    const string Before = "8c264f0e4407e23ce474950e9094e5a8ccc4b9bf2c82582a00c7a72d16c8bfad";
+    // Recomputed for Cratis/Stage#926: the scaffold now hosts an Orleans silo, pins Cratis.Orleans 1.33.1 and moves to Chronicle 19.114.0.
 
     ArtifactRenderPlan _plan = null!;
 

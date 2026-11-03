@@ -6,8 +6,8 @@ import { commandResponseContext, InteractionStop, runActions, validateResponseBi
 import type { InteractionScopeValue } from '@cratis/scene.react';
 
 type Completed = (messages: string[], navigated: boolean) => void;
-type Continuation = { messages: string[]; complete: (response: unknown, completed: Completed) => void };
-const noContinuation: Continuation = { messages: [], complete: (_response, completed) => completed([], false) };
+type Continuation = { messages: string[]; complete: (response: unknown, completed: Completed) => Promise<void> };
+const noContinuation: Continuation = { messages: [], complete: async (_response, completed) => completed([], false) };
 
 /** Admits a form's successful-submit actions before the command can commit, then runs them in an invocation-local Scene response context. */
 export function formContinuation(element: ExternalComponent, form: { command: string } | undefined, scope: InteractionScopeValue | undefined): Continuation {

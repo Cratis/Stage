@@ -69,25 +69,45 @@ public class when_comparing_protected_composite_read_mappings(when_comparing_pro
                   specification ConfirmingAPlacedOrder
                     given OrderPlaced
                       for "order"
-                      shipTo = {"street":"1 Way","city":"Oslo"}
-                      lines = [{"sku":"A","quantity":2},{"sku":"B","quantity":1}]
+                      shipTo
+                        street = "1 Way"
+                        city = "Oslo"
+                      lines
+                        item
+                          sku = "A"
+                          quantity = 2
+                        item
+                          sku = "B"
+                          quantity = 1
                     when ConfirmOrder
                       id = "order"
                     then OrderConfirmed
                       for "order"
-                      shipTo = {"street":"1 Way","city":"Oslo"}
-                      lines = [{"sku":"A","quantity":2},{"sku":"B","quantity":1}]
+                      shipTo
+                        street = "1 Way"
+                        city = "Oslo"
+                      lines
+                        item
+                          sku = "A"
+                          quantity = 2
+                        item
+                          sku = "B"
+                          quantity = 1
                   specification ConfirmingAnOrderWithoutLines
                     given OrderPlaced
                       for "order"
-                      shipTo = {"street":"1 Way","city":"Oslo"}
-                      lines = []
+                      shipTo
+                        street = "1 Way"
+                        city = "Oslo"
+                      lines none
                     when ConfirmOrder
                       id = "order"
                     then OrderConfirmed
                       for "order"
-                      shipTo = {"street":"1 Way","city":"Oslo"}
-                      lines = []
+                      shipTo
+                        street = "1 Way"
+                        city = "Oslo"
+                      lines none
                   specification ConfirmingAnUnknownOrder
                     when ConfirmOrder
                       id = "unknown"

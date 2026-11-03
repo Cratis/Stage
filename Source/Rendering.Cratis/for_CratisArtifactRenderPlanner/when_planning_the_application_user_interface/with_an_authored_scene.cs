@@ -30,7 +30,8 @@ public class with_an_authored_scene : a_screen_composition_render
     // Re-frozen after train 11: authored submit continuations, response contracts/reference schemas and bundled runtime changes;
     // generated documentation/specification imports, Entra host artifacts/wiring/dependencies and Yarn preapprovals;
     // Components 4.38.1, Cratis.Specifications 5.1.0, Microsoft.Identity.Web 4.16.1 and the Pkcs 10.0.13 security pin.
-    const string Before = "38ec11ded7de28b0daf0946bf0f6cb542f1d79814b9828ecbb418e40874b24a5";
+    // Re-captured by execution for train 11 merge (#209/#857 with #925): native guards on Scene 4.87.0 and merged scaffold/runtime output.
+    const string Before = "96beb62d803a0c1f5bd0a8ae5d39728acc73d6864934a888f74bc97157f7f531";
 
     ArtifactRenderPlan _plan = null!;
 

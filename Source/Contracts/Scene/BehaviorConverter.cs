@@ -61,6 +61,16 @@ public static class BehaviorConverter
     public static SceneModel.Behavior Convert(ScreenplaySyntax.BehaviorSyntax behavior, Func<string, IReadOnlyList<string>?>? enumerationOf, ConversionDiagnostics? diagnostics, string path, Func<string, bool>? isStringField) =>
         new(behavior.Name, [.. behavior.Bindings.SelectMany(binding => ConvertBinding(binding, enumerationOf, diagnostics, path, isStringField))], behavior.Order);
 
+    /// <summary>Converts a behavior with explicit enumeration wire numbers.</summary>
+    /// <param name="behavior">The behavior to convert.</param>
+    /// <param name="enumerationOf">The enumeration members for guard fields.</param>
+    /// <param name="enumerationNumbersOf">The explicit numbers in member order.</param>
+    /// <param name="diagnostics">The conversion diagnostics.</param>
+    /// <param name="path">The attachment path.</param>
+    /// <returns>The converted behavior.</returns>
+    public static SceneModel.Behavior Convert(ScreenplaySyntax.BehaviorSyntax behavior, Func<string, IReadOnlyList<string>?>? enumerationOf, Func<string, IReadOnlyList<int>?>? enumerationNumbersOf, ConversionDiagnostics? diagnostics, string path) =>
+        new(behavior.Name, [.. behavior.Bindings.SelectMany(binding => ConvertBinding(binding, enumerationOf, diagnostics, path, null, condition => SceneGuards.ConvertToCondition(condition, enumerationOf, null, enumerationNumbersOf)))], behavior.Order);
+
     /// <summary>
     /// Converts a sequence of <see cref="ScreenplaySyntax.BehaviorSyntax"/> into Scene behaviors.
     /// </summary>

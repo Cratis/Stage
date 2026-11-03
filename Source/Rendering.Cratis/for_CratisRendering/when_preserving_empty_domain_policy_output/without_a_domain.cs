@@ -12,6 +12,7 @@ using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 using Cratis.Stage.Rendering.Cratis.Scaffolding;
+using Cratis.Stage.Rendering.Cratis.Semantics;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisRendering.when_preserving_empty_domain_policy_output;
@@ -44,8 +45,10 @@ public class without_a_domain : given.a_domain_policy_plan
     };
 
     ArtifactRenderPlan _rawPlan = null!;
+    ImmutableArray<PlannedArtifact> _hashedArtifacts;
     string _digest = null!;
     string _qualifiedDigest = null!;
+    string _restoredDigest = null!;
 
     void Because()
     {
@@ -53,7 +56,23 @@ public class without_a_domain : given.a_domain_policy_plan
         result.Success.ShouldBeTrue();
         _rawPlan = Assert.IsType<ArtifactRenderPlan>(result.Plan);
 
-        var qualified = QualifiedCommonOutput.Restore(result.Plan!, () => Plan(string.Empty).Plan!);
+        var names = new SemanticApplicationContext(
+            new ArtifactRenderRequest(
+                _loaded.Model,
+                _loaded.Plan,
+                CratisRendering.CreateProfile(_options.ApplicationName, new(_options.ProjectName, _options.RootNamespace)),
+                new(ArtifactRenderScopeKind.Application, _loaded.Model.Application.Id))
+            {
+                ImplementationRequirements = _loaded.ImplementationRequirements,
+                ImplementationContents = _loaded.ImplementationContents,
+                TypedContextDescriptors = _loaded.TypedContextDescriptors
+            },
+            new(_options.ProjectName, _options.RootNamespace));
+
+        // Cratis/Stage#850 made typed-context, policy-body and reducer-helper names readable; restoring the hashed spelling
+        // reproduces every earlier pin, so the readable names are the only change.
+        _hashedArtifacts = [.. HashedHelperNames.Restore(_rawPlan.Artifacts, names)];
+        var qualified = HashedHelperNames.Restore(QualifiedCommonOutput.Restore(result.Plan!, () => Plan(string.Empty).Plan!), names).ToImmutableArray();
 
         // Restoring only the initializer identifier must reproduce both complete HEAD path/byte pins.
         // These assertions confine the updated pins below to that one generated declaration change.
@@ -65,6 +84,7 @@ public class without_a_domain : given.a_domain_policy_plan
         // Restoring the former license header must reproduce the pins from before headers became optional.
         Digest(LegacyLicenseHeader.Restore(unindented)).ShouldEqual("462569B15BC832AF18A1E66AFDAA7E822D92A02817123A61C2F144D506C551BD");
         _digest = Digest(result.Artifacts);
+        _restoredDigest = Digest(_hashedArtifacts);
         _qualifiedDigest = Digest(qualified);
     }
 
@@ -136,7 +156,7 @@ public class without_a_domain : given.a_domain_policy_plan
         Assert.Equal(_oldRawHashes.Keys.Order(StringComparer.Ordinal), HashedArtifacts().Select(artifact => artifact.RelativePath).Order(StringComparer.Ordinal));
 
     [Fact]
-    public void should_limit_raw_deltas_to_fold_and_policy_context()
+    public void should_limit_raw_deltas_to_fold_policy_context_and_type_comparisons()
     {
         var changedPaths = HashedArtifacts()
             .Where(artifact => Convert.ToHexString(SHA256.HashData(artifact.Bytes.AsSpan())) != _oldRawHashes[artifact.RelativePath])
@@ -144,15 +164,15 @@ public class without_a_domain : given.a_domain_policy_plan
             .Order(StringComparer.Ordinal);
 
         // Re-frozen for Cratis/Stage#848: the two policy body files change only by the body indentation.
-        Assert.Equal(["GeneratedPolicies/PolicyBodies_844D6619645B0916.cs", "GeneratedPolicies/PolicyBodies_C13C6DD636115D6A.cs", "Orders/Ordering/Totals/Fold.cs", "TypedContexts/PolicyContext.cs"], changedPaths);
+        Assert.Equal(["GeneratedPolicies/Policies.cs", "GeneratedPolicies/PolicyBodies_844D6619645B0916.cs", "GeneratedPolicies/PolicyBodies_C13C6DD636115D6A.cs", "Orders/Ordering/Totals/Fold.cs", "TypedContexts/PolicyContext.cs"], changedPaths);
     }
 
     [Fact]
-    public void should_keep_the_other_sixteen_raw_artifacts_byte_identical()
+    public void should_keep_the_other_fifteen_raw_artifacts_byte_identical()
     {
-        // Re-frozen for Cratis/Stage#848: sixteen of the eighteen remain; the two PolicyBodies files gained body indentation only.
-        var unchanged = HashedArtifacts().Where(artifact => artifact.RelativePath is not "Orders/Ordering/Totals/Fold.cs" and not "TypedContexts/PolicyContext.cs" and not "GeneratedPolicies/PolicyBodies_844D6619645B0916.cs" and not "GeneratedPolicies/PolicyBodies_C13C6DD636115D6A.cs").ToArray();
-        Assert.Equal(16, unchanged.Length);
+        // Re-frozen for Cratis/Stage#850: Policies.cs changes only the concept-base comparisons.
+        var unchanged = HashedArtifacts().Where(artifact => artifact.RelativePath is not "GeneratedPolicies/Policies.cs" and not "Orders/Ordering/Totals/Fold.cs" and not "TypedContexts/PolicyContext.cs" and not "GeneratedPolicies/PolicyBodies_844D6619645B0916.cs" and not "GeneratedPolicies/PolicyBodies_C13C6DD636115D6A.cs").ToArray();
+        Assert.Equal(15, unchanged.Length);
         Assert.All(unchanged, artifact => Assert.Equal(_oldRawHashes[artifact.RelativePath], Convert.ToHexString(SHA256.HashData(artifact.Bytes.AsSpan()))));
     }
 
@@ -191,21 +211,21 @@ public class without_a_domain : given.a_domain_policy_plan
     [Fact]
     public void should_spell_no_type_with_global_outside_using_directives()
     {
-        var files = _rawPlan.Artifacts.Where(artifact => artifact.RelativePath == "TypedContexts/PolicyContext.cs" || artifact.RelativePath == "GeneratedPolicies/PolicyBodies.cs" || (artifact.RelativePath.StartsWith("TypedContexts/TypedContext_", StringComparison.Ordinal) && artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal))).ToArray();
+        var files = _hashedArtifacts.Where(artifact => artifact.RelativePath == "TypedContexts/PolicyContext.cs" || artifact.RelativePath == "GeneratedPolicies/PolicyBodies.cs" || (artifact.RelativePath.StartsWith("TypedContexts/TypedContext_", StringComparison.Ordinal) && artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal))).ToArray();
         Assert.NotEmpty(files);
         Assert.All(files, artifact => Assert.All(RawText(artifact.RelativePath).Split('\n').Where(line => !line.TrimStart().StartsWith("using ", StringComparison.Ordinal)), line => Assert.DoesNotContain("global::", line, StringComparison.Ordinal)));
     }
 
-    IEnumerable<PlannedArtifact> HashedArtifacts() => _rawPlan.Artifacts.Where(artifact => !string.Equals(artifact.RelativePath, ".stage/completeness.json", StringComparison.Ordinal) && !string.Equals(artifact.RelativePath, "UNSUPPORTED.md", StringComparison.Ordinal));
+    IEnumerable<PlannedArtifact> HashedArtifacts() => _hashedArtifacts.Where(artifact => !string.Equals(artifact.RelativePath, ".stage/completeness.json", StringComparison.Ordinal) && !string.Equals(artifact.RelativePath, "UNSUPPORTED.md", StringComparison.Ordinal));
 
     void AssertReducerBinding(Assembly assembly)
     {
         var fold = assembly.GetType("Invoices.Orders.Ordering.Totals.Fold", throwOnError: true);
-        var transition = Assert.Single(fold.GetMethods(BindingFlags.NonPublic | BindingFlags.Static), method => method.Name.StartsWith("Transition_", StringComparison.Ordinal));
+        var transition = Assert.Single(fold.GetMethods(BindingFlags.NonPublic | BindingFlags.Static), method => method.Name.EndsWith("Transition", StringComparison.Ordinal));
         var wrapper = Assert.Single(transition.GetParameters()).ParameterType;
         Assert.Equal("Invoices.TypedContexts", wrapper.Namespace);
         Assert.Contains(_rawPlan.Artifacts, artifact => artifact.RelativePath == $"TypedContexts/{wrapper.Name}.cs");
-        var text = RawText("Orders/Ordering/Totals/Fold.cs");
+        var text = EmittedText("Orders/Ordering/Totals/Fold.cs");
         Assert.Contains("using Invoices.TypedContexts;", text, StringComparison.Ordinal);
         Assert.Contains($"new {wrapper.Name}(", text, StringComparison.Ordinal);
         Assert.Contains($"{wrapper.Name} context)", text, StringComparison.Ordinal);
@@ -214,10 +234,29 @@ public class without_a_domain : given.a_domain_policy_plan
         Assert.Equal(observed, wrapper.GetProperty("Event").PropertyType);
     }
 
-    string RawText(string path) => Encoding.UTF8.GetString(_rawPlan.Artifacts.Single(artifact => artifact.RelativePath == path).Bytes.AsSpan());
+    [Fact]
+    public void should_restore_the_old_policy_runtime_bytes_by_restoring_only_the_type_comparisons()
+    {
+        const string path = "GeneratedPolicies/Policies.cs";
+        var qualified = RawText(path)
+            .Replace("using Cratis.Chronicle.Events;\n", string.Empty, StringComparison.Ordinal)
+            .Replace("using Cratis.Concepts;\n", string.Empty, StringComparison.Ordinal)
+            .Replace("typeof(ConceptAs<>)", "typeof(global::Cratis.Concepts.ConceptAs<>)", StringComparison.Ordinal)
+            .Replace("typeof(EventSourceId<>)", "typeof(global::Cratis.Chronicle.Events.EventSourceId<>)", StringComparison.Ordinal);
+        var restored = QualifiedCommonOutput.BeforeTypeComparison(path, qualified);
+        Assert.Equal(_oldRawHashes[path], Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(restored))));
+    }
+
+    // The new emitted output, spelled with the readable names; RawText reads the previous hashed spelling the old pins are about.
+    string EmittedText(string path) => Encoding.UTF8.GetString(_rawPlan.Artifacts.Single(artifact => artifact.RelativePath == path).Bytes.AsSpan());
+
+    string RawText(string path) => Encoding.UTF8.GetString(_hashedArtifacts.Single(artifact => artifact.RelativePath == path).Bytes.AsSpan());
 
     // Re-frozen for #424: generated C# uses short type names and using directives; again for Cratis/Stage#848: authored bodies are indented to their block.
-    [Fact] void should_keep_all_paths_and_bytes() => _digest.ShouldEqual("69F11B545E614E5C616C2F46B578089B19542AE2108EE88F653ADB2C33827E66");
+    // Re-frozen for Cratis/Stage#850: Policies.cs compares concept bases with typeof.
+    // Cratis/Stage#850: the restored output reproduces the previous pin; the emitted output differs only by the readable helper names.
+    [Fact] void should_restore_every_hashed_name_to_the_previous_pin() => _restoredDigest.ShouldEqual("A4FA85887E1AD1AF97F7A353ACF569197B78CCEC652D6A286EE249425C3D0825");
+    [Fact] void should_keep_all_paths_and_bytes() => _digest.ShouldEqual("645DB1FF07D92B539E6D3CB0366071DE979F269CA31665E52A33292C8C153F7A");
     [Fact] void should_confine_changes_to_common_and_using_placement() => _qualifiedDigest.ShouldEqual("355BBD5F2BA04106DE494150FD9DBED3E201A26C49D18B5AEFFE9A91A370DB21");
 }
 #endif

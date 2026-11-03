@@ -14,7 +14,7 @@ public class when_refusing_nested_property_removal_keys : Specification
         var source = "type RemovalDetails\n  value String\n" + when_running_property_keyed_removal_only_projections.Source
             .Replace("        invoiceId String\n", "        invoiceId RemovalDetails\n", StringComparison.Ordinal)
             .Replace("remove with InvoiceRemoved key invoiceId", "remove with InvoiceRemoved key invoiceId.value", StringComparison.Ordinal)
-            .Replace("        when append InvoiceRemoved\n          invoiceId = \"first\"", "        when append InvoiceRemoved\n          invoiceId = {\"value\":\"first\"}", StringComparison.Ordinal);
+            .Replace("        when append InvoiceRemoved\n          invoiceId = \"first\"", "        when append InvoiceRemoved\n          invoiceId\n            value = \"first\"", StringComparison.Ordinal);
         var plan = when_running_property_keyed_removal_only_projections.Compile(source);
         _result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
     }

@@ -195,7 +195,7 @@ public class when_comparing_re_admitted_projection_shapes(when_comparing_re_admi
                       name = "{{parent.Item1}}"
                     then readmodel ProjectSummary
                       projectId = "{{parent.Item2}}"
-                      notes = []
+                      notes none
                       label = "fixed"
                 """);
             var specifications = string.Join('\n', new[] { recreation }.Concat(joined)).Split('\n').Select(line => "    " + line);

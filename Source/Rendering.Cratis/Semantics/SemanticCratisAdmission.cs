@@ -129,23 +129,23 @@ internal static partial class SemanticCratisAdmission
     /// <param name="slices">The selected slices.</param>
     /// <returns>The generated declarations.</returns>
     internal static IEnumerable<GeneratedTypeDeclaration> GeneratedDeclarations(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices) =>
-        GeneratedTypeNames.Declarations(
-            context.Application,
-            slices.Select(located => ((IEnumerable<string>)located.Path, located.Slice)),
-            SelectedConstraints(context, slices).Select(selected =>
-                ((IEnumerable<string>)context.Slice(selected.Slice.Id).Path, selected.Slice.Id, selected.Constraint)),
-            rendersStringsCatalog: context.Strings is not null,
-            opaquePolicyTypes: SemanticPolicyContextRuntime.GeneratedTypes(context, slices).Concat(ValidationTypes(context, slices))
+        StructuralDeclarations(
+            context,
+            slices,
+            SemanticPolicyContextRuntime.GeneratedTypes(context, slices).Concat(ValidationTypes(context, slices))
                 .Concat(SemanticReducerTypedContexts.Declarations(context, slices)),
-            commonNamespace: string.Join('.', context.Domain.Append("Common")),
-            eventSources: SemanticEventSourceArtifactRenderer.Selected(context, slices),
-            eventSourcesNamespace: string.Join('.', context.Domain.Append("EventSources")),
-            policiesNamespace: string.Join('.', context.Domain.Append("GeneratedPolicies")),
-            selfReduces: context.SelfReduces,
-            policyClassName: operation => SemanticPolicyNames.For(context)[operation].ClassName,
-            commandReceiptTime: SemanticValidationContextRuntime.UsesCommandReceiptTime(context, slices))
-            .Concat(SemanticTranslationAdmission.Declarations(context, slices))
-            .Concat(SemanticOccurrenceAdmission.Declarations(context, slices));
+            SemanticValidationContextRuntime.UsesCommandReceiptTime(context, slices));
+
+    /// <summary>
+    /// Enumerates the declarations whose names must be reserved before the typed-context wrappers are allocated. It
+    /// omits the wrappers and never reads body analysis, so allocating the wrappers cannot depend on themselves; the
+    /// receipt-time helper is reserved conservatively whether or not it is eventually emitted.
+    /// </summary>
+    /// <param name="context">The application being rendered.</param>
+    /// <param name="slices">The selected slices.</param>
+    /// <returns>The reserved declarations.</returns>
+    internal static IEnumerable<GeneratedTypeDeclaration> NamingReservations(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices) =>
+        StructuralDeclarations(context, slices, null, true);
 
     internal static IEnumerable<GeneratedTypeDeclaration> GeneratedResponseDeclarations(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices) =>
         slices.SelectMany(located => located.Slice.Commands
@@ -169,8 +169,11 @@ internal static partial class SemanticCratisAdmission
         var descriptors = SemanticValidationContextRuntime.Selected(context, slices).ToArray();
         if (descriptors.Length == 0) yield break;
         var ns = string.Join('.', context.Domain.Append("TypedContexts"));
-        yield return (ns, "ValidationBodies");
-        foreach (var descriptor in descriptors) yield return (ns, SemanticValidationContextRuntime.Wrapper(descriptor));
+        foreach (var owner in descriptors.Select(descriptor => descriptor.OperationId!.Value).Distinct())
+        {
+            yield return (SemanticValidationContextRuntime.OwnerRelativeNamespace(context, owner), context.ContextNames.ContextRules(owner));
+        }
+        foreach (var descriptor in descriptors) yield return (ns, context.ContextNames.ContextWrapper(descriptor));
     }
 
     static void PassesPreconditions(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices, List<ArtifactRenderDiagnostic> diagnostics)
@@ -355,4 +358,22 @@ internal static partial class SemanticCratisAdmission
 
     static ArtifactRenderDiagnostic Error(string code, string message, SemanticId artifact) =>
         new(code, ArtifactRenderDiagnosticSeverity.Error, message, artifact);
+
+    static IEnumerable<GeneratedTypeDeclaration> StructuralDeclarations(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices, IEnumerable<(string Namespace, string Name)>? typedContexts, bool commandReceiptTime) =>
+        GeneratedTypeNames.Declarations(
+            context.Application,
+            slices.Select(located => ((IEnumerable<string>)located.Path, located.Slice)),
+            SelectedConstraints(context, slices).Select(selected =>
+                ((IEnumerable<string>)context.Slice(selected.Slice.Id).Path, selected.Slice.Id, selected.Constraint)),
+            rendersStringsCatalog: context.Strings is not null,
+            opaquePolicyTypes: typedContexts,
+            commonNamespace: string.Join('.', context.Domain.Append("Common")),
+            eventSources: SemanticEventSourceArtifactRenderer.Selected(context, slices),
+            eventSourcesNamespace: string.Join('.', context.Domain.Append("EventSources")),
+            policiesNamespace: string.Join('.', context.Domain.Append("GeneratedPolicies")),
+            selfReduces: context.SelfReduces,
+            policyClassName: operation => SemanticPolicyNames.For(context)[operation].ClassName,
+            commandReceiptTime: commandReceiptTime)
+            .Concat(SemanticTranslationAdmission.Declarations(context, slices))
+            .Concat(SemanticOccurrenceAdmission.Declarations(context, slices));
 }

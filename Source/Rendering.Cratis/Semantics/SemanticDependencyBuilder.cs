@@ -38,11 +38,29 @@ internal sealed class SemanticDependencyBuilder(SemanticApplicationContext conte
         return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ImmutableArray<>) && (bool)type.GetProperty("IsDefault")!.GetValue(value)!;
     }
 
+    static bool IsPresent(object? value)
+    {
+        if (value is null || IsDefaultArray(value)) return false;
+        if (value is string || value is not IEnumerable sequence) return true;
+        var enumerator = sequence.GetEnumerator();
+        try
+        {
+            return enumerator.MoveNext();
+        }
+        finally
+        {
+            (enumerator as IDisposable)?.Dispose();
+        }
+    }
+
     static bool IsAbsentReference(object node, PropertyInfo property) => node switch
     {
         SemanticTypeReference { Kind: SemanticTypeReferenceKind.Primitive } => property.Name == "Target",
         SemanticReactionTrigger { Kind: SemanticReactionTriggerKind.Startup or SemanticReactionTriggerKind.Shutdown or SemanticReactionTriggerKind.Interval or SemanticReactionTriggerKind.Schedule, Source.IsSet: false } => property.Name == "Source",
         SemanticSpecificationTrigger { Kind: SemanticReactionTriggerKind.Startup or SemanticReactionTriggerKind.Shutdown, Trigger.IsSet: false } => property.Name == "Trigger",
+
+        // A lifecycle node, entry or expectation carries only the references its kind uses; the others are left unset.
+        SemanticWorkflowNode or SemanticStateEntry or SemanticLifecycleExpectation => property.GetValue(node) is SemanticId { IsSet: false },
         _ => false
     };
 
@@ -109,9 +127,28 @@ internal sealed class SemanticDependencyBuilder(SemanticApplicationContext conte
             Member = member,
             PropertyTypeOf = member == "SemanticProperty.Type" ? scope.Owner : scope.PropertyTypeOf
         };
-        if (classification is null) graph.Incomplete(new(SemanticDependencyIncompletenessKind.UnclassifiedMember, scope.Owner, member, location.PropertyTypeOf, $"{member}: unclassified reference-carrying member."));
-        else if (classification.Kind is { } category && !IsAbsentReference(node, property)) Walk(value, location with { Kind = EdgeKind(node, scope.Kind, category) });
-        else if (!IsAbsentReference(node, property)) Walk(value, location);
+        if (classification is null)
+        {
+            graph.Incomplete(new(SemanticDependencyIncompletenessKind.UnclassifiedMember, scope.Owner, member, location.PropertyTypeOf, $"{member}: unclassified reference-carrying member."));
+        }
+        else if (classification.RefusalReason is not null)
+        {
+            RefuseIfPresent(value, location, scope.Owner, classification);
+        }
+        else if (classification.Kind is { } category && !IsAbsentReference(node, property))
+        {
+            Walk(value, location with { Kind = EdgeKind(node, scope.Kind, category) });
+        }
+        else if (!IsAbsentReference(node, property))
+        {
+            Walk(value, location);
+        }
+    }
+
+    void RefuseIfPresent(object? value, SemanticDependencyScope location, SemanticId owner, SemanticDependencyClassification classification)
+    {
+        if (!IsPresent(value)) return;
+        graph.Incomplete(new(SemanticDependencyIncompletenessKind.RefusedMember, owner, location.Member, location.PropertyTypeOf, $"{location.Member}: {classification.RefusalReason}"));
     }
 
     void Policy(SemanticPolicyReference reference, SemanticId owner)

@@ -36,7 +36,7 @@ public class with_all_comparison_rules : Specification
                     returns answer
                   specification Empty
                     when Check
-                      values = []
+                      values none
                       answer = true
                     then returns true
             """);

@@ -13,17 +13,11 @@ internal abstract record SceneGuardConversion
 
     internal abstract IDictionary<string, object?> ToLegacy();
 
-    internal static SceneGuardConversion From(ScreenplaySyntax.ConditionSyntax? condition, Func<string, IReadOnlyList<string>?>? enumerationOf, Func<string, bool>? isStringField = null) => condition switch
+    internal static SceneGuardConversion From(ScreenplaySyntax.ConditionSyntax? condition, Func<string, IReadOnlyList<string>?>? enumerationOf, Func<string, bool>? isStringField = null, Func<string, IReadOnlyList<int>?>? enumerationNumbersOf = null) => condition switch
     {
-        ScreenplaySyntax.ComparisonConditionSyntax comparison => new Comparison(
-            comparison.Left,
-            comparison.Operator.ToString(),
-            comparison.Right is ScreenplaySyntax.LiteralExpressionSyntax literal ? literal.Value : null,
-            comparison.Right is ScreenplaySyntax.LiteralExpressionSyntax ? null : comparison.Right.GetType().Name,
-            enumerationOf?.Invoke(comparison.Left),
-            isStringField?.Invoke(comparison.Left) == true),
+        ScreenplaySyntax.ComparisonConditionSyntax comparison => FromComparison(comparison, enumerationOf, isStringField, enumerationNumbersOf),
         ScreenplaySyntax.LogicalConditionSyntax logical => new Logical(
-            From(logical.Left, enumerationOf, isStringField), logical.Operator.ToString(), From(logical.Right, enumerationOf, isStringField)),
+            From(logical.Left, enumerationOf, isStringField, enumerationNumbersOf), logical.Operator.ToString(), From(logical.Right, enumerationOf, isStringField, enumerationNumbersOf)),
         null => new Unsupported(null),
         _ => new Unsupported(condition.GetType())
     };
@@ -37,14 +31,28 @@ internal abstract record SceneGuardConversion
             comparison.Right is ScreenplaySyntax.LiteralExpressionSyntax ? null : comparison.Right.GetType().Name,
             field(comparison.Left).Members,
             false,
-            field(comparison.Left)),
+            field(comparison.Left),
+            field(comparison.Left).MemberNumbers),
         ScreenplaySyntax.LogicalConditionSyntax logical => new Logical(FromResolved(logical.Left, field), logical.Operator.ToString(), FromResolved(logical.Right, field)),
         _ => new Unsupported(condition.GetType())
     };
 
     internal static IDictionary<string, object?> LegacySubject(SubjectReference subject) => new Dictionary<string, object?> { ["subject"] = subject.Subject };
 
-    sealed record Comparison(string Path, string Operation, object? Value, string? UnsupportedExpression, IReadOnlyList<string>? Enumeration, bool IsStringField, GuardFieldType? Field = null) : SceneGuardConversion
+    static Comparison FromComparison(ScreenplaySyntax.ComparisonConditionSyntax comparison, Func<string, IReadOnlyList<string>?>? enumerationOf, Func<string, bool>? isStringField, Func<string, IReadOnlyList<int>?>? enumerationNumbersOf)
+    {
+        var enumeration = enumerationOf?.Invoke(comparison.Left);
+        return new(
+            comparison.Left,
+            comparison.Operator.ToString(),
+            comparison.Right is ScreenplaySyntax.LiteralExpressionSyntax literal ? literal.Value : null,
+            comparison.Right is ScreenplaySyntax.LiteralExpressionSyntax ? null : comparison.Right.GetType().Name,
+            enumeration,
+            isStringField?.Invoke(comparison.Left) == true,
+            Numbers: enumeration is null ? null : enumerationNumbersOf?.Invoke(comparison.Left));
+    }
+
+    sealed record Comparison(string Path, string Operation, object? Value, string? UnsupportedExpression, IReadOnlyList<string>? Enumeration, bool IsStringField, GuardFieldType? Field = null, IReadOnlyList<int>? Numbers = null) : SceneGuardConversion
     {
         internal override GuardCondition ToCondition() => new ComparisonGuardCondition(
             SceneGuards.SubjectReferenceFor(Path),
@@ -52,7 +60,10 @@ internal abstract record SceneGuardConversion
                 (Field is not null ? Field.Admits(operation, Value) : operation != GuardOperator.Contains || (IsStringField && Value is string))
                 ? operation : (GuardOperator)(-1),
             UnsupportedExpression is { } kind ? new { unsupported = kind } : Value,
-            Enumeration);
+            Enumeration)
+        {
+            EnumerationNumbers = Numbers?.Select(number => (double)number).ToArray()
+        };
 
         internal override IDictionary<string, object?> ToLegacy()
         {
@@ -64,6 +75,7 @@ internal abstract record SceneGuardConversion
                 ["right"] = UnsupportedExpression is { } kind ? new Dictionary<string, object?> { ["kind"] = kind } : Value,
             };
             if (Enumeration is not null) result["enumeration"] = Enumeration;
+            if (Numbers is not null) result["enumerationNumbers"] = Numbers;
             return result;
         }
     }

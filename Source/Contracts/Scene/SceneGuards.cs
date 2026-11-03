@@ -56,6 +56,14 @@ public static class SceneGuards
     public static IDictionary<string, object?> Convert(ScreenplaySyntax.ConditionSyntax condition, Func<string, IReadOnlyList<string>?>? enumerationOf) =>
         SceneGuardConversion.From(condition, enumerationOf).ToLegacy();
 
+    /// <summary>Converts a predicate to its legacy shape with explicit enumeration numbers.</summary>
+    /// <param name="condition">The authored condition.</param>
+    /// <param name="enumerationOf">The enumeration members in declared order.</param>
+    /// <param name="enumerationNumbersOf">The explicit numbers in the same member order.</param>
+    /// <returns>The legacy predicate.</returns>
+    public static IDictionary<string, object?> Convert(ScreenplaySyntax.ConditionSyntax condition, Func<string, IReadOnlyList<string>?>? enumerationOf, Func<string, IReadOnlyList<int>?>? enumerationNumbersOf) =>
+        SceneGuardConversion.From(condition, enumerationOf, enumerationNumbersOf: enumerationNumbersOf).ToLegacy();
+
     /// <summary>Converts a predicate without evaluating it.</summary>
     /// <param name="condition">The authored condition.</param>
     /// <param name="enumerationOf">Resolves enumeration members for a subject path.</param>
@@ -69,7 +77,16 @@ public static class SceneGuards
     /// <param name="isStringField">Resolves whether a subject path is a known string field.</param>
     /// <returns>The typed predicate; unsupported or untyped contains remains unevaluable.</returns>
     public static GuardCondition ConvertToCondition(ScreenplaySyntax.ConditionSyntax condition, Func<string, IReadOnlyList<string>?>? enumerationOf, Func<string, bool>? isStringField) =>
-        SceneGuardConversion.From(condition, enumerationOf, isStringField).ToCondition();
+        ConvertToCondition(condition, enumerationOf, isStringField, null);
+
+    /// <summary>Converts a typed predicate with explicit enumeration wire numbers.</summary>
+    /// <param name="condition">The authored predicate.</param>
+    /// <param name="enumerationOf">The enumeration members in declared order.</param>
+    /// <param name="isStringField">The known string field resolver.</param>
+    /// <param name="enumerationNumbersOf">The explicit numbers in member order.</param>
+    /// <returns>The typed predicate; unsupported syntax remains unevaluable.</returns>
+    public static GuardCondition ConvertToCondition(ScreenplaySyntax.ConditionSyntax condition, Func<string, IReadOnlyList<string>?>? enumerationOf, Func<string, bool>? isStringField, Func<string, IReadOnlyList<int>?>? enumerationNumbersOf) =>
+        SceneGuardConversion.From(condition, enumerationOf, isStringField, enumerationNumbersOf).ToCondition();
 
     /// <summary>Whether Scene understands an authored predicate.</summary>
     /// <param name="condition">The authored predicate.</param>
@@ -162,7 +179,8 @@ public static class SceneGuards
         {
             return null;
         }
-        return IsEnumerationMember(literal, enumeration) ? null : UnknownEnumerationLiteralDiagnosticCode;
+        condition.TryGetProperty("enumerationNumbers", out var numbers);
+        return IsEnumerationMember(literal, enumeration, numbers) ? null : UnknownEnumerationLiteralDiagnosticCode;
     }
 
     static bool ContainsStringLiteralsOnly(JsonElement condition) => IsLogical(condition)
@@ -187,12 +205,16 @@ public static class SceneGuards
     static bool IsStringEnumeration(JsonElement enumeration) => enumeration.ValueKind == JsonValueKind.Array &&
         enumeration.GetArrayLength() > 0 && !enumeration.EnumerateArray().Any(member => member.ValueKind != JsonValueKind.String);
 
-    static bool IsEnumerationMember(JsonElement literal, JsonElement enumeration) => literal.ValueKind switch
+    static bool IsEnumerationMember(JsonElement literal, JsonElement enumeration, JsonElement numbers) => literal.ValueKind switch
     {
         JsonValueKind.String => enumeration.EnumerateArray().Any(member => string.Equals(member.GetString(), literal.GetString(), StringComparison.OrdinalIgnoreCase)),
-        JsonValueKind.Number => literal.TryGetDouble(out var ordinal) && double.IsFinite(ordinal) && ordinal == Math.Truncate(ordinal) && ordinal >= 0 && ordinal < enumeration.GetArrayLength(),
+        JsonValueKind.Number => literal.TryGetDouble(out var number) && double.IsFinite(number) && number == Math.Truncate(number) && IsEnumerationNumber(number, enumeration, numbers),
         _ => false
     };
+
+    static bool IsEnumerationNumber(double number, JsonElement enumeration, JsonElement numbers) => numbers.ValueKind == JsonValueKind.Undefined
+        ? number >= 0 && number < enumeration.GetArrayLength()
+        : numbers.ValueKind == JsonValueKind.Array && numbers.EnumerateArray().Any(member => member.ValueKind == JsonValueKind.Number && member.TryGetDouble(out var value) && value == number);
 
     static IEnumerable<string> GuardAdmissionDiagnostics(JsonNode? node) => node switch
     {

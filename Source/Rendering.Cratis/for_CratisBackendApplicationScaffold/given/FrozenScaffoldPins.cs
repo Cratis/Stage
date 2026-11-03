@@ -29,6 +29,8 @@ internal static class FrozenScaffoldPins
                 ("Cratis.Chronicle", profile.CratisChroniclePackageVersion, previous ? "19.55.2" : "19.71.0"),
                 ("Cratis.Chronicle.AspNetCore", profile.CratisChroniclePackageVersion, previous ? "19.55.2" : "19.71.0"),
                 ("Cratis.Chronicle.Testing", profile.CratisChroniclePackageVersion, previous ? "19.55.2" : "19.71.0"),
+                ("Cratis.Orleans", ScaffoldPackageVersions.Orleans, "1.33.1"),
+                ("Cratis.Orleans.Chronicle", ScaffoldPackageVersions.OrleansChronicle, "1.33.1"),
                 ("Cratis.Screenplay.Matching", ScaffoldPackageVersions.ScreenplayMatching, "4.241.0"),
                 ("Cratis.Specifications", profile.CratisSpecificationsPackageVersion, "4.1.1"),
                 ("Cratis.Specifications.XUnit", profile.CratisSpecificationsXUnitPackageVersion, "4.1.1"),
@@ -65,6 +67,25 @@ internal static class FrozenScaffoldPins
             foreach (var pin in pins)
             {
                 text = text.Replace($"\"@cratis/{pin.Id}\": \"{pin.Current}\"", $"\"@cratis/{pin.Id}\": \"{pin.Baseline}\"", StringComparison.Ordinal);
+            }
+
+            (string Id, string Current, string Baseline)[] externalPins =
+            [
+                ("@primereact/core", frontend.PrimeReactPackageVersion, "11.2.0"),
+                ("@primereact/headless", frontend.PrimeReactPackageVersion, "11.2.0"),
+                ("@primereact/hooks", frontend.PrimeReactPackageVersion, "11.2.0"),
+                ("@primereact/styles", frontend.PrimeReactPackageVersion, "11.2.0"),
+                ("@primereact/types", frontend.PrimeReactPackageVersion, "11.2.0"),
+                ("@primereact/ui", frontend.PrimeReactPackageVersion, "11.2.0"),
+                ("primereact", frontend.PrimeReactPackageVersion, "11.2.0"),
+                ("react", frontend.ReactPackageVersion, "19.3.0"),
+                ("react-dom", frontend.ReactDomPackageVersion, "19.3.0"),
+                ("@types/node", frontend.TypesNodePackageVersion, "26.6.4"),
+                ("@vitejs/plugin-react", frontend.VitePluginReactPackageVersion, "6.1.1")
+            ];
+            foreach (var pin in externalPins)
+            {
+                text = text.Replace($"\"{pin.Id}\": \"{pin.Current}\"", $"\"{pin.Id}\": \"{pin.Baseline}\"", StringComparison.Ordinal);
             }
         }
 

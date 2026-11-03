@@ -117,7 +117,8 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     // Re-frozen for Cratis/Stage#209 on Scene 4.86.0: reviewed native guards and restored runtime guard/message bridges.
     // Re-frozen after train 11: submit continuations, response contracts/reference schemas and bundled runtime changes;
     // generated documentation/specification imports, Entra host artifacts/wiring/dependencies and Yarn preapprovals.
-    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(_qualified)).ShouldEqual("767ba2bae5ce1c9f7eb0bff53b08471355c700b195d37ade1583c603a5201862");
+    // Re-captured by execution for train 11 merge (#209/#857 with #925): native guards on Scene 4.87.0 and merged scaffold/runtime output.
+    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(_qualified)).ShouldEqual("5f7a860b01ec26a56a327bff1b180d6b6e12ce3569b7e7ec5c192589c73e39c3");
 
     // Re-frozen when the license header became the caller's choice and specifications moved into the application project.
     // Re-frozen for #424: generated C# uses short type names and using directives above the namespace.
@@ -127,7 +128,8 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     // Re-frozen for Cratis/Stage#209 on Scene 4.86.0: reviewed native guards and restored runtime guard/message bridges.
     // Re-frozen after train 11: submit continuations, response contracts/reference schemas and bundled runtime changes;
     // generated documentation/specification imports, Entra host artifacts/wiring/dependencies and Yarn preapprovals.
-    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("013eb5a7aef2cfd2b024b23e777033ec220dab157f39a258eba146e16ea1d656");
+    // Re-captured by execution for train 11 merge (#209/#857 with #925): native guards on Scene 4.87.0 and merged scaffold/runtime output.
+    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("4f4409fd0b2e290372fbc9d867d238037560be69160d81f7ce07c5ee9e55ac27");
 
     // The #209 restoration removed 34 details bytes and 273 list bytes on Scene 4.86.0.
     // Train 11 adds the authored submit navigation: details 9773 -> 9929; list 6402 -> 6555; comments is unchanged.

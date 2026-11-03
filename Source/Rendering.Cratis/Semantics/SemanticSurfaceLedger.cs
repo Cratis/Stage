@@ -127,6 +127,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticValidationRule", rendered, "Kind Message Property Severity Operand");
         Add(entries, "SemanticValidationRule", rendered, "Name RequirementId");
         Add(entries, "SemanticValidationRuleKind", rendered, "NotEmpty Maximum Minimum Equal NotEqual GreaterThan GreaterThanOrEqual LessThan LessThanOrEqual Length AllGreaterThan AllGreaterThanOrEqual Matches Checksum Contains NotContains StartsWith EndsWith RulePredicate CodeValidation DecimalPlaces");
+
+        // Unknown concept rules still refuse; unknown command rules degrade by denying the enclosing operation.
         Add(entries, "SemanticValidationRuleKind", rejected("STAGE-ESM-005"), "Unknown");
         Add(entries, "SemanticValidationSeverity", rendered, "Error Information Warning");
 
@@ -222,7 +224,8 @@ internal static class SemanticSurfaceLedger
         // differential and MongoDB probes cover both sequences. Root join removal remains blocked by
         // Chronicle#4263 and Screenplay#563; joins inside nested remain blocked by the pinned Screenplay
         // reference (Screenplay#1078). Children inside nested remain unsupported. Nested clear requires
-        // a matching root from and identical key.
+        // a matching root from and identical key. Root joins also admit required, type-matched event-property keys;
+        // later root events after a differently keyed join are refused (https://github.com/Cratis/Chronicle/issues/5439).
         Add(entries, "SemanticProjectionScope", rendered, "Children From Joins Every JoinRemovals Nested Removals");
         Add(entries, "SemanticProjectionChildren", rendered, "IdentifiedBy Property Scope");
         Add(entries, "SemanticProjectionCompositeKey", rejected("STAGE-ESM-017"), "Parts Type");
@@ -230,8 +233,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticProjectionEventProperty", rendered, "Path");
         Add(entries, "SemanticProjectionEvery", rendered, "IncludeChildren Mappings SubscribesToAllEvents");
         Add(entries, "SemanticProjectionFrom", rendered, "EventContract Key Mappings ParentKey");
-        Add(entries, "SemanticProjectionJoin", rendered, "EventContract Mappings On");
-        Add(entries, "SemanticProjectionJoin", rejected("STAGE-ESM-017"), "Key");
+        Add(entries, "SemanticProjectionJoin", rendered, "EventContract Key Mappings On");
         Add(entries, "SemanticProjectionJoinRemoval", rendered, "EventContract Key");
         Add(entries, "SemanticProjectionKey", rendered, "Kind");
         Add(entries, "SemanticProjectionKeyKind", rendered, "Value");
@@ -425,7 +427,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticEventVisibility", rendered, "Private");
         Add(entries, "SemanticEventVisibility", publication, "Public");
         Add(entries, "SemanticProjection", publication, "Target");
-        Add(entries, "SemanticReducer", rejected(SemanticVersionFeatures.PublicEvents), "Target");
+        Add(entries, "SemanticReducer", publication, "Target");
         Add(entries, "SemanticProjectionTargetKind", rendered, "ReadModel");
         Add(entries, "SemanticProjectionTargetKind", publication, "Event");
         Add(entries, "SemanticSlice", rendered, "Direction");
@@ -470,6 +472,31 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticExpressionKind", reads, "ReadPath");
         Add(entries, "SemanticReadPathExpression", reads, "Read PropertyId");
         Add(entries, "SemanticOneOfExpression", rejected("STAGE-ESM-006"), "CollectionProperty");
+
+        // State machines and workflows (ESM v36, Screenplay 5.1.0). The runtime drives them on the Orleans silo and the renderer emits
+        // Cratis.Orleans state machines and workflow definitions; what neither can express is refused with its STAGE-LIFECYCLE diagnostic.
+        var lifecycleNotRendered = rejected("STAGE-LIFECYCLE-010");
+        var scheduled = rejected("STAGE-LIFECYCLE-007");
+        var verifiedByTheReferenceEvaluator = ignored("Lifecycle specifications are verified by the reference lifecycle evaluator in the spec runner; no generated specification is emitted.");
+        Add(entries, "SemanticApplication", rendered, "StateMachines Workflows");
+        Add(entries, "SemanticStateMachine", rendered, "Name ReadModel States Transitions");
+        Add(entries, "SemanticStateMachine", verifiedByTheReferenceEvaluator, "Specifications");
+        Add(entries, "SemanticState", rendered, "Name IsInitial IsFinal Entering");
+        Add(entries, "SemanticStateEntry", rendered, "Kind Command Workflow");
+        Add(entries, "SemanticStateEntryKind", rendered, "SendCommand StartWorkflow");
+        Add(entries, "SemanticStateTransition", rendered, "From Event Guard To");
+        Add(entries, "SemanticWorkflow", rendered, "Name Subject Nodes Edges");
+        Add(entries, "SemanticWorkflow", verifiedByTheReferenceEvaluator, "Specifications");
+        Add(entries, "SemanticWorkflowNode", rendered, "Name Kind TriggerKind Event StateMachine State Command MaxAttempts AttemptTimeout RetryDelay Duration ExpiresAfter");
+        Add(entries, "SemanticWorkflowNode", scheduled, "Every At OnDayOfWeek OnDayOfMonth");
+        Add(entries, "SemanticWorkflowNode", lifecycleNotRendered, "Condition WhenTrue WhenFalse ApproverKind Approver Items MaxParallel JoinMode JoinCount");
+        Add(entries, "SemanticWorkflowEdge", rendered, "From Outlet To");
+        Add(entries, "SemanticWorkflowNodeKind", rendered, "Trigger Action Wait");
+        Add(entries, "SemanticWorkflowNodeKind", lifecycleNotRendered, "Decision Approval ForEach Join");
+        Add(entries, "SemanticLifecycleSpecification", verifiedByTheReferenceEvaluator, "Name Given WhenAppended WhenStarted Outcomes Then");
+        Add(entries, "SemanticLifecycleOutcome", verifiedByTheReferenceEvaluator, "Node Outlet");
+        Add(entries, "SemanticLifecycleExpectation", verifiedByTheReferenceEvaluator, "Kind Target Command");
+        Add(entries, "SemanticLifecycleExpectationKind", verifiedByTheReferenceEvaluator, "State Sends Starts Completes Fails Waits");
 
         return entries;
     }

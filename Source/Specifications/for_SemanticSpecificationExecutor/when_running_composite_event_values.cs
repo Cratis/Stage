@@ -60,22 +60,40 @@ public class when_running_composite_event_values : Specification
               specification ProducedComposite
                 when RecordDetails
                   id = "one"
-                  details = {"label":"nested","child":{"count":7}}
+                  details
+                    label = "nested"
+                    child
+                      count = 7
                 then DetailsRecorded
-                  details = {"child":{"count":7},"label":"nested"}
+                  details
+                    child
+                      count = 7
+                    label = "nested"
               specification GivenComposite
                 given DetailsRecorded
                   for "before"
-                  details = {"label":"nested","child":{"count":6}}
+                  details
+                    label = "nested"
+                    child
+                      count = 6
                 when RecordDetails
                   id = "one"
-                  details = {"label":"nested","child":{"count":7}}
+                  details
+                    label = "nested"
+                    child
+                      count = 7
                 then DetailsRecorded
-                  details = {"child":{"count":7},"label":"nested"}
+                  details
+                    child
+                      count = 7
+                    label = "nested"
               specification AppendedComposite
                 when append DetailsRecorded
                   for "one"
-                  details = {"label":"nested","child":{"count":7}}
+                  details
+                    label = "nested"
+                    child
+                      count = 7
                 then no events
               event DetailsRequested
                 details Details
@@ -87,8 +105,14 @@ public class when_running_composite_event_values : Specification
               specification InvokedComposite
                 when append DetailsRequested
                   for "one"
-                  details = {"label":"nested","child":{"count":7}}
+                  details
+                    label = "nested"
+                    child
+                      count = 7
                 then DetailsRecorded
-                  details = {"child":{"count":7},"label":"nested"}
+                  details
+                    child
+                      count = 7
+                    label = "nested"
         """;
 }

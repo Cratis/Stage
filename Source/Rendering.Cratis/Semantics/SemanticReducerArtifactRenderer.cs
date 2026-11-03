@@ -17,17 +17,21 @@ internal static class SemanticReducerArtifactRenderer
 
     internal static RenderedFile Render(LocatedSemanticSlice located, SemanticReducer reducer, SemanticApplicationContext context)
     {
-        var model = context.ReadModels[reducer.ReadModel];
+        var model = State(context, reducer);
         var modelType = $"global::{SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(model.Id).Path)}.{Identifiers.ToPascalCase(model.Name)}";
         var name = Identifiers.ToPascalCase(reducer.Name);
         var builder = context.CodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
-        context.ReducerBindings(located, reducer).Configure(builder);
+        (reducer.Target == SemanticProjectionTargetKind.Event
+            ? SemanticReducerBindingEnvironment.Create(located, context, reducer)
+            : context.ReducerBindings(located, reducer)).Configure(builder);
+        if (reducer.Target == SemanticProjectionTargetKind.Event) builder.Using("System.Linq");
         if (reducer.From is { } filter)
         {
             SemanticObserverFilterRendering.Attribute(builder, filter, context);
         }
         builder.OpenBlock($"public class {name} : global::Cratis.Chronicle.Reducers.IReducerFor<{modelType}>");
         RenderTransitions(builder, reducer, context);
+        RenderPublicationMembers(builder, reducer);
         builder.EndBlock();
         return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{name}.cs"]), builder.ToString())
         {
@@ -35,18 +39,13 @@ internal static class SemanticReducerArtifactRenderer
         };
     }
 
-    internal static string HelperName(string requirementId) =>
-        "Transition_" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(requirementId)))[..8];
-
     internal static void RenderTransitions(CSharpCodeBuilder builder, SemanticReducer reducer, SemanticApplicationContext context, string? analysisRequirement = null, string? analysisBody = null)
     {
-        var model = context.ReadModels[reducer.ReadModel];
+        var model = State(context, reducer);
         var modelType = $"global::{SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(model.Id).Path)}.{Identifiers.ToPascalCase(model.Name)}";
         var name = Identifiers.ToPascalCase(reducer.Name);
-        var keyType = model.Properties.Single(_ => _.IsIdentifier).Type;
-        var self = context.SelfReduces(reducer.ReadModel);
-        var keyMember = Identifiers.ToPascalCase(model.Properties.Single(_ => _.IsIdentifier).Name);
-        var check = IdentityCheck(keyType, keyMember, context);
+        var self = SelfReduces(context, reducer);
+        var check = ReadModelIdentityCheck(context, reducer);
 
         foreach (var transition in reducer.Transitions)
         {
@@ -54,8 +53,8 @@ internal static class SemanticReducerArtifactRenderer
             var eventNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(@event.Id).Path);
             var eventType = $"global::{eventNamespace}.{Identifiers.ToPascalCase(@event.Name)}";
             var descriptor = context.Request.TypedContextDescriptors.Single(_ => _.RequirementId == transition.RequirementId && _.OperationId == reducer.ReadModel);
-            var wrapper = SemanticTypedContextRenderer.WrapperName(descriptor);
-            var helper = HelperName(transition.RequirementId);
+            var wrapper = context.ContextNames.ContextWrapper(descriptor);
+            var helper = context.InlineNames.ReducerTransition(transition.RequirementId);
             var diagnostics = System.Collections.Immutable.ImmutableArray.CreateBuilder<ArtifactRenderDiagnostic>();
             var body = analysisRequirement == transition.RequirementId ? analysisBody : "throw new global::System.NotImplementedException();";
             if (analysisRequirement is null && !SemanticImplementationAdmission.TryGetVerifiedBody(context.Request, transition.RequirementId, reducer.ReadModel, diagnostics, out body))
@@ -75,11 +74,8 @@ internal static class SemanticReducerArtifactRenderer
             if (analysisRequirement is null)
             {
                 builder.Line("var originalSourceId = eventContext.EventSourceId.Value;")
-                .Line($"var result = {helper}{(self ? $".{SelfTransitionMethod}" : string.Empty)}(new global::{context.TypedContextsNamespace}.{wrapper}(current, @event, originalSourceId, {tenant}, eventContext.Occurred, checked((long)eventContext.SequenceNumber.Value)));")
-                .OpenBlock($"if (result is not null && ({check}))")
-                .Line("throw new global::System.InvalidOperationException(\"Reducer returned a read model with an identifier different from the event source.\");")
-                .EndBlock()
-                .Line("return result;");
+                    .Line($"var result = {helper}{(self ? $".{SelfTransitionMethod}" : string.Empty)}(new global::{context.TypedContextsNamespace}.{wrapper}(current, @event, originalSourceId, {tenant}, eventContext.Occurred, checked((long)eventContext.SequenceNumber.Value)));");
+                RenderResult(builder, reducer, check);
             }
             else
             {
@@ -94,6 +90,42 @@ internal static class SemanticReducerArtifactRenderer
             if (self) builder.EndBlock().BlankLine();
         }
     }
+
+    static void RenderPublicationMembers(CSharpCodeBuilder builder, SemanticReducer reducer)
+    {
+        if (reducer.Target != SemanticProjectionTargetKind.Event) return;
+        SemanticPublicationArtifactRenderer.RenderComparison(builder);
+        builder.Line("sealed class PublicEventCannotBeRetracted() : global::System.Exception(\"A published public event cannot be retracted.\");");
+    }
+
+    static void RenderResult(CSharpCodeBuilder builder, SemanticReducer reducer, string? check)
+    {
+        if (reducer.Target == SemanticProjectionTargetKind.Event)
+        {
+            builder.Line("if (result is null) throw new PublicEventCannotBeRetracted();")
+                .Line("return current is not null && SamePublicValue(current, result) ? current : result;");
+            return;
+        }
+        builder.OpenBlock($"if (result is not null && ({check}))")
+            .Line("throw new global::System.InvalidOperationException(\"Reducer returned a read model with an identifier different from the event source.\");")
+            .EndBlock()
+            .Line("return result;");
+    }
+
+    static bool SelfReduces(SemanticApplicationContext context, SemanticReducer reducer) =>
+        reducer.Target != SemanticProjectionTargetKind.Event && context.SelfReduces(reducer.ReadModel);
+
+    static string? ReadModelIdentityCheck(SemanticApplicationContext context, SemanticReducer reducer)
+    {
+        if (reducer.Target == SemanticProjectionTargetKind.Event) return null;
+        var identifier = context.ReadModels[reducer.ReadModel].Properties.Single(property => property.IsIdentifier);
+        return IdentityCheck(identifier.Type, Identifiers.ToPascalCase(identifier.Name), context);
+    }
+
+    static (SemanticId Id, string Name, System.Collections.Immutable.ImmutableArray<SemanticProperty> Properties) State(SemanticApplicationContext context, SemanticReducer reducer) =>
+        reducer.Target == SemanticProjectionTargetKind.Event
+            ? (context.Events[reducer.ReadModel].Id, context.Events[reducer.ReadModel].Name, context.Events[reducer.ReadModel].Properties)
+            : (context.ReadModels[reducer.ReadModel].Id, context.ReadModels[reducer.ReadModel].Name, context.ReadModels[reducer.ReadModel].Properties);
 
     static string IdentityCheck(SemanticTypeReference keyType, string keyMember, SemanticApplicationContext context)
     {

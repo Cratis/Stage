@@ -31,7 +31,7 @@ internal static partial class PureTransitionAdmission
         var type = symbol.ContainingType;
         var rootNamespace = analysis.RootNamespace;
         entry = string.Empty;
-        if (IsGeneratedConceptConversion(symbol, analysis.GeneratedConcepts) || IsConceptValueMember(symbol, type, compilation))
+        if (IsGeneratedConceptConversion(symbol, analysis.GeneratedConcepts) || IsConceptValueMember(symbol, type, analysis.Scope(compilation)))
         {
             entry = "generated";
             return true;
@@ -40,7 +40,7 @@ internal static partial class PureTransitionAdmission
         if (IsSyntheticSource(symbol, type, compilation, rootNamespace))
         {
             entry = "generated";
-            return AllowedGenerated(symbol, type, rootNamespace);
+            return AllowedGenerated(symbol, type, rootNamespace, analysis.ContextTypes);
         }
 
         return SafeValueType(type) ? AllowedValueType(symbol, type, out entry) : AllowedLibrary(symbol, type, out entry);
@@ -61,11 +61,11 @@ internal static partial class PureTransitionAdmission
     // The pinned ConceptAs<T> and EventSourceId<T> expose auto-property getters only.
     // Mirror their declaring types in the synthetic compilation, rather than admitting a
     // synthetic owned Value that binds differently from the real inherited property.
-    static bool IsConceptValueMember(ISymbol symbol, INamedTypeSymbol type, Compilation compilation) =>
+    static bool IsConceptValueMember(ISymbol symbol, INamedTypeSymbol type, TrustScope scope) =>
         IsConceptValueName(symbol, type) &&
         symbol is IPropertySymbol { IsStatic: false, IsIndexer: false, GetMethod: not null } conceptProperty &&
         SymbolEqualityComparer.Default.Equals(conceptProperty.Type, type.TypeArguments[0]) &&
-        SafeValue(conceptProperty.Type, compilation);
+        SafeValue(conceptProperty.Type, scope);
 
     static bool IsConceptValueName(ISymbol symbol, INamedTypeSymbol type)
     {
@@ -93,7 +93,7 @@ internal static partial class PureTransitionAdmission
         return typeNamespace == rootNamespace || typeNamespace.StartsWith(rootNamespace + ".", StringComparison.Ordinal);
     }
 
-    static bool AllowedGenerated(ISymbol symbol, INamedTypeSymbol type, string rootNamespace)
+    static bool AllowedGenerated(ISymbol symbol, INamedTypeSymbol type, string rootNamespace, IReadOnlySet<string> contextTypes)
     {
         if (IsTenantMember(symbol, type, rootNamespace) || IsIdentityLookup(symbol, type, rootNamespace))
         {
@@ -101,7 +101,7 @@ internal static partial class PureTransitionAdmission
         }
 
         return symbol.Name != "ToString" &&
-            (type.Name.StartsWith("TypedContext_", StringComparison.Ordinal)
+            (TypedContextTypes.IsContext(type, contextTypes)
                 ? symbol is IPropertySymbol
                 : symbol is IMethodSymbol { MethodKind: MethodKind.Constructor or MethodKind.PropertyGet } or
                     IPropertySymbol or IFieldSymbol { IsConst: true });

@@ -12,6 +12,10 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 public class when_verifying_reaction_bodies_against_the_pinned_kernel : a_generated_application
 {
     const string HostSupport = """
+        using Cratis.Arc.MongoDB;
+        using Cratis.Orleans.Chronicle.Hosting;
+        using Cratis.Orleans.Hosting;
+
         public partial class Program
         {
             static partial void ConfigureServices(WebApplicationBuilder builder)
@@ -203,8 +207,11 @@ public class when_verifying_reaction_bodies_against_the_pinned_kernel : a_genera
         // Only the local development kernel uses a self-signed certificate; redirects are disabled.
         if (health.IsLoopback)
         {
+#pragma warning disable MA0039 // Local development kernel on loopback uses a self-signed certificate
             handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+#pragma warning restore MA0039
         }
+
         using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(5) };
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(120));
         var last = "No health response received.";

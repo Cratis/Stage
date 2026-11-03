@@ -260,7 +260,7 @@ public static class ScreenDirectiveConverter
             [.. action.Alternatives.Select(alternative => new Cratis.Scene.Model.Guards.GuardedActionAlternative(
                 alternative.Command,
                 scope.GuardContexts is null
-                    ? SceneGuards.ConvertToCondition(alternative.Condition, scope.EnumerationOf)
+                    ? SceneGuards.ConvertToCondition(alternative.Condition, scope.EnumerationOf, null, scope.EnumerationNumbersOf)
                     : SceneGuardConversion.FromResolved(alternative.Condition, scope.At(action).FieldType).ToCondition(),
                 ConvertArguments(alternative.Arguments)))],
             Otherwise: action.Otherwise is { } otherwise ? new Cratis.Scene.Model.Guards.GuardedActionFallback(

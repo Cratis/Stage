@@ -17,7 +17,7 @@ public class when_serializing_native_guard_enumerations : Specification
 
     void Because()
     {
-        var comparison = new ComparisonGuardCondition(new("item.status"), GuardOperator.Equal, "open");
+        var comparison = new ComparisonGuardCondition(new("item.status"), GuardOperator.Equal, "open", ["open", "closed"]) { EnumerationNumbers = [1, 0] };
         _wire = JsonSerializer.SerializeToNode(new
         {
             comparison,
@@ -31,6 +31,7 @@ public class when_serializing_native_guard_enumerations : Specification
     }
 
     [Fact] void should_preserve_the_comparison_operator_spelling() => _wire["comparison"]!["operator"]!.GetValue<string>().ShouldEqual("Equal");
+    [Fact] void should_preserve_explicit_enumeration_identity() => _wire["comparison"]!["enumerationNumbers"]!.ToJsonString().ShouldEqual("[1,0]");
     [Fact] void should_preserve_the_and_operator_spelling() => _wire["and"]!["operator"]!.GetValue<string>().ShouldEqual("And");
     [Fact] void should_preserve_the_or_operator_spelling() => _wire["or"]!["operator"]!.GetValue<string>().ShouldEqual("Or");
     [Fact] void should_preserve_the_hidden_fallback_spelling() => _wire["hidden"]!["outcome"]!.GetValue<string>().ShouldEqual("Hidden");

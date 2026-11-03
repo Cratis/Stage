@@ -565,7 +565,7 @@ public class when_rendering_a_pure_reducer
             descriptor,
             Assert.Single(loaded.ImplementationRequirements));
         var reducerPath = plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("Fold.cs", StringComparison.Ordinal)).RelativePath;
-        var real = PureTransitionAdmission.AnalyzeRendered(compilation, reducerPath, descriptor);
+        var real = PureTransitionAdmission.AnalyzeRendered(compilation, reducerPath, descriptor, context);
         Assert.True(synthetic.Accepted && real.Accepted, $"{synthetic.Reason}; {real.Reason}");
         Assert.Equal(synthetic.BoundSymbols.ToArray(), real.BoundSymbols.ToArray());
 
@@ -614,7 +614,7 @@ public class when_rendering_a_pure_reducer
         var plan = Plan(compilation);
         Assert.True(plan.Success, $"body={string.Join('|', compilation.ImplementationContents.Values)}\n{string.Join(Environment.NewLine, plan.Diagnostics)}");
         Assert.Contains(plan.Artifacts, artifact => artifact.RelativePath.EndsWith("Fold.cs", StringComparison.Ordinal));
-        Assert.Contains(plan.Artifacts, artifact => artifact.RelativePath.StartsWith("TypedContexts/TypedContext_", StringComparison.Ordinal));
+        Assert.Contains(plan.Artifacts, artifact => artifact.RelativePath.StartsWith("TypedContexts/", StringComparison.Ordinal) && artifact.RelativePath.EndsWith("Context.cs", StringComparison.Ordinal));
         var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
             .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
         var errors = RenderedOutput.Errors(files);
@@ -660,14 +660,14 @@ public class when_rendering_a_pure_reducer
         var record = assembly.GetTypes().Single(type => type.Name == "Total");
         Assert.Equal(ordered.Select(property => Identifiers.ToPascalCase(property.Name)),
             record.GetConstructors().Single(constructor => constructor.GetParameters().Length == ordered.Length).GetParameters().Select(parameter => parameter.Name));
-        var wrapper = assembly.GetTypes().Single(type => type.Name.StartsWith("TypedContext_", StringComparison.Ordinal));
+        var wrapper = assembly.GetTypes().Single(type => type.Name == Context(loaded).ContextNames.ContextWrapper(loaded.TypedContextDescriptors.Single()));
         var @event = assembly.GetTypes().Single(type => type.Name == "OrderPlaced");
         var tenant = assembly.GetType("Projects.TypedContexts.TenantId");
         var identity = assembly.GetTypes().Single(type => type.Name == "OrderId");
         var payload = Activator.CreateInstance(@event, Activator.CreateInstance(identity, Guid.NewGuid()), 1m);
         var context = Activator.CreateInstance(wrapper, null, payload, "key", Activator.CreateInstance(tenant, "Default"), DateTimeOffset.UtcNow, 0L);
         var reducer = assembly.GetTypes().Single(type => type.Name == "Fold");
-        var transition = reducer.GetMethods(BindingFlags.Static | BindingFlags.NonPublic).Single(method => method.Name.StartsWith("Transition_", StringComparison.Ordinal));
+        var transition = reducer.GetMethods(BindingFlags.Static | BindingFlags.NonPublic).Single(method => method.Name == Context(loaded).InlineNames.ReducerTransition(loaded.TypedContextDescriptors.Single().RequirementId));
         var result = transition.Invoke(null, [context]);
         Assert.Equal(11m, record.GetProperty("Amount").GetValue(result));
         Assert.Equal(22m, record.GetProperty("Alpha").GetValue(result));
@@ -721,7 +721,7 @@ public class when_rendering_a_pure_reducer
             .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
         var compilation = RenderedOutput.CreateCompilation(files);
         var path = plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("Fold.cs", StringComparison.Ordinal)).RelativePath;
-        var rendered = PureTransitionAdmission.AnalyzeRendered(compilation, path, descriptor);
+        var rendered = PureTransitionAdmission.AnalyzeRendered(compilation, path, descriptor, context);
         Assert.True(analysis.Accepted && rendered.Accepted, $"analysis: {analysis.Reason}; rendered: {rendered.Reason}; {string.Join("; ", compilation.GetDiagnostics())}");
         Assert.Equal(analysis.BoundSymbols.ToArray(), rendered.BoundSymbols.ToArray());
         Assert.Contains(analysis.BoundSymbols, member => member.Contains("Cratis.Concepts.ConceptAs<string>.Value", StringComparison.Ordinal));
@@ -902,7 +902,7 @@ public class when_rendering_a_pure_reducer
             "wrapper Deconstruct call" or
             "wrapper Equals/with" or "wrapper with/Occurred" or
             "wrapper with/SequenceNumber" or "wrapper construction" or "wrapper Equals construction" or
-            "passing context as value" => "TypedContext_",
+            "passing context as value" => "TypedContexts.",
             "culture concatenation" => null,
             "object Concat" => "Concat",
             "CurrentCulture comparison" => null,
@@ -1084,7 +1084,7 @@ public class when_rendering_a_pure_reducer
                     System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Replace(
                         artifact.RelativePath == reducerFile.RelativePath ? originalBody : "\u0000", realizedFixture, StringComparison.Ordinal)));
             var real = RenderedOutput.CreateCompilation(files);
-            var actual = PureTransitionAdmission.AnalyzeRendered(real, reducerFile.RelativePath, descriptor);
+            var actual = PureTransitionAdmission.AnalyzeRendered(real, reducerFile.RelativePath, descriptor, Context(compiled, self));
             Assert.True(synthetic.Accepted == actual.Accepted,
                 $"{fixture}: analysis {synthetic.Code}: {synthetic.Reason}; rendered {actual.Code}: {actual.Reason}; " +
                 string.Join("; ", real.GetDiagnostics().Where(_ => _.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error)));
@@ -1118,7 +1118,7 @@ public class when_rendering_a_pure_reducer
                     "return new Total(context.Event.Id, Math.Abs(-1m));",
                     StringComparison.Ordinal)));
         var intBinding = await Analyze("return new Total(Guid.Empty, Math.Abs(-1));");
-        var decimalBinding = PureTransitionAdmission.AnalyzeRendered(RenderedOutput.CreateCompilation(files), reducerFile.RelativePath, descriptor);
+        var decimalBinding = PureTransitionAdmission.AnalyzeRendered(RenderedOutput.CreateCompilation(files), reducerFile.RelativePath, descriptor, Context(compiled));
         Assert.True(intBinding.Accepted && decimalBinding.Accepted, $"{intBinding.Reason}; {decimalBinding.Reason}");
         Assert.False(intBinding.BoundSymbols.SequenceEqual(decimalBinding.BoundSymbols));
         Assert.Contains(intBinding.BoundSymbols, signature => signature.Contains("Math.Abs`0(None:int)", StringComparison.Ordinal));
@@ -1149,7 +1149,7 @@ public class when_rendering_a_pure_reducer
         var transition = reducer.Transitions.Single();
         return PureTransitionAdmission.Analyze(
             (normalizeIdentity ? body.Replace("Guid.Empty", "context.Event.Id", StringComparison.Ordinal) : body)
-                .Replace("$WRAPPER$", "TypedContext_" + SemanticTypedContextRenderer.Suffix(loaded.TypedContextDescriptors.Single()), StringComparison.Ordinal),
+                .Replace("$WRAPPER$", context.ContextNames.ContextWrapper(loaded.TypedContextDescriptors.Single()), StringComparison.Ordinal),
             context,
             context.ReadModels[reducer.ReadModel],
             context.Events[transition.EventContract],
@@ -1192,20 +1192,21 @@ public class when_rendering_a_pure_reducer
         }
     }
 
-    internal static ArtifactRenderPlan Plan(LoadedSemanticModel compiled, ArtifactRenderScope? scope = null, bool self = false)
+    internal static SemanticApplicationContext Context(LoadedSemanticModel compiled, bool self = false) =>
+        new(Request(compiled, null, self), new("Projects", "Projects"));
+
+    internal static ArtifactRenderPlan Plan(LoadedSemanticModel compiled, ArtifactRenderScope? scope = null, bool self = false) =>
+        new CratisArtifactRenderPlanner().Plan(Request(compiled, scope, self));
+
+    static ArtifactRenderRequest Request(LoadedSemanticModel compiled, ArtifactRenderScope? scope, bool self) => new(
+        compiled.Model,
+        SemanticExecutionPlan.Compile(compiled.Model).Plan,
+        self ? CratisRendering.CreateNewApplicationProfile("Projects", new("Projects", "Projects")) : CratisRendering.CreateProfile("Projects", new("Projects", "Projects")),
+        scope ?? new(ArtifactRenderScopeKind.Application, compiled.Model.Application.Id))
     {
-        var model = compiled.Model;
-        var request = new ArtifactRenderRequest(
-            model,
-            SemanticExecutionPlan.Compile(model).Plan,
-            self ? CratisRendering.CreateNewApplicationProfile("Projects", new("Projects", "Projects")) : CratisRendering.CreateProfile("Projects", new("Projects", "Projects")),
-            scope ?? new(ArtifactRenderScopeKind.Application, model.Application.Id))
-        {
-            ImplementationRequirements = compiled.ImplementationRequirements,
-            ImplementationContents = compiled.ImplementationContents,
-            TypedContextDescriptors = compiled.TypedContextDescriptors
-        };
-        return new CratisArtifactRenderPlanner().Plan(request);
-    }
+        ImplementationRequirements = compiled.ImplementationRequirements,
+        ImplementationContents = compiled.ImplementationContents,
+        TypedContextDescriptors = compiled.TypedContextDescriptors
+    };
 }
 #endif

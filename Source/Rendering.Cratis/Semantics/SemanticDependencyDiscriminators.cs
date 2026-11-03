@@ -49,6 +49,12 @@ internal static class SemanticDependencyDiscriminators
         SemanticEventContextValueKind:EventSourceIdentity Occurred CausedBySubject CausedByName CausedByUserName
         SemanticExpressionRootKind:Command Event Trigger
         SemanticExpressionSourceKind:Property
+        SemanticStateEntryKind:SendCommand StartWorkflow
+        SemanticWorkflowNodeKind:Trigger Action Decision Wait Approval ForEach Join
+        SemanticWorkflowTriggerKind:Event StateEntered Schedule Manual
+        SemanticJoinMode:All Any AtLeast
+        SemanticApproverKind:Persona Policy
+        SemanticLifecycleExpectationKind:State Sends Starts Completes Fails Waits
         SemanticValidationRuleKind:NotEmpty Maximum Minimum Equal NotEqual GreaterThan GreaterThanOrEqual LessThan LessThanOrEqual Length AllGreaterThan AllGreaterThanOrEqual Matches RulePredicate CodeValidation Checksum Contains NotContains StartsWith EndsWith DecimalPlaces
         """;
 

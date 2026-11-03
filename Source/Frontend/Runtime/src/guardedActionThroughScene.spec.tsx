@@ -33,6 +33,56 @@ function ThroughScene({ scene = tree }: { scene?: SceneElement }) {
     return <SceneElementView element={scene} registry={stageApplicationRegistry()} resolveBinding={data.resolveBinding} />;
 }
 
+describe('a native guarded action over explicitly numbered enumerations', () => {
+    afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+
+    async function expectNoExecutableAction() {
+        await new Promise(resolve => setTimeout(resolve, 50));
+        const button = screen.queryByRole('button', { name: 'Process' });
+        if (button) {
+            expect((button as HTMLButtonElement).disabled).toBe(true);
+            fireEvent.click(button);
+        }
+    }
+
+    it.each([
+        { members: ['open', 'closed'], numbers: [1, 0], right: 'open', status: 1, expected: true },
+        { members: ['open', 'closed'], numbers: [1, 0], right: 'open', status: 0, expected: false },
+        { members: ['draft', 'issued', 'cancelled'], numbers: [-1, 4, 90], right: 'draft', status: -1, expected: true },
+        { members: ['draft', 'issued', 'cancelled'], numbers: [-1, 4, 90], right: 'issued', status: 4, expected: true },
+        { members: ['draft', 'issued', 'cancelled'], numbers: [-1, 4, 90], right: 'issued', status: 1, expected: false },
+        { members: ['draft', 'issued', 'cancelled'], numbers: [-1, 4, 90], right: 'issued', status: 7, expected: false },
+        { members: ['draft', 'issued', 'cancelled'], numbers: [-1, 4, 90], right: 'issued', status: 7, operator: 'NotEqual', expected: false },
+        { members: ['draft', 'issued', 'cancelled'], numbers: [-1, 4, 90], right: 'issued', status: 'ISSUED', expected: true },
+        { members: ['open', 'closed'], numbers: [1, 1], right: 'open', status: 1, expected: false },
+    ])('offers and executes only the named member: %j', async ({ members, numbers, right, status, operator = 'Equal', expected }) => {
+        registerTestQueries(routes.queries);
+        registerTestCommand('SendInvoice', routes.commands.SendInvoice, { invoiceId: { type: 'string' } });
+        const fetched = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => Promise.resolve({ ok: true,
+            json: async () => init?.method === 'POST' ? commandResult() : queryResult({ data: { id: 'invoice-1', status } }),
+        } as Response));
+        vi.stubGlobal('fetch', fetched);
+        const scene = bindDataSources(element('screen', 'core:section', {}, { content: [
+            element('subject', 'core:data', { typeName: 'Invoice', query: 'GetInvoice', isCollection: false }),
+            element('process', 'core:guarded-action', {
+                label: 'Process',
+                alternatives: [{ command: 'SendInvoice', condition: { kind: 'comparison', left: { subject: 'item.status' }, operator, right, enumeration: members, enumerationNumbers: numbers }, arguments: { invoiceId: { subject: 'item.id' } } }],
+                otherwise: { outcome: 'Hidden' },
+            }),
+        ] }));
+        render(<PrimeReactProvider><StageDataProvider routes={routes} locale='en' locales={['en']} screen='Invoice'><ThroughScene scene={scene} /></StageDataProvider></PrimeReactProvider>);
+        await waitFor(() => expect(fetched).toHaveBeenCalled());
+        if (expected) {
+            fireEvent.click(await screen.findByRole('button', { name: 'Process' }));
+            await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
+            expect(fetched.mock.calls.find(([, init]) => init?.method === 'POST')?.[1]?.body).toBe(JSON.stringify({ invoiceId: 'invoice-1' }));
+        } else {
+            await expectNoExecutableAction();
+            expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false);
+        }
+    });
+});
+
 describe('a guarded action rendered through Scene and Stage', () => {
     afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 

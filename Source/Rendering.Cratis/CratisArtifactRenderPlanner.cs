@@ -3,6 +3,7 @@
 
 using System.Collections.Immutable;
 using Cratis.Screenplay.Semantics;
+using Cratis.Stage.Contracts.Lifecycles;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
@@ -11,6 +12,7 @@ using Cratis.Stage.Rendering.Cratis.Scaffolding;
 using Cratis.Stage.Rendering.Cratis.Scene;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Rendering.Cratis.Semantics.Constraints;
+using Cratis.Stage.Rendering.Cratis.Semantics.Lifecycles;
 using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
 using Cratis.Stage.Rendering.Cratis.Semantics.Validation;
 
@@ -109,6 +111,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         var context = new SemanticApplicationContext(request, options);
         context.ScopeFlatProjections();
         context.DegradeEventContextMappings([]);
+        context.DenyUnsupportedValidations([]);
         var slices = context.SelectedSlices();
         diagnostics.AddRange(SemanticVersionFeatureAdmission.Verify(context, slices));
         diagnostics.AddRange(SemanticImplementationAdmission.Verify(request));
@@ -128,11 +131,14 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         context = new SemanticApplicationContext(admittedRequest, options);
         context.ScopeFlatProjections();
         context.DegradeEventContextMappings(diagnostics);
+        context.DenyUnsupportedValidations(diagnostics);
 
         var omission = OmissionFor(attempt);
         context.OmittedOwners = omission.Closure;
         slices = omission.Apply(context.SelectedSlices());
         SemanticCratisAdmission.Evaluate(context, slices, diagnostics);
+        var lifecycleRefusals = SemanticLifecycleAdmission.Check(context);
+        diagnostics.AddRange(lifecycleRefusals.Select(refusal => Error(refusal.Code, refusal.Message, context.Application.Id)));
         var removals = SemanticCratisAdmission.AdmitReducerMigration(context, diagnostics);
         var selectedReducers = omission.Apply(SemanticReducerTypedContexts.Selected(context, slices))
             .Select(descriptor => (descriptor.RequirementId, descriptor.OperationId!.Value)).ToHashSet();
@@ -166,15 +172,9 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         refusals = refusals.AddRange(evidence.Refusals);
         context.RefuseSpecifications([.. refusals.Select(refusal => refusal.Artifact)]);
 
-        var validations = omission.Apply(SemanticValidationContextRuntime.Selected(context, slices)).ToArray();
-        foreach (var descriptor in validations)
+        foreach (var descriptor in omission.Apply(SemanticValidationContextRuntime.Selected(context, slices)))
         {
             artifacts.Add(Artifact(SemanticValidationContextRuntime.RenderWrapper(context, descriptor)));
-        }
-        if (validations.Length > 0)
-        {
-            artifacts.Add(Artifact(SemanticValidationContextRuntime.RenderBodies(context, validations.Select(descriptor =>
-                (descriptor, context.Request.ImplementationContents[descriptor.RequirementId])))));
         }
 
         if (SemanticValidationContextRuntime.UsesCommandReceiptTime(context, slices))
@@ -226,8 +226,16 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         var shared = request.Scope.Kind == ArtifactRenderScopeKind.Application
             ? (context.Application.Concepts, context.Application.Types)
             : SemanticSharedReferences.Collect(context, slices);
-        artifacts.AddRange(shared.Concepts.Select(_ => Artifact(SemanticCommonArtifactRenderer.Render(_, context))));
-        artifacts.AddRange(shared.Types.Select(_ => Artifact(SemanticCommonArtifactRenderer.Render(_, context))));
+        if (context.EventContracts.Any)
+        {
+            AddEventContractCommon(context, shared, artifacts, diagnostics);
+        }
+        else
+        {
+            artifacts.AddRange(shared.Concepts.Select(_ => Artifact(SemanticCommonArtifactRenderer.Render(_, context))));
+            artifacts.AddRange(shared.Types.Select(_ => Artifact(SemanticCommonArtifactRenderer.Render(_, context))));
+        }
+
         artifacts.AddRange(SemanticEventSourceArtifactRenderer.Selected(context, slices).Select(source => Artifact(SemanticEventSourceArtifactRenderer.Render(source, context))));
         if (SemanticPolicyNames.Operations(slices, context.Application.Policies).Count != 0)
         {
@@ -240,6 +248,17 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             var renderer = SemanticSliceArtifactRenderers.Ordered.FirstOrDefault(_ => _.Handles(located)) ??
                 throw UnsupportedSemanticRendering.For(nameof(SemanticSliceKind), located.Slice.Kind);
             artifacts.AddRange(renderer.Render(located, context).Select(Artifact));
+            artifacts.AddRange(SemanticEventContractsArtifactRenderer.Render(located, context).Select(Artifact));
+        }
+
+        if (lifecycleRefusals.IsEmpty && request.Scope.Kind == ArtifactRenderScopeKind.Application)
+        {
+            artifacts.AddRange(SemanticLifecycleArtifactRenderer.Render(context).Select(Artifact));
+            diagnostics.AddRange(context.Application.StateMachines.Select(machine => new ArtifactRenderDiagnostic(
+                LifecycleCodes.RestartState,
+                ArtifactRenderDiagnosticSeverity.Warning,
+                $"State machine '{machine.Name}' resumes in its initial state after its grain is reactivated: Cratis.Orleans resolves the state of an event-sourced machine from the followed read model alone, and '{machine.Name}' declares no read model member that records its state.",
+                context.Application.Id)));
         }
 
         artifacts.AddRange(SemanticCratisAdmission.SelectedConstraints(context, slices)
@@ -262,6 +281,37 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         return standing == EsmVersionStanding.NewerWithinRange
             ? CratisEsmRangeAdmission.Evaluate(request, new SemanticApplicationContext(request, options))
             : CratisEsmRangeAdmission.FromFindings(request, new(standing, []));
+    }
+
+    // The concepts and types an own public event needs render into the contracts project; the Arc validators of those concepts stay in the application.
+    static void AddEventContractCommon(
+        SemanticApplicationContext context,
+        (IReadOnlyList<SemanticConcept> Concepts, IReadOnlyList<SemanticCompositeType> Types) shared,
+        List<PlannedArtifact> artifacts,
+        List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        var contracts = context.EventContracts;
+        var blockers = contracts.Blockers(context).ToArray();
+        foreach (var (@event, concept) in blockers)
+        {
+            diagnostics.Add(Error(
+                SemanticVersionFeatures.PublicEvents,
+                $"Public event '{@event.Name}' needs concept '{concept.Name}', which carries Arc metadata (NotAudited) the contracts project cannot reference.",
+                @event.Id));
+        }
+
+        foreach (var concept in shared.Concepts)
+        {
+            var inContracts = blockers.Length == 0 && contracts.ContainsConcept(concept.Id);
+            artifacts.Add(Artifact(SemanticCommonArtifactRenderer.Render(concept, context, placement: inContracts ? ConceptPlacement.Contracts : ConceptPlacement.Application)));
+            if (inContracts && concept.Values.IsEmpty && !concept.Validations.IsEmpty)
+            {
+                artifacts.Add(Artifact(SemanticCommonArtifactRenderer.Render(concept, context, placement: ConceptPlacement.Validator)));
+            }
+        }
+
+        artifacts.AddRange(shared.Types.Select(type =>
+            Artifact(SemanticCommonArtifactRenderer.Render(type, context, placement: blockers.Length == 0 && contracts.ContainsType(type.Id) ? ConceptPlacement.Contracts : ConceptPlacement.Application))));
     }
 
     static (List<PlannedArtifact> Artifacts, ImmutableArray<ArtifactImplementationGap> Gaps) AddPerformerGaps(ArtifactRenderRequest request, IEnumerable<PlannedArtifact> artifacts, List<ArtifactRenderDiagnostic> diagnostics)
@@ -306,7 +356,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             return;
         }
 
-        artifacts.AddRange(CratisScaffoldArtifacts.Render(request.Profile, context.RootNamespace, [context.Application.Id], request.Model.Application.Name));
+        artifacts.AddRange(CratisScaffoldArtifacts.Render(request.Profile, context.RootNamespace, [context.Application.Id], request.Model.Application.Name, SemanticLifecycleArtifactRenderer.HasEventTriggers(context), context.EventContracts.Any && !context.EventContracts.Blockers(context).Any() ? context.ContractsFolder : null));
     }
 
     // The application's shared UI: the Scene composition, the module binding it to the generated Arc proxies, and the

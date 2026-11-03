@@ -73,7 +73,13 @@ public static partial class conformance_outcomes
         var problems = new SortedSet<string>(StringComparer.Ordinal);
         if (plan.Specifications.Count == 0)
         {
-            return conformance_observation.WithoutRefusals(report.Results.Count == 0 ? NoSpecifications : "gap:results-without-specifications");
+            // A model without slice specifications can still carry the specifications of its state machines and workflows, which the executor runs.
+            return conformance_observation.WithoutRefusals(report.Results.Count switch
+            {
+                0 => NoSpecifications,
+                _ when report.Results.All(result => result.Outcome == SemanticSpecificationOutcome.Passed) => Supported,
+                _ => "gap:lifecycle-specifications-failed"
+            });
         }
 
         problems.UnionWith(executor_result_ids.Problems(

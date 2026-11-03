@@ -43,7 +43,7 @@ internal static class SemanticStateChangeArtifactRenderer
         {
             builder.Using("Cratis.Chronicle.EventSequences");
         }
-        if (located.Slice.Commands.SelectMany(command => command.Properties).Concat(located.Slice.Events.SelectMany(_ => _.Properties))
+        if (located.Slice.Commands.SelectMany(command => command.Properties).Concat(located.Slice.Events.Where(_ => !context.EventContracts.ContainsEvent(_.Id)).SelectMany(_ => _.Properties))
             .Any(_ => SemanticTypeSystem.DeclarationNeedsCommon(_.Type)))
         {
             builder.Using(context.CommonNamespace);
@@ -70,13 +70,10 @@ internal static class SemanticStateChangeArtifactRenderer
                 ? $"global::Cratis.Chronicle.Events.EventTypeAttribute({CSharpCodeBuilder.StringLiteral(stored)})"
                 : "global::Cratis.Chronicle.Events.EventTypeAttribute");
 
+        // An own public event carries no attribute: it lives in the contracts project, whose assembly names the event store.
         if (@event.Origin is { } origin)
         {
             builder.Attribute($"global::Cratis.Chronicle.Events.EventStoreAttribute({CSharpCodeBuilder.StringLiteral(origin)})");
-        }
-        else if (@event.Visibility == SemanticEventVisibility.Public)
-        {
-            builder.Attribute("global::Cratis.Chronicle.Events.PublicAttribute");
         }
 
         // A product a projection adds (ESM v29) is a member the event carries: Chronicle's Add takes one event property.
@@ -106,7 +103,7 @@ internal static class SemanticStateChangeArtifactRenderer
         {
             RenderCommand(builder, command, context, types);
         }
-        foreach (var declaredEvent in located.Slice.Events)
+        foreach (var declaredEvent in located.Slice.Events.Where(declared => !context.EventContracts.ContainsEvent(declared.Id)))
         {
             RenderEvent(builder, declaredEvent, types, context);
         }
@@ -131,6 +128,7 @@ internal static class SemanticStateChangeArtifactRenderer
         var results = new SemanticCommandResultRendering(command, context, locals);
 
         var severities = command.Validations.Select(rule => rule.Severity)
+            .Concat(context.DeniedOperations.ContainsKey(command.Id) ? [SemanticValidationSeverity.Error] : [])
             .Concat(command.CodeValidations.Select(_ => SemanticValidationSeverity.Error))
             .Concat(command.Requirements.Select(requirement => requirement.Severity))
             .Concat(command.Properties.SelectMany(property => ReferencedValidations(property.Type, context, []).Select(rule => rule.Severity)))
@@ -162,7 +160,7 @@ internal static class SemanticStateChangeArtifactRenderer
         var streamId = routing.StreamId();
         string EventValue(SemanticProducedEvent produced)
         {
-            if (command.Handler is not null) return SemanticCommandHandlerRendering.Payload(command, produced, locals);
+            if (command.Handler is not null) return SemanticCommandHandlerRendering.Payload(command, produced, context, locals);
             var @event = context.Events[produced.EventContract];
             var arguments = @event.Properties.Select(property =>
             {
@@ -349,7 +347,7 @@ internal static class SemanticStateChangeArtifactRenderer
 
         // A protected command evaluates its requirements inside Handle, with the decision reads, not in the parameterless validator.
         var requirements = command.Reads.IsDefaultOrEmpty ? command.Requirements : [];
-        if (command.Validations.IsEmpty && command.CodeValidations.IsEmpty && requirements.IsEmpty && constrained.Length == 0)
+        if (command.Validations.IsEmpty && command.CodeValidations.IsEmpty && requirements.IsEmpty && constrained.Length == 0 && !context.DeniedOperations.ContainsKey(command.Id))
         {
             return;
         }
@@ -360,7 +358,12 @@ internal static class SemanticStateChangeArtifactRenderer
         SemanticValidationRendering.RenderMatchFields(builder, command.Validations, commandName);
         builder.Summary($"Initializes validation rules for {commandName}.")
             .OpenBlock($"public {commandName}Validator()");
+        if (context.DeniedOperations.TryGetValue(command.Id, out var denial))
+        {
+            builder.Line($"RuleFor(_ => _).Must(_ => false).WithMessage({CSharpCodeBuilder.StringLiteral(SemanticDeniedValidations.Message(command, denial))});");
+        }
         var raw = SemanticDateComparisonAdmission.Raw(context.Application, command);
+        var hasBodies = !command.CodeValidations.IsEmpty;
         foreach (var rule in command.Validations)
         {
             var property = command.Properties.Single(_ => _.Id == rule.Property);
@@ -368,6 +371,7 @@ internal static class SemanticStateChangeArtifactRenderer
             var wrapped = property.Type.Kind == SemanticTypeReferenceKind.Concept && !raw.Contains(property.Id);
             if (SemanticValidationContextRuntime.IsBody(rule))
             {
+                hasBodies = true;
                 SemanticValidationContextRuntime.RenderRule(builder, context, rule, command.Id, property);
             }
             else
@@ -395,6 +399,7 @@ internal static class SemanticStateChangeArtifactRenderer
         }
 
         builder.EndBlock().EndBlock();
+        if (hasBodies) SemanticValidationContextRuntime.RenderOwnerBodies(builder, context, command.Id);
     }
 
     static void RenderInlineConceptRules(CSharpCodeBuilder builder, SemanticCommand command, SemanticApplicationContext context)

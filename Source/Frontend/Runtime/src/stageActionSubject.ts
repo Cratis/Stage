@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import type { ExternalComponent } from '@cratis/scene.model';
-import { humanize, type SchemaProperty } from './stageFormSchema';
+import { createsEntity, humanize, type SchemaProperty } from './stageFormSchema';
 
 /**
  * The explicit subject of an action (Screenplay decision 0110, Cratis/Stage#855): `for item` acts on the one selected row, `for screen` on the
@@ -30,6 +30,11 @@ const emptyValues: unknown[] = [undefined, null, ''];
 export function actionSubjectOf(element: ExternalComponent): ActionSubject | undefined {
     const subject = element.properties.actionSubject;
     return subject === 'item' || subject === 'screen' ? subject : undefined;
+}
+
+/** Semantic schema intent beats advisory row/creation hints; explicit subjects retain their own binding semantics. */
+export function actionCreatesEntity(element: ExternalComponent, schema: string | undefined): boolean {
+    return actionSubjectOf(element) === undefined && (schema ? createsEntity(schema) : element.properties.createsEntity === true);
 }
 
 /** The one selected row an `item` subject acts on; no subject, a `screen` subject and two or more selected rows name none. */

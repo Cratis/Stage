@@ -7,6 +7,40 @@ import { canEvaluateGuard, evaluateGuard, selectGuardedInteraction } from '@crat
 const open = { kind: 'comparison', left: { subject: 'item.status' }, operator: 'Equal', right: 'open' };
 const many = { kind: 'comparison', left: { subject: 'item.count' }, operator: 'GreaterThan', right: 3 };
 
+describe('Scene native guards over explicitly numbered enumerations', () => {
+    const comparison = (members: string[], numbers: unknown, right = 'open', operator = 'Equal') => ({
+        kind: 'comparison', left: { subject: 'item.status' }, operator, right, enumeration: members, enumerationNumbers: numbers,
+    });
+    const reordered = ['open', 'closed'];
+    const sparse = ['draft', 'issued', 'cancelled'];
+
+    it.each([
+        [comparison(reordered, [1, 0]), 1, true],
+        [comparison(reordered, [1, 0]), 0, false],
+        [comparison(reordered, [1, 0], 'open', 'NotEqual'), 0, true],
+        [comparison(sparse, [-1, 4, 90], 'draft'), -1, true],
+        [comparison(sparse, [-1, 4, 90], 'issued'), 4, true],
+        [comparison(sparse, [-1, 4, 90], 'issued'), 1, false],
+        [comparison(sparse, [-1, 4, 90], 'issued'), 7, false],
+        [comparison(sparse, [-1, 4, 90], 'issued', 'NotEqual'), 7, false],
+        [comparison(sparse, [-1, 4, 90], 'issued'), 'ISSUED', true],
+    ])('uses explicit member identity for %j with wire value %s', (condition, status, expected) => {
+        expect(evaluateGuard(condition, { status })).toBe(expected);
+    });
+
+    it.each([[1, 1], [1], [1.5, 0], ['1', 0], null, 1, [Infinity, 0]].map(numbers => ({ numbers })))('refuses malformed numbers $numbers', ({ numbers }) => {
+        const condition = comparison(reordered, numbers);
+        expect(canEvaluateGuard(condition)).toBe(false);
+        expect(evaluateGuard(condition, { status: 1 })).toBeUndefined();
+        expect(selectGuardedInteraction([{ condition }], { status: 1 }, true).kind).toBe('unevaluable');
+        expect(canEvaluateGuard({ kind: 'logical', operator: 'Or', left: condition, right: comparison(reordered, [1, 0]) })).toBe(false);
+    });
+
+    it('refuses numbers without member names', () => {
+        expect(canEvaluateGuard({ ...comparison(reordered, [1, 0]), enumeration: undefined })).toBe(false);
+    });
+});
+
 // These run the published engine, not a second Stage implementation of its semantics.
 describe('Scene guard execution', () => {
     it('compares the explicit subject', () => expect(evaluateGuard(open, { status: 'open' })).toBe(true));

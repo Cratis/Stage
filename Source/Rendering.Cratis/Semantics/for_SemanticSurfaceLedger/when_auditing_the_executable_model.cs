@@ -61,9 +61,15 @@ public class when_auditing_the_executable_model : given.the_executable_surface
     [InlineData("SemanticCaptureConditionKind.Removed")]
     public void should_classify_translation_members_as_rendered(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
 
+    [Theory]
+    [InlineData("SemanticApplication.StateMachines")]
+    [InlineData("SemanticApplication.Workflows")]
+    [InlineData("SemanticWorkflowNode.Kind")]
+    public void should_render_lifecycle_members(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
+
     [Fact] void should_keep_expression_capture_guards_refused() => _ledger["SemanticCaptureConditionKind.Expression"].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-024"));
 
-    [Fact] void should_keep_event_target_reducers_refused() => _ledger["SemanticReducer.Target"].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-032"));
+    [Fact] void should_admit_event_target_reducers() => _ledger["SemanticReducer.Target"].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
 
     [Theory]
     [InlineData("SemanticSpecification.WhenAppended")]
@@ -163,6 +169,7 @@ public class when_auditing_the_executable_model : given.the_executable_surface
 
     static bool IsDiagnosticCode(string code) =>
         ((code.StartsWith("STAGE-ESM-", StringComparison.Ordinal) && code.Length == 13) ||
-         (code.StartsWith("STAGE-IMPL-", StringComparison.Ordinal) && code.Length == 14)) &&
+         (code.StartsWith("STAGE-IMPL-", StringComparison.Ordinal) && code.Length == 14) ||
+         (code.StartsWith("STAGE-LIFECYCLE-", StringComparison.Ordinal) && code.Length == 19)) &&
         code.AsSpan(code.Length - 3).ToString().All(char.IsAsciiDigit);
 }

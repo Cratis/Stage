@@ -40,17 +40,17 @@ internal static class optional_validated_concept_cases
                       specification {{vector.Item1}}Absent
                         when Check{{vector.Item1}}
                           id = "one"
-                          value = {{vector.Item2}}
+                          {{(global::Cratis.Stage.Conformance.Specs.given.StructuredValueText.Assignment("value", vector.Item2, 26))}}
                         then returns "one"
                       specification {{vector.Item1}}Valid
                         when Check{{vector.Item1}}
                           id = "one"
-                          value = {{vector.Item2}}
+                          {{(global::Cratis.Stage.Conformance.Specs.given.StructuredValueText.Assignment("value", vector.Item2, 26))}}
                         then returns "one"
                       specification {{vector.Item1}}Invalid
                         when Check{{vector.Item1}}
                           id = "one"
-                          value = {{vector.Item3}}
+                          {{(global::Cratis.Stage.Conformance.Specs.given.StructuredValueText.Assignment("value", vector.Item3, 26))}}
                         then error "{{vector.Item4}}"
                 """);
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("OptionalInputs"));

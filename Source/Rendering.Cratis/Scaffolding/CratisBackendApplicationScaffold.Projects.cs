@@ -51,13 +51,17 @@ public sealed partial class CratisBackendApplicationScaffold
             <PackageVersion Include="Cratis.Chronicle" Version="{{profile.CratisChroniclePackageVersion}}" />
             <PackageVersion Include="Cratis.Chronicle.AspNetCore" Version="{{profile.CratisChroniclePackageVersion}}" />
             <PackageVersion Include="Cratis.Chronicle.Testing" Version="{{profile.CratisChroniclePackageVersion}}" />
+            <PackageVersion Include="Cratis.Orleans" Version="{{ScaffoldPackageVersions.Orleans}}" />
+            <PackageVersion Include="Cratis.Orleans.Chronicle" Version="{{ScaffoldPackageVersions.OrleansChronicle}}" />
             <PackageVersion Include="Cratis.Specifications" Version="{{profile.CratisSpecificationsPackageVersion}}" />
             <PackageVersion Include="Cratis.Specifications.XUnit" Version="{{profile.CratisSpecificationsXUnitPackageVersion}}" />
             <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="{{ScaffoldPackageVersions.TelemetryAbstractions}}" />
             <PackageVersion Include="Microsoft.Identity.Web" Version="{{ScaffoldPackageVersions.IdentityWeb}}" />
             <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="{{profile.MicrosoftNetTestSdkPackageVersion}}" />
             <PackageVersion Include="NSubstitute" Version="{{profile.NSubstitutePackageVersion}}" />
-            <!-- Transitive security pin for Microsoft.Identity.Web.TokenCache; referenced by no project. -->
+            <!-- Pkcs is pinned transitively for Microsoft.Identity.Web.TokenCache; referenced by no project.
+                 System.Security.Cryptography.Xml is part of the ASP.NET Core shared framework, so it is pruned
+                 and serviced by the ASP.NET Core 10.0.x runtime. -->
             <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="{{ScaffoldPackageVersions.CryptographyPkcs}}" />
             <PackageVersion Include="xunit" Version="{{profile.XunitPackageVersion}}" />
             <PackageVersion Include="xunit.runner.visualstudio" Version="{{profile.XunitRunnerVisualStudioPackageVersion}}" />
@@ -106,6 +110,8 @@ public sealed partial class CratisBackendApplicationScaffold
             <PackageReference Include="Cratis.Arc.MongoDB" />
             <PackageReference Include="Cratis.Chronicle" />
             <PackageReference Include="Cratis.Chronicle.AspNetCore" />
+            <PackageReference Include="Cratis.Orleans" />
+            <PackageReference Include="Cratis.Orleans.Chronicle" />
             <PackageReference Include="Microsoft.Identity.Web" />
           </ItemGroup>
           <ItemGroup Condition="'$(Configuration)' == 'Debug'">

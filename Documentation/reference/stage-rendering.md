@@ -173,7 +173,7 @@ represented in closed analysis without allowing query or reactive-service calls 
 pure transitions. `Reduce` as a
 model, property, or query name, the replay-hook query names `BeginReplay`, `EndReplay`,
 `BeginReplayPartition`, `EndReplayPartition`, and collisions with generated
-`Transition_<suffix>` members refuse with `STAGE-ESM-019`. Rename the conflicting
+generated transition helper names (`<Event>Transition`, qualified by the reducer name when two reducers share an event) refuse with `STAGE-ESM-019`. Rename the conflicting
 member; Stage never silently switches a self model back to classic.
 Existing purity and typed-context refusals still apply.
 
@@ -266,6 +266,9 @@ Compiler diagnostics from the generated code are mapped back to the authored bod
 A reaction body declares a local for a triggering event property only when the body references it by simple name, so an unused property no longer produces an unused-variable warning. Each local is `var Name = @event.Name;`.
 A body that only reads another object's member of the same name, such as `other.Title`, does not count as a reference.
 A command handler whose generated Handle method does nothing else with the result returns the handler call directly instead of storing it in a pass-through local.
+When Handle does wrap the result, the handler result is held in one local per production, named after the event in camelCase with a numeric suffix on a clash. Several productions are deconstructed in declared order, for example `var (orderPlaced, orderEchoed) = HandlePlaceOrder(...)`.
+
+The shared policy runtime identifies concept base classes with open-generic `typeof(ConceptAs<>)` and `typeof(EventSourceId<>)` comparisons, not CLR type-name strings. Claim matching and fail-closed behavior are unchanged.
 
 ## Anonymous authorization
 
@@ -408,6 +411,13 @@ recorded warning to an Error, so `Success` becomes false while `Outcome` remains
 `CanPublishArtifacts` remains true. Genuine generation or integrity Errors still prevent
 safe publication. Strict acceptance is not a request to discard safe artifacts or reports;
 planning itself never publishes files.
+
+An unknown validation rule kind or undefined severity on a command records one
+`STAGE-DEGRADE-002` warning and degradation evidence for that command. Its inventory uses
+`DenyEnclosingOperation`: an always-failing Error-severity validator rejects every invocation
+before argument resolution, the handler, or any append. Specifications invoking the denied
+command are skipped with `STAGE-ESM-011`. Strict acceptance promotes the degradation warning
+to an Error. Concept validation rules and fixable authoring errors in known rules still refuse.
 
 `WithAcceptance(plan.Degradations, strict: false)` restores the original warning evidence.
 Release-baseline warnings and source diagnostics retain that evidence across plan
@@ -699,6 +709,33 @@ Moving an existing model from v7 to v8 widens stored event schemas from int32 to
 that change within the same generation; plan a new event generation before upgrading
 ([Stage #204](https://github.com/Cratis/Stage/issues/204)). TypeScript properties remain `number`.
 
+## Root joins with an explicit key
+
+Root projection joins can correlate a required scalar event property with a read-model property of the same type.
+For example, a variant can retain the latest title for an issue even when the retitle event's source is a different issue:
+
+```play
+projection WorkItem
+  from IssueRetitled key issueId
+    title = title
+  variant Filed
+    enters on IssueFiled
+```
+
+Here `Filed` is a read model with an `id String key` and `title String`; `IssueRetitled` supplies `issueId String`
+and `title String`. Stage renders the root join with `join.On(model => model.Id)` and
+`join.UsingKey(evt => evt.IssueId)`. The specification executor uses the same key, rather than the event source id.
+Omitting the key, or using `$eventSourceId`, retains event-source correlation. Literal, optional, mismatched,
+composite, event-context and child or nested join keys remain unsupported.
+
+The Chronicle server must be **19.112.4 or later**. Chronicle still backfills joins by event source id rather than
+by the explicit key ([Chronicle#5439](https://github.com/Cratis/Chronicle/issues/5439)). Stage refuses a specification
+if a differently keyed join fact is followed by any root `from` event, including a later update to the event-source
+instance rather than the keyed instance. A subsequent command is conservatively refused too. This check applies
+across the given history and the action; it does not prevent the issue at runtime in a rendered application.
+Until Chronicle resolves the issue, append the root facts before differently keyed join events. Backfill with a key
+that equals the event source id remains admitted.
+
 ## Generated C# global usings
 
 An application render writes `GlobalUsings.cs` at the backend root with `global using` directives for
@@ -708,6 +745,20 @@ it is qualified only as far as needed to resolve the collision. A scoped render 
 
 `GlobalUsings.cs` is owned by Stage, like `Program.cs`, and is regenerated on every application render, so
 edits to it are overwritten. Put application-specific global usings in a separate file, for example `Usings.cs`.
+
+## Generated application silo
+
+A rendered application hosts an Orleans silo through `Cratis.Orleans`, so durable state machines and workflows have
+grains to run on. `Program.cs` calls `AddCratisOrleans` with the local configuration (localhost clustering and
+in-memory grain storage) and the workflow engine turned on, then `AddEventSourcedStateMachines()` and
+`AddEventSourcedWorkflows()`. `Directory.Packages.props` pins `Cratis.Orleans` and `Cratis.Orleans.Chronicle` to the
+versions Stage itself uses, and the project references them.
+
+The local configuration needs nothing beyond what `docker-compose.yml` already starts, but jobs and workflow runs
+live in the application's memory and do not survive a restart. MongoDB-backed grain storage needs the separate
+`Cratis.Orleans.Storage.MongoDB` package and `AddCratisOrleansMongoDBJobsStorage`; add that in `Program.cs` when runs
+must be durable. The silo listens on the Orleans default ports on localhost, so two rendered applications cannot run
+on the same machine at once without changing them.
 
 ## Generated C# member names
 

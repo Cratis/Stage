@@ -72,7 +72,7 @@ public class when_executing_generated_reducer_event_collection_specifications : 
             $"      specification {name}",
             "        when PlaceOrder",
             $"          id = \"{id}\"",
-            "          amounts = [20, 40]",
+            "          amounts\n            item 20\n            item 40",
             "          amount = 40"
         };
         if (unordered)
@@ -81,7 +81,7 @@ public class when_executing_generated_reducer_event_collection_specifications : 
             lines.AddRange(["        then OrderConfirmed", "          amount = 40"]);
         }
 
-        lines.AddRange(["        then OrderPlaced", $"          id = \"{id}\"", "          amounts = [20, 40]"]);
+        lines.AddRange(["        then OrderPlaced", $"          id = \"{id}\"", "          amounts\n            item 20\n            item 40"]);
         if (!unordered)
         {
             lines.AddRange(["        then OrderConfirmed", "          amount = 40"]);

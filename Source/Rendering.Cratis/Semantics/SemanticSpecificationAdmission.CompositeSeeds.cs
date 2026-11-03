@@ -10,7 +10,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 internal static partial class SemanticSpecificationAdmission
 {
     static bool HasProjectedSeedExpectation(SemanticApplicationContext context, SemanticSpecification specification) =>
-        !specification.ThenAbsentReadModels.IsEmpty || specification.GivenReadModels.All(seed =>
+        !specification.ThenReadModels.IsEmpty || !specification.ThenAbsentReadModels.IsEmpty || specification.GivenReadModels.All(seed =>
             context.ReadModels.TryGetValue(seed.ReadModel, out var model) && model.Properties.Count(property => property.IsIdentifier) > 1);
 
     static bool CanSeedProjection(SemanticApplicationContext context, SemanticSpecificationReadModel seed)

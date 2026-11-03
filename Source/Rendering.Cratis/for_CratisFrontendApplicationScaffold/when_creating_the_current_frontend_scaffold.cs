@@ -124,6 +124,8 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
             $"@cratis/scene.engine={CratisFrontendPackageSet.Current.ScenePackageVersion}",
             $"@cratis/scene.model={CratisFrontendPackageSet.Current.ScenePackageVersion}",
             $"@cratis/scene.react={CratisFrontendPackageSet.Current.ScenePackageVersion}",
+            $"@cratis/showrunner.notes={CratisFrontendPackageSet.Current.ShowrunnerNotesPackageVersion}",
+            $"@cratis/showrunner.notes.react={CratisFrontendPackageSet.Current.ShowrunnerNotesPackageVersion}",
             $"@cratis/stage.runtime={ScaffoldPackageVersions.StageRuntime}",
             "@types/node=26.6.4",
             "@types/react=19.3.0",

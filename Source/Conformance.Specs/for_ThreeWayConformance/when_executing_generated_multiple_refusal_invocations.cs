@@ -16,9 +16,10 @@ namespace Cratis.Stage.Conformance.Specs.for_ThreeWayConformance;
 
 public class when_executing_generated_multiple_refusal_invocations(when_executing_generated_multiple_refusal_invocations.context fixture, ITestOutputHelper output) : IClassFixture<when_executing_generated_multiple_refusal_invocations.context>
 {
-    [Fact] void should_leave_decision_reads_to_the_scenario_on_the_untyped_scenario() => fixture.GeneratedSpecification.ShouldContain("CommandScenario<object> _scenario = new CommandScenario<object>();");
-    [Fact] void should_not_call_the_obsolete_decision_reads_switch() => fixture.GeneratedSpecification.ShouldNotContain("UseDecisionReads");
+    [Fact] void should_enable_decision_reads_immediately_on_the_untyped_scenario() => fixture.GeneratedSpecification.ShouldContain("CommandScenario<object> _scenario = new CommandScenario<object>().UseDecisionReads();");
     [Fact] void should_import_the_decision_reads_extension_namespace() => fixture.GeneratedSpecification.ShouldContain("using Cratis.Arc.Chronicle.Testing.Commands;");
+    [Fact] void should_enable_decision_reads_before_seeding_history() => ShouldPrecede(".UseDecisionReads()", "_scenario.EventLog");
+    [Fact] void should_enable_decision_reads_before_executing_commands() => ShouldPrecede(".UseDecisionReads()", "_scenario.Execute");
     [Fact] void should_check_the_seeded_history_append() => fixture.GeneratedSpecification.ShouldContain("(await _scenario.EventLog.Append(_id, new Seeded())).IsSuccess.ShouldBeTrue();");
     [Fact] void should_seed_history_before_appending_the_trigger() => ShouldPrecede("new Seeded()", "(await _scenario.EventLog.Append(_id, @event)).IsSuccess.ShouldBeTrue();");
     [Fact] void should_capture_the_initial_count_after_the_trigger() => ShouldPrecede("(await _scenario.EventLog.Append(_id, @event)).IsSuccess.ShouldBeTrue();", "var initial = before.Count;");

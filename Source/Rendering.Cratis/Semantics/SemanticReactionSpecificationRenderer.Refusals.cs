@@ -16,16 +16,25 @@ internal static partial class SemanticReactionSpecificationRenderer
         var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
         var invoked = prelude.Selection.Trigger.Invokes.Select(invocation => context.Commands[invocation.Command]).ToArray();
 
-        // One invoked command runs in a scenario typed by it: Arc derives the decision mode from that command's assembly. Several run in an untyped scenario, which selects decision reads from the declarations of the commands it executes.
+        // One invoked command runs in a scenario typed by it: Arc derives the decision mode from that command's assembly. Several run in an untyped scenario that enables decision reads up front, before any seeding or execution.
         var typed = invoked.Length == 1 ? CommandType(invoked[0], types) : null;
         var decision = invoked.Length == 1 && !invoked[0].Reads.IsDefaultOrEmpty;
         var builder = context.SpecificationBuilder().Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
             .Using("Cratis.Arc.Commands").Using("Cratis.Arc.Chronicle.Testing.Commands").Using("Cratis.Arc.Testing.Commands")
             .Using("Cratis.Specifications").Using("Microsoft.Extensions.DependencyInjection").Using("NSubstitute").Using("Xunit")
-            .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable")
-            .Line(typed is null
-                ? "readonly global::Cratis.Arc.Testing.Commands.CommandScenario<object> _scenario = new global::Cratis.Arc.Testing.Commands.CommandScenario<object>();"
-                : $"readonly global::Cratis.Arc.Testing.Commands.CommandScenario<{typed}> _scenario = new();")
+            .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable");
+        if (typed is null)
+        {
+            builder.Line("#pragma warning disable CS0618 // Arc selects decision reads from a typed command; an untyped scenario runs several commands, so it asks for them.")
+                .Line("readonly global::Cratis.Arc.Testing.Commands.CommandScenario<object> _scenario = new global::Cratis.Arc.Testing.Commands.CommandScenario<object>().UseDecisionReads();")
+                .Line("#pragma warning restore CS0618");
+        }
+        else
+        {
+            builder.Line($"readonly global::Cratis.Arc.Testing.Commands.CommandScenario<{typed}> _scenario = new();");
+        }
+
+        builder
             .Line(SemanticSpecificationValuesRenderer.Declarations)
             .Line("global::Cratis.Chronicle.Events.AppendedEvent[] _facts = [];")
             .Line("bool _settled;")

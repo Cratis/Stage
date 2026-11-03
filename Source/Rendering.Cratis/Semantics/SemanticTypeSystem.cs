@@ -233,6 +233,8 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context, CSh
     public string SliceDeclaration(SemanticId id, string name) =>
         Named(SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(id).Path), name);
 
+    internal SemanticPrimitiveType ConceptPrimitive(SemanticTypeReference concept) => context.Concepts[concept.Target].Primitive;
+
     internal string SpecificationContent(string content) => SpecificationValues?.Render(content) ?? content;
 
     internal string SpecificationContent(CSharpCodeBuilder builder) => SpecificationValues is { } values ? builder.ToString(values.Render) : builder.ToString();

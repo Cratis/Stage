@@ -73,6 +73,8 @@ public class when_verifying_reducer_migration_against_the_pinned_kernel : a_gene
 
         public class ClassicProbe
         {
+        {{ApplicationReducersHelper}}
+
             [Fact]
             public async Task should_reduce_with_the_classic_reducer()
             {
@@ -81,7 +83,7 @@ public class when_verifying_reducer_migration_against_the_pinned_kernel : a_gene
                 Assert.True(appended.IsSuccess, $"Append failed: {appended}");
                 await store.Reducers.WaitTillReachesEventSequenceNumber<Fold>(appended.SequenceNumber, TimeSpan.FromSeconds(60));
                 Assert.Equal(10m, (await store.ReadModels.GetInstanceById<Total>(sourceId))!.Amount);
-                Assert.Equal("{{when_migrating_a_classic_reducer.ObserverId}}", Assert.Single(store.Reducers.GetAllHandlers()).Id.Value);
+                Assert.Equal("{{when_migrating_a_classic_reducer.ObserverId}}", Assert.Single(ApplicationReducers(store)).Id.Value);
                 Assert.Empty(await store.Reducers.GetFailedPartitionsFor<Fold>());
             }
         }
@@ -92,12 +94,14 @@ public class when_verifying_reducer_migration_against_the_pinned_kernel : a_gene
 
         public class MigratedProbe
         {
+        {{ApplicationReducersHelper}}
+
             [Fact]
             public async Task should_continue_with_one_builder_under_the_previous_observer_id()
             {
         {{Connect(eventStoreNamespace, key)}}
                 // A second builder for Total would surface as AmbiguousReadModelBuilder and fail registration above.
-                var handler = Assert.Single(store.Reducers.GetAllHandlers());
+                var handler = Assert.Single(ApplicationReducers(store));
                 Assert.Equal("{{when_migrating_a_classic_reducer.ObserverId}}", handler.Id.Value);
                 Assert.Equal(handler.Id, store.Reducers.GetHandlerForReadModelType(typeof(Total)).Id);
 
@@ -109,6 +113,12 @@ public class when_verifying_reducer_migration_against_the_pinned_kernel : a_gene
                 Assert.Empty(await handler.GetFailedPartitions());
             }
         }
+        """;
+
+    // The workflow engine (Cratis.Orleans.Chronicle) contributes its own run-listing reducer; the probes are about the application's.
+    static string ApplicationReducersHelper => """
+                static IEnumerable<IReducerHandler> ApplicationReducers(IEventStore store) =>
+                    store.Reducers.GetAllHandlers().Where(handler => !handler.Id.Value.StartsWith("Cratis.", StringComparison.Ordinal));
         """;
 
     static string Connect(string eventStoreNamespace, Guid key) => $$"""

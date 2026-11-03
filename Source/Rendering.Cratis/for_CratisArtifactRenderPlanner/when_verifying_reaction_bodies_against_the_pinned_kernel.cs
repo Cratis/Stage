@@ -12,6 +12,10 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 public class when_verifying_reaction_bodies_against_the_pinned_kernel : a_generated_application
 {
     const string HostSupport = """
+        using Cratis.Arc.MongoDB;
+        using Cratis.Orleans.Chronicle.Hosting;
+        using Cratis.Orleans.Hosting;
+
         public partial class Program
         {
             static partial void ConfigureServices(WebApplicationBuilder builder)

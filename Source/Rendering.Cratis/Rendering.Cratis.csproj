@@ -78,6 +78,11 @@
         <PackageReference Include="Cratis.Chronicle" GeneratePathProperty="true" ExcludeAssets="all" PrivateAssets="all" />
     </ItemGroup>
     <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+        <!-- The specs compile the state machines and workflows Stage renders against the real Cratis.Orleans assemblies. -->
+        <PackageReference Include="Cratis.Orleans" ExcludeAssets="analyzers" PrivateAssets="all" />
+        <PackageReference Include="Cratis.Orleans.Chronicle" ExcludeAssets="analyzers" PrivateAssets="all" />
+    </ItemGroup>
+    <ItemGroup Condition="'$(Configuration)' == 'Debug'">
         <!-- Frozen Screenplay v4.41.0 typed-context vectors: every member and nullable type is checked by specs. -->
         <EmbeddedResource Include="for_SemanticTypedContextRenderer/Vectors/*.json" />
         <!-- Screenplay v4.114.0 portable stream-id codec vectors. -->
@@ -147,7 +152,10 @@
             <_ScaffoldPackage Include="Aspire.Hosting.AppHost" Constant="AspireAppHost" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Aspire.Hosting.AppHost')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Ante.Contracts" Constant="AnteContracts" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Ante.Contracts')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Showrunner.Herald" Constant="Herald" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Showrunner.Herald')->Metadata('Version'))" />
+            <_ScaffoldPackage Include="Cratis.Showrunner.BoxOffice" Constant="BoxOffice" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Showrunner.BoxOffice')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Chronicle.ForAnte" Constant="AnteChronicle" PinVersion="$(AnteContractsChronicleVersion)" />
+            <_ScaffoldPackage Include="Cratis.Orleans" Constant="Orleans" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Orleans')->Metadata('Version'))" />
+            <_ScaffoldPackage Include="Cratis.Orleans.Chronicle" Constant="OrleansChronicle" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Orleans.Chronicle')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Chronicle" Constant="Chronicle" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Chronicle')->Metadata('Version'))" />
         </ItemGroup>
         <Error Code="STAGE-MISSING-SCAFFOLD-PIN" Condition="'%(_ScaffoldPackage.PinVersion)' == ''"

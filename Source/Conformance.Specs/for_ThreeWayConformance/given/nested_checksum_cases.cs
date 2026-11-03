@@ -27,12 +27,14 @@ internal static class nested_checksum_cases
                   specification ValidChecksum
                     when CheckInput
                       id = "one"
-                      details = {"code":"79927398713"}
+                      details
+                        code = "79927398713"
                     then returns "one"
                   specification InvalidChecksum
                     when CheckInput
                       id = "one"
-                      details = {"code":"79927398714"}
+                      details
+                        code = "79927398714"
                     then error "Invalid account code"
             """;
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("NestedChecksums"));

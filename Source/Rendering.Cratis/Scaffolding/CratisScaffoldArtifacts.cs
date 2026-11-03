@@ -13,7 +13,7 @@ namespace Cratis.Stage.Rendering.Cratis.Scaffolding;
 
 internal static class CratisScaffoldArtifacts
 {
-    internal static IEnumerable<PlannedArtifact> Render(ArtifactRenderProfile profile, string rootNamespace, ImmutableArray<SemanticId> sources, string? applicationName = null)
+    internal static IEnumerable<PlannedArtifact> Render(ArtifactRenderProfile profile, string rootNamespace, ImmutableArray<SemanticId> sources, string? applicationName = null, bool generatedWorkflows = false)
     {
         var realization = applicationName is null ? null : ApplicationRealizationInput.From(profile);
         var strings = StringsCatalogInput.From(profile);
@@ -28,6 +28,11 @@ internal static class CratisScaffoldArtifacts
             var planned = artifact!.RelativePath == "Program.cs" && strings is not null
                 ? PlannedArtifact.CreateText(artifact.RelativePath, StringsCatalogInput.ConfigureProgram(Encoding.UTF8.GetString(artifact.Bytes.AsSpan()), strings, rootNamespace))
                 : artifact;
+            if (generatedWorkflows && planned.RelativePath == "Program.cs")
+            {
+                planned = PlannedArtifact.CreateText(planned.RelativePath, Encoding.UTF8.GetString(planned.Bytes.AsSpan()).Replace("builder.Services.AddEventSourcedWorkflows();", $"builder.Services.AddEventSourcedWorkflows({rootNamespace}.Lifecycles.GeneratedWorkflows.Configure);", StringComparison.Ordinal), planned.Sources);
+            }
+
             yield return realization is null ? planned : RealizationScaffold.Patch(planned, realization, rootNamespace);
         }
 

@@ -95,8 +95,8 @@ public class when_running_scoped_mapping_operations : Specification
                     then readmodel Current
                       id = "one"
                       state = "{{state}}"
-                      whole = {{whole}}
-                      amount = {{amount}}
+                      {{Structured("whole", whole, 10)}}
+                      {{Structured("amount", amount, 10)}}
                       active = {{(operation == "set" ? "true" : "false")}}
                 slice StateView Current
                   readmodel Current
@@ -129,4 +129,6 @@ public class when_running_scoped_mapping_operations : Specification
     }
 
     static string Indent(string text, int spaces) => string.Join('\n', text.Split('\n').Select(line => new string(' ', spaces) + line));
+
+    static string Structured(string property, string value, int indent) => global::Cratis.Stage.Specifications.given.StructuredValueText.Assignment(property, value, indent);
 }

@@ -10,6 +10,7 @@ internal enum SemanticDependencyIncompletenessKind
 {
     UnknownVariant,
     UnclassifiedMember,
+    RefusedMember,
     UnresolvedIdentity,
     UnresolvedPolicy,
     DuplicateOwner

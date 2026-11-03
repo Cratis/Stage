@@ -57,7 +57,7 @@ function withData(ui: ReactElement) {
     );
 }
 
-function respond(status: string) {
+function respond(status: string | number) {
     const fetched = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
         if (init?.method === 'POST') return Promise.resolve({ ok: true, json: async () => commandResult() });
         if (String(input).startsWith('http://localhost:3000/api/get-work-item')) return Promise.resolve({ ok: true, json: async () => (queryResult({ data: { workItemId, status } })) });
@@ -100,6 +100,26 @@ describe('a guarded action', () => {
         expect(String(route)).toBe('http://localhost:3000/api/close-work-item');
         expect(init?.body).toBe(JSON.stringify({ workItemId }));
         await waitFor(() => expect(globalThis.location.hash).toBe('#/WorkItemList'));
+    });
+
+    const numberedOpen = { ...isOpen, enumeration: ['open', 'closed'], enumerationNumbers: [1, 0] };
+
+    it('executes its command for the explicit number of the member the guard names', async () => {
+        const fetched = respond(1);
+        withData(<StageAction element={actionIn(details(closeAction({ alternatives: [{ command: 'CloseWorkItem', condition: numberedOpen, arguments: { workItemId: { path: 'item.workItemId' } } }] }))) as never} slots={{}} />);
+
+        fireEvent.click(await screen.findByRole('button', { name: 'Close' }));
+
+        await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
+    });
+
+    it('renders nothing for the declaration position of a renumbered member', async () => {
+        const fetched = respond(0);
+        withData(<StageAction element={actionIn(details(closeAction({ alternatives: [{ command: 'CloseWorkItem', condition: numberedOpen, arguments: { workItemId: { path: 'item.workItemId' } } }] }))) as never} slots={{}} />);
+
+        await waitFor(() => expect(fetched).toHaveBeenCalled());
+        await new Promise(resolve => setTimeout(resolve, 50));
+        expect(screen.queryByRole('button', { name: 'Close' })).toBeNull();
     });
 
     it('renders nothing when the guard does not hold and the fallback is hidden', async () => {

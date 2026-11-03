@@ -9,8 +9,9 @@ namespace Cratis.Stage.Contracts.Execution.for_ModelRootBodyExecution;
 
 public class when_the_model_root_changed_repeatedly : given.a_model_root
 {
-    [Fact]
-    async Task should_retain_only_slots_that_still_have_leases()
+    int _retainedSlots;
+
+    async Task Because()
     {
         execution = new(root, () => compiler, _ => Substitute.For<IBodyWorkerClient, IAsyncDisposable>(), _ => fingerprint);
         var held = await Provider();
@@ -22,7 +23,9 @@ public class when_the_model_root_changed_repeatedly : given.a_model_root
 
         fingerprint = "final";
         await using var current = await Provider();
-        execution.RetainedSlots.ShouldEqual(2);
+        _retainedSlots = execution.RetainedSlots;
         await held.DisposeAsync();
     }
+
+    [Fact] public void should_retain_only_slots_that_still_have_leases() => _retainedSlots.ShouldEqual(2);
 }

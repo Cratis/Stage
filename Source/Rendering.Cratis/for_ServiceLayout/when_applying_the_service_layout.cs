@@ -42,7 +42,7 @@ public class when_applying_the_service_layout : Specification
     [Fact] void should_use_the_project_name_as_the_folder() => ServiceLayout.Folder(_layout).ShouldEqual("Source/Projects/");
     [Fact] void should_prefix_every_kept_artifact() => _moved.All(artifact => artifact.RelativePath.StartsWith("Source/Projects/", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_keep_the_application_files() => _moved.Select(artifact => artifact.RelativePath).ShouldContain("Source/Projects/Program.cs");
-    [Fact] void should_drop_the_repository_files() => _moved.Select(artifact => artifact.RelativePath).Where(path => path is "Source/Projects/.editorconfig" or "Source/Projects/Directory.Build.props" or "Source/Projects/Directory.Build.targets" or "Source/Projects/Directory.Packages.props" or "Source/Projects/Projects.slnx" or "Source/Projects/docker-compose.yml").ShouldBeEmpty();
+    [Fact] void should_drop_the_repository_files() => _moved.Select(artifact => artifact.RelativePath).Where(path => string.Equals(path, "Source/Projects/.editorconfig", StringComparison.Ordinal) || string.Equals(path, "Source/Projects/Directory.Build.props", StringComparison.Ordinal) || string.Equals(path, "Source/Projects/Directory.Build.targets", StringComparison.Ordinal) || string.Equals(path, "Source/Projects/Directory.Packages.props", StringComparison.Ordinal) || string.Equals(path, "Source/Projects/Projects.slnx", StringComparison.Ordinal) || string.Equals(path, "Source/Projects/docker-compose.yml", StringComparison.Ordinal)).ShouldBeEmpty();
     [Fact] void should_keep_files_with_the_same_names_in_a_sub_folder() => _moved.Select(artifact => artifact.RelativePath).ShouldContain("Source/Projects/Orders/Directory.Build.props");
     [Fact] void should_keep_the_same_names_in_a_sub_folder_for_compose() => _moved.Select(artifact => artifact.RelativePath).ShouldContain("Source/Projects/Orders/docker-compose.yml");
     [Fact] void should_keep_the_bytes() => _moved.Single(artifact => artifact.RelativePath == "Source/Projects/Program.cs").Sha256.ShouldEqual(PlannedArtifact.CreateText("Source/Projects/Program.cs", "var a = 1;\n").Sha256);
@@ -50,5 +50,5 @@ public class when_applying_the_service_layout : Specification
     [Fact] void should_find_the_shared_folder() => ServiceLayout.SharedFolder(_moved.Select(artifact => artifact.RelativePath)).ShouldEqual("Source/Projects/");
     [Fact] void should_find_no_shared_folder_for_an_unplaced_plan() => ServiceLayout.SharedFolder(_artifacts.Select(artifact => artifact.RelativePath)).ShouldEqual(string.Empty);
 
-    static string Describe(IEnumerable<PlannedArtifact> artifacts) => string.Join("\n", artifacts.Select(artifact => $"{artifact.RelativePath}:{artifact.Sha256}"));
+    static string Describe(IEnumerable<PlannedArtifact> artifacts) => string.Join('\n', artifacts.Select(artifact => $"{artifact.RelativePath}:{artifact.Sha256}"));
 }

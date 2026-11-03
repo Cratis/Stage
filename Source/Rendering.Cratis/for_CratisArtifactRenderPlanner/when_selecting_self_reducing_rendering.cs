@@ -167,7 +167,7 @@ public class when_selecting_self_reducing_rendering
     static string WithoutScaffoldGlobalUsings(string text)
     {
         var scaffold = FrameworkNameCatalog.Current.ScaffoldGlobalUsings(GeneratedProjects.Application).Select(@namespace => $"using {@namespace};").ToHashSet(StringComparer.Ordinal);
-        return string.Join("\n", text.Split('\n').Where(line => !scaffold.Contains(line.TrimEnd('\r'))));
+        return string.Join('\n', text.Split('\n').Where(line => !scaffold.Contains(line.TrimEnd('\r'))));
     }
 
     static string Text(PlannedArtifact artifact) => Encoding.UTF8.GetString(artifact.Bytes.AsSpan());

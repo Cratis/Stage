@@ -45,9 +45,9 @@ public class when_serving_the_packages : given.a_packages_folder
     [Fact] void should_describe_the_approved_set() => _document.ShouldContain("\"Acme.Charts\"");
     [Fact] void should_say_where_the_module_is_served() => _document.ShouldContain("stage/packages/files/@acme/scene.charts/dist/index.js");
     [Fact] void should_serve_the_module() => _module.StatusCode.ShouldEqual(HttpStatusCode.OK);
-    [Fact] void should_serve_the_module_as_javascript() => _module.Content.Headers.ContentType!.MediaType.ShouldEqual("text/javascript");
-    [Fact] void should_not_cache_the_module() => _module.Headers.CacheControl!.NoStore.ShouldBeTrue();
-    [Fact] void should_serve_the_style_sheet() => _style.Content.Headers.ContentType!.MediaType.ShouldEqual("text/css");
+    [Fact] void should_serve_the_module_as_javascript() => _module.Content.Headers.ContentType.MediaType.ShouldEqual("text/javascript");
+    [Fact] void should_not_cache_the_module() => _module.Headers.CacheControl.NoStore.ShouldBeTrue();
+    [Fact] void should_serve_the_style_sheet() => _style.Content.Headers.ContentType.MediaType.ShouldEqual("text/css");
     [Fact] void should_hide_a_package_the_set_does_not_approve() => _unapproved.StatusCode.ShouldEqual(HttpStatusCode.NotFound);
     [Fact] void should_hide_a_file_type_a_package_does_not_ship() => _unknownType.StatusCode.ShouldEqual(HttpStatusCode.NotFound);
     [Fact] void should_not_fall_back_to_a_page_for_a_missing_file() => _missing.StatusCode.ShouldEqual(HttpStatusCode.NotFound);

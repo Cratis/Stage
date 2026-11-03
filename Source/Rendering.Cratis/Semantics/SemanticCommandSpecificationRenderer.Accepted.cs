@@ -17,8 +17,6 @@ internal static partial class SemanticCommandSpecificationRenderer
         var generated = new SemanticGeneratedCommandSpecification(scope.Specification, scope.Command, scope.Types, scope.Context);
         var builder = scope.Builder;
         var specification = scope.Specification;
-        builder.Using("Cratis.Arc.Chronicle.Testing.Commands")
-            .Using("Cratis.Chronicle.Events");
         foreach (var (expected, index) in Indexed(specification.ThenEvents))
         {
             RenderExpectedCollections(scope, expected, index);
@@ -63,11 +61,6 @@ internal static partial class SemanticCommandSpecificationRenderer
             }
 
             var elementType = property.Type with { IsCollection = false, IsOptional = false };
-            if (SemanticTypeSystem.DeclarationNeedsCommon(elementType))
-            {
-                scope.Builder.Using(context.CommonNamespace);
-            }
-
             scope.Builder.Line($"static readonly {scope.Types.Type(elementType)}[] {ExpectedCollectionName(property, index)} = {scope.Types.Value(value, property.Type)};");
         }
     }
@@ -125,12 +118,6 @@ internal static partial class SemanticCommandSpecificationRenderer
         var types = scope.Types;
         var @event = context.Events[expected.EventContract];
         var produced = SemanticProductionSelection.Taken(scope.Context.Application, scope.Command, scope.Specification)[index];
-        if (generated.DestinationNeedsCommon(produced) ||
-            PropertyValuesNeedCommon(@event.Properties, expected.Values))
-        {
-            builder.Using(context.CommonNamespace);
-        }
-
         var predicates = @event.Properties.Select(property =>
         {
             var value = expected.Values.Single(_ => _.TargetProperty == property.Id).Value;
@@ -140,6 +127,7 @@ internal static partial class SemanticCommandSpecificationRenderer
         var name = $"should_have_appended_{Identifiers.ToSnakeCase(@event.Name)}";
         if (IsPlainSingleEvent(scope, expected))
         {
+            builder.Using("Cratis.Arc.Chronicle.Testing.Commands");
             var assertion = $"_scenario.ShouldHaveAppendedEvent<{types.SliceType(scope.Command.Id, scope.Command.Name)}, {types.EventType(@event)}>";
             builder.Line($"[global::Xunit.FactAttribute] async global::System.Threading.Tasks.Task {name}() => await {assertion}({sourceValue}, @event => true);");
             foreach (var property in predicates)
@@ -198,26 +186,14 @@ internal static partial class SemanticCommandSpecificationRenderer
         var context = scope.Context;
         var types = scope.Types;
         var @event = context.Events[expected.EventContract];
-        var eventNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(expected.EventContract).Path);
-        builder.Using(eventNamespace);
         var predicates = @event.Properties.Select(property =>
         {
             var value = expected.Values.Single(_ => _.TargetProperty == property.Id).Value;
-            if (SemanticTypeSystem.ValueNeedsCommon(value, property.Type))
-            {
-                builder.Using(context.CommonNamespace);
-            }
-
             return EventPropertyPredicate(property, value, types, index);
         });
         var produced = SemanticProductionSelection.Taken(scope.Context.Application, scope.Command, scope.Specification).First(_ => _.EventContract == expected.EventContract);
         var identity = SemanticDestinations.ForSpecification(scope.Specification, scope.Command, produced);
         var source = $" && entry.Event.Context.EventSourceId == {types.EventSourceExpression(types.Value(identity.Value, identity.Type), identity.Type)}";
-        if (SemanticTypeSystem.ValueNeedsCommon(identity.Value, identity.Type))
-        {
-            builder.Using(context.CommonNamespace);
-        }
-
         builder.Line($"var match{index} = remaining.FindIndex(entry => entry.Event.Content is {types.EventType(@event)} @event{source}{string.Concat(predicates.Select(predicate => $" && {predicate}"))});")
             .Line($"(match{index} >= 0).ShouldBeTrue();")
             .Line($"remaining.RemoveAt(match{index});");
@@ -268,12 +244,6 @@ internal static partial class SemanticCommandSpecificationRenderer
         var sources = new[] { expected.EventSource, scope.Specification.When!.EventSource }.OfType<SemanticEventSourceIdentity>();
         var source = string.Concat(sources.Select(identity =>
             $" && entry.Event.Context.EventSourceId == {types.EventSourceExpression(types.Value(identity.Value, identity.Type), identity.Type)}"));
-        if (sources.Any(identity => SemanticTypeSystem.ValueNeedsCommon(identity.Value, identity.Type)) ||
-            PropertyValuesNeedCommon(@event.Properties, expected.Values))
-        {
-            scope.Builder.Using(context.CommonNamespace);
-        }
-
         var route = SemanticSpecificationRouteRendering.Predicate(expected, context, "entry", types);
         scope.Builder.Line($"{index} => entry.Event.Content is {types.EventType(@event)} @event{source}{string.Concat(predicates.Select(predicate => $" && {predicate}"))}{route},");
     }

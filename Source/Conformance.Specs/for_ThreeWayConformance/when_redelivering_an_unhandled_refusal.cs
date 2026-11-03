@@ -51,7 +51,7 @@ public class when_redelivering_an_unhandled_refusal : Specification
                   amount = -1
                 when redelivered Started to Worker
                 then error "Positive amount required"
-        """)).Plan!;
+        """)).Plan;
 
     async Task Because()
     {
@@ -62,7 +62,7 @@ public class when_redelivering_an_unhandled_refusal : Specification
 
     [Fact] void should_match_then_error_on_the_reference() => _reference.Passed.ShouldBeTrue();
     [Fact] void should_match_then_error_on_the_executor() => _stage.Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
-    [Fact] void should_preserve_the_rejection_message() => _stage.Trace!.Rejection.ShouldEqual(((SemanticRejected)_reference.Execution).Details);
+    [Fact] void should_preserve_the_rejection_message() => _stage.Trace.Rejection.ShouldEqual(((SemanticRejected)_reference.Execution).Details);
     [Fact] void should_not_turn_an_invocation_refusal_into_successful_empty_effects() => _stage.ExecutionKind.ShouldEqual(_reference.Execution.Kind.ToString());
 }
 #endif

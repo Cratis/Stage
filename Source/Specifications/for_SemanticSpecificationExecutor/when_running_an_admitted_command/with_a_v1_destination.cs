@@ -22,6 +22,6 @@ public class with_a_v1_destination : a_command_only_plan
     }
 
     [Fact] void should_match_the_reference_acceptance() => Xunit.Assert.True(_reference.Passed && _report.Results.Single().Outcome == SemanticSpecificationOutcome.Passed, $"Reference: {_reference.Execution.Kind}; Stage: {_report.Results.Single().Outcome} {string.Join(',', _report.Results.Single().Failures)} {_report.Results.Single().Unsupported?.Details}");
-    [Fact] void should_append_the_untyped_destination() => _report.Results.Single().Trace!.Facts.Single().EventSource.ShouldEqual(SemanticRunContext.Canonical(((SemanticAccepted)_reference.Execution).Facts.Single().Destination));
-    [Fact] void should_not_invent_a_v2_event_source_type() => _report.Results.Single().Trace!.Facts.Single().EventSourceType.ShouldBeNull();
+    [Fact] void should_append_the_untyped_destination() => _report.Results.Single().Trace.Facts.Single().EventSource.ShouldEqual(SemanticRunContext.Canonical(((SemanticAccepted)_reference.Execution).Facts.Single().Destination));
+    [Fact] void should_not_invent_a_v2_event_source_type() => _report.Results.Single().Trace.Facts.Single().EventSourceType.ShouldBeNull();
 }

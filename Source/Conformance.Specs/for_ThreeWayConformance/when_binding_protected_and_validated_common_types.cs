@@ -32,7 +32,7 @@ public class when_binding_protected_and_validated_common_types
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success, string.Join('\n', execution.Issues));
         var options = new CratisRenderingOptions("ProofApp", "ProofApp");
-        var request = new ArtifactRenderRequest(model, execution.Plan!, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var request = new ArtifactRenderRequest(model, execution.Plan, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
         var plan = new CratisArtifactRenderPlanner().Plan(request);
         Assert.True(plan.Success, string.Join('\n', plan.Diagnostics));
         var context = new SemanticApplicationContext(request, options);

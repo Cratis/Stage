@@ -25,17 +25,17 @@ public class when_refusing_screen_partitions : given.a_partitioned_screen_plan
     [InlineData("unsupported version")]
     public void should_refuse_without_partial_output(string reason)
     {
-        var node = JsonNode.Parse(Partitions.Bytes.AsSpan())!.AsObject();
-        var entries = node["Entries"]!.AsArray();
+        var node = JsonNode.Parse(Partitions.Bytes.AsSpan()).AsObject();
+        var entries = node["Entries"].AsArray();
         switch (reason)
         {
             case "stale model": node["ModelRevision"] = "stale"; break;
             case "stale scene": node["SceneSha256"] = "stale"; break;
-            case "unknown owner": entries[0]!["Owner"] = _loaded.Model.Application.Id.ToString(); break;
-            case "duplicate screen": entries[1]!["Index"] = 0; break;
+            case "unknown owner": entries[0]["Owner"] = _loaded.Model.Application.Id.ToString(); break;
+            case "duplicate screen": entries[1]["Index"] = 0; break;
             case "missing screen": entries.RemoveAt(0); break;
-            case "different payload": entries[0]!["Screen"]!["name"] = "Unrelated"; break;
-            case "malformed payload": entries[0]!["Screen"]!["contributions"] = null; break;
+            case "different payload": entries[0]["Screen"]["name"] = "Unrelated"; break;
+            case "malformed payload": entries[0]["Screen"]["contributions"] = null; break;
         }
 
         var text = reason == "malformed json" ? "{" : CanonicalSceneJson.Write(node);

@@ -22,7 +22,7 @@ public class when_renaming_stream_id_locals : Specification
         var source = when_planning_event_source_routes.Source.Replace("amount Decimal\n", "streamIdPart0 AccountId generated\n        streamIdPart01 AccountId generated\n        amount Decimal\n", StringComparison.Ordinal);
         var model = invoice_model.Compile(source);
         var options = new CratisRenderingOptions("Banking", "Banking");
-        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile("Banking", options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile("Banking", options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
         var context = new SemanticApplicationContext(request, options);
         var command = context.Commands.Values.Single();
         var routing = new SemanticCommandRouteRendering(command, context, new(command));

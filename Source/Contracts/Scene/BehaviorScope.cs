@@ -46,6 +46,11 @@ public sealed record BehaviorScope(
     public IReadOnlyList<ScreenplaySyntax.ScreenToolbarSyntax> FeatureToolbars { get; init; } = [];
 
     /// <summary>
+    /// Gets the lexical response names of each command, mapped to authored response member paths.
+    /// </summary>
+    public IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> CommandResponses { get; init; } = new Dictionary<string, IReadOnlyDictionary<string, string>>(StringComparer.Ordinal);
+
+    /// <summary>
     /// The templates the document declares, by name, with the slots each has - the only way to know whether a template has a toolbar slot.
     /// </summary>
     public IReadOnlyDictionary<string, IReadOnlyList<string>> DeclaredTemplateSlots { get; init; } = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
@@ -62,7 +67,15 @@ public sealed record BehaviorScope(
     /// <param name="findings">Where to report an unresolved <c language="csharp">uses</c>.</param>
     /// <returns>The <see cref="BehaviorScope"/>.</returns>
     public static BehaviorScope For(ScreenplaySyntax.ApplicationSyntax syntax, ICollection<RenderFinding> findings) =>
-        new(BehaviorAttachments.Declared(syntax.Behaviors), findings) { Enumerations = EnumerationsIn(syntax), EnumerationNumbers = EnumerationNumbersIn(syntax), Structure = StructureConverter.Convert(syntax) };
+        new(BehaviorAttachments.Declared(syntax.Behaviors), findings)
+        {
+            Enumerations = EnumerationsIn(syntax),
+            EnumerationNumbers = EnumerationNumbersIn(syntax),
+            Structure = StructureConverter.Convert(syntax),
+            CommandResponses = syntax.Modules.SelectMany(module => Slices(module.Features)).SelectMany(slice => slice.Commands ?? [])
+                .GroupBy(command => command.Name, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => FormResponseBindings.Names(group.First().Response), StringComparer.Ordinal)
+        };
 
     /// <summary>
     /// Gets the members of the enumeration a guard's subject field has, in declared order, which is the order the

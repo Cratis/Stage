@@ -34,7 +34,7 @@ public class when_checking_degradation_vectors : given.outcome_vectors
         var leaf = Degraded(3, "STAGE-DEGRADE-005", [new(middle.Identity, "STAGE-DEGRADE-005")]);
         var plan = Plan([root, middle, leaf]);
         Assert.Empty(RenderOutcomeContract.Problems(plan, []));
-        Assert.Equal(3, plan.Inventory!.Score.Counts.Degraded);
+        Assert.Equal(3, plan.Inventory.Score.Counts.Degraded);
         Assert.Equal(new ArtifactRenderGapReference(root.Identity, "STAGE-DEGRADE-002"), Assert.Single(middle.Degradations[0].Roots));
         Assert.Equal(new ArtifactRenderGapReference(middle.Identity, "STAGE-DEGRADE-005"), Assert.Single(leaf.Degradations[0].Roots));
     }

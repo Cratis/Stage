@@ -77,7 +77,7 @@ public class when_building_a_scoped_application_with_its_user_interface(when_bui
         void Establish()
         {
             var compilation = when_rendering_authoring_documentation.Compile(when_rendering_authoring_documentation.Source + "\n" + ArchivingSource);
-            var loaded = new LoadedSemanticModel(compilation.Model, SemanticExecutionPlan.Compile(compilation.Model).Plan!);
+            var loaded = new LoadedSemanticModel(compilation.Model, SemanticExecutionPlan.Compile(compilation.Model).Plan);
             var options = new CratisPlanOptions("Projects", "Projects", "Projects");
             var scaffold = CratisRendering.PlanScaffold(options);
             var feature = CratisRendering.PlanFrom(loaded, new([PlanSelectionEntry.Feature("Projects", "Registration")]), options with { UserInterface = new([]) });
@@ -92,7 +92,7 @@ public class when_building_a_scoped_application_with_its_user_interface(when_bui
             foreach (var artifact in scaffold.Artifacts.Concat(feature.Artifacts))
             {
                 var path = Path.Combine(_application, artifact.RelativePath.Replace('/', Path.DirectorySeparatorChar));
-                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
                 File.WriteAllBytes(path, [.. artifact.Bytes]);
             }
         }

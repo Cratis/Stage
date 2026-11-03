@@ -163,6 +163,9 @@ dotnet_diagnostic.CA2000.severity = none
 dotnet_diagnostic.CA2201.severity = none
 dotnet_diagnostic.CA2211.severity = none
 dotnet_diagnostic.CA2252.severity = none
+# Specs pass JSON fixtures (valid or deliberately malformed) as plain strings to string-typed APIs; the
+# "add //lang=json" suggestion is noise there and cannot be applied to deliberately malformed fixtures.
+dotnet_diagnostic.JSON002.severity = none
 dotnet_diagnostic.CS0108.severity = none
 dotnet_diagnostic.CS8600.severity = none
 dotnet_diagnostic.CS8601.severity = none

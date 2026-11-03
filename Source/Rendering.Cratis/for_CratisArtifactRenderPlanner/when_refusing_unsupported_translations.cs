@@ -23,7 +23,7 @@ public class when_refusing_unsupported_translations : given.a_translation_applic
         var slice = _model.Application.Modules.Single().Features.Single().Slices.Single(candidate => candidate.Name == name);
         var contract = slice.Events.Single(candidate => candidate.Origin is not null || candidate.Visibility == SemanticEventVisibility.Public);
         var options = new CratisRenderingOptions("Contracts", "Contracts");
-        var request = new ArtifactRenderRequest(_model, SemanticExecutionPlan.Compile(_model).Plan!, CratisRendering.CreateProfile(_model.Application.Name, options), new(ArtifactRenderScopeKind.Application, _model.Application.Id));
+        var request = new ArtifactRenderRequest(_model, SemanticExecutionPlan.Compile(_model).Plan, CratisRendering.CreateProfile(_model.Application.Name, options), new(ArtifactRenderScopeKind.Application, _model.Application.Id));
         var context = new SemanticApplicationContext(request, options);
         SemanticTranslationAdmission.AdmitsEvent(contract.Id, slice with { Kind = SemanticSliceKind.StateChange }, context).ShouldBeFalse();
         SemanticTranslationAdmission.AdmitsEvent(contract.Id, slice with { Kind = SemanticSliceKind.StateChange, Captures = [], Projections = [] }, context).ShouldBeTrue();
@@ -118,9 +118,9 @@ public class when_refusing_unsupported_translations : given.a_translation_applic
         {
             Projections = [.. slice.Projections.Select(projection => projection with
             {
-                Scope = projection.Scope! with
+                Scope = projection.Scope with
                 {
-                    From = [.. projection.Scope!.From.Select(binding => binding with { Key = new SemanticProjectionValueKey(new SemanticProjectionEventProperty([sourceProperty])) })]
+                    From = [.. projection.Scope.From.Select(binding => binding with { Key = new SemanticProjectionValueKey(new SemanticProjectionEventProperty([sourceProperty])) })]
                 }
             })]
         }));
@@ -141,7 +141,7 @@ public class when_refusing_unsupported_translations : given.a_translation_applic
     {
         var plan = Plan(Transform(_model, slice => slice.Projections.IsEmpty ? slice : slice with
         {
-            Reducers = [new("OtherPublication", slice.Projections.Single().ReadModel, [new(slice.Projections.Single().Scope!.From[0].EventContract, "other-publication")]) { Target = SemanticProjectionTargetKind.Event }]
+            Reducers = [new("OtherPublication", slice.Projections.Single().ReadModel, [new(slice.Projections.Single().Scope.From[0].EventContract, "other-publication")]) { Target = SemanticProjectionTargetKind.Event }]
         }));
         plan.Success.ShouldBeFalse();
         plan.Artifacts.ShouldBeEmpty();

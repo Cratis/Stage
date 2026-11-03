@@ -27,7 +27,7 @@ public class and_a_freeform_arrangement_targets_another_size_class : Specificati
         _untargeted = ArrangementSelector.Select("AppShell", "content", _arrangement, new SizeClass(WidthSizeClass.Compact, HeightSizeClass.Regular));
     }
 
-    [Fact] void should_select_the_variant_that_targets_the_size_class() => _targeted!.Slots!.Placements.Single().SlotName.ShouldEqual("navigation");
-    [Fact] void should_name_the_slot_the_arrangement_belongs_to() => _targeted!.Slot.ShouldEqual("content");
+    [Fact] void should_select_the_variant_that_targets_the_size_class() => _targeted.Slots.Placements.Single().SlotName.ShouldEqual("navigation");
+    [Fact] void should_name_the_slot_the_arrangement_belongs_to() => _targeted.Slot.ShouldEqual("content");
     [Fact] void should_select_nothing_rather_than_fall_back_to_another_variant() => _untargeted.ShouldBeNull();
 }

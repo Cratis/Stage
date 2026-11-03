@@ -26,7 +26,7 @@ public class when_validating_generation_rule_fixtures : Specification
                 : concept)]
         });
         var options = new CratisRenderingOptions("GenerationFixtures", "GenerationFixtures");
-        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
         var context = new SemanticApplicationContext(request, options);
         var slice = context.SelectedSlices().Single().Slice;
         var specification = slice.Specifications.Single(specification => specification.Name == "GeneratorBodyNotExecuted");

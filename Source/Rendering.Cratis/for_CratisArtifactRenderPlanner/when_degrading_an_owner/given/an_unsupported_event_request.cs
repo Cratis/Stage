@@ -23,14 +23,14 @@ public class an_unsupported_event_request : for_CratisArtifactRenderPlanner.give
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("omission"), "omission", "omission.play", source);
         var compiled = new SemanticModelCompiler().Compile("OwnerOmission", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compiled.Success, string.Join("; ", compiled.Diagnostics));
-        _model = compiled.Value!.Model;
+        _model = compiled.Value.Model;
         _module = _model.Application.Modules.Single(module => module.Name == "Projects");
         _feature = _module.Features.Single();
         _registerProject = _feature.Slices.Single(slice => slice.Name == "RegisterProject");
         _projectLookup = _feature.Slices.Single(slice => slice.Name == "ProjectLookup");
         _independentCommand = _model.Application.Modules.Single(module => module.Name == "Billing").Features.Single().Slices.Single().Commands.Single().Id;
         _unsupportedEvent = _registerProject.Events.Single().Id;
-        var execution = SemanticExecutionPlan.Compile(_model).Plan!;
+        var execution = SemanticExecutionPlan.Compile(_model).Plan;
         UnsupportedProperties(_registerProject.Events.Single());
         _request = _request with
         {
@@ -58,13 +58,13 @@ public class an_unsupported_event_request : for_CratisArtifactRenderPlanner.give
     });
 
     protected static void Replace<T>(T node, string property, object value)
-        where T : class => typeof(T).GetField($"<{property}>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(node, value);
+        where T : class => typeof(T).GetField($"<{property}>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(node, value);
 
     protected static void UnsupportedProperties(SemanticEventContract owner)
     {
         var name = owner.Properties.Any(property => property.Name == "name") ? "name" : owner.Properties[0].Name;
         var properties = owner.Properties.Select(property => property.Name == name
             ? property with { Type = property.Type with { Kind = (SemanticTypeReferenceKind)999 } } : property).ToImmutableArray();
-        typeof(SemanticEventContract).GetField("<Properties>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(owner, properties);
+        typeof(SemanticEventContract).GetField("<Properties>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(owner, properties);
     }
 }

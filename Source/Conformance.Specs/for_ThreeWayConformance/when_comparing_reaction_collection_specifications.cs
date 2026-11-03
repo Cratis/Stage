@@ -92,7 +92,7 @@ public class when_comparing_reaction_collection_specifications(when_comparing_re
             var document = SemanticSourceDocument.Create(catalog.ResolveDocument("collections"), "collections", "Collections.play", Source);
             var compilation = new SemanticModelCompiler().Compile("ReactionCollections", SemanticDocumentSet.Create([document], catalog));
             Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-            var model = compilation.Value!.Model;
+            var model = compilation.Value.Model;
             var module = model.Application.Modules.Single();
             var feature = module.Features.Single();
             var slice = feature.Slices.Single();

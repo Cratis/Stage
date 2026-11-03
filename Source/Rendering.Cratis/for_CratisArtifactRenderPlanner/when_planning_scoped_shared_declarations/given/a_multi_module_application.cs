@@ -83,7 +83,7 @@ public class a_multi_module_application : Specification
         };
         var compilation = new SemanticModelCompiler().Compile("Shop", SemanticDocumentSet.Create([.. documents], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        _model = compilation.Value!.Model;
+        _model = compilation.Value.Model;
         _customers = _model.Application.Modules.Single(module => module.Name == "Customers");
         _sales = _model.Application.Modules.Single(module => module.Name == "Sales");
         _placeOrder = _sales.Features.Single().Slices.Single(slice => slice.Name == "PlaceOrder");
@@ -93,7 +93,7 @@ public class a_multi_module_application : Specification
     }
 
     protected ArtifactRenderPlan Plan(ArtifactRenderScope scope) =>
-        CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model).Plan!, scope, new("Shop", "Shop"));
+        CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model).Plan, scope, new("Shop", "Shop"));
 
     protected static bool SameArtifact(ArtifactRenderPlan application, ArtifactRenderPlan scoped, string path)
     {

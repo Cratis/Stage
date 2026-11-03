@@ -15,7 +15,7 @@ public class and_the_requirement_id_is_invalid : for_TemplatePreparer.given.a_ki
     {
         foreach (var text in new[] { "{{ impl.body '' }}", "{{ impl.body model.number }}", "{{ impl.body null }}" })
         {
-            using var session = TemplatePreparer.Prepare(Kit(text)).Value!.BeginPlan(TemplateBudget.Default);
+            using var session = TemplatePreparer.Prepare(Kit(text)).Value.BeginPlan(TemplateBudget.Default);
             var result = session.Render("main.scriban", JsonSerializer.SerializeToElement(new { model = new { number = 1 } }));
             _refused.Add(result.Refusal is not null && result.Output is null);
         }

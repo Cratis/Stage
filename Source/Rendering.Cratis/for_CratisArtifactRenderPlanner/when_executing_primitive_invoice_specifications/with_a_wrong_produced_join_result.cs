@@ -30,6 +30,6 @@ public class with_a_wrong_produced_join_result : a_generated_application
         _failure = await Catch.Exception(() => Run("wrong-join-test.log", "test", "-c", "Debug", "--no-build"));
     }
 
-    [Fact] void should_fail_the_stale_name_expectation() => _failure!.Message.ShouldContain("should_project_name");
+    [Fact] void should_fail_the_stale_name_expectation() => _failure.Message.ShouldContain("should_project_name");
 }
 #endif

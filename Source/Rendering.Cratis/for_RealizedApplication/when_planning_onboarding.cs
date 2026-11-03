@@ -16,14 +16,14 @@ public class when_planning_onboarding : given.a_model_with_authentication_and_on
     string[] Codes => [.. _plan.Diagnostics.Select(diagnostic => diagnostic.Code)];
 
     [Fact] void should_plan_without_errors() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error).ShouldBeEmpty();
-    [Fact] void should_configure_ante_for_the_application_store() => Ante["HostStore"]!.GetValue<string>().ShouldEqual(Application);
-    [Fact] void should_have_ante_use_the_store_the_application_observes() => Ante["EventStore"]!.GetValue<string>().ShouldEqual("Ante");
-    [Fact] void should_enable_the_onboarding_contract() => Ante["Enabled"]!.GetValue<bool>().ShouldBeTrue();
-    [Fact] void should_open_registration_because_the_model_opens_sign_up() => Ante["RegistrationEnabled"]!.GetValue<bool>().ShouldBeTrue();
-    [Fact] void should_have_sign_up_create_a_tenant() => Ante["SignUp"]!.GetValue<string>().ShouldEqual("CreateTenant");
-    [Fact] void should_allow_both_kinds_of_invitation() => Ante["InvitationTypes"]!.ToJsonString().ShouldEqual("[\"CreateTenant\",\"JoinTenant\"]");
-    [Fact] void should_let_ante_grant_only_the_personas_the_model_grants() => Ante["Personas"]!.ToJsonString().ShouldEqual("[\"Librarian\",\"Member\"]");
-    [Fact] void should_name_the_terms_and_the_privacy_policy() => Ante["Legal"]!.ToJsonString().ShouldEqual("{\"TermsAndConditions\":\"Legal/terms-of-service.md\",\"PrivacyPolicy\":\"Legal/privacy-policy.md\"}");
+    [Fact] void should_configure_ante_for_the_application_store() => Ante["HostStore"].GetValue<string>().ShouldEqual(Application);
+    [Fact] void should_have_ante_use_the_store_the_application_observes() => Ante["EventStore"].GetValue<string>().ShouldEqual("Ante");
+    [Fact] void should_enable_the_onboarding_contract() => Ante["Enabled"].GetValue<bool>().ShouldBeTrue();
+    [Fact] void should_open_registration_because_the_model_opens_sign_up() => Ante["RegistrationEnabled"].GetValue<bool>().ShouldBeTrue();
+    [Fact] void should_have_sign_up_create_a_tenant() => Ante["SignUp"].GetValue<string>().ShouldEqual("CreateTenant");
+    [Fact] void should_allow_both_kinds_of_invitation() => Ante["InvitationTypes"].ToJsonString().ShouldEqual("[\"CreateTenant\",\"JoinTenant\"]");
+    [Fact] void should_let_ante_grant_only_the_personas_the_model_grants() => Ante["Personas"].ToJsonString().ShouldEqual("[\"Librarian\",\"Member\"]");
+    [Fact] void should_name_the_terms_and_the_privacy_policy() => Ante["Legal"].ToJsonString().ShouldEqual("{\"TermsAndConditions\":\"Legal/terms-of-service.md\",\"PrivacyPolicy\":\"Legal/privacy-policy.md\"}");
     [Fact] void should_give_the_first_member_of_a_signed_up_tenant_the_persona_of_a_tenant_invitation() => Text("GeneratedOnboarding/OnboardingRules.cs").ShouldContain("SignupPersona = \"Librarian\"");
     [Fact] void should_grant_an_invitation_only_what_the_model_grants() => Text("GeneratedOnboarding/OnboardingRules.cs").ShouldContain("MemberGrantable { get; } = [\"Member\"]");
     [Fact] void should_let_only_the_inviting_personas_invite() => Text("GeneratedOnboarding/OnboardingRules.cs").ShouldContain("MemberInviters { get; } = [\"Librarian\"]");

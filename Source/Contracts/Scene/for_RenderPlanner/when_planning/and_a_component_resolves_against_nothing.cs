@@ -35,7 +35,7 @@ public class and_a_component_resolves_against_nothing : an_application_targeting
 
     [Fact] void should_not_consider_the_application_renderable() => _result.IsComplete.ShouldBeFalse();
     [Fact] void should_report_the_unresolved_component_on_every_target() => _result.Targets.All(target => Finding(target) is not null).ShouldBeTrue();
-    [Fact] void should_name_the_component_that_did_not_resolve() => Finding(_result.Targets[0])!.Subject.ShouldEqual("core:chart");
+    [Fact] void should_name_the_component_that_did_not_resolve() => Finding(_result.Targets[0]).Subject.ShouldEqual("core:chart");
     [Fact] void should_leave_it_out_of_the_resolved_components() => _result.Targets[0].Components.Any(component => component.Name == "core:chart").ShouldBeFalse();
     [Fact] void should_still_resolve_the_components_that_do_resolve() => _result.Targets[0].Components.Count.ShouldEqual(2);
 

@@ -21,8 +21,8 @@ public class and_the_slice_has_several_projections : given.a_slice_with_projecti
 
     void Because() => _result = ReadModelConverter.Convert(_slice, _schema, new Dictionary<string, string>(), "Listing", _diagnostics);
 
-    [Fact] void should_keep_the_first_projection() => _result!.Projection.ShouldNotBeNull();
-    [Fact] void should_keep_the_additional_projection_name() => _result!.IgnoredProjectionNames.Single().ShouldEqual("Additional");
+    [Fact] void should_keep_the_first_projection() => _result.Projection.ShouldNotBeNull();
+    [Fact] void should_keep_the_additional_projection_name() => _result.IgnoredProjectionNames.Single().ShouldEqual("Additional");
     [Fact] void should_report_a_warning() => _diagnostics.All[0].Severity.ShouldEqual(DiagnosticSeverity.Warning);
     [Fact] void should_name_the_omitted_projection() => _diagnostics.All[0].Construct.ShouldEqual("additional projection 'Additional'");
     [Fact] void should_use_the_additional_projection_code() => _diagnostics.All[0].Code.ShouldEqual("STAGE-PROJECTION-008");

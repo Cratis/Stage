@@ -18,7 +18,7 @@ public class when_refusing_enum_production_conditions : Specification
     void Because()
     {
         var model = SemanticModelSerializer.Deserialize(EnumMemberNumbersCorpus.V12.EsmBytes.AsSpan());
-        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile("Enums", new("Enums", "Enums")), new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile("Enums", new("Enums", "Enums")), new(ArtifactRenderScopeKind.Application, model.Application.Id));
         var context = new SemanticApplicationContext(request, new("Enums", "Enums"));
         var located = context.SelectedSlices().First(slice => slice.Slice.Commands.Any(command => command.Properties.Any(property =>
             property.Type.Kind == SemanticTypeReferenceKind.Concept && !context.Concepts[property.Type.Target].Values.IsEmpty)));

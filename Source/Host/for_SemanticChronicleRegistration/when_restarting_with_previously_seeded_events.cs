@@ -46,7 +46,7 @@ public class when_restarting_with_previously_seeded_events : a_seeding_store
         var converter = new ExpandoObjectConverter(new TypeFormats());
         foreach (var stored in _history)
         {
-            stored.Content = JsonSerializer.Serialize(converter.ToExpandoObject(JsonNode.Parse(stored.Content)!.AsObject(), schema));
+            stored.Content = JsonSerializer.Serialize(converter.ToExpandoObject(JsonNode.Parse(stored.Content).AsObject(), schema));
         }
         _contracts.Sequences.FromSequenceNumber(Arg.Any<FromSequenceNumberRequest>()).Returns(
             QueryResult<IEnumerable<AppendedEventResponse>>.Success(Guid.Empty, _history));

@@ -30,25 +30,7 @@ public static class CommandFormSchemas
     /// <param name="properties">The command properties.</param>
     /// <returns>The JSON schema text.</returns>
     /// <exception cref="UnsupportedCommandFormSchema">Thrown when a property has a type no form schema can describe.</exception>
-    public static string For(SemanticApplication application, IEnumerable<SemanticProperty> properties)
-    {
-        var concepts = application.Concepts.ToDictionary(
-            concept => concept.Name,
-            concept => new ConceptSyntax(
-                concept.Name,
-                concept.Values.IsEmpty ? PrimitiveName(concept.Primitive) : "Enum",
-                [],
-                concept.Values,
-                SourceLocation.Start),
-            StringComparer.Ordinal);
-        var schemas = new SchemaSynthesizer(concepts, CompositeTypes(application));
-
-        return schemas.ForProperties(properties.Select(property => new PropertySyntax(
-            property.Name,
-            new TypeRefSyntax(TypeName(application, property.Type), property.Type.IsCollection, property.Type.IsOptional, SourceLocation.Start),
-            SourceLocation.Start,
-            property.IsIdentifier)));
-    }
+    public static string For(SemanticApplication application, IEnumerable<SemanticProperty> properties) => Create(application, properties, new CommandReferences(application, null, string.Empty, SourceLocation.Start));
 
     /// <summary>
     /// Creates a command schema while reporting unsupported semantic types instead of throwing.
@@ -84,7 +66,7 @@ public static class CommandFormSchemas
             diagnostics.Report(new(omission.Code, DiagnosticSeverity.Error, omission.Construct, omission.Path, location, $"Command schema '{path}' was omitted because of unsupported {omission.Construct}."));
         }
 
-        return omissions.Count == 0 ? For(application, all) : null;
+        return omissions.Count == 0 ? Create(application, all, new CommandReferences(application, diagnostics, path, location)) : null;
     }
 
     /// <summary>
@@ -113,6 +95,32 @@ public static class CommandFormSchemas
         {
             return [];
         }
+    }
+
+    static string Create(SemanticApplication application, IEnumerable<SemanticProperty> properties, CommandReferences references)
+    {
+        var concepts = application.Concepts.ToDictionary(
+            concept => concept.Name,
+            concept => new ConceptSyntax(
+                concept.Name,
+                concept.Values.IsEmpty ? PrimitiveName(concept.Primitive) : "Enum",
+                [],
+                concept.Values,
+                SourceLocation.Start),
+            StringComparer.Ordinal);
+        var schemas = new SchemaSynthesizer(concepts, CompositeTypes(application));
+        var all = properties.ToArray();
+
+        // A generated property is still described, since callers read its type, but it never asks for a reference picker.
+        var generated = all.Where(property => property.IsGenerated).Select(property => property.Name).ToHashSet(StringComparer.Ordinal);
+        return schemas.ForCommandProperties(
+            all.Select(property => new PropertySyntax(
+                property.Name,
+                new TypeRefSyntax(TypeName(application, property.Type), property.Type.IsCollection, property.Type.IsOptional, SourceLocation.Start),
+                SourceLocation.Start,
+                property.IsIdentifier)),
+            references,
+            generated);
     }
 
     // The members of every composite type, so a record property is presented as the fields it holds rather than as an opaque object. A member

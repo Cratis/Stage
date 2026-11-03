@@ -33,10 +33,10 @@ public class when_planning_a_composite_type : a_register_project_render_request
         var compilation = new SemanticModelCompiler().Compile(
             "Projects",
             SemanticDocumentSet.Create([document], catalog));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var request = new ArtifactRenderRequest(
             model,
-            SemanticExecutionPlan.Compile(model).Plan!,
+            SemanticExecutionPlan.Compile(model).Plan,
             _request.Profile,
             new(ArtifactRenderScopeKind.Application, model.Application.Id));
         _plan = _planner.Plan(request);

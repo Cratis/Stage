@@ -20,12 +20,12 @@ public class a_semantic_runtime : Specification
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("project-model"), "project-model", "RegisterProject.play", Source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model);
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model);
         var appender = Substitute.For<IAppendSemanticFacts, ISemanticFactTail>();
         ((ISemanticFactTail)appender).Tail().Returns(ulong.MaxValue);
         _appender = appender;
-        _runtime = SemanticRuntimeHosting.Create(plan.Plan!, appender);
-        _command = plan.Plan!.Commands.Values.Single();
+        _runtime = SemanticRuntimeHosting.Create(plan.Plan, appender);
+        _command = plan.Plan.Commands.Values.Single();
     }
 
     protected const string Source = """

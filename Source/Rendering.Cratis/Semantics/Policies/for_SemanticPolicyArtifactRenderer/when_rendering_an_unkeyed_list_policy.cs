@@ -40,9 +40,9 @@ public class when_rendering_an_unkeyed_list_policy : for_SemanticCratisAdmission
             """);
         var assembly = RenderedOutput.Load([.. policy, registration]);
         var services = new ServiceCollection();
-        assembly.GetType($"{_context.RootNamespace}.GeneratedPolicies.Registration")!.GetMethod("Register")!.Invoke(null, [services]);
-        _registrations = [.. services.Where(service => service.ServiceType == typeof(AuthorizationPolicyRegistration)).Select(service => (AuthorizationPolicyRegistration)service.ImplementationInstance!)];
-        _policy = (IAuthorizationPolicy)Activator.CreateInstance(assembly.GetTypes().Single(type => type.Name == SemanticPolicyNames.For(_context)[_query.Id].ClassName))!;
+        assembly.GetType($"{_context.RootNamespace}.GeneratedPolicies.Registration").GetMethod("Register").Invoke(null, [services]);
+        _registrations = [.. services.Where(service => service.ServiceType == typeof(AuthorizationPolicyRegistration)).Select(service => (AuthorizationPolicyRegistration)service.ImplementationInstance)];
+        _policy = (IAuthorizationPolicy)Activator.CreateInstance(assembly.GetTypes().Single(type => type.Name == SemanticPolicyNames.For(_context)[_query.Id].ClassName));
         _stateView = SemanticStateViewArtifactRenderer.Render(_context.Slice(_slice.Id), _context).Content;
     }
 

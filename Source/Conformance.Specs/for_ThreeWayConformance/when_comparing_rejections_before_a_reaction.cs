@@ -119,7 +119,7 @@ public class when_comparing_rejections_before_a_reaction(when_comparing_rejectio
             var document = SemanticSourceDocument.Create(catalog.ResolveDocument("app"), "app", "application.play", Source);
             var compilation = new SemanticModelCompiler().Compile("RejectionsBeforeReaction", SemanticDocumentSet.Create([document], catalog));
             Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-            return compilation.Value!.Model;
+            return compilation.Value.Model;
         }
     }
 }

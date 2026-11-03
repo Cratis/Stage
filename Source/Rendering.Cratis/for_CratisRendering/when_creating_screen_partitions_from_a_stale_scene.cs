@@ -17,15 +17,15 @@ public class when_creating_screen_partitions_from_a_stale_scene : given.a_partit
     void Because()
     {
         var scene = _legacy.Inputs.Single(input => input.Name == "cratis-scaffold:text:scene.json");
-        var node = JsonNode.Parse(scene.Bytes.AsSpan())!;
-        var screen = node["screens"]![0]!;
-        var element = screen["slotContent"]!.AsObject().GetAt(0).Value!.AsArray()[0]!;
-        element["properties"]!["stalePayload"] = "Different content, same screen name and hierarchy";
+        var node = JsonNode.Parse(scene.Bytes.AsSpan());
+        var screen = node["screens"][0];
+        var element = screen["slotContent"].AsObject().GetAt(0).Value.AsArray()[0];
+        element["properties"]["stalePayload"] = "Different content, same screen name and hierarchy";
         var staleScene = ArtifactRenderInput.Create(scene.Name, scene.Version, [.. Encoding.UTF8.GetBytes(CanonicalSceneJson.Write(node))]);
         var profile = ArtifactRenderProfile.Create(_legacy.Target, _legacy.TargetVersion, _legacy.Renderer, _legacy.RendererVersion, [.. _legacy.Inputs.Where(input => input != scene), staleScene]);
         _refusal = Catch.Exception(() => CratisRendering.WithScreenPartitions(profile, _compilation));
     }
 
     [Fact] void should_refuse_before_a_partitioned_profile_is_created() => _refusal.ShouldBeOfExactType<InvalidArtifactRenderContract>();
-    [Fact] void should_explain_the_stale_payload() => _refusal!.Message.ShouldContain("stale or mismatched payload");
+    [Fact] void should_explain_the_stale_payload() => _refusal.Message.ShouldContain("stale or mismatched payload");
 }

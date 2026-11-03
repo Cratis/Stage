@@ -47,10 +47,10 @@ internal static class routed_specifications
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("routes"), "routes", "routes.play", source);
         var compilation = new SemanticModelCompiler().Compile("Routed", SemanticDocumentSet.Create([document], catalog));
         Xunit.Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        return compilation.Value!.Model;
+        return compilation.Value.Model;
     }
 
-    internal static ArtifactRenderPlan Plan(ExecutableSemanticModel model) => CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Routed", "Routed"));
+    internal static ArtifactRenderPlan Plan(ExecutableSemanticModel model) => CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Routed", "Routed"));
 
     internal static string Code(ArtifactRenderPlan plan) => System.Text.Encoding.UTF8.GetString(plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("when_depositing.cs", StringComparison.Ordinal)).Bytes.AsSpan());
 
@@ -90,8 +90,8 @@ internal static class routed_specifications
         var specification = slice.Specifications.Single();
         SemanticFixtureRoutePart[] parts = [new("account", SemanticValue.Text("3FA85F64-5717-4562-B3FC-2C963F66AFA6")), new("month", SemanticValue.Number(month)), new("label", SemanticValue.Text("a|b%"))];
         var expected = specification.ThenEvents[0];
-        var fixtureRoute = expected.Route! with { StreamId = null, StreamIdParts = [.. parts] };
-        var commandRoute = command.Route! with { StreamId = null, StreamIdParts = [.. parts.Select(part => new SemanticCommandRoutePart(part.Part, SemanticExpression.FromValue(part.Value)))] };
+        var fixtureRoute = expected.Route with { StreamId = null, StreamIdParts = [.. parts] };
+        var commandRoute = command.Route with { StreamId = null, StreamIdParts = [.. parts.Select(part => new SemanticCommandRoutePart(part.Part, SemanticExpression.FromValue(part.Value)))] };
         var changed = slice with
         {
             Commands = [command with { Route = commandRoute }],
@@ -122,7 +122,7 @@ internal static class routed_specifications
             Specifications = [specification with
             {
                 GivenEvents = [],
-                When = specification.When! with { EventSource = new(command.Properties[0].Type, SemanticValue.Text("acc-1")) },
+                When = specification.When with { EventSource = new(command.Properties[0].Type, SemanticValue.Text("acc-1")) },
                 ThenEventsInAnyOrder = true,
                 ThenEvents = [specification.ThenEvents[0] with
                 {

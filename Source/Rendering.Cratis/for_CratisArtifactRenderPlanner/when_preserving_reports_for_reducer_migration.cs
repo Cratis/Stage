@@ -33,7 +33,7 @@ public class when_preserving_reports_for_reducer_migration
         Assert.Equal(removal.ExpectedSha256, classic.Artifacts.Single(artifact => artifact.RelativePath == removal.RelativePath).Sha256);
         Assert.DoesNotContain(plan.Artifacts, artifact => artifact.RelativePath == removal.RelativePath);
         Assert.Contains(plan.Artifacts, artifact => artifact.RelativePath == prefix + "Orders/Ordering/Totals/Totals.cs");
-        Assert.NotEmpty(plan.Inventory!.Constructs);
+        Assert.NotEmpty(plan.Inventory.Constructs);
         Assert.True(plan.CanPublishArtifacts);
         Assert.Equal(original.Outcome, plan.Outcome);
         Assert.Equal(original.SemanticRevision, plan.SemanticRevision);
@@ -94,7 +94,7 @@ public class when_preserving_reports_for_reducer_migration
         Assert.Equal(plan.Success, json.RootElement.GetProperty("success").GetBoolean());
         Assert.Equal(plan.Strict, json.RootElement.GetProperty("strict").GetBoolean());
         Assert.Equal(plan.CanPublishArtifacts, json.RootElement.GetProperty("canPublishArtifacts").GetBoolean());
-        Assert.Equal(plan.Inventory!.Constructs.Select(construct => construct.Identity.ToString()), json.RootElement.GetProperty("inventory").GetProperty("constructs").EnumerateArray().Select(construct => construct.GetProperty("identity").GetString()));
+        Assert.Equal(plan.Inventory.Constructs.Select(construct => construct.Identity.ToString()), json.RootElement.GetProperty("inventory").GetProperty("constructs").EnumerateArray().Select(construct => construct.GetProperty("identity").GetString()));
     }
 }
 #endif

@@ -15,7 +15,7 @@ public class when_configuring_request_localization_in_a_root_namespace_named_lik
     {
         var input = StringsCatalogInput.Create(new Dictionary<string, string> { ["invoices.en.strings"] = "invoice.key = \"Value\"\n" }, "en");
         StringsCatalogInput.TryRead(input, out var catalog);
-        _program = StringsCatalogInput.ConfigureProgram("app.UseCratis();", catalog!, "CultureInfo.Billing");
+        _program = StringsCatalogInput.ConfigureProgram("app.UseCratis();", catalog, "CultureInfo.Billing");
     }
 
     [Fact] void should_qualify_the_colliding_invariant_culture() => _program.ShouldContain("global::System.Globalization.CultureInfo.InvariantCulture");

@@ -17,13 +17,13 @@ public class when_rendering_an_inline_return_type_that_collides_with_a_framework
     {
         var command = _processBatch.Slice.Commands.Single();
         var body = $"return new {typeName}();";
-        command = command with { Handler = command.Handler! with { Code = command.Handler.Code! with { Code = body } } };
+        command = command with { Handler = command.Handler with { Code = command.Handler.Code with { Code = body } } };
         var modeledEvent = _registerInvoice.Slice.Events.Single() with { Name = "EventForEventSourceId" };
         var slice = _processBatch with { Slice = _processBatch.Slice with { Commands = [command], Events = [modeledEvent] } };
 
         var error = Assert.Throws<CSharpImportRejected>(() => new StateChangeSliceRenderer().Render(slice, _applicationSet, "CratisApp"));
 
         Assert.Contains($"The inferred generated return type '{typeName}' is ambiguous between a modeled event type and a framework contract.", error.Message);
-        Assert.Equal(body, slice.Slice.Commands.Single().Handler!.Code!.Code);
+        Assert.Equal(body, slice.Slice.Commands.Single().Handler.Code.Code);
     }
 }

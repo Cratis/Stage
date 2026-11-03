@@ -26,7 +26,7 @@ public class when_refusing_seeded_composite_removal_without_an_event_source : Sp
             .SelectMany(slice => slice.Specifications).Single(specification => specification.Name == "RemoveOnlyMatchingParts");
         _request = new(
             model,
-            compilation.Plan!,
+            compilation.Plan,
             CratisRendering.CreateProfile(model.Application.Name, new("CompositeRemoval", "CompositeRemoval")),
             new(ArtifactRenderScopeKind.Application, model.Application.Id));
     }

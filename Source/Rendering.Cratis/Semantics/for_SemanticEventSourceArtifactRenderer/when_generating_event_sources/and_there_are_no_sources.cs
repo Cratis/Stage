@@ -29,7 +29,7 @@ public class and_there_are_no_sources : Specification
     }
     void Because() => _v7 = Plan(_model);
 
-    static ArtifactRenderPlan Plan(ExecutableSemanticModel model) => CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Banking", "Banking"));
+    static ArtifactRenderPlan Plan(ExecutableSemanticModel model) => CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Banking", "Banking"));
 
     [Fact] void should_admit_v7() => _v7.Success.ShouldBeTrue();
     [Fact] void should_not_emit_definitions() => _v7.Artifacts.Any(artifact => artifact.RelativePath.StartsWith("EventSources/", StringComparison.Ordinal)).ShouldBeFalse();

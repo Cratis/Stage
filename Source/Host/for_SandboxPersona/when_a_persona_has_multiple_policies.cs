@@ -18,7 +18,7 @@ public class when_a_persona_has_multiple_policies : given.a_persona_model
           policy IsMember
         """);
 
-    [Fact] void should_collect_the_first_role() => _principal!.IsInRole("Staff").ShouldBeTrue();
-    [Fact] void should_collect_the_second_role() => _principal!.IsInRole("Member").ShouldBeTrue();
-    [Fact] void should_collect_claims_from_the_other_policy() => _principal!.FindFirst("region")!.Value.ShouldEqual("north");
+    [Fact] void should_collect_the_first_role() => _principal.IsInRole("Staff").ShouldBeTrue();
+    [Fact] void should_collect_the_second_role() => _principal.IsInRole("Member").ShouldBeTrue();
+    [Fact] void should_collect_claims_from_the_other_policy() => _principal.FindFirst("region").Value.ShouldEqual("north");
 }

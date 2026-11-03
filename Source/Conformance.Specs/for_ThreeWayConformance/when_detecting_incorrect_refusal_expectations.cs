@@ -33,10 +33,8 @@ public class when_detecting_incorrect_refusal_expectations(when_detecting_incorr
         async Task Because()
         {
             await Verify();
-            XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
-            FailedAssertions = [.. XDocument.Load(Path.Combine(_evidence.FullName, "parity.trx"))
-                .Descendants(ns + "UnitTestResult").Where(result => result.Attribute("outcome")!.Value == "Failed")
-                .Select(result => result.Attribute("testName")!.Value.Split('.')[^1])];
+            FailedAssertions = [.. GeneratedTestResults.Read(XDocument.Load(Path.Combine(_evidence.FullName, "parity.trx")))
+                .Where(result => result.Outcome == "Failed").Select(result => result.MethodName)];
         }
     }
 }

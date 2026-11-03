@@ -32,10 +32,12 @@ internal static class FrozenScaffoldPins
                 ("Cratis.Orleans", ScaffoldPackageVersions.Orleans, "1.33.1"),
                 ("Cratis.Orleans.Chronicle", ScaffoldPackageVersions.OrleansChronicle, "1.33.1"),
                 ("Cratis.Screenplay.Matching", ScaffoldPackageVersions.ScreenplayMatching, "4.241.0"),
-                ("Cratis.Specifications", profile.CratisSpecificationsPackageVersion, "5.2.2"),
-                ("Cratis.Specifications.XUnit", profile.CratisSpecificationsXUnitPackageVersion, "5.2.2"),
+                ("Cratis.Specifications", profile.CratisSpecificationsPackageVersion, "4.1.1"),
+                ("Cratis.Specifications.XUnit", profile.CratisSpecificationsXUnitPackageVersion, "4.1.1"),
+                ("Microsoft.Identity.Web", ScaffoldPackageVersions.IdentityWeb, "4.16.1"),
                 ("Microsoft.NET.Test.Sdk", profile.MicrosoftNetTestSdkPackageVersion, "18.10.1"),
                 ("NSubstitute", profile.NSubstitutePackageVersion, "6.2.0"),
+                ("System.Security.Cryptography.Pkcs", ScaffoldPackageVersions.CryptographyPkcs, "10.0.13"),
                 ("xunit", profile.XunitPackageVersion, "2.9.3"),
                 ("xunit.runner.visualstudio", profile.XunitRunnerVisualStudioPackageVersion, "4.0.0")
             ];
@@ -68,8 +70,15 @@ internal static class FrozenScaffoldPins
             }
         }
 
+        text = WithoutYarnChanges(text, previous);
+
         return text.Replace($"cratis/chronicle:{profile.ChronicleImageVersion}-development", $"cratis/chronicle:{(previous ? "19.55.2" : "19.71.0")}-development", StringComparison.Ordinal);
     }
+
+    // Cratis/Stage#734 and #741 intentionally changed the scaffolded Yarn files; the previous frozen plan predates both.
+    static string WithoutYarnChanges(string text, bool previous) => !previous ? text :
+        text.Replace("nodeLinker: node-modules\nnpmPreapprovedPackages:\n  - \"@cratis/*\"", "nodeLinker: node-modules", StringComparison.Ordinal)
+            .Replace("node_modules/\n.yarn/\n", "node_modules/\n", StringComparison.Ordinal);
 
     internal static string Digest(ArtifactRenderPlan plan, IEnumerable<PlannedArtifact>? artifacts = null)
     {

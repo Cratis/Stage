@@ -15,8 +15,8 @@ public class with_authorized_and_denied_callers(context fixture) : IClassFixture
     [Fact] void should_build_debug_without_warnings() => fixture.DebugWarnings.ShouldEqual(string.Empty);
     [Fact] void should_build_release_without_warnings() => fixture.ReleaseWarnings.ShouldEqual(string.Empty);
     [Fact] void should_pass_all_generated_assertions() => fixture.Results.All(_ => _.Outcome == "Passed").ShouldBeTrue();
-    [Fact] void should_assert_the_denial() => fixture.Results.Any(_ => _.Name.EndsWith("should_be_denied", StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_assert_no_event_was_appended() => fixture.Results.Any(_ => _.Name.EndsWith("should_not_append_events", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_assert_the_denial() => fixture.Results.Any(_ => _.Matches(methodName: "should_be_denied")).ShouldBeTrue();
+    [Fact] void should_assert_no_event_was_appended() => fixture.Results.Any(_ => _.Matches(methodName: "should_not_append_events")).ShouldBeTrue();
 
     public class context : a_generated_invoice_application
     {

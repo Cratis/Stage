@@ -20,7 +20,7 @@ public class when_refusing_an_unknown_validation_rule : Specification
     void should_block_registration_with_the_unsupported_validation_code(bool conceptRule)
     {
         var model = SemanticModelSerializer.Deserialize(RegisterProjectCorpus.LegacyV1.EsmBytes.AsSpan());
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(model).Plan;
         var module = model.Application.Modules.Single();
         var feature = module.Features.Single();
         var slice = feature.Slices.Single(slice => slice.Commands.Length > 0);
@@ -35,8 +35,8 @@ public class when_refusing_an_unknown_validation_rule : Specification
             };
 
         // Fault injection bypasses Screenplay validation so this tests Stage's own fail-closed boundary.
-        typeof(ExecutableSemanticModel).GetField("<Application>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(model, application);
+        typeof(ExecutableSemanticModel).GetField("<Application>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(model, application);
         var admission = new SemanticRuntimeAdmission(plan);
-        Assert.Contains(admission.Blocking, entry => entry.Artifact == (conceptRule ? concept.Id : command.Id).ToString() && entry.Details!.Contains("STAGE-ESM-005", StringComparison.Ordinal) && entry.Details.Contains("999", StringComparison.Ordinal));
+        Assert.Contains(admission.Blocking, entry => entry.Artifact == (conceptRule ? concept.Id : command.Id).ToString() && entry.Details.Contains("STAGE-ESM-005", StringComparison.Ordinal) && entry.Details.Contains("999", StringComparison.Ordinal));
     }
 }

@@ -25,7 +25,7 @@ public class with_protected_command_reads : Specification
 
     void Establish()
     {
-        _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(ProtectedCommandReadsCorpus.V25.EsmBytes.AsSpan())).Plan!;
+        _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(ProtectedCommandReadsCorpus.V25.EsmBytes.AsSpan())).Plan;
         _log = new();
         _runtime = _log.Runtime(_plan, SemanticWorld.Empty);
     }

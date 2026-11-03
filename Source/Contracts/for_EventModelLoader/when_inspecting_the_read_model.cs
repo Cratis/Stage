@@ -15,7 +15,7 @@ public class when_inspecting_the_read_model : given.a_compiled_invoicing_model
 
     void Because()
     {
-        _readModel = _model.Collections[0].Modules[0].Features[0].Slices.Single(slice => slice.Name == "InvoiceList").ReadModel!;
+        _readModel = _model.Collections[0].Modules[0].Features[0].Slices.Single(slice => slice.Name == "InvoiceList").ReadModel;
         using var schema = JsonDocument.Parse(_readModel.Schema);
         _properties = schema.RootElement.GetProperty("properties").Clone();
     }

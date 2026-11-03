@@ -35,7 +35,7 @@ public class when_comparing_observable_list_queries(when_comparing_observable_li
     {
         var result = fixture.StageResults.Single(result => result.Name == name);
         result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-        result.Unsupported!.Capability.ShouldEqual(StageExecutionCapability.Query);
+        result.Unsupported.Capability.ShouldEqual(StageExecutionCapability.Query);
         result.Unsupported.Details.ShouldEqual("Only optional snapshot queries by read-model identifier are admitted.");
     }
     [Fact] void should_compare_all_eight_stage_expectations() => fixture.StageResults.Length.ShouldEqual(8);
@@ -43,7 +43,12 @@ public class when_comparing_observable_list_queries(when_comparing_observable_li
     [Fact] void should_pass_each_correct_generated_expectation() => fixture.GeneratedCorrect.ShouldContainOnly("Passed", "Passed", "Passed", "Passed");
     [Fact] void should_fail_each_wrong_generated_expectation() => fixture.GeneratedWrong.ShouldContainOnly("Failed", "Failed", "Failed", "Failed");
     [Fact] void should_compare_all_four_query_shapes() => fixture.GeneratedCorrect.Length.ShouldEqual(4);
-    [Fact] void should_fail_wrong_generated_rows_as_assertions() => fixture.WrongFailures.All(message => message.Contains("Expected: ", StringComparison.Ordinal) && message.Contains("Actual: ", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact]
+    void should_fail_wrong_generated_rows_as_assertions()
+    {
+        fixture.WrongFailures.Length.ShouldEqual(4);
+        fixture.WrongFailures.ShouldEachConformTo(message => message.Contains("closed", StringComparison.Ordinal) && message.Contains("open", StringComparison.Ordinal));
+    }
     [Fact] void should_push_filtered_updates_in_process() => fixture.PushOutcome.ShouldEqual("Passed");
 
     public class context : a_generated_application
@@ -62,7 +67,7 @@ public class when_comparing_observable_list_queries(when_comparing_observable_li
         async Task Because()
         {
             var model = Model();
-            var plan = SemanticExecutionPlan.Compile(model).Plan!;
+            var plan = SemanticExecutionPlan.Compile(model).Plan;
             var specifications = plan.Specifications.Values.ToArray();
             var runner = new SemanticSpecificationRunner();
             ReferenceCorrect = [.. specifications.Where(specification => specification.Name.StartsWith("Correct", StringComparison.Ordinal)).Select(specification => runner.Run(plan, specification.Id).Passed)];
@@ -73,17 +78,18 @@ public class when_comparing_observable_list_queries(when_comparing_observable_li
             await Run("observable-test.log", true, "test", "InvoiceApp.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo", "--logger", "trx;LogFileName=observable.trx", "--results-directory", _evidence.FullName);
             var trx = XDocument.Load(Path.Combine(_evidence.FullName, "observable.trx"));
             XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
-            var results = trx.Descendants(ns + "UnitTestResult").ToArray();
-            GeneratedCorrect = Outcomes(results, "when_correct");
-            GeneratedWrong = Outcomes(results, "when_wrong");
-            WrongFailures = [.. results.Where(result => ((string)result.Attribute("testName")!).Contains("when_wrong", StringComparison.Ordinal) && (string)result.Attribute("outcome")! == "Failed").Select(result => result.Descendants(ns + "Message").Single().Value)];
-            PushOutcome = Outcomes(results, "should_push_matching_rows_and_exclude_other_rows").Single();
+            var results = GeneratedTestResults.Read(trx);
+            GeneratedCorrect = Outcomes(results, classPrefix: "when_correct");
+            GeneratedWrong = Outcomes(results, classPrefix: "when_wrong");
+            WrongFailures = [.. results.Where(result => result.Matches(className: "when_wrong", match: GeneratedTestNameMatch.Prefix) && result.Outcome == "Failed")
+                .Select(result => trx.Descendants(ns + "UnitTestResult").Single(element => (string)element.Attribute("testId") == result.TestId).Descendants(ns + "Message").Single().Value)];
+            PushOutcome = Outcomes(results, methodName: "should_push_matching_rows_and_exclude_other_rows").Single();
         }
 
-        static string[] Outcomes(IEnumerable<XElement> results, string name) =>
-            [.. results.Where(result => ((string)result.Attribute("testName")!).Contains(name, StringComparison.Ordinal))
-                .GroupBy(result => ((string)result.Attribute("testName")!)[.. ((string)result.Attribute("testName")!).LastIndexOf('.')])
-                .Select(group => group.All(result => (string)result.Attribute("outcome")! == "Passed") ? "Passed" : "Failed")];
+        static string[] Outcomes(IEnumerable<GeneratedTestResult> results, string? classPrefix = null, string? methodName = null) =>
+            [.. results.Where(result => result.Matches(className: classPrefix, match: GeneratedTestNameMatch.Prefix) && result.Matches(methodName: methodName))
+                .GroupBy(result => result.ClassName)
+                .Select(group => group.All(result => result.Outcome == "Passed") ? "Passed" : "Failed")];
 
         static ExecutableSemanticModel Model()
         {

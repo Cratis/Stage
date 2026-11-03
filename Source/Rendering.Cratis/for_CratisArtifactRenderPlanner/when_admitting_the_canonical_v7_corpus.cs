@@ -20,7 +20,7 @@ public class when_admitting_the_canonical_v7_corpus : Specification
 
     void Because() => _plan = CratisRendering.Plan(
         _model,
-        SemanticExecutionPlan.Compile(_model).Plan!,
+        SemanticExecutionPlan.Compile(_model).Plan,
         new(ArtifactRenderScopeKind.Application, _model.Application.Id),
         new("Projects", "Projects"));
 

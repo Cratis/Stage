@@ -29,13 +29,13 @@ public static class ReducerConventionInput
     /// </summary>
     /// <param name="applicationName">The exact semantic application name.</param>
     /// <param name="json">The persisted configuration contents.</param>
-    /// <returns>The validated, canonical input: version one without migrated read models, version two with them, version three selecting model-bound projections.</returns>
+    /// <returns>The validated, canonical input: version one without migrated read models, version two with them, version three selecting model-bound projections, version four also selecting model-bound running totals and clears.</returns>
     /// <exception cref="InvalidArtifactRenderContract">The configuration is malformed, stale or unsupported.</exception>
     public static ArtifactRenderInput Read(string applicationName, string json)
     {
         if (!TryParse(json, applicationName, out var convention))
         {
-            throw new InvalidArtifactRenderContract("Reducer configuration requires the matching application and reducerConvention 'classic' or 'self': version 1 without read-model overrides, version 2 with ordinally sorted, unique self overrides carrying an observer id and previous path, or version 3 with projectionConvention 'model-bound' and optionally the same overrides.");
+            throw new InvalidArtifactRenderContract("Reducer configuration requires the matching application and reducerConvention 'classic' or 'self': version 1 without read-model overrides, version 2 with ordinally sorted, unique self overrides carrying an observer id and previous path, or version 3 or 4 with projectionConvention 'model-bound' and optionally the same overrides (version 4 also selecting model-bound running totals and clears).");
         }
 
         return Create(applicationName, convention);
@@ -50,12 +50,13 @@ public static class ReducerConventionInput
         if (convention.ModelBoundProjections)
         {
             var models = ReadModels(convention);
+            var version = convention.ModelBoundOperations ? 4 : 3;
             return ArtifactRenderInput.Create(
                 Name,
-                "3",
+                version.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 convention.Overrides.IsEmpty
-                    ? Encode(new { version = 3, application = applicationName, reducerConvention = name, projectionConvention = "model-bound" })
-                    : Encode(new { version = 3, application = applicationName, reducerConvention = name, projectionConvention = "model-bound", readModels = models }));
+                    ? Encode(new { version, application = applicationName, reducerConvention = name, projectionConvention = "model-bound" })
+                    : Encode(new { version, application = applicationName, reducerConvention = name, projectionConvention = "model-bound", readModels = models }));
         }
 
         if (convention.Overrides.IsEmpty)
@@ -99,7 +100,7 @@ public static class ReducerConventionInput
             if (name is not ("classic" or "self")) return false;
             var overrides = ImmutableDictionary<SemanticId, ReducerOverride>.Empty;
             if (hasReadModels && !TryParseOverrides(root.GetProperty("readModels"), out overrides)) return false;
-            convention = new(name == "self", overrides) { ModelBoundProjections = version == 3 };
+            convention = new(name == "self", overrides) { ModelBoundProjections = version >= 3, ModelBoundOperations = version == 4 };
             return true;
         }
         catch (Exception exception) when (exception is JsonException or InvalidOperationException or FormatException or KeyNotFoundException)
@@ -115,18 +116,18 @@ public static class ReducerConventionInput
     }
 
     static bool HasReadModels(JsonElement root, int version) =>
-        version == 2 || (version == 3 && root.TryGetProperty("readModels", out _));
+        version == 2 || (version is 3 or 4 && root.TryGetProperty("readModels", out _));
 
     static bool MatchesConfiguration(JsonElement root, int version, string applicationName)
     {
-        if (version is < 1 or > 3 || !HasExactProperties(root, ConfigurationProperties(root, version))) return false;
-        if (version == 3 && root.GetProperty("projectionConvention").GetString() != "model-bound") return false;
+        if (version is < 1 or > 4 || !HasExactProperties(root, ConfigurationProperties(root, version))) return false;
+        if (version >= 3 && root.GetProperty("projectionConvention").GetString() != "model-bound") return false;
         return root.GetProperty("application").GetString() == applicationName;
     }
 
     static string[] ConfigurationProperties(JsonElement root, int version) => version switch
     {
-        3 => HasReadModels(root, version) ? ["application", "projectionConvention", "readModels", "reducerConvention", "version"] : ["application", "projectionConvention", "reducerConvention", "version"],
+        3 or 4 => HasReadModels(root, version) ? ["application", "projectionConvention", "readModels", "reducerConvention", "version"] : ["application", "projectionConvention", "reducerConvention", "version"],
         2 => ["application", "readModels", "reducerConvention", "version"],
         _ => ["application", "reducerConvention", "version"]
     };

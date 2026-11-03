@@ -29,7 +29,7 @@ public class when_planning_an_unknown_validation_rule : given.a_register_project
             };
 
         // Bypass Screenplay's constructor validation to model an unaudited dependency enum value.
-        typeof(ExecutableSemanticModel).GetField("<Application>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(_model, application);
+        typeof(ExecutableSemanticModel).GetField("<Application>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(_model, application);
         var plan = _planner.Plan(_request);
         plan.Success.ShouldBeFalse();
         plan.Artifacts.ShouldBeEmpty();

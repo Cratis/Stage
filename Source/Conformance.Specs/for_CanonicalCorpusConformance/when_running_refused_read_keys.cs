@@ -36,7 +36,7 @@ public class when_running_refused_read_keys : Specification
         {
             Assert.True(result.Outcome == SemanticSpecificationOutcome.Passed, $"{formName}/{result.Name}: {result.Outcome} {string.Join(';', result.Failures)}");
             result.ExecutionKind.ShouldEqual("Rejected");
-            result.Trace!.Facts.ShouldBeEmpty();
+            result.Trace.Facts.ShouldBeEmpty();
         }
     }
 }

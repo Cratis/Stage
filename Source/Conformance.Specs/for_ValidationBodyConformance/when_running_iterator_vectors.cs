@@ -44,9 +44,9 @@ public class when_running_iterator_vectors : Specification
         Assert.True(plan.Success, opaque_policy_model.Errors(plan));
         var assembly = opaque_policy_model.Compile(plan);
         var type = assembly.GetTypes().Single(type => type.Name == "PlaceOrder");
-        var command = Activator.CreateInstance(type, 1234.5m, new DateTimeOffset(2026, 10, 17, 0, 0, 0, TimeSpan.Zero))!;
-        var validator = (IValidator)Activator.CreateInstance(assembly.GetTypes().Single(type => type.Name == "PlaceOrderValidator"))!;
-        var context = (IValidationContext)Activator.CreateInstance(typeof(ValidationContext<>).MakeGenericType(type), command)!;
+        var command = Activator.CreateInstance(type, 1234.5m, new DateTimeOffset(2026, 10, 17, 0, 0, 0, TimeSpan.Zero));
+        var validator = (IValidator)Activator.CreateInstance(assembly.GetTypes().Single(type => type.Name == "PlaceOrderValidator"));
+        var context = (IValidationContext)Activator.CreateInstance(typeof(ValidationContext<>).MakeGenericType(type), command);
         var previous = CultureInfo.CurrentCulture;
         try
         {

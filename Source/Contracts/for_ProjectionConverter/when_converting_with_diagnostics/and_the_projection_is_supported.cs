@@ -22,6 +22,6 @@ public class and_the_projection_is_supported : Specification
     }
 
     [Fact] void should_convert_even_if_an_earlier_projection_failed() => _result.ShouldNotBeNull();
-    [Fact] void should_keep_the_existing_automap_default() => _result!.AutoMap.ShouldEqual(ProjectionAutoMap.Enabled);
+    [Fact] void should_keep_the_existing_automap_default() => _result.AutoMap.ShouldEqual(ProjectionAutoMap.Enabled);
     [Fact] void should_add_no_diagnostics() => _diagnostics.All.Count.ShouldEqual(1);
 }

@@ -16,7 +16,7 @@ public class when_comparing_the_embedded_reference_with_chronicle : Specificatio
     void Because()
     {
         var compilation = CSharpCompilation.Create("ChronicleReferenceVersion", references: [SemanticGenerationBodyAdmission.ChronicleReference]);
-        var symbol = (IAssemblySymbol)compilation.GetAssemblyOrModuleSymbol(SemanticGenerationBodyAdmission.ChronicleReference)!;
+        var symbol = (IAssemblySymbol)compilation.GetAssemblyOrModuleSymbol(SemanticGenerationBodyAdmission.ChronicleReference);
         _embeddedVersion = symbol.Identity.Version;
     }
 

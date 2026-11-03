@@ -39,10 +39,10 @@ public class when_executing_snapshot_performers : a_generated_application
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("people"), "people", "People.play", source);
         var compiled = new SemanticModelCompiler().Compile("SnapshotApp", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compiled.Success, string.Join(Environment.NewLine, compiled.Diagnostics));
-        var compilation = compiled.Value!;
+        var compilation = compiled.Value;
         var model = compilation.Model;
         var options = new CratisRenderingOptions("SnapshotApp", "Snapshot");
-        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile("SnapshotApp", options), new(ArtifactRenderScopeKind.Application, model.Application.Id))
+        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile("SnapshotApp", options), new(ArtifactRenderScopeKind.Application, model.Application.Id))
         {
             ImplementationRequirements = compiled.ImplementationRequirements,
             ImplementationContents = SemanticImplementationBodies.Resolve(compilation.Documents, compiled.ImplementationRequirements),

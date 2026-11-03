@@ -37,7 +37,7 @@ public class with_an_offsetless_datetime_invocation : a_reaction_runtime
 
         // Valid source literals require offsets; inject malformed invocation input after contract validation.
         var expression = (SemanticValueExpression)plan.Reactions.Single().Triggers.Single().Invokes.Single().Mappings.Single(mapping => mapping.Source is SemanticValueExpression).Source;
-        typeof(SemanticValueExpression).GetField("<Value>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(expression, SemanticValue.Text("2026-01-01T00:00:00"));
+        typeof(SemanticValueExpression).GetField("<Value>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(expression, SemanticValue.Text("2026-01-01T00:00:00"));
         return plan;
     }
 

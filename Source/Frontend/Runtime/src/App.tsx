@@ -50,13 +50,15 @@ import '@cratis/scene.blueprint.default/styles.css';
 import { useStageRouteState } from './stageRoutes';
 import { StageDataProvider, useStageData } from './stageData';
 import { useComponentOutputsPublisher } from './stageComponentOutputs';
+import { withBoardSelection } from './stageBoardSelection';
 import { StageSliceDialog, stageCommandFormComponent, stageComponents } from './stageComponents';
 import { useStrings } from './useStrings';
 import { StageQueryBindings } from './stageQueryBindings';
 import { StageScreenTables } from './stageScreenTables';
 import { ColorSchemeMirror, StageChromeProvider, stageActivityComponent, stageChromeComponents } from './StageChrome';
-import { applicationChrome, type ApplicationIdentity, stageCatalogWith, stageProfile, stageRegistry } from './blueprint';
-import { shellStartupProblems, stageShellSettings, themesWithAccent, type StageShellSettings } from './stageShell';
+import { applicationChrome, type ApplicationIdentity, type ChromeOptions, stageCatalogWith, stageProfile, stageRegistry } from './blueprint';
+import { stageResponseContracts, type StageResponseContracts } from './stageResponseContracts';
+import { shellChromeOf, shellStartupProblems, stageShellSettings, themesWithAccent, type StageShellSettings } from './stageShell';
 import { StageShellSettingsApplier, systemPrefersDark } from './StageShellSettings';
 import { declaresRegions, stageNavigationModel } from './stageNavigationModel';
 import { bindDataSources } from './stageDataSources';
@@ -89,6 +91,7 @@ export interface StageSceneApplication {
 
     /** The JSON schema of every modeled command, by name, which a toolbar slice's task dialog reads its fields from. */
     commandSchemas?: Record<string, string>;
+    responseContracts?: StageResponseContracts;
 }
 
 interface SceneCommandDetail {
@@ -119,6 +122,7 @@ function commandFormElement(screenName: string, form: Form): SceneElement {
         generationMode: form.generationMode,
         layout: form.layout,
         fields: form.fields,
+        onSubmit: form.onSubmit,
     });
 }
 
@@ -138,12 +142,22 @@ export function stageShellOf(scene: StageSceneApplication, screenTemplates?: Scr
     });
 }
 
+/** The screens as the chrome lists them: with the `$strings.` references in their content resolved, so a screen is named in the navigation by the text its title shows. */
+function resolvedScreens(screens: Screen[], dictionary?: Record<string, string>): Screen[] {
+    if (!dictionary) return screens;
+    return screens.map(screen => ({
+        ...screen,
+        slotContent: Object.fromEntries(Object.entries(screen.slotContent ?? {}).map(([slot, content]) => [slot, content.map(child => resolveStringsInElement(child, dictionary))])),
+    }));
+}
+
 /**
  * What the Stage decides about composing a screen, on top of the composition it shares with the preview: its own chrome around the
  * shell (the effective navigation regions are Scene's), its command form, its status line and its data sources.
  */
-export function stageComposition(scene: StageSceneApplication, locales: string[], locale: string, packageCatalog?: PackageCatalog, dictionary?: Record<string, string>, blueprintTemplates?: ScreenTemplate[], showFooter = true): CompositionOptions {
-    const regions = declaresRegions(scene.navigation);
+export function stageComposition(scene: StageSceneApplication, locales: string[], locale: string, packageCatalog?: PackageCatalog, dictionary?: Record<string, string>, blueprintTemplates?: ScreenTemplate[], showFooter = true, showThemeSwitcher = true): CompositionOptions {
+    const options: ChromeOptions = { regions: declaresRegions(scene.navigation), showFooter, showThemeSwitcher };
+    const chromeScreens = resolvedScreens(scene.screens, dictionary);
     const application = applicationIdentity(scene);
     return {
         profile: stageProfile(scene.uiProfiles),
@@ -153,12 +167,12 @@ export function stageComposition(scene: StageSceneApplication, locales: string[]
         blueprintTemplates: blueprintTemplates?.length ? [...galleryScreenTemplates, ...blueprintTemplates] : galleryScreenTemplates,
         namedTemplateOnly: true,
         chrome: (screen, shell) => shell === ComponentName.FullPageShell
-            ? { [SlotName.ConfigPanel]: applicationChrome(scene.screens, screen.name, locales, locale, application, regions, showFooter)[SlotName.ConfigPanel] }
-            : applicationChrome(scene.screens, screen.name, locales, locale, application, regions, showFooter),
+            ? { [SlotName.ConfigPanel]: applicationChrome(chromeScreens, screen.name, locales, locale, application, options)[SlotName.ConfigPanel] }
+            : applicationChrome(chromeScreens, screen.name, locales, locale, application, options),
         form: commandFormElement,
         trailing: [externalComponent('activity', stageActivityComponent)],
         decorate: element => {
-            const bound = bindDataSources(element);
+            const bound = bindDataSources(withBoardSelection(element));
             return dictionary ? resolveStringsInElement(bound, dictionary) : bound;
         },
     };
@@ -295,10 +309,10 @@ function StageApplication({ scene, registry, routing, routeState, strings, packa
     const shellProblems = useMemo(() => shell ? shellStartupProblems(profile, shell) : [], [profile, shell]);
     const shellSettings = useMemo(() => shell ? stageShellSettings(profile, shell, prefersDark) : undefined, [profile, shell, prefersDark]);
     const themes = useMemo(() => themesWithAccent(defaultBlueprintThemes, shellSettings?.accent), [shellSettings?.accent]);
-    const showFooter = shellSettings?.showFooter ?? true;
+    const { showFooter, showThemeSwitcher } = shellChromeOf(shellSettings);
     const composition = useMemo(
-        () => stageComposition(scene, strings.locales, strings.locale, packageCatalog, strings.dictionary, screenTemplates, showFooter),
-        [scene, strings.locales, strings.locale, strings.dictionary, packageCatalog, screenTemplates, showFooter]);
+        () => stageComposition(scene, strings.locales, strings.locale, packageCatalog, strings.dictionary, screenTemplates, showFooter, showThemeSwitcher),
+        [scene, strings.locales, strings.locale, strings.dictionary, packageCatalog, screenTemplates, showFooter, showThemeSwitcher]);
     const onSystemSchemeChange = useCallback((dark: boolean) => setPrefersDark(dark), []);
     const navigationModel = useMemo(() => stageNavigationModel(scene, isVisible, strings.dictionary), [scene, isVisible, strings.dictionary]);
     // Own templates come first: a template of the application wins over a blueprint's of the same name, as in composition.
@@ -489,7 +503,7 @@ function StageInteractions({ activity, notesEnabled, routesReady, scene, setActi
         <StageChromeProvider state={{ locales: strings.locales, locale: strings.locale, setLocale: strings.setLocale, activity, notesEnabled }}>
             <SliceInvokerProvider invoker={invoker}>
                 <SliceCommandFieldsProvider fieldsFor={fieldsFor}>
-                    <InteractionScope dispatcher={dispatcher} context={{ resolve: data.resolveBinding, localize: key => strings.dictionary[key] ?? key }} attachments={[]} onFindings={reportFindings}>
+                    <InteractionScope dispatcher={dispatcher} context={{ resolve: data.resolveBinding, localize: key => strings.dictionary[key] ?? key, responseContracts: stageResponseContracts(scene.responseContracts) }} attachments={[]} onFindings={reportFindings}>
                         {children}
                     </InteractionScope>
                 </SliceCommandFieldsProvider>
@@ -518,7 +532,7 @@ function StageScreen({ element, configuration, registry }: { element: SceneEleme
     const navigation = useOptionalSceneNavigation();
     return (
         <ScreenSlice screen={navigation?.primaryScreen}>
-            <StageScreenTables element={element}>
+            <StageScreenTables element={element} outputScope={publishOutputs.scope}>
                 <StageQueryBindings element={element} />
                 <SceneElementView element={element} registry={registry} resolveBinding={data.resolveBinding} queryResults={data.queryResults} onComponentOutputsChanged={publishOutputs} configuration={configuration} />
             </StageScreenTables>

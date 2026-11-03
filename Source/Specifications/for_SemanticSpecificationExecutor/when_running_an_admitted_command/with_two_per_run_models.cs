@@ -21,14 +21,14 @@ public class with_two_per_run_models : a_command_only_plan
 
     async Task Because()
     {
-        var hostField = typeof(IAuthorizationEvaluator).Assembly.GetType("Cratis.Arc.Internals", throwOnError: true)!
-            .GetField("_serviceProvider", BindingFlags.NonPublic | BindingFlags.Static)!;
+        var hostField = typeof(IAuthorizationEvaluator).Assembly.GetType("Cratis.Arc.Internals", throwOnError: true)
+            .GetField("_serviceProvider", BindingFlags.NonPublic | BindingFlags.Static);
         var previous = hostField.GetValue(null);
         await using var host = new ServiceCollection().BuildServiceProvider();
         hostField.SetValue(null, host);
         try
         {
-            var original = SemanticExecutionPlan.Compile(_originalModel).Plan!;
+            var original = SemanticExecutionPlan.Compile(_originalModel).Plan;
             var alternate = ChangedProjection(_originalModel);
             _distinctRevisions = original.Revision != alternate.Revision;
             var runner = new SemanticSpecificationRunner();
@@ -49,8 +49,8 @@ public class with_two_per_run_models : a_command_only_plan
     [Fact]
     void should_project_each_model_without_leaking_an_artifact() =>
         Assert.True(_first.Outcome == SemanticSpecificationOutcome.Passed && _second.Outcome == SemanticSpecificationOutcome.Passed &&
-            _referenceAgrees && _first.Trace!.ReadModels.Values.Any(value => value.Contains("Screenplay", StringComparison.Ordinal)) &&
-            _second.Trace!.ReadModels.Values.Any(value => value.Contains("SecondRun", StringComparison.Ordinal)) &&
+            _referenceAgrees && _first.Trace.ReadModels.Values.Any(value => value.Contains("Screenplay", StringComparison.Ordinal)) &&
+            _second.Trace.ReadModels.Values.Any(value => value.Contains("SecondRun", StringComparison.Ordinal)) &&
             _second.Trace.ReadModels.Values.All(value => !value.Contains("Screenplay", StringComparison.Ordinal)),
             $"First: {string.Join("; ", _first.Failures)}; second: {string.Join("; ", _second.Failures)}");
 

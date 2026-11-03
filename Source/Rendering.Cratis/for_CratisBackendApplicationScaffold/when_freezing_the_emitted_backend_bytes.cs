@@ -19,30 +19,32 @@ public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
     // Re-frozen when GenerateProgramFile became unconditional, so a Release build after a Debug restore keeps one entry point.
     // Re-frozen for #660: only Directory.Build.props gains CratisReadProtection On.
     // Re-frozen when Debug specifications gained the Chronicle.Testing telemetry dependency.
-    // Re-frozen for Cratis/Stage#926: the application hosts an Orleans silo; every earlier digest re-frozen with it.
-    // Re-frozen for Chronicle 19.114.0 and Cratis.Orleans 1.33.1 with the telemetry callback registration removed; every earlier digest re-frozen with it.
-    const string FrozenDigest = "9f3f86f5a496724eb52b9e200a0f54b6405fea4fc4d76e2b9c94bd1d03598242";
+    // Re-frozen for #120: authentication inputs, host wiring, sign-in instructions and Identity.Web references.
+    // Re-frozen for #937: Directory.Packages.props pins Pkcs to 10.0.14 and documents Xml runtime servicing.
+    const string FrozenDigest = "ac80a154ddc489f34ffadd3cc744138eac43b5db62d3592caabfd92445d559fa";
 
     // Frozen when the license header became the caller's choice: generated C# carries none by default.
-    const string SeparateSpecificationsDigest = "51e6b8f38716161682456e12d15fc6fe126d891fdb809fa4b16297925b1452c4";
+    const string SeparateSpecificationsDigest = "13f01249306839c0248d9b2edfce00b1761e27f4a94721605201666fd0edfb1e";
 
     // Frozen for #437: only the Matching package pin and host reference are added.
-    const string PreviousFrozenDigest = "0ca0e8df871b1e2591adc1c5695e3894e96b20a5f313c1a28dafe22b90bab2ce";
+    const string PreviousFrozenDigest = "2143f7a98428df7602fdaebbb9f8379c0dd204d262b9ebbebbb08764e135bf90";
 
     // Re-frozen for #424: the scaffold places using directives outside the namespace.
     // Re-frozen for #660: only Directory.Build.props gains CratisReadProtection On.
-    const string FrozenRepositoryRootDigest = "3d4c56c72bec25bad1e6fe410a3c822825d90f7d928bc885b26ae1cc444b210a";
+    const string FrozenRepositoryRootDigest = "c7b9681ef0b7458acd6060e72efa2bfa5237f7289e1a5969a79d0bb55bebec18";
+    // Re-frozen for Cratis/Stage#926: the application hosts an Orleans silo; every earlier digest re-frozen with it.
+    // Re-frozen for Chronicle 19.114.0 and Cratis.Orleans 1.33.1 with the telemetry callback registration removed; every earlier digest re-frozen with it.
 
     string _digest = null!;
 
     void Because() => _digest = Digest(_first);
 
-    [Fact] void should_change_only_using_placement_from_the_previous_backend() => Digest(SeparateSpecificationsLayout.Restore(_first, "MyApp"), beforePlacement: true).ShouldEqual("b84f0e30b5f7444b4b2dd455c65d2ecbaefa60c9dcb6330e48f47a7ac312e095");
+    [Fact] void should_change_only_using_placement_from_the_previous_backend() => Digest(SeparateSpecificationsLayout.Restore(_first, "MyApp"), beforePlacement: true).ShouldEqual("97ff2ea2d5a153bf60f04bb592929d07012da1906c79b19306599d26e6c2d9d2");
     [Fact] void should_emit_the_frozen_backend_bytes() => _digest.ShouldEqual(FrozenDigest);
     [Fact] void should_change_only_the_specifications_layout_from_the_previous_frozen_backend() => Digest(SeparateSpecificationsLayout.Restore(_first, "MyApp"), legacyPlacement: true).ShouldEqual(SeparateSpecificationsDigest);
     [Fact] void should_change_only_the_license_header_from_the_previous_frozen_backend() => Digest(SeparateSpecificationsLayout.Restore(_first, "MyApp"), legacyHeader: true, legacyPlacement: true).ShouldEqual(PreviousFrozenDigest);
     [Fact] void should_emit_the_frozen_repository_root_bytes() => Digest(new Scaffolding.CratisBackendApplicationScaffold().Create(_request.WithRepositoryRoot())).ShouldEqual(FrozenRepositoryRootDigest);
-    [Fact] void should_change_only_the_runtime_pins_from_the_previous_frozen_backend() => Digest(SeparateSpecificationsLayout.Restore(_first, "MyApp"), previousPins: true).ShouldEqual("cf3bd547ad639bf5a3655be89357ee301e739ffe930279c05327872936ef1071");
+    [Fact] void should_change_only_the_runtime_pins_from_the_previous_frozen_backend() => Digest(SeparateSpecificationsLayout.Restore(_first, "MyApp"), previousPins: true).ShouldEqual("57923f48b5469aef982556e61824d2aeb0cba725fcdb35b94aa0705e7766893b");
 
     static string Digest(ImmutableArray<ArtifactRenderInput> inputs, bool previousPins = false, bool beforePlacement = false, bool legacyHeader = false, bool legacyPlacement = false)
     {

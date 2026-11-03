@@ -37,7 +37,7 @@ public class when_reporting_omitted_specification_inventory : a_notify_speaker_r
         Assert.True(compilation.Success, string.Join("; ", compilation.Diagnostics));
         var request = handler_model.Request(source: source) with
         {
-            IdentityCatalog = compilation.Value!.Documents.IdentityCatalog,
+            IdentityCatalog = compilation.Value.Documents.IdentityCatalog,
             SemanticIdentities = compilation.Value.Documents.IdentityCatalog.Semantics
         };
         VerifyReports(new CratisArtifactRenderPlanner().Plan(request), "STAGE-ESM-011");
@@ -52,7 +52,7 @@ public class when_reporting_omitted_specification_inventory : a_notify_speaker_r
         var plan = new CratisArtifactRenderPlanner().Plan(request);
         Assert.True(plan.Success, string.Join(';', plan.Diagnostics));
         var refused = Assert.Single(plan.Refusals);
-        Assert.NotEmpty(plan.Inventory!.Constructs);
+        Assert.NotEmpty(plan.Inventory.Constructs);
         Assert.Contains(plan.Inventory.Constructs, construct => construct.Identity == refused.Artifact && construct.Outcome == ArtifactRenderOutcome.Refused);
         Assert.DoesNotContain(plan.Artifacts, artifact => artifact.Sources.Contains(refused.Artifact));
         var profile = request.Profile;
@@ -88,11 +88,11 @@ public class when_reporting_omitted_specification_inventory : a_notify_speaker_r
         var input = SemanticSourceDocument.Create(catalog.ResolveDocument(document.StableKey), document.StableKey, document.DisplayPath, source);
         var compilation = new SemanticModelCompiler().Compile(corpus.ApplicationName, SemanticDocumentSet.Create([input], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        var compiled = compilation.Value!;
+        var compiled = compilation.Value;
         var execution = SemanticExecutionPlan.Compile(compiled.Model);
         Assert.True(execution.Success, string.Join(';', execution.Issues));
         Assert.NotEmpty(compiled.Documents.IdentityCatalog.Semantics);
-        return new(compiled.Model, execution.Plan!, CratisRendering.CreateProfile(corpus.ApplicationName, new("Projects", "Projects") { ServiceLayout = service }), new(ArtifactRenderScopeKind.Application, compiled.Model.Application.Id))
+        return new(compiled.Model, execution.Plan, CratisRendering.CreateProfile(corpus.ApplicationName, new("Projects", "Projects") { ServiceLayout = service }), new(ArtifactRenderScopeKind.Application, compiled.Model.Application.Id))
         {
             IdentityCatalog = compiled.Documents.IdentityCatalog,
             SemanticIdentities = compiled.Documents.IdentityCatalog.Semantics
@@ -114,7 +114,7 @@ public class when_reporting_omitted_specification_inventory : a_notify_speaker_r
         Assert.Equal(plan.Success, json.RootElement.GetProperty("success").GetBoolean());
         Assert.Equal(plan.Strict, json.RootElement.GetProperty("strict").GetBoolean());
         Assert.Equal(plan.CanPublishArtifacts, json.RootElement.GetProperty("canPublishArtifacts").GetBoolean());
-        Assert.Equal(plan.Inventory!.Constructs.Length, json.RootElement.GetProperty("inventory").GetProperty("constructs").GetArrayLength());
+        Assert.Equal(plan.Inventory.Constructs.Length, json.RootElement.GetProperty("inventory").GetProperty("constructs").GetArrayLength());
     }
 
     static void VerifyReports(ArtifactRenderPlan plan, string code)

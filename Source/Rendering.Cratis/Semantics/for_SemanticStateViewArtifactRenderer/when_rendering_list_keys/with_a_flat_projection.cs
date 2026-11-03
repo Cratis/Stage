@@ -15,7 +15,7 @@ public class with_a_flat_projection : for_SemanticCratisAdmission.given.a_query_
     {
         var foreignKey = _slice.ReadModels.Single().Properties.First(property => !property.IsIdentifier);
         Configure(SemanticQueryCardinality.Many, SemanticQueryDelivery.Live, true);
-        _query = _query with { Argument = new(_query.Argument!.Id, foreignKey.Name, foreignKey.Type), KeyProperty = foreignKey.Id };
+        _query = _query with { Argument = new(_query.Argument.Id, foreignKey.Name, foreignKey.Type), KeyProperty = foreignKey.Id };
         _slice = _slice with { Queries = [_query] };
     }
 

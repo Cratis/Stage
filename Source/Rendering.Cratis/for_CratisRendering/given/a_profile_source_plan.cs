@@ -27,7 +27,7 @@ public class a_profile_source_plan : Specification
     void Establish()
     {
         var compilation = when_rendering_authoring_documentation.Compile(ModelSource);
-        _loaded = new(compilation.Model, SemanticExecutionPlan.Compile(compilation.Model).Plan!);
+        _loaded = new(compilation.Model, SemanticExecutionPlan.Compile(compilation.Model).Plan);
         var stringsFiles = new Dictionary<string, string> { ["projects.en.strings"] = "project.name = \"Project name\"\n" };
         var profile = CratisRendering.CreateProfile("Projects", new("Projects", "Projects"), ComposedScene, stringsFiles, "en");
         _profile = CratisRendering.WithAuthoringMetadata(profile, compilation);

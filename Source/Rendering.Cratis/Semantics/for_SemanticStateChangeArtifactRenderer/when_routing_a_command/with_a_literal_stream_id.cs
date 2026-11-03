@@ -16,7 +16,7 @@ public class with_a_literal_stream_id : given.a_routed_command
     void Establish()
     {
         _model = ExecutableSemanticModel.Create(_model.LanguageVersion, _model.SemanticVersion, _model.Application with { Concepts = [.. _model.Application.Concepts.Select(concept => concept.Name == "Month" ? concept with { Primitive = SemanticPrimitiveType.Text } : concept)] });
-        _command = _command with { Route = _command.Route! with { StreamId = SemanticExpression.FromValue(SemanticValue.Text(Identity)) } };
+        _command = _command with { Route = _command.Route with { StreamId = SemanticExpression.FromValue(SemanticValue.Text(Identity)) } };
     }
     void Because() => Plan();
 

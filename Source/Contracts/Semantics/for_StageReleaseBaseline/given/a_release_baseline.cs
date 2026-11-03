@@ -35,7 +35,7 @@ public class a_release_baseline : Specification
         _workspace = Workspace(Source, persisted);
         var absent = ReleaseBaselineStore.ReadBytes(null, persisted.Application);
         var admitted = ReleaseBaseline.Admit(_workspace, absent, "v1.0", DateTimeOffset.UnixEpoch);
-        _baseline = ReleaseBaselineStore.ReadBytes(ReleaseBaselineStore.Serialize(admitted.Document!), persisted.Application);
+        _baseline = ReleaseBaselineStore.ReadBytes(ReleaseBaselineStore.Serialize(admitted.Document), persisted.Application);
     }
 
     protected static ScreenplayWorkspace Workspace(string source, SemanticIdentityCatalog catalog) => ScreenplayWorkspace.Create(

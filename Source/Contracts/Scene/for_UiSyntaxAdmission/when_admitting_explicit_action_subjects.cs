@@ -25,7 +25,7 @@ public class when_admitting_explicit_action_subjects : Specification
     {
         var parsed = new ScreenplayCompiler().Parse(Prefix + directive);
         Assert.True(parsed.Success, string.Join(Environment.NewLine, parsed.Diagnostics));
-        var syntax = parsed.Value!;
+        var syntax = parsed.Value;
         Assert.Null(Catch.Exception(() => new ScreenplayEventModelVisitor().Visit(syntax)));
         Assert.Null(Catch.Exception(() => new ScreenplaySceneVisitor().Visit(syntax)));
         Assert.Null(Catch.Exception(() => new ScreenplaySceneVisitor().Convert(syntax)));

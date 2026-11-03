@@ -43,7 +43,7 @@ public class a_translated_application : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("work"), "work", "Work.play", source);
         var compilation = new SemanticModelCompiler().Compile("Unrelated", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        var work = compilation.Value!.Model.Application.Modules.Single();
+        var work = compilation.Value.Model.Application.Modules.Single();
         var slice = work.Features.Single().Slices.Single();
         var specification = slice.Specifications.Single();
         if (Scenario == "rejected") specification = specification with { ThenEvents = [], ThenErrors = [new(null, "Expected rejection")] };
@@ -71,14 +71,14 @@ public class a_translated_application : Specification
             Reactions = translatedReactions,
             Projections = Scenario == "unrelated" || Scenario == "translate" || Scenario == "translated-reaction" ? publisher.Projections :
                 [.. publisher.Projections.Select(projection => projection with
-                { Scope = projection.Scope! with { From = [projection.Scope!.From[0] with { EventContract = eventId, Mappings = [], Key = new SemanticProjectionValueKey(new SemanticProjectionEventSourceIdentity()) }] } })]
+                { Scope = projection.Scope with { From = [projection.Scope.From[0] with { EventContract = eventId, Mappings = [], Key = new SemanticProjectionValueKey(new SemanticProjectionEventSourceIdentity()) }] } })]
         };
         var application = original.Application with
         {
             Modules = [work, module with { Features = [feature with
             { Slices = [.. feature.Slices.Select(candidate => candidate.Id == publisher.Id ? publisher : candidate with { Specifications = [] })] }] }]
         };
-        _plan = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(original.LanguageVersion, original.SemanticVersion, application)).Plan!;
+        _plan = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(original.LanguageVersion, original.SemanticVersion, application)).Plan;
     }
 
     protected async Task Execute() => _result = (await new SemanticSpecificationExecutor().Run(_plan, new([]), new())).Results.Single();

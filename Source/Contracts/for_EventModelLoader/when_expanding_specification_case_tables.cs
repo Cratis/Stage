@@ -42,7 +42,7 @@ public class when_expanding_specification_case_tables : Specification
     string? Values(string name, bool command)
     {
         var specification = _slice.Specifications.Single(specification => specification.Name == name);
-        using var document = JsonDocument.Parse(command ? specification.When!.Values : specification.ThenEvents.Single().Values);
+        using var document = JsonDocument.Parse(command ? specification.When.Values : specification.ThenEvents.Single().Values);
 
         return document.RootElement.GetProperty("name").GetString();
     }

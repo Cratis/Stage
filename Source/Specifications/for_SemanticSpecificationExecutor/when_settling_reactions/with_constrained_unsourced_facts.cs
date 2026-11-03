@@ -12,5 +12,5 @@ public class with_constrained_unsourced_facts : given.a_reaction_plan
     });
     Task Because() => Execute();
     [Fact] void should_enforce_constraints_at_the_null_destination() => AssertMatchesReference();
-    [Fact] void should_preserve_the_constraint_name() => _result.Trace!.RejectionCode.ShouldEqual("Once");
+    [Fact] void should_preserve_the_constraint_name() => _result.Trace.RejectionCode.ShouldEqual("Once");
 }

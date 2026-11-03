@@ -53,7 +53,29 @@ on:
     - cron: '7,22,37,52 * * * *'
 
 jobs:
+  full-ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Checkout release commit
+        if: vars.STAGE_ROUTE_ALWAYS_ON_LANES == 'true'
+        uses: actions/checkout@v4
+
+      # Keep narrowing off until 5 consecutive green scheduled nightlies with the alert fix live.
+      # Check before creating a release, including scheduled/batched Publish runs. A moved main,
+      # API error, missing lane, cancellation or the bounded wait expiring fails closed.
+      - name: Require successful full CI on the release commit
+        if: vars.STAGE_ROUTE_ALWAYS_ON_LANES == 'true'
+        timeout-minutes: 56
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .github/ci-routing.py publish-gate
+
   release:
+    needs: full-ci
     runs-on: ubuntu-latest
     timeout-minutes: 60
     outputs:

@@ -35,6 +35,6 @@ public class when_analysis_references_are_unavailable : Specification
 
     [Fact] void should_not_throw() => _exception.ShouldBeNull();
     [Fact] void should_refuse_with_the_integrity_code() => _verdict.Code.ShouldEqual("STAGE-ESM-021");
-    [Fact] void should_preserve_the_reference_failure_reason() => _verdict.Reason!.ShouldContain("Reference assemblies 10.0.12");
+    [Fact] void should_preserve_the_reference_failure_reason() => _verdict.Reason.ShouldContain("Reference assemblies 10.0.12");
 }
 #endif

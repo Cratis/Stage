@@ -30,13 +30,15 @@ public class a_translation_application : Specification
         _model = Transform(SemanticModelSerializer.Deserialize(PublicEventsCorpus.V9.EsmBytes.ToArray()), slice => slice with { Specifications = [] });
     }
 
-    protected void Render(bool clientOnly = false)
+    protected void Render(bool clientOnly = false) => (_plan, _sources, _assembly) = RenderModel(_model, clientOnly);
+
+    protected static (ArtifactRenderPlan Plan, RenderedFile[] Sources, Assembly Assembly) RenderModel(ExecutableSemanticModel model, bool clientOnly = false)
     {
-        _plan = Plan(_model);
-        Assert.True(_plan.Success, string.Join(Environment.NewLine, _plan.Diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")));
-        _sources = [.. _plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
+        var plan = Plan(model);
+        Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")));
+        RenderedFile[] sources = [.. plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
             .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())))];
-        _assembly = RenderedOutput.Load(_sources, clientOnly);
+        return (plan, sources, RenderedOutput.Load(sources, clientOnly));
     }
 
     private protected (SemanticApplicationContext Context, LocatedSemanticSlice Located, SemanticCapture Capture, SemanticId First, SemanticId Second) InternalCaptureProbe(bool sameNamespace, bool reverse = false)
@@ -55,11 +57,11 @@ public class a_translation_application : Specification
             slice => slice.Captures.IsEmpty ? slice with { Events = sameNamespace ? [] : [other], Commands = [] } : slice with
             {
                 Events = sameNamespace ? slice.Events.Add(other) : slice.Events,
-                Captures = [.. slice.Captures.Select(capture => capture with { Name = "OnShipmentDispatched", EventsSource = capture.EventsSource! with { Events = reverse ? [other.Id, source.Id] : [source.Id, other.Id] } })]
+                Captures = [.. slice.Captures.Select(capture => capture with { Name = "OnShipmentDispatched", EventsSource = capture.EventsSource with { Events = reverse ? [other.Id, source.Id] : [source.Id, other.Id] } })]
             },
             include: slice => slice.Name != "PublishOrderShipped");
         var options = new CratisRenderingOptions("Contracts", "Contracts");
-        var context = new SemanticApplicationContext(new(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id)), options);
+        var context = new SemanticApplicationContext(new(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id)), options);
         var located = context.SelectedSlices().Single(slice => slice.Slice.Name == "TrackShipments");
         return (context, located, located.Slice.Captures.Single(), source.Id, other.Id);
     }
@@ -75,7 +77,7 @@ public class a_translation_application : Specification
         {
             profile = ArtifactRenderProfile.Create(profile.Target, profile.TargetVersion, profile.Renderer, profile.RendererVersion, [.. profile.Inputs, RefusalModeInput.Create(refusals)]);
         }
-        return new CratisArtifactRenderPlanner().Plan(new(model, execution.Plan!, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id)));
+        return new CratisArtifactRenderPlanner().Plan(new(model, execution.Plan, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id)));
     }
 
     protected static ExecutableSemanticModel Transform(ExecutableSemanticModel model, Func<SemanticSlice, SemanticSlice> transform, bool recovery = false, Func<SemanticSlice, bool>? include = null) => ExecutableSemanticModel.Create(recovery ? LanguageVersion.V17 : model.LanguageVersion, recovery ? SemanticVersion.V17 : model.SemanticVersion, model.Application with

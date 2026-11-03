@@ -72,8 +72,8 @@ public class when_rendering_authored_query_intent : a_multi_slice_application
         var query = Compile(source, "CuratedInvoices");
         query.Filters.ShouldBeEmpty();
         query.Performer.ShouldNotBeNull();
-        query.Performer!.Code.ShouldBeNull();
-        query.Performer.File!.Path.ShouldEqual("QueryPerformers/CuratedInvoices.cs");
+        query.Performer.Code.ShouldBeNull();
+        query.Performer.File.Path.ShouldEqual("QueryPerformers/CuratedInvoices.cs");
         AssertLocation(source, query.Performer.Location, "performer", 9);
         AssertLocation(source, query.Performer.File.Location, "file QueryPerformers/CuratedInvoices.cs", 11);
 
@@ -107,8 +107,8 @@ public class when_rendering_authored_query_intent : a_multi_slice_application
         var query = Compile(source, "EmptyInvoices");
         query.Filters.ShouldBeEmpty();
         query.Performer.ShouldNotBeNull();
-        query.Performer!.File.ShouldBeNull();
-        query.Performer.Code!.Language.ShouldEqual("csharp");
+        query.Performer.File.ShouldBeNull();
+        query.Performer.Code.Language.ShouldEqual("csharp");
         query.Performer.Code.Code.ShouldEqual("return Array.Empty<InvoiceSummary>().AsQueryable();");
         AssertLocation(source, query.Performer.Location, "performer", 9);
         AssertLocation(source, query.Performer.Code.Location, "```csharp", 11);
@@ -129,7 +129,7 @@ public class when_rendering_authored_query_intent : a_multi_slice_application
         var compilation = new NativeScreenplayCompiler().Compile(source);
         Assert.True(compilation.Success, $"Invalid authored fixture:{Environment.NewLine}{string.Join(Environment.NewLine, compilation.Diagnostics)}{Environment.NewLine}{source}");
         compilation.Diagnostics.ShouldBeEmpty();
-        _application = compilation.Value!;
+        _application = compilation.Value;
         _targetDirectory = new DirectoryInfo(Path.Combine(Path.GetTempPath(), "app-query-intent-admission"));
         var slice = _application.Modules.Single().Features.Single().Slices.Single();
         slice.Type.ShouldEqual(SliceType.StateView);
@@ -141,7 +141,7 @@ public class when_rendering_authored_query_intent : a_multi_slice_application
         query.IsObservable.ShouldBeFalse();
         query.Authorize.ShouldNotBeNull();
         slice.Projections.Single().ReadModel.ShouldEqual(query.ReturnType.Name);
-        slice.ReadModels!.Single().Name.ShouldEqual(query.ReturnType.Name);
+        slice.ReadModels.Single().Name.ShouldEqual(query.ReturnType.Name);
         AssertLocation(source, query.Location, $"query {queryName} => InvoiceSummary[]", 7);
         return query;
     }

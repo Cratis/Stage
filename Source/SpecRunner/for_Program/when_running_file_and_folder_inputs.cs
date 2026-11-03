@@ -81,12 +81,12 @@ public class when_running_file_and_folder_inputs : Specification
         var filteredOutput = Path.Combine(_directory, "filter results", "results.json");
         _fromFile = await Invoke(["--model", _file, "--output", fileOutput]);
         _fromFolder = await Invoke(["--model", _folder, "--output", folderOutput]);
-        _fileJson = JsonNode.Parse(await File.ReadAllTextAsync(fileOutput))!;
-        _folderJson = JsonNode.Parse(await File.ReadAllTextAsync(folderOutput))!;
+        _fileJson = JsonNode.Parse(await File.ReadAllTextAsync(fileOutput));
+        _folderJson = JsonNode.Parse(await File.ReadAllTextAsync(folderOutput));
 
         // Compatibility only: tightening invalid --slice/--spec values into errors is out of scope.
         _withInvalidFilters = await Invoke(["--model", _file, "--output", filteredOutput, "--slice", "not-a-guid", "--spec", "not-a-guid"]);
-        _invalidFiltersJson = JsonNode.Parse(await File.ReadAllTextAsync(filteredOutput))!;
+        _invalidFiltersJson = JsonNode.Parse(await File.ReadAllTextAsync(filteredOutput));
 
         await Reject("no arguments", _ => [], 2, "Required argument 'model'", "Usage:", "--model", "--output");
         await Reject("missing model", output => ["--output", output], 2, "Required argument 'model'", "Usage:", "--model");
@@ -104,11 +104,11 @@ public class when_running_file_and_folder_inputs : Specification
     [Fact] void should_report_one_deprecation_notice_per_structural_run() => new[] { _fromFile, _fromFolder, _withInvalidFilters }.All(result => result.Error == "The structural specification engine is deprecated; use --engine semantic. It will be removed in the next major version." + Environment.NewLine).ShouldBeTrue();
     [Fact] void should_announce_nonempty_completed_runs() => new[] { _fromFile, _fromFolder }.All(result => result.Output.Contains("Ran 2 specification(s)", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_preserve_the_structured_model_and_all_outcomes_between_file_and_folder() => JsonNode.DeepEquals(_fileJson, _folderJson).ShouldBeTrue();
-    [Fact] void should_write_a_nonempty_model_identity() => (_fileJson["eventModelId"]!.GetValue<Guid>() != Guid.Empty).ShouldBeTrue();
-    [Fact] void should_discover_both_real_modeled_specifications() => _fileJson["results"]!.AsArray().Count.ShouldEqual(2);
-    [Fact] void should_pass_the_structurally_consistent_specification() => ResultNamed("RegistersAnInvoice")["outcome"]!.GetValue<string>().ShouldEqual("Passed");
-    [Fact] void should_explicitly_record_the_modeled_failure_despite_a_completed_zero_exit() => ResultNamed("OmitsARequiredNumberWithoutExpectingAnError")["outcome"]!.GetValue<string>().ShouldEqual("Failed");
-    [Fact] void should_include_an_explicit_failed_step() => ResultNamed("OmitsARequiredNumberWithoutExpectingAnError")["steps"]!.AsArray().Any(step => step!["outcome"]!.GetValue<string>() == "Failed").ShouldBeTrue();
+    [Fact] void should_write_a_nonempty_model_identity() => (_fileJson["eventModelId"].GetValue<Guid>() != Guid.Empty).ShouldBeTrue();
+    [Fact] void should_discover_both_real_modeled_specifications() => _fileJson["results"].AsArray().Count.ShouldEqual(2);
+    [Fact] void should_pass_the_structurally_consistent_specification() => ResultNamed("RegistersAnInvoice")["outcome"].GetValue<string>().ShouldEqual("Passed");
+    [Fact] void should_explicitly_record_the_modeled_failure_despite_a_completed_zero_exit() => ResultNamed("OmitsARequiredNumberWithoutExpectingAnError")["outcome"].GetValue<string>().ShouldEqual("Failed");
+    [Fact] void should_include_an_explicit_failed_step() => ResultNamed("OmitsARequiredNumberWithoutExpectingAnError")["steps"].AsArray().Any(step => step["outcome"].GetValue<string>() == "Failed").ShouldBeTrue();
     [Fact] void should_keep_invalid_optional_identifiers_as_no_filter() => _withInvalidFilters.ExitCode.ShouldEqual(0);
     [Fact] void should_not_drop_modeled_results_for_invalid_optional_identifiers() => JsonNode.DeepEquals(_fileJson, _invalidFiltersJson).ShouldBeTrue();
     [Fact] void should_reject_no_arguments_with_usage_and_without_writing_results() => AssertRejected("no arguments");

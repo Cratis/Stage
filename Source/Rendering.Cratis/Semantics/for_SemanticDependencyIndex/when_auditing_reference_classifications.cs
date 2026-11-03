@@ -35,7 +35,7 @@ public class when_auditing_reference_classifications : for_SemanticSurfaceLedger
     [InlineData("SemanticHandlerResultEntry.EventContract")]
     [InlineData("SemanticHandlerResultEntry.Payload")]
     [InlineData("SemanticHandlerResultEntry.DestinationType")]
-    void should_classify_handler_result_references(string member) => SemanticDependencySurface.Classify(member)!.Kind.ShouldNotBeNull();
+    void should_classify_handler_result_references(string member) => SemanticDependencySurface.Classify(member).Kind.ShouldNotBeNull();
 
     [Theory]
     [InlineData("SemanticApplication.StateMachines")]

@@ -24,7 +24,7 @@ public class when_building_the_application : given.a_model_with_authentication_a
         foreach (var artifact in _plan.Artifacts)
         {
             var path = Path.Combine(_application, artifact.RelativePath.Replace('/', Path.DirectorySeparatorChar));
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
             await File.WriteAllBytesAsync(path, [.. artifact.Bytes]);
         }
 

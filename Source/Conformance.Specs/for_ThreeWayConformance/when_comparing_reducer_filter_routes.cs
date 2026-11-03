@@ -35,7 +35,7 @@ public class when_comparing_reducer_filter_routes(ITestOutputHelper output) : Sp
     static void AssertMatchedRefusal(SemanticExecutionPlan plan, SemanticSpecificationRun reference, SemanticSpecificationRunRecord result)
     {
         ((SemanticUnsupported)reference.Execution).Capability.ShouldEqual(SemanticExecutionCapability.Projection);
-        result.Unsupported!.Capability.ShouldEqual(StageExecutionCapability.Projection);
+        result.Unsupported.Capability.ShouldEqual(StageExecutionCapability.Projection);
         result.Unsupported.Construct.ShouldEqual(plan.ReadModels.Values.Single().Id.ToString());
         result.Unsupported.Details.ShouldContain("STAGE-IMPL-003:");
     }

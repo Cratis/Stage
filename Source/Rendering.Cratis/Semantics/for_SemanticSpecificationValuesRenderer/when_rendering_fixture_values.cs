@@ -19,7 +19,7 @@ public class when_rendering_fixture_values : Specification
     {
         var model = invoice_model.Compile("type Details\n  title String\n" + invoice_model.Source("Uuid", invoice_model.UuidSource, invoice_model.OtherUuidSource));
         var options = new CratisRenderingOptions("Invoices", "Invoices");
-        _context = new(new(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id)), options);
+        _context = new(new(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id)), options);
         _types = new(_context) { SpecificationValues = new(_context, _context.Specifications.Values.First()) };
     }
 

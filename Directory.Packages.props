@@ -77,6 +77,13 @@
     <!-- Reverse proxy for the Chronicle Workbench, which the bundled kernel serves on its own unpublished port. -->
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.14" />
+    <!-- Sign-in for the rendered application host; the emitted host pins the same version. -->
+    <PackageVersion Include="Microsoft.Identity.Web" Version="4.16.1" />
+    <!-- Direct references activate these patched versions above the vulnerable Identity.Web transitive minimums. -->
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
+    <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.14" />
+    <!-- In-process host for the specs of the emitted authentication perimeter; aligned with the ASP.NET Core pin above. -->
+    <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="10.0.14" />
     <PackageVersion Include="System.Reactive" Version="7.0.0" />
     <!-- OpenTelemetry -->
     <PackageVersion Include="Cratis.OpenTelemetry" Version="7.33.0" />

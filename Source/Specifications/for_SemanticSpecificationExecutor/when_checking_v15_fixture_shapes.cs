@@ -23,7 +23,7 @@ public class when_checking_v15_fixture_shapes : Specification
         ((SemanticRejected)reference.Execution).Category.ShouldEqual(SemanticRejectionCategory.Contract);
         var stage = (await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results.Single();
         stage.Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
-        stage.Trace!.Rejection.ShouldEqual(((SemanticRejected)reference.Execution).Details);
+        stage.Trace.Rejection.ShouldEqual(((SemanticRejected)reference.Execution).Details);
         stage.Trace.Facts.ShouldBeEmpty();
     }
 }

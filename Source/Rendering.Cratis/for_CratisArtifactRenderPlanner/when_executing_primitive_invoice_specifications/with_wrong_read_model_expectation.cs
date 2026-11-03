@@ -19,7 +19,7 @@ public class with_wrong_read_model_expectation : a_generated_invoice_application
 
     async Task Because() => _error = await Catch.Exception(VerifyGeneratedApplication);
 
-    [Fact] void should_fail_the_generated_read_model_specification_not_the_build() => _error!.Message.ShouldContain("should_project_name");
-    [Fact] void should_report_the_wrong_expectation_as_a_failed_fact() => _error!.Message.ShouldContain("Failed");
+    [Fact] void should_fail_the_generated_read_model_specification_not_the_build() => _error.Message.ShouldContain("should_project_name");
+    [Fact] void should_report_the_wrong_expectation_as_a_failed_fact() => _error.Message.ShouldContain("Failed");
 }
 #endif

@@ -37,10 +37,10 @@ public class when_rendering_removal_only_projections : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("removal-only"), "removal-only", "Removal.play", Source);
         var compilation = new SemanticModelCompiler().Compile("Billing", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success, string.Join(Environment.NewLine, execution.Issues));
-        _plan = CratisRendering.Plan(model, execution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Billing", "Billing"));
+        _plan = CratisRendering.Plan(model, execution.Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Billing", "Billing"));
     }
 
     [Fact] void should_render_the_projection() => Assert.True(_plan.Success, string.Join(Environment.NewLine, _plan.Diagnostics));

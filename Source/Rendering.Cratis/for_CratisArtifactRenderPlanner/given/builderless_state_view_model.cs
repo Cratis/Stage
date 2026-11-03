@@ -70,12 +70,12 @@ public static class builderless_state_view_model
             throw new InvalidOperationException(string.Join(Environment.NewLine, compilation.Diagnostics.Select(_ => $"{_.Code} {_.Severity}: {_.Message}")));
         }
 
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var options = new CratisRenderingOptions("WelcomeApp", "Welcome") { Strict = strict };
         var scope = slice is null
             ? new ArtifactRenderScope(ArtifactRenderScopeKind.Application, model.Application.Id)
             : new ArtifactRenderScope(ArtifactRenderScopeKind.Slice, model.Application.Modules.Single().Features.Single().Slices.Single(_ => _.Name == slice).Id);
-        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile(model.Application.Name, options), scope)
+        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile(model.Application.Name, options), scope)
         {
             IdentityCatalog = compilation.Value.Documents.IdentityCatalog,
             SemanticIdentities = compilation.Value.Documents.IdentityCatalog.Semantics

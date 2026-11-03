@@ -11,5 +11,5 @@ public class with_an_event_reaction_body_reached_by_a_command : given.a_reaction
     Task Because() => Execute();
     [Fact] void should_refuse_as_the_reference_does() => AssertMatchesReference();
     [Fact] void should_be_unsupported_not_passed() => _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-    [Fact] void should_name_the_opaque_event_body() => _result.Unsupported!.Details.ShouldContain("STAGE-ESM-024: Reaction 'Worker' has an opaque body for trigger kind '");
+    [Fact] void should_name_the_opaque_event_body() => _result.Unsupported.Details.ShouldContain("STAGE-ESM-024: Reaction 'Worker' has an opaque body for trigger kind '");
 }

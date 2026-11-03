@@ -36,7 +36,7 @@ public class with_a_protected_operation : given.a_multi_module_application
     static AuthorizationPolicyRegistration[] Registrations(System.Reflection.Assembly assembly)
     {
         var services = new ServiceCollection();
-        assembly.GetType("Shop.GeneratedPolicies.Registration")!.GetMethod("Register")!.Invoke(null, [services]);
+        assembly.GetType("Shop.GeneratedPolicies.Registration").GetMethod("Register").Invoke(null, [services]);
         return [.. services.Select(service => service.ImplementationInstance).OfType<AuthorizationPolicyRegistration>()];
     }
 }

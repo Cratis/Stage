@@ -82,7 +82,8 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
     [Fact] void should_keep_the_package_private() => PackageJson().RootElement.GetProperty("private").GetBoolean().ShouldBeTrue();
     [Fact] void should_resolve_fundamentals_to_the_pinned_version_so_arc_does_not_nest_a_second_copy() => PackageJson().RootElement.GetProperty("resolutions").GetProperty("@cratis/fundamentals").GetString().ShouldEqual(CratisFrontendPackageSet.Current.FundamentalsPackageVersion);
     [Fact] void should_pin_modern_yarn_for_typescript_seven() => PackageProperty("packageManager").ShouldEqual("yarn@4.18.1");
-    [Fact] void should_install_node_modules_for_the_typescript_and_vite_toolchain() => Content(".yarnrc.yml").ShouldEqual("nodeLinker: node-modules\n");
+    [Fact] void should_install_node_modules_for_the_typescript_and_vite_toolchain() => Content(".yarnrc.yml").ShouldContain("nodeLinker: node-modules\n");
+    [Fact] void should_preapprove_only_cratis_packages_for_release_day_installs() => Content(".yarnrc.yml").ShouldEqual("nodeLinker: node-modules\nnpmPreapprovedPackages:\n  - \"@cratis/*\"\n");
     [Fact] void should_run_vite_through_the_frontend_configuration() => PackageScript("dev").ShouldEqual("vite --config .frontend/vite.config.ts");
     [Fact] void should_type_check_before_bundling() => PackageScript("build").ShouldEqual("tsc -b .frontend/tsconfig.json && vite build --config .frontend/vite.config.ts");
     [Fact] void should_extend_the_frontend_type_configuration_from_the_root() => Content("tsconfig.json").ShouldContain("\"extends\": \"./.frontend/tsconfig.json\"");
@@ -154,7 +155,7 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
         using var document = PackageJson();
         var versions = document.RootElement.GetProperty("dependencies").EnumerateObject()
             .Concat(document.RootElement.GetProperty("devDependencies").EnumerateObject())
-            .Select(property => property.Value.GetString()!);
+            .Select(property => property.Value.GetString());
         return versions.Any(version =>
             version.Contains('*', StringComparison.Ordinal) ||
             version.Contains('^', StringComparison.Ordinal) ||

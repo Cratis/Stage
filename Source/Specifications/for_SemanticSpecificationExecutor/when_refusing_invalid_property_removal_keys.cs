@@ -20,14 +20,14 @@ public class when_refusing_invalid_property_removal_keys : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("model"), "model", "Model.play", when_running_property_keyed_removal_only_projections.Source);
         var compilation = new SemanticModelCompiler().Compile("Billing", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var module = model.Application.Modules.Single();
         var feature = module.Features.Single();
         var slice = feature.Slices.Single(slice => !slice.Projections.IsEmpty);
         var @event = slice.Events.Single();
         var property = @event.Properties.Single();
         var projection = slice.Projections.Single();
-        var removal = projection.Scope!.Removals.Single();
+        var removal = projection.Scope.Removals.Single();
         var type = shape switch
         {
             "optional" => property.Type with { IsOptional = true },

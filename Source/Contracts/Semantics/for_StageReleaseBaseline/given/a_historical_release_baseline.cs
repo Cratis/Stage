@@ -25,7 +25,7 @@ public class a_historical_release_baseline : a_release_baseline
         _workspace = Workspace(HistoricalSource, SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("RecordsApp")));
         var absent = ReleaseBaselineStore.ReadBytes(null, _workspace.IdentityCatalog.Application);
         var admission = ReleaseBaseline.Admit(_workspace, absent, "v1.0", DateTimeOffset.UnixEpoch);
-        _baseline = ReleaseBaselineStore.ReadBytes(ReleaseBaselineStore.Serialize(admission.Document!), _workspace.IdentityCatalog.Application);
+        _baseline = ReleaseBaselineStore.ReadBytes(ReleaseBaselineStore.Serialize(admission.Document), _workspace.IdentityCatalog.Application);
     }
 }
 #endif

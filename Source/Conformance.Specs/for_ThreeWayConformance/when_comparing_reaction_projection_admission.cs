@@ -19,7 +19,7 @@ public class when_comparing_reaction_projection_admission : a_projected_reaction
         await Execute();
         Assert.True(_reference.Passed, string.Join(';', _reference.Failures));
         Assert.Equal(outcome, _result.Outcome);
-        if (outcome == SemanticSpecificationOutcome.Unsupported) Assert.Equal(StageExecutionCapability.Projection, _result.Unsupported!.Capability);
+        if (outcome == SemanticSpecificationOutcome.Unsupported) Assert.Equal(StageExecutionCapability.Projection, _result.Unsupported.Capability);
     }
 
     [Fact]

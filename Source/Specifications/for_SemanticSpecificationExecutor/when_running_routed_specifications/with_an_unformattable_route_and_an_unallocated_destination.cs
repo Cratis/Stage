@@ -16,7 +16,7 @@ public class with_an_unformattable_route_and_an_unallocated_destination : a_rout
         var period = _command.Properties.Single(property => property.Name == "period");
         var specification = _specification with
         {
-            When = _specification.When! with { Values = [.. _specification.When.Values.Select(value => value.TargetProperty == period.Id ? value with { Value = SemanticValue.Text(string.Empty) } : value)] },
+            When = _specification.When with { Values = [.. _specification.When.Values.Select(value => value.TargetProperty == period.Id ? value with { Value = SemanticValue.Text(string.Empty) } : value)] },
             ThenEvents = [],
             ThenErrors = [new(null, SemanticStreamIdFormatter.FailureMessage(StreamIdFormatFailure.Empty))]
         };
@@ -29,6 +29,6 @@ public class with_an_unformattable_route_and_an_unallocated_destination : a_rout
 
     [Fact] void should_report_the_reference_rejection_instead_of_identity_allocation() => _expectedRejectionMatched.ShouldBeTrue();
     [Fact] void should_fail_an_acceptance_expectation_like_the_reference() => AssertParity(false);
-    [Fact] void should_reject_without_appending_any_fact() => _result.Trace!.Facts.ShouldBeEmpty();
+    [Fact] void should_reject_without_appending_any_fact() => _result.Trace.Facts.ShouldBeEmpty();
     [Fact] void should_have_a_contract_rejection_in_the_reference() => ((SemanticRejected)_reference.Execution).Category.ShouldEqual(SemanticRejectionCategory.Contract);
 }

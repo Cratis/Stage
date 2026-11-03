@@ -37,8 +37,8 @@ public class when_enriching_authored_command_forms : given.a_scene_model
     [Fact] void should_turn_the_scene_form_into_a_runtime_command_form() => _form.ComponentName.ShouldEqual("Stage:commandForm");
     [Fact] void should_clear_the_scene_form_collection_so_the_frontend_does_not_render_a_duplicate() => _result.Screens.Single().Forms.ShouldBeEmpty();
     [Fact] void should_carry_the_command_name() => _form.Properties["command"].ShouldEqual("RegisterProject");
-    [Fact] void should_carry_the_schema() => ((string)_form.Properties["schema"]!).ShouldContain("\"projectId\"");
-    [Fact] void should_carry_required_metadata() => ((string)_form.Properties["schema"]!).ShouldContain("\"required\":[\"projectId\",\"name\",\"stage\",\"tags\"]");
+    [Fact] void should_carry_the_schema() => ((string)_form.Properties["schema"]).ShouldContain("\"projectId\"");
+    [Fact] void should_carry_required_metadata() => ((string)_form.Properties["schema"]).ShouldContain("\"required\":[\"projectId\",\"name\",\"stage\",\"tags\"]");
     [Fact] void should_generate_fields_from_the_command_schema() => Fields.Select(_ => _.Name).ShouldContainOnly(["projectId", "name", "stage", "description", "tags"]);
     [Fact] void should_not_mark_a_command_with_inputs_as_parameterless() => _form.Properties["parameterless"].ShouldEqual(false);
 

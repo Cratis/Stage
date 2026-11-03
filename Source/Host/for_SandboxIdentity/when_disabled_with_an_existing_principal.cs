@@ -17,5 +17,5 @@ public class when_disabled_with_an_existing_principal : given.an_api_pipeline
 
     Task Because() => Execute();
 
-    [Fact] void should_leave_the_existing_identity_alone() => _context.User.Identity!.Name.ShouldEqual("Actual caller");
+    [Fact] void should_leave_the_existing_identity_alone() => _context.User.Identity.Name.ShouldEqual("Actual caller");
 }

@@ -30,7 +30,7 @@ public class with_a_list_before_a_snapshot_lookup : for_SemanticCratisAdmission.
                 Properties = [.. @event.Properties.Select(property => property.Type == key.Type ? property with { Type = text } : property)]
             })]
         };
-        var lookup = _query with { Argument = _query.Argument! with { Type = text } };
+        var lookup = _query with { Argument = _query.Argument with { Type = text } };
         Configure(SemanticQueryCardinality.Many, SemanticQueryDelivery.Live, true);
         _query = _query with { Name = "ListByName", Id = SemanticId.Parse($"sem1:{new string('a', 64)}"), Argument = new(SemanticId.Parse($"sem1:{new string('b', 64)}"), foreignKey.Name, foreignKey.Type), KeyProperty = foreignKey.Id };
         _slice = _slice with

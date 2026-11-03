@@ -25,10 +25,10 @@ public class when_rendering_partials : for_TemplatePreparer.given.a_kit
     public void should_render_nested_declared_partials_in_the_same_context()
     {
         var kit = WithPartials(Kit("A{{ render 'outer' model }}Z"), ("outer", "{{ item.name }}{{ render 'inner' item }}"), ("inner", ":{{ item.name }}"));
-        using var plan = TemplateProfile.Prepare(kit, new given.a_language()).Templates!.BeginPlan(TemplateBudget.Default);
+        using var plan = TemplateProfile.Prepare(kit, new given.a_language()).Templates.BeginPlan(TemplateBudget.Default);
         var result = plan.Render("main.scriban", Scope);
         result.Refusal.ShouldBeNull();
-        ((TemplateTextSegment)result.Output!.Segments[0]).Text.ShouldEqual("AShared:SharedZ");
+        ((TemplateTextSegment)result.Output.Segments[0]).Text.ShouldEqual("AShared:SharedZ");
     }
 
     [Fact]
@@ -38,16 +38,16 @@ public class when_rendering_partials : for_TemplatePreparer.given.a_kit
         var overrides = new TemplateSectionOverrides(new Dictionary<(string, string), string> { [("main.scriban", "body")] = "{{ model.name }}" });
         var prepared = TemplateProfile.Prepare(kit, new given.a_language(), overrides);
         prepared.Diagnostics.ShouldBeEmpty();
-        prepared.Templates!.Sections["main.scriban"].Single().ShouldEqual("body");
+        prepared.Templates.Sections["main.scriban"].Single().ShouldEqual("body");
         using var plan = prepared.Templates.BeginPlan(TemplateBudget.Default);
-        ((TemplateTextSegment)plan.Render("main.scriban", Scope).Output!.Segments[0]).Text.ShouldEqual("ASharedZ");
+        ((TemplateTextSegment)plan.Render("main.scriban", Scope).Output.Segments[0]).Text.ShouldEqual("ASharedZ");
     }
 
     [Fact]
     public void should_render_section_defaults()
     {
-        using var plan = TemplateProfile.Prepare(Kit("{{ wrap section 'body' }}original{{ end }}"), new given.a_language()).Templates!.BeginPlan(TemplateBudget.Default);
-        ((TemplateTextSegment)plan.Render("main.scriban", Scope).Output!.Segments[0]).Text.ShouldEqual("original");
+        using var plan = TemplateProfile.Prepare(Kit("{{ wrap section 'body' }}original{{ end }}"), new given.a_language()).Templates.BeginPlan(TemplateBudget.Default);
+        ((TemplateTextSegment)plan.Render("main.scriban", Scope).Output.Segments[0]).Text.ShouldEqual("original");
     }
 
     [Theory]
@@ -67,10 +67,10 @@ public class when_rendering_partials : for_TemplatePreparer.given.a_kit
     public void should_bound_cyclic_partial_recursion()
     {
         var kit = WithPartials(Kit("{{ render 'cycle' model }}"), ("cycle", "{{ render 'cycle' item }}"));
-        using var plan = TemplateProfile.Prepare(kit, new given.a_language()).Templates!.BeginPlan(TemplateBudget.Default with { MaxRecursion = 4 });
+        using var plan = TemplateProfile.Prepare(kit, new given.a_language()).Templates.BeginPlan(TemplateBudget.Default with { MaxRecursion = 4 });
         var result = plan.Render("main.scriban", Scope);
         result.Output.ShouldBeNull();
-        result.Refusal!.Code.ShouldEqual(TemplateCodes.Recursion);
+        result.Refusal.Code.ShouldEqual(TemplateCodes.Recursion);
     }
 
     [Theory]
@@ -82,20 +82,20 @@ public class when_rendering_partials : for_TemplatePreparer.given.a_kit
     [InlineData("graph_proven_omitted_leaf")]
     public void should_record_typed_gaps_without_latching_refusal(string role)
     {
-        using var plan = TemplateProfile.Prepare(Kit("{{ gap '" + role + "' 'Missing behavior' 'model.x' 'STAGE-DEGRADE-005' }}"), new given.a_language()).Templates!.BeginPlan(TemplateBudget.Default);
+        using var plan = TemplateProfile.Prepare(Kit("{{ gap '" + role + "' 'Missing behavior' 'model.x' 'STAGE-DEGRADE-005' }}"), new given.a_language()).Templates.BeginPlan(TemplateBudget.Default);
         var result = plan.Render("main.scriban", Scope);
         result.Refusal.ShouldBeNull();
-        result.Output!.Gaps[0].ModelPath.ShouldEqual("model.x");
+        result.Output.Gaps[0].ModelPath.ShouldEqual("model.x");
         plan.IsRefused.ShouldBeFalse();
     }
 
     [Fact]
     public void should_latch_explicit_refusal()
     {
-        using var plan = TemplateProfile.Prepare(Kit("before{{ refuse 'trust' 'unsafe' }}after"), new given.a_language()).Templates!.BeginPlan(TemplateBudget.Default);
+        using var plan = TemplateProfile.Prepare(Kit("before{{ refuse 'trust' 'unsafe' }}after"), new given.a_language()).Templates.BeginPlan(TemplateBudget.Default);
         var result = plan.Render("main.scriban", Scope);
         result.Output.ShouldBeNull();
-        result.Refusal!.Code.ShouldEqual(TemplateCodes.Refuse);
+        result.Refusal.Code.ShouldEqual(TemplateCodes.Refuse);
         plan.IsRefused.ShouldBeTrue();
     }
 }

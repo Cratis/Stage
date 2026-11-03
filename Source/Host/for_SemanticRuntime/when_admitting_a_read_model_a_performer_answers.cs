@@ -32,7 +32,7 @@ public class when_admitting_a_read_model_a_performer_answers : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("billing"), "billing", "Billing.play", source);
         var compilation = new SemanticModelCompiler().Compile("Billing", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        _plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        _plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
     }
 
     void Because() => _admission = new(_plan);

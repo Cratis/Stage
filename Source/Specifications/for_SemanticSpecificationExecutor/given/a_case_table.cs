@@ -58,7 +58,7 @@ public class a_case_table : Specification
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Cases"));
         var key = Convert.ToHexString(Encoding.UTF8.GetBytes("Cases.play"));
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument(key), key, "Cases.play", await File.ReadAllTextAsync(path));
-        _compilation = new SemanticModelCompiler().Compile("Cases", SemanticDocumentSet.Create([document], catalog)).Value!;
+        _compilation = new SemanticModelCompiler().Compile("Cases", SemanticDocumentSet.Create([document], catalog)).Value;
     }
 
     void Destroy() => Directory.Delete(_workspace, recursive: true);

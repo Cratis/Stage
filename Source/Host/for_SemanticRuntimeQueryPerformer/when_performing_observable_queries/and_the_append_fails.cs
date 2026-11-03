@@ -18,7 +18,7 @@ public class and_the_append_fails : live_projects
     async Task Because()
     {
         var result = await Perform("LiveProjects");
-        var emissions = Observe((IObservable<IEnumerable<Api.DynamicReadModel>>)result!, out _subscription);
+        var emissions = Observe((IObservable<IEnumerable<Api.DynamicReadModel>>)result, out _subscription);
         await Next(emissions);
         _log.BeforeAppend = () => throw new IOException("The event store went away.");
         _outcome = await TryRegister("project-1", "Screenplay");

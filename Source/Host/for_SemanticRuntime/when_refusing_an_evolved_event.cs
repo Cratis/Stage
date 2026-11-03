@@ -36,7 +36,7 @@ public class when_refusing_an_evolved_event : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("orders"), "orders", "Orders.play", source);
         var compilation = new SemanticModelCompiler().Compile("Orders", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        _plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        _plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         _event = _plan.Events.Values.Single();
     }
 

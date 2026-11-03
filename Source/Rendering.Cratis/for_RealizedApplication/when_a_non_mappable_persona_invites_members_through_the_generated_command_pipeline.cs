@@ -35,7 +35,7 @@ public partial class when_a_non_mappable_persona_invites_members_through_the_gen
         foreach (var artifact in _plan.Artifacts)
         {
             var path = Path.Combine(_application, artifact.RelativePath.Replace('/', Path.DirectorySeparatorChar));
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
             await File.WriteAllBytesAsync(path, [.. artifact.Bytes]);
         }
 

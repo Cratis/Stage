@@ -32,7 +32,7 @@ internal static partial class SemanticSpecificationAdmission
     {
         foreach (var specification in SemanticOpaqueBodyDependencies.WithoutUncontrolledClockSpecifications(SemanticCommandBodyAdmission.WithoutBodySpecifications(WithoutReactionCascades(context, slice, diagnostics), context, diagnostics), context, diagnostics))
         {
-            if (TryRefuseDeniedOperation(context, specification, diagnostics))
+            if (TryRefuseDeniedOperation(context, slice, specification, diagnostics))
             {
                 continue;
             }
@@ -72,11 +72,13 @@ internal static partial class SemanticSpecificationAdmission
     internal static bool TriggerValuesMatch(SemanticApplicationContext context, SemanticSpecification specification, SemanticCommand command) =>
         CommandValuesMatch(context, specification, command);
 
-    static bool TryRefuseDeniedOperation(SemanticApplicationContext context, SemanticSpecification specification, ICollection<ArtifactRenderDiagnostic> diagnostics)
+    static bool TryRefuseDeniedOperation(SemanticApplicationContext context, SemanticSlice slice, SemanticSpecification specification, ICollection<ArtifactRenderDiagnostic> diagnostics)
     {
+        if (context.DeniedOperations.Count == 0) return false;
+
         var invoked = specification.When is { } when
             ? Enumerable.Repeat(when.Command, 1)
-            : context.DeclaringSlice(specification.Id).Slice.Reactions.SelectMany(reaction => reaction.Triggers).SelectMany(trigger => trigger.Invokes).Select(invocation => invocation.Command);
+            : slice.Reactions.SelectMany(reaction => reaction.Triggers).SelectMany(trigger => trigger.Invokes).Select(invocation => invocation.Command);
         foreach (var command in invoked.Where(context.DeniedOperations.ContainsKey).Distinct())
         {
             diagnostics.Add(new("STAGE-ESM-011", ArtifactRenderDiagnosticSeverity.Error, $"Specification '{specification.Name}' cannot render: command '{context.Commands[command].Name}' denies every invocation (STAGE-DEGRADE-002).", specification.Id));

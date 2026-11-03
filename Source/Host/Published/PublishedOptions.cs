@@ -63,7 +63,7 @@ internal sealed record PublishedOptions(
     /// data is isolated by this name: it is never random, and survives restarts, redeploys and new versions.
     /// </summary>
     /// <param name="publishedName">The host label the application is published under, from the package manifest.</param>
-    /// <returns>The configured name, otherwise <c>app-</c> followed by the published name.</returns>
+    /// <returns>The configured name, otherwise the published name prefixed with "app-".</returns>
     internal string EventStoreFor(string publishedName) => EventStore is { Length: > 0 } configured ? configured : EventStorePrefix + publishedName;
 
     /// <summary>

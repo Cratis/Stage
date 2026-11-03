@@ -467,10 +467,10 @@ into the Host. The Host forwards its worker settings to SpecRunner, so the same 
 
 An admitted validation iterator yields zero messages to accept, or rejection messages in declaration order.
 Messages are limited to 100 per iterator and 1024 characters each; null messages, exceeded bounds and iterator
-failures report a worker failure, not a successful validation. Query-argument code validations, command
-handlers and reducer transitions remain unsupported.
+failures report a worker failure, not a successful validation. Admitted command handlers also run in the
+worker. Query-argument code validations and reducer transitions remain unsupported.
 
-Keep the Host, SpecRunner and BodyWorker from the same Stage build. Worker protocol version 2 rejects older
+Keep the Host, SpecRunner and BodyWorker from the same Stage build. Worker protocol version 3 rejects older
 workers during the initial handshake, before sending a request.
 
 | Environment variable | Default | Range or resolution |

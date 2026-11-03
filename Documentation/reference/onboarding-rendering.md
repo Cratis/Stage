@@ -16,7 +16,7 @@ The files below are added to the application, in the namespace `<Root>.Generated
 | `OnboardingEmails.cs` | Sends the invitation, welcome and sign-up declined emails. |
 | `OnboardingInvitations.cs` | The command that invites a member, and the policy that lets the personas `invite member … by` send it. Only rendered when the model names inviters. |
 | `InvitationPublisher.cs` | A reactor that appends the invitation to the application's outbox for Ante, once per invitation. |
-| `MemberPersonaClaims.cs` | Gives a signed-in member the roles and claims of the personas they hold in the tenant AuthProxy resolved. |
+| `MemberPersonaClaims.cs` | The only source of persona roles and claims: replaces those arriving with the sign-in with the personas granted in the tenant of the request. |
 | `OnboardingRules.cs` | The personas an invitation may grant and who may send it. |
 | `OnboardingEvents.cs` | The application's own events: tenant provisioned, member provisioned, legal terms accepted, email queued. |
 | `OnboardingRegistration.cs` | Registers Herald, Box Office when there is an offering, the reactor, the services and the policy. |
@@ -35,11 +35,11 @@ Ante's `Accepted` means published to its outbox, not provisioned in the applicat
 - `InvitationToJoinTenantAccepted` records a member with the personas the invitation granted.
 - `LegalTermsAccepted` records the version of the terms that was accepted.
 
-The personas granted are checked against what the model allows: an invitation to create a tenant can give only its `as` persona and an invitation to join only the `grant` personas. Ante enforces the same list; the application does it again, and the command that invites a member rejects a persona outside `grant` before anything is published. `MemberPersonaClaims` turns the personas of a member into the roles and claims the policies of the model check.
+The personas granted are checked against what the model allows: an invitation to create a tenant can give only its `as` persona and an invitation to join only the `grant` personas. Ante enforces the same list; the application does it again, and the command that invites a member rejects a persona outside `grant` before anything is published. `MemberPersonaClaims` is the only source of persona roles and claims. It removes persona roles and claims that arrive with the sign-in and adds the ones the member was granted in the tenant of the request. Roles the identity provider sends that no persona uses still reach the application unchanged.
 
 ## Invitations
 
-`invite member … by A, B` renders `InviteMemberToTenant(Email, Personas)`. A caller who is persona A or B can send it. The command records `OnboardingMemberInvited` (the address is personal data) in the tenant of the caller, under a new invitation id, because a command cannot append to another namespace while read protection is on. `InvitationPublisher` then appends `UserInvitedToJoinTenant` under the same id to the application's outbox in the default namespace, which is where Ante observes it.
+`invite member … by A, B` renders `InviteMemberToTenant(Email, Personas)`. A caller who holds persona A or B in the tenant can send it. The command records `OnboardingMemberInvited` (the address is personal data) in the tenant of the caller, under a new invitation id, because a command cannot append to another namespace while read protection is on. `InvitationPublisher` then appends `UserInvitedToJoinTenant` under the same id to the application's outbox in the default namespace, which is where Ante observes it.
 
 An invitation to create a tenant names no inviting persona, so no command is rendered for it (`STAGE-ONBOARDING-002`); the operator invites a tenant by appending `UserInvitedToCreateTenant` to the outbox.
 

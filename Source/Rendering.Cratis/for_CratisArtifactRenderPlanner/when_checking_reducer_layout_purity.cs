@@ -50,7 +50,7 @@ public class when_checking_reducer_layout_purity
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         var compilation = RenderedOutput.CreateCompilation(when_selecting_self_reducing_rendering.Files(plan));
         var file = plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith(self ? "Totals.cs" : "Fold.cs", StringComparison.Ordinal));
-        var real = PureTransitionAdmission.AnalyzeRendered(compilation, file.RelativePath, descriptor);
+        var real = PureTransitionAdmission.AnalyzeRendered(compilation, file.RelativePath, descriptor, context);
         Assert.True(real.Accepted, real.Reason);
         Assert.Equal(synthetic.BoundSymbols.ToArray(), real.BoundSymbols.ToArray());
         Assert.Equal(synthetic.ContextReads, real.ContextReads);

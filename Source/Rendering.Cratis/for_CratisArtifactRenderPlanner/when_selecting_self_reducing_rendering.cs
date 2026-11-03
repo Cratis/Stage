@@ -50,9 +50,10 @@ public class when_selecting_self_reducing_rendering
         Assert.Contains("public static Total? Reduce(", Text(combined), StringComparison.Ordinal);
         var root = await CSharpSyntaxTree.ParseText(Text(combined)).GetRootAsync();
         var record = root.DescendantNodes().OfType<RecordDeclarationSyntax>().Single();
-        Assert.DoesNotContain(record.Members.OfType<MethodDeclarationSyntax>(), method => method.Identifier.Text.StartsWith("Transition_", StringComparison.Ordinal));
+        var helperName = when_rendering_a_pure_reducer.Context(loaded, self: true).InlineNames.ReducerTransition(Assert.Single(loaded.TypedContextDescriptors).RequirementId);
+        Assert.DoesNotContain(record.Members.OfType<MethodDeclarationSyntax>(), method => method.Identifier.Text == helperName);
         var helper = Assert.Single(record.Members.OfType<ClassDeclarationSyntax>());
-        Assert.StartsWith("Transition_", helper.Identifier.Text, StringComparison.Ordinal);
+        Assert.Equal(helperName, helper.Identifier.Text);
         Assert.Contains($"var result = {helper.Identifier.Text}.Apply(", Text(combined), StringComparison.Ordinal);
         Assert.Equal("Apply", Assert.Single(helper.Members.OfType<MethodDeclarationSyntax>()).Identifier.Text);
         Assert.Contains(" ById(", Text(combined), StringComparison.Ordinal);

@@ -167,7 +167,7 @@ represented in closed analysis without allowing query or reactive-service calls 
 pure transitions. `Reduce` as a
 model, property, or query name, the replay-hook query names `BeginReplay`, `EndReplay`,
 `BeginReplayPartition`, `EndReplayPartition`, and collisions with generated
-`Transition_<suffix>` members refuse with `STAGE-ESM-019`. Rename the conflicting
+generated transition helper names (`<Event>Transition`, qualified by the reducer name when two reducers share an event) refuse with `STAGE-ESM-019`. Rename the conflicting
 member; Stage never silently switches a self model back to classic.
 Existing purity and typed-context refusals still apply.
 
@@ -260,6 +260,9 @@ Compiler diagnostics from the generated code are mapped back to the authored bod
 A reaction body declares a local for a triggering event property only when the body references it by simple name, so an unused property no longer produces an unused-variable warning. Each local is `var Name = @event.Name;`.
 A body that only reads another object's member of the same name, such as `other.Title`, does not count as a reference.
 A command handler whose generated Handle method does nothing else with the result returns the handler call directly instead of storing it in a pass-through local.
+When Handle does wrap the result, the handler result is held in one local per production, named after the event in camelCase with a numeric suffix on a clash. Several productions are deconstructed in declared order, for example `var (orderPlaced, orderEchoed) = HandlePlaceOrder(...)`.
+
+The shared policy runtime identifies concept base classes with open-generic `typeof(ConceptAs<>)` and `typeof(EventSourceId<>)` comparisons, not CLR type-name strings. Claim matching and fail-closed behavior are unchanged.
 
 ## Anonymous authorization
 

@@ -115,7 +115,7 @@ public class when_rendering_the_billing_payment_reducer : a_generated_applicatio
             .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
         var compilation = RenderedOutput.CreateCompilation(files);
         var reducerFile = plan.Artifacts.Single(_ => _.RelativePath.EndsWith("PaymentSummaryReducer.cs", StringComparison.Ordinal));
-        var rendered = PureTransitionAdmission.AnalyzeRendered(compilation, reducerFile.RelativePath, descriptor);
+        var rendered = PureTransitionAdmission.AnalyzeRendered(compilation, reducerFile.RelativePath, descriptor, context);
         Assert.True(analysis.Accepted && rendered.Accepted, $"analysis: {analysis.Reason}; rendered: {rendered.Reason}; {string.Join("; ", compilation.GetDiagnostics())}");
         Assert.Equal(analysis.ContextReads, rendered.ContextReads);
         Assert.Equal(analysis.UsedAllowlistEntries, rendered.UsedAllowlistEntries);

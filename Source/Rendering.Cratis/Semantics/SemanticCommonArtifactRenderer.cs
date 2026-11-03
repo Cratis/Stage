@@ -184,10 +184,12 @@ internal static class SemanticCommonArtifactRenderer
         SemanticValidationRendering.RenderMatchFields(builder, concept.Validations, name);
         builder.Summary($"Initializes validation rules for {name}.")
             .OpenBlock($"public {name}Validator()");
+        var hasBodies = false;
         foreach (var rule in concept.Validations)
         {
             if (SemanticValidationContextRuntime.IsBody(rule))
             {
+                hasBodies = true;
                 SemanticValidationContextRuntime.RenderRule(builder, context, rule, concept.Id, null);
             }
             else
@@ -197,5 +199,6 @@ internal static class SemanticCommonArtifactRenderer
         }
 
         builder.EndBlock().EndBlock();
+        if (hasBodies) SemanticValidationContextRuntime.RenderOwnerBodies(builder, context, concept.Id);
     }
 }

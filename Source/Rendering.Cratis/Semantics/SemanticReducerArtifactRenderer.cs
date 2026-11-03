@@ -35,9 +35,6 @@ internal static class SemanticReducerArtifactRenderer
         };
     }
 
-    internal static string HelperName(string requirementId) =>
-        "Transition_" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(requirementId)))[..8];
-
     internal static void RenderTransitions(CSharpCodeBuilder builder, SemanticReducer reducer, SemanticApplicationContext context, string? analysisRequirement = null, string? analysisBody = null)
     {
         var model = context.ReadModels[reducer.ReadModel];
@@ -54,8 +51,8 @@ internal static class SemanticReducerArtifactRenderer
             var eventNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(@event.Id).Path);
             var eventType = $"global::{eventNamespace}.{Identifiers.ToPascalCase(@event.Name)}";
             var descriptor = context.Request.TypedContextDescriptors.Single(_ => _.RequirementId == transition.RequirementId && _.OperationId == reducer.ReadModel);
-            var wrapper = SemanticTypedContextRenderer.WrapperName(descriptor);
-            var helper = HelperName(transition.RequirementId);
+            var wrapper = context.ContextNames.ContextWrapper(descriptor);
+            var helper = context.InlineNames.ReducerTransition(transition.RequirementId);
             var diagnostics = System.Collections.Immutable.ImmutableArray.CreateBuilder<ArtifactRenderDiagnostic>();
             var body = analysisRequirement == transition.RequirementId ? analysisBody : "throw new global::System.NotImplementedException();";
             if (analysisRequirement is null && !SemanticImplementationAdmission.TryGetVerifiedBody(context.Request, transition.RequirementId, reducer.ReadModel, diagnostics, out body))

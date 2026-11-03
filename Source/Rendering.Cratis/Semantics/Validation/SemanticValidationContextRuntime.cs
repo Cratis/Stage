@@ -15,6 +15,7 @@ internal static class SemanticValidationContextRuntime
     internal static readonly string[] RefusedMembers = ["Tenant", "CausedBy"];
 
     static readonly System.Runtime.CompilerServices.ConditionalWeakTable<SemanticApplicationContext, Dictionary<string, IReadOnlySet<string>>> _contextReads = [];
+    static readonly System.Runtime.CompilerServices.ConditionalWeakTable<SemanticApplicationContext, ILookup<SemanticId, SemanticTypedContextDescriptor>> _ownerDescriptors = [];
 
     internal static bool IsBody(SemanticValidationRule rule) => rule.Kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation;
 
@@ -28,9 +29,9 @@ internal static class SemanticValidationContextRuntime
             descriptor.OperationId is { } owner && owners.Contains(owner));
     }
 
-    internal static string Wrapper(SemanticTypedContextDescriptor descriptor) => $"TypedContext_{SemanticTypedContextRenderer.Suffix(descriptor)}";
+    internal static string Wrapper(SemanticApplicationContext context, SemanticTypedContextDescriptor descriptor) => context.ContextNames.ContextWrapper(descriptor);
 
-    internal static string Method(SemanticTypedContextDescriptor descriptor) => $"{(IsIterator(descriptor) ? "Validate" : "Rule")}_{SemanticTypedContextRenderer.Suffix(descriptor)}";
+    internal static string Method(SemanticApplicationContext context, SemanticTypedContextDescriptor descriptor) => context.ContextNames.ContextMethod(descriptor);
 
     internal static RenderedFile RenderWrapper(SemanticApplicationContext context, SemanticTypedContextDescriptor descriptor, bool analysis = false)
     {
@@ -53,7 +54,7 @@ internal static class SemanticValidationContextRuntime
             file = file with { Content = file.Content.Insert(closing, accessor) };
         }
         if (!analysis) return file;
-        var marker = $"public record {Wrapper(descriptor)}(";
+        var marker = $"public record {Wrapper(context, descriptor)}(";
         return file with { Content = file.Content.Replace(marker, marker + "string Tenant, string CausedBy, ", StringComparison.Ordinal) };
     }
 
@@ -70,23 +71,78 @@ internal static class SemanticValidationContextRuntime
         var types = new SemanticTypeSystem(context);
         var parameters = descriptor.Members.Where(member => !member.IsDerived).Select(member => AnalysisParameter(context, types, member));
         var builder = new CSharpCodeBuilder().Namespace(context.TypedContextsNamespace)
-            .OpenBlock($"public record {Wrapper(descriptor)}({string.Join(", ", parameters)})");
+            .OpenBlock($"public record {Wrapper(context, descriptor)}({string.Join(", ", parameters)})");
         builder.Line("public bool IsWholeArtifact => global::System.String.IsNullOrEmpty(Property);").EndBlock();
         return new("ValidationContext.cs", builder.ToString());
     }
 
-    internal static RenderedFile RenderBodies(SemanticApplicationContext context, IEnumerable<(SemanticTypedContextDescriptor Descriptor, string Body)> bodies, bool analysis = false)
+    internal static bool IsOwnerBody(SemanticTypedContextDescriptor descriptor) =>
+        descriptor.OperationId is not null && (descriptor.Role == SemanticImplementationRole.RulePredicate || IsIterator(descriptor));
+
+    /// <summary>Gets the namespace of the file that declares the owner's validator, where its validation bodies are placed.</summary>
+    /// <param name="context">The semantic application.</param>
+    /// <param name="owner">The command or concept that owns the validation bodies.</param>
+    /// <returns>The full namespace.</returns>
+    internal static string OwnerNamespace(SemanticApplicationContext context, SemanticId owner) =>
+        context.Commands.ContainsKey(owner) ? SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(owner).Path) : context.CommonNamespace;
+
+    /// <summary>Gets the owner namespace relative to the root namespace, as the generated type inventory spells it.</summary>
+    /// <param name="context">The semantic application.</param>
+    /// <param name="owner">The command or concept that owns the validation bodies.</param>
+    /// <returns>The relative namespace.</returns>
+    internal static string OwnerRelativeNamespace(SemanticApplicationContext context, SemanticId owner) =>
+        context.Commands.ContainsKey(owner)
+            ? string.Join('.', context.DeclaringSlice(owner).Path.Select(Identifiers.ToPascalCase))
+            : string.Join('.', context.Domain.Append("Common"));
+
+    /// <summary>Gets the namespace-qualified name of the class that holds the owner's validation bodies.</summary>
+    /// <param name="context">The semantic application.</param>
+    /// <param name="owner">The command or concept that owns the validation bodies.</param>
+    /// <returns>The full type name.</returns>
+    internal static string RulesType(SemanticApplicationContext context, SemanticId owner) =>
+        $"{OwnerNamespace(context, owner)}.{context.ContextNames.ContextRules(owner)}";
+
+    /// <summary>Gets the validation bodies an owner contributes, in request order.</summary>
+    /// <param name="context">The semantic application.</param>
+    /// <param name="owner">The command or concept that owns the validation bodies.</param>
+    /// <returns>The descriptors with their authored bodies.</returns>
+    internal static IReadOnlyList<(SemanticTypedContextDescriptor Descriptor, string Body)> OwnerBodies(SemanticApplicationContext context, SemanticId owner)
     {
-        var builder = (analysis ? new CSharpCodeBuilder() : context.CodeBuilder()).Namespace(context.TypedContextsNamespace);
-        foreach (var owner in bodies.Select(pair => pair.Descriptor.OperationId).Distinct())
-        {
-            if (owner is { } id && context.Commands.ContainsKey(id))
-                builder.Using(SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(id).Path));
-        }
-        builder.OpenBlock("internal static class ValidationBodies");
+        if (context.Request.TypedContextDescriptors.IsDefaultOrEmpty || context.OmittedOwners.Contains(owner)) return [];
+        var cache = _ownerDescriptors.GetValue(context, key => key.Request.TypedContextDescriptors.Where(IsOwnerBody).ToLookup(descriptor => descriptor.OperationId!.Value));
+        return [.. cache[owner].Select(descriptor => (descriptor, context.Request.ImplementationContents[descriptor.RequirementId]))];
+    }
+
+    /// <summary>Renders the owner's validation bodies as a static class directly after its validator.</summary>
+    /// <param name="builder">The builder of the owner's file, positioned after the validator.</param>
+    /// <param name="context">The semantic application.</param>
+    /// <param name="owner">The command or concept that owns the validation bodies.</param>
+    internal static void RenderOwnerBodies(CSharpCodeBuilder builder, SemanticApplicationContext context, SemanticId owner)
+    {
+        var bodies = OwnerBodies(context, owner);
+        if (bodies.Count == 0) return;
+        builder.BlankLine();
+        RenderRules(builder, context, bodies, false);
+    }
+
+    /// <summary>Renders one owner's bodies as a complete compilation unit in the owner's namespace, for admission and execution.</summary>
+    /// <param name="context">The semantic application.</param>
+    /// <param name="bodies">The bodies, all belonging to one owner.</param>
+    /// <param name="analysis">Whether the bodies are rendered for analysis.</param>
+    /// <returns>The rendered unit.</returns>
+    internal static RenderedFile RenderBodies(SemanticApplicationContext context, IReadOnlyList<(SemanticTypedContextDescriptor Descriptor, string Body)> bodies, bool analysis = false)
+    {
+        var owner = bodies[0].Descriptor.OperationId!.Value;
+        var builder = (analysis ? new CSharpCodeBuilder() : context.CodeBuilder()).Namespace(OwnerNamespace(context, owner));
+        RenderRules(builder, context, bodies, analysis);
+        return new("ValidationRules.cs", builder.ToString());
+    }
+
+    internal static void RenderRules(CSharpCodeBuilder builder, SemanticApplicationContext context, IReadOnlyList<(SemanticTypedContextDescriptor Descriptor, string Body)> bodies, bool analysis)
+    {
+        builder.OpenBlock($"internal static class {context.ContextNames.ContextRules(bodies[0].Descriptor.OperationId!.Value)}");
         foreach (var body in bodies) RenderBody(builder, context, body, analysis);
         builder.EndBlock();
-        return new(Path.Combine(context.TypedContextsFolder, "ValidationBodies.cs"), builder.ToString());
     }
 
     internal static string AnalysisDeclarations(SemanticApplicationContext context)
@@ -110,7 +166,7 @@ internal static class SemanticValidationContextRuntime
         var artifact = ConceptValue(context, owner, "validation.InstanceToValidate");
         var value = ConceptValue(context, owner, "value");
         builder.OpenBlock($"{ruleFor}(_ => {selector}).Custom((value, validation) =>")
-            .OpenBlock($"foreach (var message in global::{context.TypedContextsNamespace}.ValidationBodies.{Method(descriptor)}(new global::{context.TypedContextsNamespace}.{Wrapper(descriptor)}({artifact}, {value}, {path}{OccurredArgument(context, descriptor)})))")
+            .OpenBlock($"foreach (var message in global::{RulesType(context, owner)}.{Method(context, descriptor)}(new global::{context.TypedContextsNamespace}.{Wrapper(context, descriptor)}({artifact}, {value}, {path}{OccurredArgument(context, descriptor)})))")
             .Line("validation.AddFailure(message);")
             .EndBlock().EndBlock().Line(");");
     }
@@ -128,7 +184,7 @@ internal static class SemanticValidationContextRuntime
         var artifact = property is null ? ConceptValue(context, owner, "value") : "artifact";
         var value = ConceptValue(context, owner, "value");
         var path = CSharpCodeBuilder.StringLiteral(PropertyPath(context, property));
-        var call = $"global::{context.TypedContextsNamespace}.ValidationBodies.{Method(descriptor)}(new global::{context.TypedContextsNamespace}.{Wrapper(descriptor)}({artifact}, {value}, {path}{OccurredArgument(context, descriptor)}))";
+        var call = $"global::{RulesType(context, owner)}.{Method(context, descriptor)}(new global::{context.TypedContextsNamespace}.{Wrapper(context, descriptor)}({artifact}, {value}, {path}{OccurredArgument(context, descriptor)}))";
         var message = rule.Message ?? $"A value does not satisfy the '{rule.Kind}' rule.";
         var localized = message.StartsWith("$strings.", StringComparison.Ordinal);
         var renderedMessage = localized ? $"_ => global::{context.RootNamespace}.GeneratedStrings.Resolve({CSharpCodeBuilder.StringLiteral(message)})" : CSharpCodeBuilder.StringLiteral(message);
@@ -252,17 +308,17 @@ internal static class SemanticValidationContextRuntime
         var (descriptor, code) = body;
         var iterator = IsIterator(descriptor);
         var result = iterator ? "global::System.Collections.Generic.IEnumerable<string>" : "bool";
-        builder.OpenBlock($"public static {result} {Method(descriptor)}(global::{context.TypedContextsNamespace}.{Wrapper(descriptor)} context)");
+        builder.OpenBlock($"public static {result} {Method(context, descriptor)}(global::{context.TypedContextsNamespace}.{Wrapper(context, descriptor)} context)");
         if (analysis)
         {
             builder.RawVerbatim(code).EndBlock().BlankLine();
             return;
         }
-        var implementation = iterator ? $"return global::System.Linq.Enumerable.ToArray({Method(descriptor)}_Core(context));" : code;
+        var implementation = iterator ? $"return global::System.Linq.Enumerable.ToArray({context.ContextNames.ContextCore(descriptor)}(context));" : code;
         RenderBoundary(builder, implementation, iterator, iterator ? null : descriptor.RequirementId);
         builder.EndBlock().BlankLine();
         if (!iterator) return;
-        builder.OpenBlock($"static {result} {Method(descriptor)}_Core(global::{context.TypedContextsNamespace}.{Wrapper(descriptor)} context)")
+        builder.OpenBlock($"static {result} {context.ContextNames.ContextCore(descriptor)}(global::{context.TypedContextsNamespace}.{Wrapper(context, descriptor)} context)")
             .OpenBlock("checked").RawVerbatim(InvariantValidationInterpolation.Render(code), descriptor.RequirementId).EndBlock().EndBlock().BlankLine();
     }
 

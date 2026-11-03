@@ -12,7 +12,7 @@ public class with_aggregate_opaque_bodies_and_contexts : given.a_policy_plan
     void Establish()
     {
         // Before #211, the per-site body file's declarations lived at this aggregate path.
-        _existing["GeneratedPolicies/PolicyBodies.cs"] = Text(_application.Artifacts.First(artifact => artifact.RelativePath.StartsWith("GeneratedPolicies/PolicyBodies_", StringComparison.Ordinal)));
+        _existing["GeneratedPolicies/PolicyBodies.cs"] = Text(_application.Artifacts.First(artifact => artifact.RelativePath.StartsWith("GeneratedPolicies/PolicyBodies.", StringComparison.Ordinal) && artifact.RelativePath != "GeneratedPolicies/PolicyBodies.cs"));
 
         // Before #211, use-site wrappers accompanied the shared identity runtime in this file.
         _existing["TypedContexts/PolicyContext.cs"] = Text(_application.Artifacts.Single(artifact => artifact.RelativePath == "TypedContexts/PolicyContext.cs")) + "\npublic sealed record TypedContext_issue(string Subject, Identity Identity, DateTimeOffset Occurred);\n";

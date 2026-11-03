@@ -9,6 +9,7 @@ using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
+using Cratis.Stage.Rendering.Cratis.Semantics;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Extensions.DependencyInjection;
@@ -43,8 +44,8 @@ public class with_identical_operations : given.a_domain_policy_plan
     [Fact] void should_share_only_selection_independent_root_files() => _north.Artifacts.Join(_south.Artifacts, artifact => artifact.RelativePath, artifact => artifact.RelativePath, (north, south) => north.RelativePath).ShouldContainOnly([".stage/completeness.json", "GeneratedPolicies/Policies.cs", "GeneratedPolicies/PolicyBodies.cs", "TypedContexts/PolicyContext.cs", "TypedContexts/TenantId.cs", "GeneratedTenancy/PortableTenantValues.cs", "UNSUPPORTED.md"]);
     [Fact] void should_keep_shared_files_byte_identical() => _north.Artifacts.Join(_south.Artifacts, artifact => artifact.RelativePath, artifact => artifact.RelativePath, (north, south) => north.Bytes.SequenceEqual(south.Bytes)).All(equal => equal).ShouldBeTrue();
     [Fact] void should_emit_three_distinct_operation_policy_paths_per_domain() => _north.Artifacts.Concat(_south.Artifacts).Where(artifact => Path.GetFileName(artifact.RelativePath).EndsWith("Policy.cs", StringComparison.Ordinal)).Select(artifact => artifact.RelativePath).Distinct(StringComparer.Ordinal).Count().ShouldEqual(6);
-    [Fact] void should_emit_distinct_opaque_body_paths_per_domain() => _north.Artifacts.Concat(_south.Artifacts).Where(artifact => Path.GetFileName(artifact.RelativePath).StartsWith("PolicyBodies_", StringComparison.Ordinal)).Select(artifact => artifact.RelativePath).Distinct(StringComparer.Ordinal).Count().ShouldEqual(4);
-    [Fact] void should_emit_distinct_policy_and_reducer_wrapper_paths_per_domain() => _north.Artifacts.Concat(_south.Artifacts).Where(artifact => Path.GetFileName(artifact.RelativePath).StartsWith("TypedContext_", StringComparison.Ordinal)).Select(artifact => artifact.RelativePath).Distinct(StringComparer.Ordinal).Count().ShouldEqual(6);
+    [Fact] void should_emit_distinct_opaque_body_paths_per_domain() => _north.Artifacts.Concat(_south.Artifacts).Where(artifact => Path.GetFileName(artifact.RelativePath).StartsWith("PolicyBodies.", StringComparison.Ordinal) && Path.GetFileName(artifact.RelativePath) != "PolicyBodies.cs").Select(artifact => artifact.RelativePath).Distinct(StringComparer.Ordinal).Count().ShouldEqual(4);
+    [Fact] void should_emit_distinct_policy_and_reducer_wrapper_paths_per_domain() => _north.Artifacts.Concat(_south.Artifacts).Where(artifact => artifact.RelativePath.Contains("TypedContexts/", StringComparison.Ordinal) && !TypedContextTypes.Fixed.Contains(Path.GetFileNameWithoutExtension(artifact.RelativePath), StringComparer.Ordinal)).Select(artifact => artifact.RelativePath).Distinct(StringComparer.Ordinal).Count().ShouldEqual(6);
     [Fact] void should_declare_distinct_domain_types() => DomainTypes("Sales/Retail/").Intersect(DomainTypes("Support/"), StringComparer.Ordinal).ShouldBeEmpty();
     [Fact] void should_compile_the_union_with_the_root_scaffold() => _errors.ShouldBeEmpty();
     [Fact] void should_compile_without_warnings() => _warnings.ShouldBeEmpty();

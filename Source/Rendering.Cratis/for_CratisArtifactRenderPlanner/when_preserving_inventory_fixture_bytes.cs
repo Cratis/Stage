@@ -15,27 +15,36 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 /// </summary>
 public class when_preserving_inventory_fixture_bytes
 {
+    // Re-frozen for Cratis/Stage#850: only the policy runtime concept-base comparisons changed.
+    // Re-frozen for Cratis/Stage#850: owner-local validation bodies
     static readonly Dictionary<string, string> _digests = new(StringComparer.Ordinal)
     {
         // Re-frozen for Cratis/Stage#120 merged with train 10: authentication artifacts and host wiring on top of the train 10 output.
-        ["append refusal"] = "a22415a6ac0cba579b22d7981822fa9089d259f0a7ce452e2472d4e749e50350",
-        ["cascade with trigger"] = "62f05f08ca11aac19824d16c1fe2c644b457e0cab91425a57bbc02c71cdb0d7b",
-        ["case table"] = "6c905812c89480e4b160f5f7d2b88287316b18c0e430c12296c2c4bb43879810",
-        ["composite keys"] = "d09530f3c863ddacf4d8ba571f85529207e04170e2900b201b23a424a211a8d9",
-        ["denied query"] = "79281b9ede42af0919dd2fbe83d74948bbc424842bb6940119b796fd6107c03d",
-        ["folder"] = "bf29b7c91621bc4e1e1f840605a0de7452295f05201f7ae95c481b96d852ae47",
-        ["policy typed contexts"] = "e78eaedfb54a0afdc805f8f8fa30e053fdf358cf3e0cb7ad176bab6c3c614164",
-        ["query"] = "9994fbe1797a1edabed9ce62742b2696aa30f0494391d30c97427052c731f3cd",
-        ["reaction production"] = "6e358f8b949fd8aeb3acf3c6aec8a0ba2181cfb1ddfa4d3e70b60d09faefae29",
-        ["redelivery"] = "53768fff851033b63bc8e85d32cd25096ae7c02820428ffa25fcab3a57cd6509",
-        ["reducer typed contexts"] = "45d80db27e1610c60427e059fa299942066a521be9054064e353ad1aa8afcf3d",
-        ["relocated"] = "bf29b7c91621bc4e1e1f840605a0de7452295f05201f7ae95c481b96d852ae47",
-        ["reordered"] = "bf29b7c91621bc4e1e1f840605a0de7452295f05201f7ae95c481b96d852ae47",
-        ["scoped projections"] = "9fbe7aada753d1dde7d45e90394a624b29d014aef69ea6a295b530fb94ac99e7",
-        ["single"] = "bf29b7c91621bc4e1e1f840605a0de7452295f05201f7ae95c481b96d852ae47",
-        ["strings"] = "bf43eeb3a0f064c7ff43ed6f32f6c7b2fa5f15504d8ef080463edb5a75f50d02",
-        ["translation specification"] = "3e2e6d91d4e2a1a642e80190a50469530b28ccec4a1196a299d4cbba80bda611",
-        ["validation typed contexts"] = "bc095521dd2d2d2f69eaec662250b4dae937aafc01a2b524d90cc3136470cbe5",
+        // Re-frozen again for Cratis/Stage#850 (denied query, policy typed contexts): only the Policies.cs concept-base comparisons differ from train 10's pin; every other pin equals train 10's after restoring the hashed names.
+        ["append refusal"] = "f2da738480ba58919ef5fc7477d9715d21b06e1ce8029ffae7f0f466cc4e80c2",
+        ["cascade with trigger"] = "e3289304073f9a9a6163851531c4446e97e57836da2bda222cb9b221bd7930c9",
+        ["case table"] = "623dc05f80fd39fe1babc8c85bc29b0f24067f42bb8c6abc66fb15ba8ce560df",
+        ["composite keys"] = "fd7e783281a9e7f7d148e248a5c5090317ec758d08000cd17e328cdbe84fa2a5",
+        ["denied query"] = "c0ac4f491fabd64efe9444b681fdcec11c2489db427d04e34e312bc8cb1986ab",
+        ["folder"] = "59fcd5f056949fe5e92f2cb8e4c46e5712f86b5aec7c9b3382c4aa8dc85d776f",
+        ["policy typed contexts"] = "c611e89e4fb3e0ab28c5cc95a852a53412e4b9509ea5287f351f9ffcb1223cb5",
+        ["query"] = "eabbebac64b27b0312fd5933d1b5cf9d71a66b7ce4c13ee94a1bdca179357f00",
+        ["reaction production"] = "e75c717623deeae584e540cec0d96b8873f87cce2f97baff5a47ad6d89798c84",
+        ["redelivery"] = "302eb806a0e1e48be52bf028d74e7a370749eef4dfce02dc27ffea8509617401",
+        ["reducer typed contexts"] = "f4f8f4e105c3994b87e855d1f61a96579e11182c31915b3099c243f009a7fa3c",
+        ["relocated"] = "59fcd5f056949fe5e92f2cb8e4c46e5712f86b5aec7c9b3382c4aa8dc85d776f",
+        ["reordered"] = "59fcd5f056949fe5e92f2cb8e4c46e5712f86b5aec7c9b3382c4aa8dc85d776f",
+        ["scoped projections"] = "7ca702a0a7d2dddd83591ca181189fd583f6816f9149208471880198badd4327",
+        ["single"] = "59fcd5f056949fe5e92f2cb8e4c46e5712f86b5aec7c9b3382c4aa8dc85d776f",
+        ["strings"] = "ec893996937aa19eb83176683cfa97778420f3ae234d0c5ead5f1dbccbb4b5fa",
+        ["translation specification"] = "86bd892deb7659afe0a9bcebb8ac23961dc17e7d80b71b309d7a80e1e67a7a1d",
+        ["validation typed contexts"] = "9364f551494000760b21c7d08115e096c8dd9715797ead496ec3d5c98cbdfebe",
+    };
+
+    static readonly Dictionary<string, string> _oldDigests = new(StringComparer.Ordinal)
+    {
+        ["reducer typed contexts"] = "46a58440ccb22c6f72cebd6c962b53b9379b63bffb5edb1a4be34a6fe61d4bec",
+        ["validation typed contexts"] = "dd22e0f866fe32e560fccd9cef1a0683f5dded5227500ffb0cd189d08434e6c5",
     };
 
     public static TheoryData<string> Fixtures
@@ -56,14 +65,27 @@ public class when_preserving_inventory_fixture_bytes
     [MemberData(nameof(Fixtures))]
     public void should_preserve_the_rendered_csharp(string name)
     {
-        var (_, request, _) = inventory_fixtures.All().Single(fixture => fixture.Name == name);
+        var (_, request, options) = inventory_fixtures.All().Single(fixture => fixture.Name == name);
         var plan = new CratisArtifactRenderPlanner().Plan(request);
         Assert.True(plan.Success, string.Join('\n', plan.Diagnostics));
-        var lines = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal))
+
+        // Cratis/Stage#850 made typed-context names readable; restoring the hashed spelling proves the names were the only change.
+        var context = new Semantics.SemanticApplicationContext(request, options);
+        if (_oldDigests.TryGetValue(name, out var oldDigest))
+        {
+            var inverse = SharedValidationBodies.Restore(plan.Artifacts, context);
+            Assert.Equal(oldDigest, Digest(HashedHelperNames.Restore(inverse, context)));
+        }
+        Assert.Equal(_digests[name], Digest(HashedHelperNames.Restore(plan.Artifacts, context)));
+    }
+
+    static string Digest(IEnumerable<Contracts.Rendering.PlannedArtifact> artifacts)
+    {
+        var lines = artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal))
             .OrderBy(artifact => artifact.RelativePath, StringComparer.Ordinal)
             .Select(artifact => $"{artifact.RelativePath} {artifact.Sha256}");
         var digest = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join('\n', lines))));
-        Assert.Equal(_digests[name], digest);
+        return digest;
     }
 }
 #endif

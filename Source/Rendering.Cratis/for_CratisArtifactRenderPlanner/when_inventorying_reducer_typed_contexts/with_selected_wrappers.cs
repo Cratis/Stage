@@ -26,7 +26,7 @@ public class with_selected_wrappers
         var plan = new CratisArtifactRenderPlanner().Plan(request);
         Assert.True(plan.CanPublishArtifacts, string.Join(Environment.NewLine, plan.Diagnostics));
         var descriptor = Assert.Single(SemanticReducerTypedContexts.Selected(context, context.SelectedSlices()));
-        Assert.Contains(plan.Artifacts, artifact => artifact.RelativePath.EndsWith($"/{SemanticTypedContextRenderer.WrapperName(descriptor)}.cs", StringComparison.Ordinal));
+        Assert.Contains(plan.Artifacts, artifact => artifact.RelativePath.EndsWith($"/{context.ContextNames.ContextWrapper(descriptor)}.cs", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -53,10 +53,10 @@ public class with_selected_wrappers
         var context = new SemanticApplicationContext(request, reducer_context_model.Options);
         Assert.NotEmpty(request.TypedContextDescriptors);
         Assert.Empty(SemanticReducerTypedContexts.Declarations(context, context.SelectedSlices()));
-        Assert.DoesNotContain(context.GeneratedTypes, type => type.Name.StartsWith("TypedContext_", StringComparison.Ordinal));
+        Assert.DoesNotContain(context.GeneratedTypes, type => type.Namespace == context.TypedContextsNamespace && !TypedContextTypes.Fixed.Contains(type.Name, StringComparer.Ordinal));
         var plan = new CratisArtifactRenderPlanner().Plan(request);
         Assert.True(plan.CanPublishArtifacts, string.Join(Environment.NewLine, plan.Diagnostics));
-        Assert.DoesNotContain(plan.Artifacts, artifact => artifact.RelativePath.Contains("/TypedContext_", StringComparison.Ordinal));
+        Assert.DoesNotContain(plan.Artifacts, artifact => artifact.RelativePath.StartsWith("TypedContexts/", StringComparison.Ordinal) && !TypedContextTypes.Fixed.Contains(Path.GetFileNameWithoutExtension(artifact.RelativePath), StringComparer.Ordinal));
     }
 
     [Fact]
@@ -68,7 +68,7 @@ public class with_selected_wrappers
         var context = new SemanticApplicationContext(request with { TypedContextDescriptors = [descriptor, descriptor] }, reducer_context_model.Options);
         var declarations = SemanticReducerTypedContexts.Declarations(context, context.SelectedSlices()).ToArray();
         var declaration = Assert.Single(declarations);
-        Assert.Equal(SemanticTypedContextRenderer.WrapperName(descriptor), declaration.Name);
+        Assert.Equal(context.ContextNames.ContextWrapper(descriptor), declaration.Name);
         Assert.DoesNotContain(declarations, declaration => declaration.Name.EndsWith("Shape", StringComparison.Ordinal));
     }
 
@@ -78,7 +78,7 @@ public class with_selected_wrappers
         var context = new SemanticApplicationContext(reducer_context_model.Request(await reducer_context_model.LoadMinA3()), reducer_context_model.Options);
         var declarations = SemanticCratisAdmission.GeneratedDeclarations(context, context.SelectedSlices()).ToArray();
         var descriptor = Assert.Single(SemanticReducerTypedContexts.Selected(context, context.SelectedSlices()));
-        var wrapper = Assert.Single(declarations, declaration => declaration.Name == SemanticTypedContextRenderer.WrapperName(descriptor));
+        var wrapper = Assert.Single(declarations, declaration => declaration.Name == context.ContextNames.ContextWrapper(descriptor));
         Assert.Contains(GeneratedTypeNames.Collisions([], declarations.Append(wrapper)), collision => collision.Name == wrapper.Name);
     }
 
@@ -97,7 +97,7 @@ public class with_selected_wrappers
         var context = new SemanticApplicationContext(reducer_context_model.Request(await reducer_context_model.LoadMinA3()), reducer_context_model.Options);
         var builder = new CSharpCodeBuilder(GeneratedProjects.Application, context.GeneratedTypes, hasScaffoldGlobalUsings: false)
             .Namespace("MinA3.Other")
-            .Line("public class Probe : global::MinA3.TypedContexts.TypedContext_NotInventoried {}");
+            .Line("public class Probe : global::MinA3.TypedContexts.NotInventoriedContext {}");
         Assert.Throws<CSharpImportRejected>(builder.ToString);
     }
 
@@ -108,7 +108,7 @@ public class with_selected_wrappers
         var inventory = SemanticCratisAdmission.GeneratedDeclarations(context, context.SelectedSlices()).ToArray();
         foreach (var descriptor in descriptors)
         {
-            var name = SemanticTypedContextRenderer.WrapperName(descriptor);
+            var name = context.ContextNames.ContextWrapper(descriptor);
             Assert.Contains(inventory, declaration => declaration.Namespace == string.Join('.', context.Domain.Append("TypedContexts")) && declaration.Name == name);
             Assert.Contains(context.GeneratedTypes, type => type.Namespace == context.TypedContextsNamespace && type.Name == name);
             var wrapper = SemanticTypedContextRenderer.Render(descriptor, context);

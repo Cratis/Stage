@@ -378,8 +378,7 @@ public class when_generating_packaged_vectors
                 var shape = descriptor.Members.First(member => member.Type.Shape?.ToString() == id).Type.Shape!.Value;
                 if (context.Queries.ContainsKey(shape))
                 {
-                    var suffix = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{descriptor.RequirementId}:{descriptor.OperationId}")))[..16];
-                    return $"TypedContext_{suffix}_ArtifactShape";
+                    return context.ContextNames.ContextShape(descriptor, "Artifact");
                 }
                 var located = context.DeclaringSlice(shape);
                 string name;

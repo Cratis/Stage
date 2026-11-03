@@ -23,7 +23,7 @@ public class when_refusing_the_canonical_v6_corpus : Specification
         _model = SemanticModelSerializer.Deserialize(ReactionsCorpus.V6.EsmBytes.AsSpan());
         _request = new(
             _model,
-            SemanticExecutionPlan.Compile(_model).Plan!,
+            SemanticExecutionPlan.Compile(_model).Plan,
             CratisRendering.CreateProfile(_model.Application.Name, new("Reactions", "Reactions")),
             new(ArtifactRenderScopeKind.Application, _model.Application.Id));
     }

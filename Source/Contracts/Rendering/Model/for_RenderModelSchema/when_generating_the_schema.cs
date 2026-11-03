@@ -23,9 +23,9 @@ public class when_generating_the_schema : Specification
     [InlineData("status", "Present")]
     void should_reject_null_or_incorrect_fixed_members(string member, string? value)
     {
-        var document = JsonNode.Parse(RenderModelJson.Serialize(for_RenderModelJson.given.render_models.Basic()))!;
-        var command = document["items"]!["commands"]![0]!;
-        var target = member == "kind" ? command : command["provenance"]!;
+        var document = JsonNode.Parse(RenderModelJson.Serialize(for_RenderModelJson.given.render_models.Basic()));
+        var command = document["items"]["commands"][0];
+        var target = member == "kind" ? command : command["provenance"];
         target[member] = value;
         Validate(document).ShouldBeFalse();
     }
@@ -36,13 +36,13 @@ public class when_generating_the_schema : Specification
     [InlineData("reason")]
     void should_reject_null_non_nullable_computed_members(string member)
     {
-        var document = JsonNode.Parse(RenderModelJson.Serialize(for_RenderModelJson.given.render_models.Basic()))!;
-        var command = document["items"]!["commands"]![0]!;
+        var document = JsonNode.Parse(RenderModelJson.Serialize(for_RenderModelJson.given.render_models.Basic()));
+        var command = document["items"]["commands"][0];
         var target = member switch
         {
             "schema" => document,
             "provenance" => command,
-            _ => command["provenance"]!
+            _ => command["provenance"]
         };
         target[member] = null;
         Validate(document).ShouldBeFalse();
@@ -53,14 +53,14 @@ public class when_generating_the_schema : Specification
     [InlineData("commands")]
     void should_reject_null_array_items(string member)
     {
-        var document = JsonNode.Parse(RenderModelJson.Serialize(for_RenderModelJson.given.render_models.Basic()))!;
-        var commands = document["items"]!["commands"]!;
-        var array = member == "commands" ? commands : commands[0]!["nameWords"]!;
+        var document = JsonNode.Parse(RenderModelJson.Serialize(for_RenderModelJson.given.render_models.Basic()));
+        var commands = document["items"]["commands"];
+        var array = member == "commands" ? commands : commands[0]["nameWords"];
         array[0] = null;
         Validate(document).ShouldBeFalse();
     }
 
-    bool Validate(JsonNode document) => new given.strict_schema_validator(JsonNode.Parse(_generated)!).Validate(JsonSerializer.SerializeToElement(document));
+    bool Validate(JsonNode document) => new given.strict_schema_validator(JsonNode.Parse(_generated)).Validate(JsonSerializer.SerializeToElement(document));
 
     [Theory]
     [InlineData("response")]
@@ -75,6 +75,6 @@ public class when_generating_the_schema : Specification
             _ => for_RenderModelJson.given.render_models.Reaction()
         };
         using var document = JsonDocument.Parse(RenderModelJson.Serialize(model));
-        new given.strict_schema_validator(JsonNode.Parse(_generated)!).Validate(document.RootElement).ShouldBeTrue();
+        new given.strict_schema_validator(JsonNode.Parse(_generated)).Validate(document.RootElement).ShouldBeTrue();
     }
 }

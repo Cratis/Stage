@@ -16,9 +16,9 @@ public class with_the_v16_golden_vector : Specification
     SemanticExecutionPlan _plan = null!;
     SemanticRuntimeAdmission _admission = null!;
 
-    void Establish() => _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(EsmGoldenVectors.Get(16).Bytes.AsSpan()), []).Plan!;
+    void Establish() => _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(EsmGoldenVectors.Get(16).Bytes.AsSpan()), []).Plan;
     void Because() => _admission = new(_plan);
 
     [Fact] void should_read_the_full_v16_vector() => _plan.Model.SemanticVersion.ShouldEqual(SemanticVersion.V16);
-    [Fact] void should_not_refuse_the_audited_version() => _admission.Blocking.Any(entry => entry.Details!.StartsWith("STAGE-ESM-016:", StringComparison.Ordinal)).ShouldBeFalse();
+    [Fact] void should_not_refuse_the_audited_version() => _admission.Blocking.Any(entry => entry.Details.StartsWith("STAGE-ESM-016:", StringComparison.Ordinal)).ShouldBeFalse();
 }

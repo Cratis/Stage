@@ -37,7 +37,7 @@ public class when_running_an_authored_clock : Specification
             var document = SemanticSourceDocument.Create(catalog.ResolveDocument("clock"), "clock", "clock.play", source);
             var compilation = new SemanticModelCompiler().Compile("ClockApp", SemanticDocumentSet.Create([document], catalog));
             Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics.Select(value => value.Message)));
-            var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+            var plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
             var report = await new SemanticSpecificationExecutor().Run(plan, SemanticSpecificationSelection.All, new() { Clock = new UnexpectedClock() });
             _results.Add(report.Results.Single());
             _reference.Add(new SemanticSpecificationRunner().Run(plan, plan.Specifications.Keys.Single()).Passed);

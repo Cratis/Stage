@@ -8,14 +8,14 @@ namespace Cratis.Stage.Rendering.Cratis;
 public static partial class CratisRendering
 {
     /// <summary>
-    /// Creates a profile for a confirmed new application, explicitly selecting self-reducing read models and model-bound projections.
+    /// Creates a profile for a confirmed new application, explicitly selecting self-reducing read models and model-bound projections, including running totals and clears.
     /// </summary>
     /// <param name="applicationName">The semantic application name.</param>
     /// <param name="options">The explicit project and namespace choices.</param>
     /// <returns>The profile whose scaffold persists the self and model-bound conventions.</returns>
-    /// <remarks>Existing applications keep fluent projections because a model-bound projection's identity is its read model's full name. This API does not migrate existing reducers.</remarks>
+    /// <remarks>New applications select version 4 of the configuration; existing version 3 applications keep their projection identities. Existing applications keep fluent projections because a model-bound projection's identity is its read model's full name. This API does not migrate existing reducers.</remarks>
     public static ArtifactRenderProfile CreateNewApplicationProfile(string applicationName, CratisRenderingOptions options) =>
-        WithReducerConvention(CreateProfile(applicationName, options), ReducerConventionInput.Create(applicationName, ReducerConvention.Classic with { SelfDefault = true, ModelBoundProjections = true }));
+        WithReducerConvention(CreateProfile(applicationName, options), ReducerConventionInput.Create(applicationName, ReducerConvention.Classic with { SelfDefault = true, ModelBoundProjections = true, ModelBoundOperations = true }));
 
     /// <summary>
     /// Adds an explicitly resolved application reducer convention to a profile, including profiles carrying Scene inputs.

@@ -29,13 +29,13 @@ public class with_dynamic_fact_paths : Specification
         result.Outcome.ShouldEqual(refused ? SemanticSpecificationOutcome.Unsupported : SemanticSpecificationOutcome.Passed);
         if (refused)
         {
-            result.Unsupported!.Details.ShouldContain("STAGE-IMPL-003:");
+            result.Unsupported.Details.ShouldContain("STAGE-IMPL-003:");
             retained.TrueForAll(count => count == (filtered ? 1 : 0)).ShouldBeTrue();
         }
         else
         {
             reference.Passed.ShouldBeTrue();
-            result.Trace!.Facts.Count.ShouldEqual(2);
+            result.Trace.Facts.Count.ShouldEqual(2);
         }
     }
 

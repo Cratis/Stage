@@ -51,8 +51,8 @@ public class a_generated_application : a_register_project_render_request
         }
         foreach (var artifact in plan.Artifacts)
         {
-            var path = Path.Combine(_application!.FullName, artifact.RelativePath.Replace('/', Path.DirectorySeparatorChar));
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            var path = Path.Combine(_application.FullName, artifact.RelativePath.Replace('/', Path.DirectorySeparatorChar));
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
             File.WriteAllBytes(path, [.. artifact.Bytes]);
             _artifactHashes.Add(artifact.RelativePath, artifact.Sha256);
         }
@@ -91,7 +91,7 @@ public class a_generated_application : a_register_project_render_request
                 }
 
                 var path = GeneratedPath(artifact.RelativePath);
-                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
                 File.WriteAllBytes(path, [.. artifact.Bytes]);
             }
 
@@ -125,7 +125,7 @@ public class a_generated_application : a_register_project_render_request
 
     protected bool GeneratedFileExists(string relativePath) => File.Exists(GeneratedPath(relativePath));
 
-    string GeneratedPath(string relativePath) => Path.Combine(_application!.FullName, relativePath.Replace('/', Path.DirectorySeparatorChar));
+    string GeneratedPath(string relativePath) => Path.Combine(_application.FullName, relativePath.Replace('/', Path.DirectorySeparatorChar));
 
     protected virtual ArtifactRenderPlan CreatePlan() =>
         CratisRendering.Plan(_model, _executionPlan, _request.Scope, new("BackendHost", "Acme.projectAPI"));
@@ -142,9 +142,9 @@ public class a_generated_application : a_register_project_render_request
         }
     }
 
-    protected string ReadGeneratedFile(string relativePath) => File.ReadAllText(Path.Combine(_application!.FullName, relativePath));
+    protected string ReadGeneratedFile(string relativePath) => File.ReadAllText(Path.Combine(_application.FullName, relativePath));
 
-    protected string[] GeneratedFiles(string pattern) => [.. Directory.GetFiles(_application!.FullName, pattern, SearchOption.AllDirectories).Select(path => Path.GetRelativePath(_application.FullName, path))];
+    protected string[] GeneratedFiles(string pattern) => [.. Directory.GetFiles(_application.FullName, pattern, SearchOption.AllDirectories).Select(path => Path.GetRelativePath(_application.FullName, path))];
 
     // Specifications compile into the application in Debug; a for_ folder keeps them out of its Release build.
     protected void AddGeneratedSpecification(string name, string content) => WriteGeneratedSupport(Path.Combine("for_GeneratedApplication", name), content);
@@ -154,8 +154,8 @@ public class a_generated_application : a_register_project_render_request
 
     void WriteGeneratedSupport(string relativePath, string content)
     {
-        var path = Path.Combine(_application!.FullName, relativePath);
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        var path = Path.Combine(_application.FullName, relativePath);
+        Directory.CreateDirectory(Path.GetDirectoryName(path));
         File.WriteAllText(path, content);
     }
 
@@ -165,11 +165,12 @@ public class a_generated_application : a_register_project_render_request
     protected async Task<string> Run(string logName, bool allowFailedTests, params string[] arguments)
     {
         // Bounded so a local run does not start every generated application's build at once.
-        using var slot = await GeneratedApplicationBuilds.Enter();
+        using var slot = await GeneratedApplicationBuilds.Enter(new(GetType().FullName, "dotnet", arguments));
         arguments = GeneratedApplicationBuilds.Capped("dotnet", SpecificationsArguments(arguments));
+        arguments = GeneratedApplicationBuilds.WithBinlog(arguments, Environment.GetEnvironmentVariable(GeneratedApplicationBuilds.BinlogVariable), _evidence.FullName, logName);
         var startInfo = new ProcessStartInfo("dotnet")
         {
-            WorkingDirectory = _application!.FullName,
+            WorkingDirectory = _application.FullName,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false

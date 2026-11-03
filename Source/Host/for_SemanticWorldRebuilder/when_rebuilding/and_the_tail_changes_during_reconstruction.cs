@@ -23,5 +23,5 @@ public class and_the_tail_changes_during_reconstruction : a_stored_sequence
     async Task Because() => _error = await Catch.Exception(() => SemanticChronicleRegistration.Rebuild(_accessor, "Projects", _plan, 0));
 
     [Fact] void should_refuse_the_changed_history() => _error.ShouldBeOfExactType<SemanticWorldRebuildRefused>();
-    [Fact] void should_name_the_tail_change() => _error!.Message.ShouldContain("tail changed");
+    [Fact] void should_name_the_tail_change() => _error.Message.ShouldContain("tail changed");
 }

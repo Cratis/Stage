@@ -149,7 +149,7 @@ public class when_asserting_production_destinations : given.a_slice_with_specifi
                   event ImplicitChanged
             """);
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics.Select(diagnostic => diagnostic.Message)));
-        return new ApplicationSet([compilation.Value!]);
+        return new ApplicationSet([compilation.Value]);
     }
 
     static ApplicationSet ReplaceCommand(ApplicationSet application, CommandSyntax command)

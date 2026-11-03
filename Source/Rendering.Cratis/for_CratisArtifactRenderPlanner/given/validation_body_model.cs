@@ -97,9 +97,9 @@ internal static class validation_body_model
     internal static ValidationResult Validate(Assembly assembly, string typeName, params object[] arguments)
     {
         var type = assembly.GetTypes().Single(type => type.Name == typeName);
-        var instance = Activator.CreateInstance(type, arguments)!;
-        var validator = (IValidator)Activator.CreateInstance(assembly.GetTypes().Single(type => type.Name == typeName + "Validator"))!;
-        var validation = (IValidationContext)Activator.CreateInstance(typeof(ValidationContext<>).MakeGenericType(type), instance)!;
+        var instance = Activator.CreateInstance(type, arguments);
+        var validator = (IValidator)Activator.CreateInstance(assembly.GetTypes().Single(type => type.Name == typeName + "Validator"));
+        var validation = (IValidationContext)Activator.CreateInstance(typeof(ValidationContext<>).MakeGenericType(type), instance);
         return validator.Validate(validation);
     }
 }

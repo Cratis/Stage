@@ -14,7 +14,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 public class when_executing_conditional_command_routes : a_generated_application
 {
     string _warnings;
-    (string Name, string Outcome)[] _results;
+    GeneratedTestResult[] _results;
 
     protected override ArtifactRenderPlan CreatePlan() => routed_specifications.Plan(conditional_routed_specifications.Model());
 
@@ -24,9 +24,7 @@ public class when_executing_conditional_command_routes : a_generated_application
         {
             _warnings = BuildWarnings(await Run("conditional-route-build.log", "build", "Routed.csproj", "-c", "Debug", "-warnaserror", "--nologo"));
             await Run("conditional-route-test.log", "test", "Routed.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo", "--logger", "trx;LogFileName=conditional-route.trx", "--results-directory", _evidence.FullName);
-            XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
-            _results = [.. XDocument.Load(Path.Combine(_evidence.FullName, "conditional-route.trx")).Descendants(ns + "UnitTestResult")
-                .Select(result => (result.Attribute("testName")!.Value, result.Attribute("outcome")!.Value))];
+            _results = [.. GeneratedTestResults.Read(XDocument.Load(Path.Combine(_evidence.FullName, "conditional-route.trx")))];
         }
         finally
         {
@@ -36,7 +34,7 @@ public class when_executing_conditional_command_routes : a_generated_application
 
     [Fact] void should_compile_the_guarded_property_route_without_warnings() => _warnings.ShouldBeEmpty();
     [Fact] void should_pass_the_generated_specifications() => _results.All(result => result.Outcome == "Passed").ShouldBeTrue();
-    [Fact] void should_assert_exactly_one_taken_event() => _results.Any(result => result.Name.Contains("should_append_exactly_1_events", StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_reject_the_empty_route() => _results.Any(result => result.Name.Contains("when_rejecting_empty_route.should_have_validation_errors", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_assert_exactly_one_taken_event() => _results.Any(result => result.Matches(methodName: "should_append_exactly_1_events")).ShouldBeTrue();
+    [Fact] void should_reject_the_empty_route() => _results.Any(result => result.Matches(className: "when_rejecting_empty_route", methodName: "should_have_validation_errors")).ShouldBeTrue();
 }
 #endif

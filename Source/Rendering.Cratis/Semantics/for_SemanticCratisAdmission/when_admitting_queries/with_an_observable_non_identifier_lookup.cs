@@ -14,7 +14,7 @@ public class with_an_observable_non_identifier_lookup : given.a_query_shape
         Configure(SemanticQueryCardinality.ZeroOrOne, SemanticQueryDelivery.Live, true);
         _context = Context();
         var property = _slice.ReadModels.Single().Properties.First(property => !property.IsIdentifier);
-        _query = _query with { Argument = new(_query.Argument!.Id, property.Name, property.Type), KeyProperty = property.Id };
+        _query = _query with { Argument = new(_query.Argument.Id, property.Name, property.Type), KeyProperty = property.Id };
         _slice = _slice with { Queries = [_query] };
     }
 

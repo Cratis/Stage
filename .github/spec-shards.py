@@ -14,6 +14,7 @@ per-test duration omits the Establish/Because a class shares, so it cannot be us
 A Conformance prefix weighs its wall-attributed seconds: the class span plus the idle
 time before the class starts, which is where its shared fixture runs.
 `estimate` reports those sums per shard.
+Each shard artifact also carries a per-project generated-app-timings.tsv of process slot timings.
 """
 
 import argparse
@@ -231,10 +232,13 @@ def run_shard(shard):
         results.mkdir(parents=True, exist_ok=True)
         trx = results / "specs.trx"
         trx.unlink(missing_ok=True)  # A stale result must not satisfy an empty invocation.
+        timings = results / "generated-app-timings.tsv"
+        timings.unlink(missing_ok=True)
         completed = subprocess.run(
             ["dotnet", "test", project, "--no-build", "--configuration", "Debug",
              "--filter", shard["filter"], "--logger", "trx;LogFileName=specs.trx",
              "--results-directory", str(results)], cwd=ROOT,
+            env={**os.environ, "STAGE_GENERATED_APP_TIMINGS": str(timings)},
         )
         if completed.returncode != 0:
             failures.append(f"{name}: dotnet test exited {completed.returncode}")

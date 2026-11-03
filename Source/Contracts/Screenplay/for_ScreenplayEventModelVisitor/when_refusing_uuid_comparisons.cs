@@ -35,11 +35,11 @@ public class when_refusing_uuid_comparisons : Specification
             """;
         var parsed = new ScreenplayCompiler().Parse(source);
         Assert.True(parsed.Success, string.Join(';', parsed.Diagnostics));
-        var error = Assert.Throws<InvalidEventModel>(() => ScreenplayEventModelVisitor.EnsureBehaviorSupported(parsed.Value!));
+        var error = Assert.Throws<InvalidEventModel>(() => ScreenplayEventModelVisitor.EnsureBehaviorSupported(parsed.Value));
         error.Message.ShouldContain("STAGE-ESM-049");
         error.Message.ShouldContain("'Keep'");
         error.Message.ShouldContain("'member'");
-        Assert.Throws<InvalidEventModel>(() => new ScreenplayEventModelVisitor().Visit(parsed.Value!));
+        Assert.Throws<InvalidEventModel>(() => new ScreenplayEventModelVisitor().Visit(parsed.Value));
     }
 
     [Theory]
@@ -67,10 +67,10 @@ public class when_refusing_uuid_comparisons : Specification
             """;
         var parsed = new ScreenplayCompiler().Parse(source);
         Assert.True(parsed.Success, string.Join(';', parsed.Diagnostics));
-        var error = Assert.Throws<InvalidEventModel>(() => ScreenplayEventModelVisitor.EnsureBehaviorSupported(parsed.Value!));
+        var error = Assert.Throws<InvalidEventModel>(() => ScreenplayEventModelVisitor.EnsureBehaviorSupported(parsed.Value));
         error.Message.ShouldContain("STAGE-ESM-049");
         error.Message.ShouldContain("'other'");
-        Assert.Throws<InvalidEventModel>(() => new ScreenplayEventModelVisitor().Visit(parsed.Value!));
+        Assert.Throws<InvalidEventModel>(() => new ScreenplayEventModelVisitor().Visit(parsed.Value));
     }
 
     [Fact]
@@ -79,6 +79,6 @@ public class when_refusing_uuid_comparisons : Specification
         const string source = "concept MemberId : Uuid\nmodule Access\n  feature Approvals\n    slice StateChange Keep\n      command Keep\n        id String identifier\n        member MemberId\n        produces Kept\n          for id\n      event Kept";
         var parsed = new ScreenplayCompiler().Parse(source);
         Assert.True(parsed.Success, string.Join(';', parsed.Diagnostics));
-        ScreenplayEventModelVisitor.EnsureBehaviorSupported(parsed.Value!);
+        ScreenplayEventModelVisitor.EnsureBehaviorSupported(parsed.Value);
     }
 }

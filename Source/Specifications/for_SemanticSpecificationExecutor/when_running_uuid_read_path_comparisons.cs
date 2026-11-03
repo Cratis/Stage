@@ -82,7 +82,7 @@ public class when_running_uuid_read_path_comparisons : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("app"), "app", "application.play", Source);
         var compilation = new SemanticModelCompiler().Compile("UuidReadPaths", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        _plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        _plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         _report = await new SemanticSpecificationExecutor().Run(_plan, new([]), new());
         _accepted = Result("WateringAsTheGrantedMember");
         _rejected = Result("WateringAsAnotherMember");
@@ -96,7 +96,7 @@ public class when_running_uuid_read_path_comparisons : Specification
         var result = _report.Results.Single(result => result.SpecificationId == specification.Id.ToString());
 
         return reference.Passed && result.ExecutionKind == reference.Execution.Kind.ToString() &&
-            result.Trace!.Rejection == (reference.Execution as SemanticRejected)?.Details;
+            result.Trace.Rejection == (reference.Execution as SemanticRejected)?.Details;
     });
 
     SemanticSpecificationRunRecord Result(string name) =>

@@ -17,7 +17,7 @@ public class with_pre_v8_any_order : Specification
     void Because()
     {
         var model = routed_specifications.Assignment(legacy: true);
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(model).Plan;
         var options = new CratisRenderingOptions("Routed", "Routed");
         var request = new ArtifactRenderRequest(model, plan, CratisRendering.CreateProfile("Routed", options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
         _code = SemanticCommandSpecificationRenderer.Render(plan.Specifications.Values.Single(), new(request, options)).Content;

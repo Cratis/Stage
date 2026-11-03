@@ -239,7 +239,7 @@ internal static class SemanticVersionFeatures
     {
         foreach (var query in slice.Queries.Where(query => !query.KeyParts.IsDefaultOrEmpty))
         {
-            yield return new(KeyPartsLookup, StageExecutionCapability.Query, query.Id, "query", $"Query '{query.Name}' looks up one instance by key parts (ESM v27); Chronicle cannot look up a read model by a composite key until Chronicle#4265.");
+            yield return new(KeyPartsLookup, StageExecutionCapability.Query, query.Id, "query", $"Query '{query.Name}' looks up one instance by key parts (ESM v27); Stage#839 depends on Chronicle#4265 for looking up a read model by a composite key.");
         }
     }
 

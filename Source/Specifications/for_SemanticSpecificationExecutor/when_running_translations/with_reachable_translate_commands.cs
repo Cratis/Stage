@@ -59,7 +59,7 @@ public class with_reachable_translate_commands
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("work"), "work", "Work.play", source);
         var compilation = new SemanticModelCompiler().Compile("Work", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var module = model.Application.Modules.Single();
         var feature = module.Features.Single();
         var command = feature.Slices.Single(slice => slice.Kind == SemanticSliceKind.StateChange).Commands.Single(command => command.Name == "Complete");
@@ -68,13 +68,13 @@ public class with_reachable_translate_commands
             Commands = slice.Kind == SemanticSliceKind.Translate ? [command] : [.. slice.Commands.Where(candidate => candidate.Id != command.Id)]
         });
         var application = model.Application with { Modules = [module with { Features = [feature with { Slices = [.. slices] }] }] };
-        var plan = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, application)).Plan!;
+        var plan = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, application)).Plan;
         var result = (await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results.Single();
 
         result.Outcome.ShouldEqual(reached ? SemanticSpecificationOutcome.Unsupported : SemanticSpecificationOutcome.Passed);
         if (reached)
         {
-            result.Unsupported!.Details.StartsWith("STAGE-ESM-024:", StringComparison.Ordinal).ShouldBeTrue();
+            result.Unsupported.Details.StartsWith("STAGE-ESM-024:", StringComparison.Ordinal).ShouldBeTrue();
             result.Unsupported.Construct.ShouldEqual(plan.Model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.Kind == SemanticSliceKind.Translate).Id.ToString());
         }
         else

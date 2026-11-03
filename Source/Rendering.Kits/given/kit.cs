@@ -30,7 +30,7 @@ static class kit
 
     internal static string Change(string path, JsonNode? value)
     {
-        var root = JsonNode.Parse(Manifest)!;
+        var root = JsonNode.Parse(Manifest);
         root[path] = value;
         return root.ToJsonString();
     }

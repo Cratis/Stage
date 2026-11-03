@@ -42,13 +42,13 @@ internal sealed class strict_schema_validator
 
     static void CheckChildren(string keyword, JsonNode? value)
     {
-        foreach (var child in Children(keyword, value)) CheckKeywords(child!);
+        foreach (var child in Children(keyword, value)) CheckKeywords(child);
     }
 
     static IEnumerable<JsonNode?> Children(string keyword, JsonNode? value) => keyword switch
     {
-        "properties" => value!.AsObject().Select(property => property.Value),
-        "anyOf" or "oneOf" => value!.AsArray(),
+        "properties" => value.AsObject().Select(property => property.Value),
+        "anyOf" or "oneOf" => value.AsArray(),
         "items" or "additionalProperties" => [value],
         _ => []
     };
@@ -67,7 +67,7 @@ internal sealed class strict_schema_validator
             && MatchesItems(obj["items"], document);
     }
 
-    static bool MatchesType(JsonNode? type, JsonElement document) => type is null || (type is JsonArray alternatives ? alternatives.Any(item => IsType(item!.GetValue<string>(), document)) : IsType(type.GetValue<string>(), document));
+    static bool MatchesType(JsonNode? type, JsonElement document) => type is null || (type is JsonArray alternatives ? alternatives.Any(item => IsType(item.GetValue<string>(), document)) : IsType(type.GetValue<string>(), document));
 
     static bool IsType(string type, JsonElement document)
     {
@@ -100,7 +100,7 @@ internal sealed class strict_schema_validator
     bool MatchesBranches(JsonNode? branches, JsonElement document, bool exactlyOne)
     {
         if (branches is null) return true;
-        var count = branches.AsArray().Count(branch => Matches(branch!, document));
+        var count = branches.AsArray().Count(branch => Matches(branch, document));
 
         return exactlyOne ? count == 1 : count > 0;
     }
@@ -108,11 +108,11 @@ internal sealed class strict_schema_validator
     bool MatchesObject(JsonObject schema, JsonElement document)
     {
         if (document.ValueKind != JsonValueKind.Object) return true;
-        if (schema["required"] is JsonArray required && required.Any(name => !document.TryGetProperty(name!.GetValue<string>(), out _))) return false;
+        if (schema["required"] is JsonArray required && required.Any(name => !document.TryGetProperty(name.GetValue<string>(), out _))) return false;
         var properties = schema["properties"] as JsonObject;
 
         return document.EnumerateObject().All(property => properties?.TryGetPropertyValue(property.Name, out var contract) == true
-            ? Matches(contract!, property.Value)
+            ? Matches(contract, property.Value)
             : schema["additionalProperties"] is not { } additional || Matches(additional, property.Value));
     }
 

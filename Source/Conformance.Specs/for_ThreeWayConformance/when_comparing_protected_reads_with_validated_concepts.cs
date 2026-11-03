@@ -130,7 +130,7 @@ public class when_comparing_protected_reads_with_validated_concepts(when_compari
             var document = SemanticSourceDocument.Create(catalog.ResolveDocument("app"), "app", "application.play", Source);
             var compilation = new SemanticModelCompiler().Compile("ReadsWithValidatedConcepts", SemanticDocumentSet.Create([document], catalog));
             Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-            return compilation.Value!.Model;
+            return compilation.Value.Model;
         }
     }
 }

@@ -437,8 +437,10 @@ internal static class SemanticSurfaceLedger
         // ESM v33 `key <property> is event source`: the rendered capture checks the key against the delivered event source before reading the inbox and reads only that source's history (Stage#752).
         // Public admission remains exact. The prospective range finder reports non-default gated use as security-relevant unknowns.
         Add(entries, "SemanticCaptureEventsSource", rendered, "KeyIsEventSource");
-        Add(entries, "SemanticSpecification", rejected("STAGE-ESM-016"), "ThenInvocations");
-        Add(entries, "SemanticSpecificationInvocation", rejected("STAGE-ESM-016"), "Command Values");
+
+        // The invocation-preservation gate refuses every shape outside the single-hop recording scenario with STAGE-ESM-016.
+        Add(entries, "SemanticSpecification", rendered, "ThenInvocations");
+        Add(entries, "SemanticSpecificationInvocation", rendered, "Command Values");
 
         // Screenplay 4.125 added ESM v10: reaction execution identity, observer filters and production routes.
         // Admit each construct only on the paths that can preserve it.

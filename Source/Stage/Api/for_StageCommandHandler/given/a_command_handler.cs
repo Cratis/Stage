@@ -49,7 +49,7 @@ public class a_command_handler : Specification
         new(
             CorrelationId.New(),
             typeof(DynamicCommand),
-            new DynamicCommand { Data = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(payload)! },
+            new DynamicCommand { Data = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(payload) },
             [],
             CommandContextValues.Empty);
 

@@ -25,12 +25,12 @@ public class when_refusing_projection_products : Specification
     {
         var request = new ArtifactRenderRequest(
             _model,
-            SemanticExecutionPlan.Compile(_model, []).Plan!,
+            SemanticExecutionPlan.Compile(_model, []).Plan,
             CratisRendering.CreateProfile("Acme", new("Acme", "Acme")),
             new(ArtifactRenderScopeKind.Application, _model.Application.Id));
         var context = new SemanticApplicationContext(request, new("Acme", "Acme"));
         _features = [.. SemanticVersionFeatures.Slices(_model.Application).SelectMany(slice => SemanticVersionFeatures.ProjectionProductsInSlice(slice, context))];
-        _plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model, []).Plan!, new(ArtifactRenderScopeKind.Application, _model.Application.Id), new("Acme", "Acme"));
+        _plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model, []).Plan, new(ArtifactRenderScopeKind.Application, _model.Application.Id), new("Acme", "Acme"));
     }
 
     [Fact] void should_refuse_no_product_the_renderer_can_lower() => _features.ShouldBeEmpty();

@@ -30,5 +30,10 @@ public class when_refusing_malformed_contexts : given.a_gap
     [Fact] void should_refuse_null_members() => _nullMember.ShouldBeOfExactType<InvalidArtifactRenderContract>();
     [Fact] void should_refuse_blank_member_names() => _blankMemberName.ShouldBeOfExactType<InvalidArtifactRenderContract>();
     [Fact] void should_refuse_blank_member_types() => _blankMemberType.ShouldBeOfExactType<InvalidArtifactRenderContract>();
-    Exception Refuse(ArtifactImplementationContext context) => Catch.Exception(() => Digest([_gap with { Stubs = [_stub with { TypedContext = context }] }]));
+    Exception Refuse(ArtifactImplementationContext context)
+    {
+        var exception = Catch.Exception(() => Digest([_gap with { Stubs = [_stub with { TypedContext = context }] }]));
+        exception.ShouldNotBeNull();
+        return exception;
+    }
 }

@@ -31,10 +31,10 @@ public class and_a_freeform_shell_declares_no_variant_for_a_target : an_applicat
 
     void Because() => _result = RenderPlanner.Plan(_application, _catalog);
 
-    [Fact] void should_place_the_shells_slots_on_the_target_the_variant_targets() => Web().Arrangements.Single().Slots!.Placements.Count.ShouldEqual(2);
+    [Fact] void should_place_the_shells_slots_on_the_target_the_variant_targets() => Web().Arrangements.Single().Slots.Placements.Count.ShouldEqual(2);
     [Fact] void should_consider_that_target_renderable() => Web().IsComplete.ShouldBeTrue();
-    [Fact] void should_report_the_missing_variant_on_the_target_nothing_targets() => Finding()!.Kind.ShouldEqual(RenderFindingKind.SizeClassVariantMissing);
-    [Fact] void should_name_the_structure_with_no_variant() => Finding()!.Subject.ShouldEqual("AppShell");
+    [Fact] void should_report_the_missing_variant_on_the_target_nothing_targets() => Finding().Kind.ShouldEqual(RenderFindingKind.SizeClassVariantMissing);
+    [Fact] void should_name_the_structure_with_no_variant() => Finding().Subject.ShouldEqual("AppShell");
     [Fact] void should_select_no_arrangement_for_that_target() => Ios().Arrangements.ShouldBeEmpty();
 
     RenderPlan Web() => _result.Targets.First(target => target.Profile.TargetPlatform == "web");

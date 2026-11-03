@@ -35,6 +35,8 @@ public sealed partial class CratisBackendApplicationScaffold
             ("README.md", Readme(request)),
             ($"{request.ProjectName}.slnx", Solution(request)),
             ("Program.cs", Program(request)),
+            ("GeneratedAuthentication.cs", Authentication(request)),
+            ("GeneratedAuthenticationPerimeter.cs", AuthenticationPerimeter(request)),
             ("GeneratedPolicyRegistration.cs", PolicyRegistration(request)),
             ("GlobalUsings.cs", GlobalUsings()),
             ("appsettings.json", AppSettings(request)),
@@ -112,13 +114,15 @@ public sealed partial class CratisBackendApplicationScaffold
         builder.Services.AddEventSourcedStateMachines();
         builder.Services.AddEventSourcedWorkflows();
         {{request.RootNamespace}}.GeneratedPolicies.Registration.Register(builder.Services);
+        {{request.RootNamespace}}.GeneratedAuthentication.Authentication.Add(builder);
         ConfigureServices(builder);
 
         var app = builder.Build();
+        {{request.RootNamespace}}.GeneratedAuthentication.Authentication.Use(app);
         app.UseDefaultFiles();
         app.UseStaticFiles();
         app.UseCratis();
-        app.MapHealthChecks("/healthz");
+        app.MapHealthChecks("{{HealthRoute}}");
         app.MapFallbackToFile("/index.html");
         ConfigureApplication(app);
 

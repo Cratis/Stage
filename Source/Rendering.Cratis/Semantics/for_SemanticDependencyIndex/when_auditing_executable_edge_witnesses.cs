@@ -22,7 +22,7 @@ public class when_auditing_executable_edge_witnesses : Specification
         var edges = new List<SemanticDependencyEdge>();
         foreach (var type in Witnesses())
         {
-            var witness = (given.a_dependency_index)Activator.CreateInstance(type)!;
+            var witness = (given.a_dependency_index)Activator.CreateInstance(type);
             try
             {
                 await witness.InitializeAsync();

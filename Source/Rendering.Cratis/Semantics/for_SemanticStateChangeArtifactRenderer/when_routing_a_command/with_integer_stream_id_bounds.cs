@@ -24,10 +24,10 @@ public class with_integer_stream_id_bounds : given.a_routed_command
         _source = _source with { Streams = [_source.Streams[0] with { StreamIdType = null, StreamIdParts = [new("count", month.Type), new("label", SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Text))] }] };
         _command = _command with
         {
-            Route = _command.Route! with
+            Route = _command.Route with
             {
                 StreamId = null,
-                StreamIdParts = [new("count", _command.Route.StreamId!), new("label", SemanticExpression.FromValue(SemanticValue.Text("b")))]
+                StreamIdParts = [new("count", _command.Route.StreamId), new("label", SemanticExpression.FromValue(SemanticValue.Text("b")))]
             },
             Produces = [_command.Produces[0], _command.Produces[0]]
         };

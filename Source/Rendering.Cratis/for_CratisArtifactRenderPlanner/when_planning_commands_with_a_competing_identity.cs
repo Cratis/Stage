@@ -34,13 +34,13 @@ public class when_planning_commands_with_a_competing_identity : Specification
             var commandType = assembly.GetTypes().Single(_ => _.Name == "IssueInvoice");
             var competingType = assembly.GetTypes().Single(_ => _.Name == "OtherId");
             _competingIdentityTypes.Add(competingType);
-            var competingId = Activator.CreateInstance(competingType, Guid.Parse("5fa85f64-5717-4562-b3fc-2c963f66afa8"))!;
+            var competingId = Activator.CreateInstance(competingType, Guid.Parse("5fa85f64-5717-4562-b3fc-2c963f66afa8"));
             foreach (var value in new[] { "3fa85f64-5717-4562-b3fc-2c963f66afa6", "4fa85f64-5717-4562-b3fc-2c963f66afa7" })
             {
                 var destination = conceptDestination
-                    ? Activator.CreateInstance(assembly.GetTypes().Single(_ => _.Name == "InvoiceStream"), Guid.Parse(value))!
+                    ? Activator.CreateInstance(assembly.GetTypes().Single(_ => _.Name == "InvoiceStream"), Guid.Parse(value))
                     : value;
-                var command = (ICanProvideEventSourceId)Activator.CreateInstance(commandType, competingId, "Payload", destination)!;
+                var command = (ICanProvideEventSourceId)Activator.CreateInstance(commandType, competingId, "Payload", destination);
                 _destinations.Add((command.GetEventSourceId(), new EventSourceId(value)));
             }
         }

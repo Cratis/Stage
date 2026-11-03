@@ -31,7 +31,7 @@ public class when_compiling_aliased_generated_references
         var compilation = CSharpCompilation.Create("AliasBinding", [tree, declarations], PureTransitionAdmission.AnalysisReferences(), new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
         Assert.Empty(compilation.GetDiagnostics().Where(SemanticBodyCompilation.IsFailure));
         var model = compilation.GetSemanticModel(tree);
-        var fields = tree.GetRoot().DescendantNodes().OfType<FieldDeclarationSyntax>().Select(field => (IFieldSymbol)model.GetDeclaredSymbol(field.Declaration.Variables.Single())!).ToArray();
+        var fields = tree.GetRoot().DescendantNodes().OfType<FieldDeclarationSyntax>().Select(field => (IFieldSymbol)model.GetDeclaredSymbol(field.Declaration.Variables.Single())).ToArray();
         Assert.True(SymbolEqualityComparer.Default.Equals(fields[0].Type.OriginalDefinition, compilation.GetTypeByMetadataName("Model.Types.Outer`1")));
         Assert.Equal(SpecialType.System_Int32, ((INamedTypeSymbol)fields[0].Type).TypeArguments.Single().SpecialType);
         Assert.True(SymbolEqualityComparer.Default.Equals(fields[3].Type.OriginalDefinition, compilation.GetTypeByMetadataName("System.Collections.Generic.Dictionary`2+Enumerator")));

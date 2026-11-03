@@ -31,7 +31,7 @@ public class when_refusing_decimal_multipart_projection_keys : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("app"), "app", "application.play", Source.Replace("PRICE", price, StringComparison.Ordinal));
         var compilation = new SemanticModelCompiler().Compile("DecimalParts", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         return SemanticRunAdmission.Check(plan, plan.Specifications.Values.Single())?.Details;
     }
 

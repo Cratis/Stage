@@ -16,11 +16,11 @@ public class with_described_command_handlers : Specification
     SemanticExecutionPlan _plan = null!;
     SemanticRuntimeAdmission _admission = null!;
 
-    void Establish() => _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(DescribedCommandHandlersCorpus.V23.EsmBytes.AsSpan()), []).Plan!;
+    void Establish() => _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(DescribedCommandHandlersCorpus.V23.EsmBytes.AsSpan()), []).Plan;
     void Because() => _admission = new(_plan);
 
     [Fact] void should_read_the_v23_vector() => _plan.Model.SemanticVersion.ShouldEqual(SemanticVersion.V23);
-    [Fact] void should_admit_the_version() => _admission.Blocking.ShouldNotContain(entry => entry.Details!.StartsWith("STAGE-ESM-016:", StringComparison.Ordinal));
+    [Fact] void should_admit_the_version() => _admission.Blocking.ShouldNotContain(entry => entry.Details.StartsWith("STAGE-ESM-016:", StringComparison.Ordinal));
     [Fact] void should_not_block_the_live_model() => _admission.Blocking.ShouldBeEmpty();
-    [Fact] void should_name_the_command_and_requirement_without_blocking() => _admission.Entries.ShouldContain(entry => entry.Kind == "command" && entry.Status == "unsupported" && entry.Capability == "ImplementationBody" && entry.Details!.StartsWith("STAGE-IMPL-002:", StringComparison.Ordinal) && entry.Details.Contains("ApplyLateFee", StringComparison.Ordinal) && entry.Details.Contains(_plan.Commands.Values.Single(command => command.Handler is not null).Handler!.RequirementId, StringComparison.Ordinal));
+    [Fact] void should_name_the_command_and_requirement_without_blocking() => _admission.Entries.ShouldContain(entry => entry.Kind == "command" && entry.Status == "unsupported" && entry.Capability == "ImplementationBody" && entry.Details.StartsWith("STAGE-IMPL-002:", StringComparison.Ordinal) && entry.Details.Contains("ApplyLateFee", StringComparison.Ordinal) && entry.Details.Contains(_plan.Commands.Values.Single(command => command.Handler is not null).Handler.RequirementId, StringComparison.Ordinal));
 }

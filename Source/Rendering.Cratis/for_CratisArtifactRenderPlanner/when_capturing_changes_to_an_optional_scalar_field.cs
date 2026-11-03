@@ -68,12 +68,12 @@ public class when_capturing_changes_to_an_optional_scalar_field : given.a_transl
 
     async Task Deliver(string key, string? carrier)
     {
-        var source = Activator.CreateInstance(Generated("TrackShipments", "ShipmentDispatched"), Activator.CreateInstance(_assembly.GetType("Contracts.Common.OrderId", throwOnError: true)!, Guid.Parse(key)), carrier)!;
+        var source = Activator.CreateInstance(Generated("TrackShipments", "ShipmentDispatched"), Activator.CreateInstance(_assembly.GetType("Contracts.Common.OrderId", throwOnError: true), Guid.Parse(key)), carrier);
         var sequenceNumber = (ulong)_delivered.Count;
         _delivered.Add(new(EventContext.Empty with { SequenceNumber = sequenceNumber, EventType = source.GetType().GetEventType() }, source));
-        var reactor = Activator.CreateInstance(Generated("TrackShipments", "ShipmentTracking"), _store)!;
+        var reactor = Activator.CreateInstance(Generated("TrackShipments", "ShipmentTracking"), _store);
         var context = EventContext.Empty with { SequenceNumber = sequenceNumber };
-        var effects = await (Task<IEnumerable<object>>)reactor.GetType().GetMethod("OnShipmentDispatched")!.Invoke(reactor, [source, context, ReactorDelivery.For(reactor, context)])!;
+        var effects = await (Task<IEnumerable<object>>)reactor.GetType().GetMethod("OnShipmentDispatched").Invoke(reactor, [source, context, ReactorDelivery.For(reactor, context)]);
         _effects.AddRange(effects.Cast<EventForEventSourceId>());
     }
 }

@@ -11,7 +11,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticUnknownMembers.whe
 
 public class with_an_unexpected_collection_shape : a_populated_model
 {
-    void Establish() => typeof(SemanticApplication).GetProperty(nameof(SemanticApplication.Triggers))!
+    void Establish() => typeof(SemanticApplication).GetProperty(nameof(SemanticApplication.Triggers))
         .SetValue(_model.Application, default(ImmutableArray<SemanticApplicationTrigger>));
 
     void Because() => _unknown = SemanticUnknownMembers.Find(_model, _known);

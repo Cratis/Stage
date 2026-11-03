@@ -26,7 +26,7 @@ public class when_refusing_described_command_handlers : a_multi_slice_applicatio
                     event FeeApplied
             """);
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        _application = compilation.Value!;
+        _application = compilation.Value;
     }
 
     [Theory]

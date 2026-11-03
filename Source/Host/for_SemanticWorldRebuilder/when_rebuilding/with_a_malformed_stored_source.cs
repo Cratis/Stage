@@ -23,12 +23,12 @@ public class with_a_malformed_stored_source : a_rebuildable_world
             Source.Replace("concept ProjectId : Uuid", "concept ProjectId : String", StringComparison.Ordinal));
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join("; ", compilation.Diagnostics.Select(diagnostic => diagnostic.Message)));
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model);
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model);
         Assert.True(plan.Success, string.Join("; ", plan.Issues));
         _event.Context.EventSourceId = " ";
-        _error = Catch.Exception(() => SemanticWorldRebuilder.Create(plan.Plan!, [_event], 0));
+        _error = Catch.Exception(() => SemanticWorldRebuilder.Create(plan.Plan, [_event], 0));
     }
 
     [Fact] void should_refuse_the_evaluators_rejection() => _error.ShouldBeOfExactType<SemanticWorldRebuildRefused>();
-    [Fact] void should_explain_the_malformed_occurrence() => _error!.Message.ShouldContain("Fact occurrence metadata is malformed");
+    [Fact] void should_explain_the_malformed_occurrence() => _error.Message.ShouldContain("Fact occurrence metadata is malformed");
 }

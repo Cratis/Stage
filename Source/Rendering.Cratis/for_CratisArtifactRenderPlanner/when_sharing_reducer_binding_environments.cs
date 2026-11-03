@@ -86,6 +86,15 @@ public class when_sharing_reducer_binding_environments
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public async Task should_let_a_reducer_body_name_a_concept_of_its_read_model(bool self) =>
+        await AssertParity(
+            when_rendering_a_pure_reducer.WithIdentifierConcept(Source())
+                .Replace(Body, "return new Total(Id: new OrderId(context.Event.Id.Value), Amount: context.Event.Amount);", StringComparison.Ordinal),
+            self);
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public async Task should_preserve_purity_parity_for_every_reducer_in_the_combined_file(bool self) =>
         await AssertParity(Source(SiblingReducer), self);
 

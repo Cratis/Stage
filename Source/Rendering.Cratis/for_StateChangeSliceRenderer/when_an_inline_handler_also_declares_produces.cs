@@ -28,7 +28,7 @@ public class when_an_inline_handler_also_declares_produces : state_change_slices
     public void should_infer_an_independent_body_without_consulting_produces(string body, string returnType)
     {
         var command = _registerInvoice.Slice.Commands.Single();
-        command = command with { Handler = command.Handler! with { Code = command.Handler.Code! with { Code = body } } };
+        command = command with { Handler = command.Handler with { Code = command.Handler.Code with { Code = body } } };
         var slice = _registerInvoice with { Slice = _registerInvoice.Slice with { Commands = [command] } };
 
         var file = new StateChangeSliceRenderer().Render(slice, _applicationSet, "CratisApp");

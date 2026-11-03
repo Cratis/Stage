@@ -17,5 +17,5 @@ public class and_the_query_is_not_observable : live_projects
         _result = await Perform("AllProjects");
     }
 
-    [Fact] void should_answer_once_with_the_collection() => Names((object[])_result!).ShouldContainOnly("project-1");
+    [Fact] void should_answer_once_with_the_collection() => Names((object[])_result).ShouldContainOnly("project-1");
 }

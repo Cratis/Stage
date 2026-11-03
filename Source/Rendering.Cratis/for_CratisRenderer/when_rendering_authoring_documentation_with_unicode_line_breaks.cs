@@ -17,7 +17,7 @@ public class when_rendering_authoring_documentation_with_unicode_line_breaks : S
     {
         var compilation = new ScreenplayCompiler().Compile(for_CratisArtifactRenderPlanner.when_rendering_authoring_documentation.Source);
         Assert.True(compilation.Success, string.Join("; ", compilation.Diagnostics));
-        var application = compilation.Value!;
+        var application = compilation.Value;
         var set = new ApplicationSet([application]);
         var @event = application.Modules.Single().Features.Single().Slices.First().Events.Single() with
         {

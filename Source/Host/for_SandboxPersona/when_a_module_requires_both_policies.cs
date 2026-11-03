@@ -25,5 +25,5 @@ public class when_a_module_requires_both_policies : given.a_persona_model
 
     void Because() => _principal = Create(Source);
 
-    [Fact] void should_use_the_persona_holding_both() => _principal!.FindFirstValue("sub").ShouldEqual("persona:Manager");
+    [Fact] void should_use_the_persona_holding_both() => _principal.FindFirstValue("sub").ShouldEqual("persona:Manager");
 }

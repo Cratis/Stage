@@ -50,8 +50,8 @@ public class when_bridging_projection_semantics : Specification
                       id = id
             """);
         var slice = model.Collections.Single().Modules.Single().Features.Single().Slices.Single();
-        var readModel = slice.ReadModel!;
-        var projection = readModel.Projection!;
+        var readModel = slice.ReadModel;
+        var projection = readModel.Projection;
         var expressions = new FromDefinition(
             [new("cause", "$causedBy(name)"), new("plain", "$causedBy"),
                 new("quoted", "\"$causedBy(name)\""), new("template", "`by ${$causedBy(name)}`")],
@@ -159,8 +159,8 @@ public class when_bridging_projection_semantics : Specification
                       name = name
             """);
         var slice = model.Collections.Single().Modules.Single().Features.Single().Slices.Single();
-        var readModel = slice.ReadModel!;
-        var projection = readModel.Projection!;
+        var readModel = slice.ReadModel;
+        var projection = readModel.Projection;
         var from = projection.From.Single().Value;
         var changed = projection with { From = new Dictionary<string, FromDefinition>
         {
@@ -183,8 +183,8 @@ public class when_bridging_projection_semantics : Specification
                       name = name
             """);
         var slice = model.Collections.Single().Modules.Single().Features.Single().Slices.Single();
-        var readModel = slice.ReadModel!;
-        var projection = readModel.Projection!;
+        var readModel = slice.ReadModel;
+        var projection = readModel.Projection;
         var source = projection.From.Single();
         var changed = projection with { From = new Dictionary<string, Contracts.Projections.FromDefinition>
         {

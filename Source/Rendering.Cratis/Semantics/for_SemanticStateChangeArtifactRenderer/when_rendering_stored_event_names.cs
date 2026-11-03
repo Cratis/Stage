@@ -20,7 +20,7 @@ public class when_rendering_stored_event_names : Specification
     void Because()
     {
         var model = SemanticModelSerializer.Deserialize(StoredEventNamesCorpus.V16.EsmBytes.AsSpan());
-        _plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("StoredEventNames", "StoredEventNames"));
+        _plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("StoredEventNames", "StoredEventNames"));
         _code = string.Join('\n', _plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal)).Select(artifact => Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
     }
 

@@ -31,5 +31,5 @@ public class with_the_eventmodel_engine : a_browser
     [Fact] void should_not_serve_the_spa_for_the_list() => ((int)_list.StatusCode).ShouldEqual(404);
     [Fact] void should_not_serve_the_spa_for_the_detail() => ((int)_detail.StatusCode).ShouldEqual(404);
     [Fact] void should_report_the_engine() => _body.GetProperty("engine").GetString().ShouldEqual("eventmodel");
-    [Fact] void should_direct_the_reader_to_the_workbench() => _body.GetProperty("reason").GetString()!.Contains("Chronicle Workbench", StringComparison.Ordinal).ShouldBeTrue();
+    [Fact] void should_direct_the_reader_to_the_workbench() => _body.GetProperty("reason").GetString().Contains("Chronicle Workbench", StringComparison.Ordinal).ShouldBeTrue();
 }

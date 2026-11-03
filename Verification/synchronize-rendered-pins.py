@@ -22,6 +22,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PROFILE = Path("Source/Rendering.Cratis/Scaffolding/CratisFrontendPackageSet.cs")
 MANIFEST = Path("Source/Frontend/package.json")
 LOCKFILE = MANIFEST.with_name("package-lock.json")
+RUNTIME = Path("Source/Frontend/Runtime/package.json")
 CATALOG = Path("Source/Rendering.Cratis/Naming/Imports/FrameworkNames.catalog")
 PROJECT = "Source/Rendering.Cratis/Rendering.Cratis.csproj"
 STABLE = re.compile(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\Z")
@@ -29,6 +30,11 @@ SCENE = ("blueprint.default", "components", "engine", "model", "primereact", "re
 REQUIRED = {"@cratis/arc", "@cratis/arc.react", "@cratis/components", "@cratis/fundamentals",
             *("@cratis/scene." + name for name in SCENE)}
 CURRENT = re.compile(r"(internal static CratisFrontendPackageSet Current \{ get; \} = new\()(.*?)(\);)", re.S)
+CONSTRUCTOR = re.compile(r"\n\s*CratisFrontendPackageSet\(((?:\s*string \w+,?)+)\s*\)")
+# The Current arguments are positional; each Cratis pin is located by the constructor parameter it binds to.
+PARAMETERS = {"arcPackageVersion": "@cratis/arc", "arcReactPackageVersion": "@cratis/arc.react",
+              "arcVitePackageVersion": "@cratis/arc.vite", "fundamentalsPackageVersion": "@cratis/fundamentals",
+              "componentsPackageVersion": "@cratis/components", "scenePackageVersion": "@cratis/scene.model"}
 
 
 def stable(version):
@@ -97,7 +103,13 @@ def run(command, **kwargs):
 def published(package, version=None):
     subject = package if version is None else f"{package}@{version}"
     result = run(["npm", "view", subject, "version", "--json", "--fetch-retries=0", "--fetch-timeout=15000"], capture_output=True)
-    return stable(json.loads(result.stdout))
+    value = json.loads(result.stdout)
+    if isinstance(value, list) and len(value) == 1:
+        value = value[0]
+    resolved = stable(value)
+    if version is not None and resolved != version:
+        raise ValueError(f"{package}: requested {version}, registry returned {resolved}")
+    return resolved
 
 
 def candidate(manifest, arc, lookup=published):
@@ -119,13 +131,12 @@ def frontend_profile(source, pins):
     if len(matches) != 1:
         raise ValueError(f"{PROFILE}: require one literal Current package set")
     match = matches[0]
+    parameters = profile_parameters(source)
     versions = list(re.finditer(r'"([0-9]+\.[0-9]+\.[0-9]+)"', match[2]))
-    if len(versions) != 21:
-        raise ValueError(f"{PROFILE}: expected 21 exact package arguments, found {len(versions)}")
-    replacements = {0: pins["@cratis/arc"], 1: pins["@cratis/arc.react"],
-                    2: pins.get("@cratis/arc.vite", pins["@cratis/arc"]),
-                    3: pins["@cratis/fundamentals"], 15: pins["@cratis/components"],
-                    16: pins["@cratis/scene.model"]}
+    if len(versions) != len(parameters):
+        raise ValueError(f"{PROFILE}: expected {len(parameters)} exact package arguments, found {len(versions)}")
+    replacements = {parameters.index(parameter): pins.get(package, pins["@cratis/arc"]) if package == "@cratis/arc.vite" else pins[package]
+                    for parameter, package in PARAMETERS.items()}
     body = match[2]
     for index, version in sorted(replacements.items(), reverse=True):
         token = versions[index]
@@ -133,12 +144,23 @@ def frontend_profile(source, pins):
     return source[:match.start(2)] + body + source[match.end(2):]
 
 
+def profile_parameters(source):
+    constructors = CONSTRUCTOR.findall(source)
+    if len(constructors) != 1:
+        raise ValueError(f"{PROFILE}: require one private constructor of string package versions")
+    parameters = re.findall(r"string (\w+)", constructors[0])
+    missing = sorted(set(PARAMETERS) - set(parameters))
+    if missing or len(set(parameters)) != len(parameters):
+        raise ValueError(f"{PROFILE}: constructor must name each of {', '.join(PARAMETERS)} once; missing {', '.join(missing) or 'none'}")
+    return parameters
+
+
 @contextmanager
 def pin_transaction(root):
     # npm and the catalog generator write in place. Roll back the complete bounded
     # output set on failure, including partial writes and newly created files.
     originals = {root / path: (root / path).read_bytes() if (root / path).exists() else None
-                 for path in (MANIFEST, LOCKFILE, PROFILE, CATALOG)}
+                 for path in (MANIFEST, RUNTIME, LOCKFILE, PROFILE, CATALOG)}
     try:
         yield
     except BaseException:
@@ -148,6 +170,20 @@ def pin_transaction(root):
             elif not path.exists() or path.read_bytes() != content:
                 path.write_bytes(content)
         raise
+
+
+def runtime_peers(content, old, new):
+    # The Stage runtime workspace declares exact peers on the same Cratis packages; npm refuses a
+    # lockfile whose root pins disagree with them, so they move together with the root manifest.
+    peers = json.loads(content).get("peerDependencies", {})
+    for name in sorted(peers.keys() & new.keys()):
+        if peers[name] != old[name]:
+            raise ValueError(f"{RUNTIME}: peer {name}={peers[name]} differs from {MANIFEST} {old[name]}")
+        token = f'"{name}": "{old[name]}"'
+        if content.count(token) != 1:
+            raise ValueError(f"{RUNTIME}: expected exactly one token for {name}")
+        content = content.replace(token, f'"{name}": "{new[name]}"')
+    return content
 
 
 def regenerate_catalog(root):
@@ -165,8 +201,8 @@ def synchronize(root):
     if not shutil.which("npm"):
         raise RuntimeError("npm is unavailable; install Node/npm before synchronizing rendered pins")
     packages = root / "Directory.Packages.props"
-    manifest_path, profile_path = root / MANIFEST, root / PROFILE
-    originals = {path: path.read_bytes() for path in (packages, manifest_path, profile_path)}
+    manifest_path, profile_path, runtime_path = root / MANIFEST, root / PROFILE, root / RUNTIME
+    originals = {path: path.read_bytes() for path in (packages, manifest_path, profile_path, runtime_path)}
     arc = arc_version(originals[packages])
     manifest = json.loads(originals[manifest_path])
     updated = candidate(manifest, arc)
@@ -181,8 +217,10 @@ def synchronize(root):
         if content.count(token) != 1:
             raise ValueError(f"{MANIFEST}: expected exactly one token for {name}")
         content = content.replace(token, f'"{name}": "{version}"')
+    runtime = runtime_peers(originals[runtime_path].decode(), cratis_pins(manifest), cratis_pins(updated))
     with pin_transaction(root):
         manifest_path.write_text(content)
+        runtime_path.write_text(runtime)
         profile_path.write_text(profile)
         run(["npm", "install", "--package-lock-only", "--prefix", "Source/Frontend"], cwd=root, capture_output=True)
         regenerate_catalog(root)
@@ -231,7 +269,56 @@ class RenderedPinSynchronization(unittest.TestCase):
         updated = frontend_profile(source, pins)
         self.assertIn('"99.0.1"', CURRENT.search(updated)[2])
         self.assertEqual(frontend_profile(updated, pins), updated)
-        self.assertEqual(len(re.findall(r'"[0-9]+\.[0-9]+\.[0-9]+"', CURRENT.search(updated)[2])), 21)
+        self.assertEqual(len(re.findall(r'"[0-9]+\.[0-9]+\.[0-9]+"', CURRENT.search(updated)[2])), len(profile_parameters(source)))
+
+    def test_profile_locates_pins_by_parameter_when_a_package_is_added(self):
+        source = (ROOT / PROFILE).read_text()
+        pins = cratis_pins(self.manifest)
+        pins["@cratis/components"] = "98.0.1"
+        widened = re.sub(r"(\n(\s*)string arcPackageVersion,)", r"\n\2string addedPackageVersion,\1", source, count=1)
+        widened = CURRENT.sub(lambda match: match[1] + '\n        "1.2.3",' + match[2] + match[3], widened, count=1)
+        arguments = re.findall(r'"([0-9]+\.[0-9]+\.[0-9]+)"', CURRENT.search(frontend_profile(widened, pins))[2])
+        parameters = profile_parameters(widened)
+        self.assertEqual(arguments[0], "1.2.3")
+        self.assertEqual(arguments[parameters.index("componentsPackageVersion")], "98.0.1")
+
+    def test_profile_rejects_a_missing_pin_parameter(self):
+        source = (ROOT / PROFILE).read_text().replace("string scenePackageVersion", "string sceneAlias", 1)
+        with self.assertRaisesRegex(ValueError, "scenePackageVersion"):
+            frontend_profile(source, cratis_pins(self.manifest))
+
+    def test_published_accepts_scalar_and_singleton_versions(self):
+        for response in ('"22.146.0"', '["22.146.0"]'):
+            with self.subTest(response=response), patch(__name__ + ".run", return_value=Mock(stdout=response)):
+                self.assertEqual(published("@cratis/arc", "22.146.0"), "22.146.0")
+
+    def test_published_rejects_ambiguous_or_invalid_versions(self):
+        for response in ('[]', '["1.0.0", "2.0.0"]', '[["1.0.0"]]', '[null]', '[3]', '["1.0.0-beta"]'):
+            with self.subTest(response=response), patch(__name__ + ".run", return_value=Mock(stdout=response)):
+                with self.assertRaises(ValueError):
+                    published("@cratis/arc")
+
+    def test_published_rejects_a_different_exact_version(self):
+        with patch(__name__ + ".run", return_value=Mock(stdout='["22.145.0"]')):
+            with self.assertRaisesRegex(ValueError, "requested 22.146.0"):
+                published("@cratis/arc", "22.146.0")
+
+    def test_runtime_peers_move_with_the_manifest(self):
+        # The runtime peers follow the committed root manifest, not the Arc-normalized fixture: right after a
+        # NuGet-only Arc bump the fixture already carries the new Arc while both npm manifests carry the old one.
+        content = (ROOT / RUNTIME).read_text()
+        old = cratis_pins(json.loads((ROOT / MANIFEST).read_text()))
+        new = {**old, "@cratis/components": "97.0.1", "@cratis/arc": "98.0.1", "@cratis/arc.react": "98.0.1"}
+        updated = json.loads(runtime_peers(content, old, new))["peerDependencies"]
+        self.assertEqual(updated["@cratis/components"], "97.0.1")
+        self.assertEqual(updated["@cratis/arc"], "98.0.1")
+        self.assertEqual(updated["react"], json.loads(content)["peerDependencies"]["react"])
+
+    def test_runtime_peer_drift_is_refused(self):
+        content = (ROOT / RUNTIME).read_text()
+        old = {**cratis_pins(json.loads((ROOT / MANIFEST).read_text())), "@cratis/components": "0.0.1"}
+        with self.assertRaisesRegex(ValueError, "peer @cratis/components"):
+            runtime_peers(content, old, old)
 
     def test_unavailable_registry_does_not_mutate_manifest(self):
         original = json.dumps(self.manifest)
@@ -248,7 +335,7 @@ class RenderedPinSynchronization(unittest.TestCase):
     def assert_failed_transaction(self, failing_tool):
         with tempfile.TemporaryDirectory(prefix="pin-self-test-", dir=ROOT / ".ai-work") as directory:
             root = Path(directory)
-            paths = (Path("Directory.Packages.props"), MANIFEST, LOCKFILE, PROFILE, CATALOG)
+            paths = (Path("Directory.Packages.props"), MANIFEST, RUNTIME, LOCKFILE, PROFILE, CATALOG)
             for path in paths:
                 (root / path).parent.mkdir(parents=True, exist_ok=True)
                 (root / path).write_bytes((ROOT / path).read_bytes())

@@ -16,8 +16,8 @@ public class an_expansion : a_declarative_planner
     {
         var admission = DeclarativeAdmission.Admit(Profile(Archive(KitFiles(manifest))), [new a_test_language()], new());
         using var model = DeclarativeArtifactRenderPlanner.BuildModel(request, out _);
-        using var session = admission.Templates!.BeginPlan(budget ?? TemplateBudget.Default, admission.Language!);
-        return DeclarativeOutputExpansion.Expand(session, admission.Kit!.Manifest, model!.RootElement);
+        using var session = admission.Templates.BeginPlan(budget ?? TemplateBudget.Default, admission.Language);
+        return DeclarativeOutputExpansion.Expand(session, admission.Kit.Manifest, model.RootElement);
     }
 
     private protected static string[] Names(DeclarativeOutputExpansion expansion) => [.. expansion.Outputs.Select(_ => _.Output.Id + ":" + _.ItemId)];

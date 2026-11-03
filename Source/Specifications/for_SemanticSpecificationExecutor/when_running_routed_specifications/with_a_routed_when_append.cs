@@ -42,5 +42,5 @@ public class with_a_routed_when_append : a_routed_plan
     }
 
     [Fact] void should_pass_like_the_reference() => AssertParity(true);
-    [Fact] void should_append_one_fact() => _result.Trace!.Facts.Count.ShouldEqual(1);
+    [Fact] void should_append_one_fact() => _result.Trace.Facts.Count.ShouldEqual(1);
 }

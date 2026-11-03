@@ -144,7 +144,7 @@ public class when_comparing_protected_composite_read_mappings(when_comparing_pro
             var document = SemanticSourceDocument.Create(catalog.ResolveDocument("app"), "app", "application.play", Source);
             var compilation = new SemanticModelCompiler().Compile("CompositeReadMappings", SemanticDocumentSet.Create([document], catalog));
             Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-            return compilation.Value!.Model;
+            return compilation.Value.Model;
         }
     }
 }

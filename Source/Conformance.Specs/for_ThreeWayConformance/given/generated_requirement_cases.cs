@@ -30,7 +30,7 @@ internal static class generated_requirement_cases
         };
 
         // Fault injection: Screenplay's typed-model validator also rejects generated reads.
-        typeof(ExecutableSemanticModel).GetField("<Application>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(model, application);
+        typeof(ExecutableSemanticModel).GetField("<Application>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(model, application);
         return model;
     }
 

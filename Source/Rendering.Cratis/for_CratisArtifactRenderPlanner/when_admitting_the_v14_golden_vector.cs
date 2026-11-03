@@ -22,7 +22,7 @@ public class when_admitting_the_v14_golden_vector : Specification
     {
         // Golden vectors deliberately use a display name; the scaffold requires a C# application name.
         var renderModel = ExecutableSemanticModel.Create(_model.LanguageVersion, _model.SemanticVersion, _model.Application with { Name = "Golden" });
-        _plan = new CratisArtifactRenderPlanner().Plan(new(renderModel, SemanticExecutionPlan.Compile(renderModel, []).Plan!, CratisRendering.CreateProfile("Golden", new("Golden", "Golden")), new(ArtifactRenderScopeKind.Application, renderModel.Application.Id)));
+        _plan = new CratisArtifactRenderPlanner().Plan(new(renderModel, SemanticExecutionPlan.Compile(renderModel, []).Plan, CratisRendering.CreateProfile("Golden", new("Golden", "Golden")), new(ArtifactRenderScopeKind.Application, renderModel.Application.Id)));
     }
 
     [Fact] void should_read_the_full_v14_vector() => _model.SemanticVersion.ShouldEqual(SemanticVersion.V14);

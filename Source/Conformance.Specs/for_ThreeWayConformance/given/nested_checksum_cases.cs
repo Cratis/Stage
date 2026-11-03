@@ -41,7 +41,7 @@ internal static class nested_checksum_cases
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("checksums"), "checksums", "Checksums.play", source);
         var compilation = new SemanticModelCompiler().Compile("NestedChecksums", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        return compilation.Value!.Model;
+        return compilation.Value.Model;
     }
 }
 #endif

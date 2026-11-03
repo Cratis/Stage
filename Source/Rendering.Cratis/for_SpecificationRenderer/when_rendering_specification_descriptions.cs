@@ -32,7 +32,8 @@ public class when_rendering_specification_descriptions : given.a_slice_with_spec
             Specification(
                 "RejectingAnInvoice",
                 when: specification.When,
-                errors: [new(null, SourceLocation.Start)]) with { Description = "Witnesses <rejection> & no events" },
+                errors: [new(null, SourceLocation.Start)]) with
+            { Description = "Witnesses <rejection> & no events" },
             _command,
             _slice,
             _applicationSet,

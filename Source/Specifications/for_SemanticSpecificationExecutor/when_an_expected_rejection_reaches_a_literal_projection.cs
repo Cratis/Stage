@@ -14,6 +14,6 @@ public class when_an_expected_rejection_reaches_a_literal_projection : given.a_u
     [Fact] void should_report_an_outcome_mismatch() => _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Failed);
     [Fact] void should_preserve_the_mismatch_message() => _result.Failures.ShouldContainOnly("Expected Rejected, got Accepted.");
     [Fact] void should_match_the_reference() => _result.Failures.ShouldContainOnly(_reference.Failures);
-    [Fact] void should_not_evaluate_the_projection() => _result.Trace!.ReadModels.ShouldBeEmpty();
-    [Fact] void should_not_report_a_rejection() => _result.Trace!.Rejection.ShouldBeNull();
+    [Fact] void should_not_evaluate_the_projection() => _result.Trace.ReadModels.ShouldBeEmpty();
+    [Fact] void should_not_report_a_rejection() => _result.Trace.Rejection.ShouldBeNull();
 }

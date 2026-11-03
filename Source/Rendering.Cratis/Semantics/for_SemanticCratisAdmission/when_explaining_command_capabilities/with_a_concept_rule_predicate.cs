@@ -17,11 +17,11 @@ public class with_a_concept_rule_predicate : given.a_command_model
 
     void Because()
     {
-        var plan = SemanticExecutionPlan.Compile(_model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(_model).Plan;
         var concept = _model.Application.Concepts.Single();
 
         // Exercise the renderer boundary with a rule the executable-model compiler would reject.
-        typeof(SemanticConcept).GetField("<Validations>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!
+        typeof(SemanticConcept).GetField("<Validations>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)
             .SetValue(concept, ImmutableArray.Create(concept.Validations.Single() with { Kind = SemanticValidationRuleKind.RulePredicate, RequirementId = "display-rule" }));
         var options = new CratisRenderingOptions("Invoices", "Invoices");
         var request = new ArtifactRenderRequest(_model, plan, CratisRendering.CreateProfile(_model.Application.Name, options), new(ArtifactRenderScopeKind.Application, _model.Application.Id));

@@ -23,7 +23,7 @@ internal static class refused_read_keys
             catalog.ResolveDocument(document.StableKey), document.StableKey, document.DisplayPath, document.Text));
         var compilation = new SemanticModelCompiler().Compile(corpus.ApplicationName, SemanticDocumentSet.Create([.. documents], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         Assert.Equal(6, plan.Specifications.Values.Count(specification => Names.Contains(specification.Name, StringComparer.Ordinal)));
 
         return plan;

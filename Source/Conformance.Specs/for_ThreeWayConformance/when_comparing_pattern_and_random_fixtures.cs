@@ -35,7 +35,7 @@ public class when_comparing_pattern_and_random_fixtures(when_comparing_pattern_a
                 var arguments = SemanticGenerationRendering.UsesContext(concept.Generation)
                     ? "new global::Cratis.Concepts.GenerationContext(new global::System.DateTimeOffset(2024, 2, 29, 22, 30, 0, global::System.TimeSpan.Zero), global::Cratis.Concepts.GenerationContext.DefaultTenant)" : string.Empty;
                 var pattern = CSharpCodeBuilder.StringLiteral(SemanticGenerationShapes.Pattern(concept, instant));
-                var checksum = concept.Generation!.Checksum is { } algorithm
+                var checksum = concept.Generation.Checksum is { } algorithm
                     ? $"Xunit.Assert.True(global::Cratis.Concepts.GenerateValue.HasValidChecksum(value, global::Cratis.Concepts.Checksum.{SemanticChecksumRendering.Algorithm(SemanticValue.Text(algorithm))}));" : string.Empty;
                 return $"[Xunit.Fact] public void should_sample_{concept.Name}() {{ for (var index = 0; index < 256; index++) {{ var value = global::PatternRandom.Common.{concept.Name}.New({arguments}).Value; Xunit.Assert.Matches({pattern}, value); {checksum} }} }}";
             });
@@ -53,12 +53,12 @@ public class when_comparing_pattern_and_random_fixtures(when_comparing_pattern_a
             var feature = module.Features.Single();
             var slice = feature.Slices.Single();
             var original = slice.Specifications.Single(specification => specification.Name == originalName);
-            var unpinned = original with { Name = name, When = original.When! with { GeneratedValues = [] } };
+            var unpinned = original with { Name = name, When = original.When with { GeneratedValues = [] } };
             var changed = ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, model.Application with
             {
                 Modules = [module with { Features = [feature with { Slices = [slice with { Specifications = [unpinned] }] }] }]
             });
-            var plan = CratisRendering.Plan(changed, SemanticExecutionPlan.Compile(changed).Plan!, new(ArtifactRenderScopeKind.Application, changed.Application.Id), new("PatternRandom", "PatternRandom"));
+            var plan = CratisRendering.Plan(changed, SemanticExecutionPlan.Compile(changed).Plan, new(ArtifactRenderScopeKind.Application, changed.Application.Id), new("PatternRandom", "PatternRandom"));
             Assert.True(plan.Success, string.Join(';', plan.Diagnostics.Select(diagnostic => diagnostic.Message)));
             var suffix = name == "UnpinnedNumeric" ? "when_unpinned_numeric.cs" : "when_unpinned_date.cs";
             var artifact = plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith(suffix, StringComparison.Ordinal));

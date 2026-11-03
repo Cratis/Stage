@@ -22,7 +22,7 @@ public class with_refused_protected_read_keys : Specification
 
     void Establish()
     {
-        _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(ProtectedCommandReadsCorpus.V25.EsmBytes.AsSpan())).Plan!;
+        _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(ProtectedCommandReadsCorpus.V25.EsmBytes.AsSpan())).Plan;
         _log = new();
         _runtime = _log.Runtime(_plan, SemanticWorld.Empty);
     }
@@ -47,11 +47,11 @@ public class with_refused_protected_read_keys : Specification
         var specification = _plan.Specifications.Values.Single(specification => specification.Name == name);
         foreach (var given in specification.GivenEvents)
         {
-            var source = Assert.IsType<SemanticTextValue>(given.EventSource!.Value).Value;
+            var source = Assert.IsType<SemanticTextValue>(given.EventSource.Value).Value;
             var value = Assert.IsType<SemanticTextValue>(given.Values.Single().Value).Value;
             Assert.IsType<SemanticAccepted>(await Execute("Store", new { id = source, value }));
         }
-        var command = _plan.Commands[specification.When!.Command];
+        var command = _plan.Commands[specification.When.Command];
         var sourceId = command.Properties.Single(property => property.Name == "sourceId").Id;
         specification.When.Values.Single(value => value.TargetProperty == sourceId).Value.ShouldEqual(SemanticValue.Text(key));
         var attempts = _log.Attempts.Count;

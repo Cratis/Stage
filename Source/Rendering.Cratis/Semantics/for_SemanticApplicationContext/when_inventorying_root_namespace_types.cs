@@ -19,4 +19,8 @@ public class when_inventorying_root_namespace_types : a_profile_source_plan
     }
 
     [Fact] void should_catalog_strings_in_the_root_namespace() => Assert.Contains(new GeneratedTypeName("Projects", "GeneratedStrings"), _types);
+    [Fact] void should_catalog_the_authentication_entry_point() => Assert.Contains(new GeneratedTypeName("Projects.GeneratedAuthentication", "Authentication"), _types);
+    [Fact] void should_catalog_the_authentication_perimeter() => Assert.Contains(new GeneratedTypeName("Projects.GeneratedAuthentication", "AuthenticationPerimeter"), _types);
+    [Fact] void should_catalog_the_authentication_settings() => Assert.Contains(new GeneratedTypeName("Projects.GeneratedAuthentication", "AuthenticationSettings"), _types);
+    [Fact] void should_catalog_the_authentication_configuration_failure() => Assert.Contains(new GeneratedTypeName("Projects.GeneratedAuthentication", "InvalidAuthenticationConfiguration"), _types);
 }

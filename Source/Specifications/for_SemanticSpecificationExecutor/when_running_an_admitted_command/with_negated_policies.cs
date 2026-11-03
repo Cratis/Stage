@@ -92,7 +92,7 @@ public class with_negated_policies : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("negation"), "negation", "Negation.play", source.ToString());
         var compiled = new SemanticModelCompiler().Compile("Negation", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compiled.Success, string.Join(Environment.NewLine, compiled.Diagnostics.Select(diagnostic => $"{diagnostic.Code} {diagnostic.Location}: {diagnostic.Message}")));
-        _plan = SemanticExecutionPlan.Compile(compiled.Value!.Model).Plan!;
+        _plan = SemanticExecutionPlan.Compile(compiled.Value.Model).Plan;
     }
 
     async Task Because()

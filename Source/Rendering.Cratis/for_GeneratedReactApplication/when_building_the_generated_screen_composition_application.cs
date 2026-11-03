@@ -86,7 +86,7 @@ public class when_building_the_generated_screen_composition_application(when_bui
         void Establish()
         {
             _model = routed_response_commands.AddTo(_model);
-            _executionPlan = SemanticExecutionPlan.Compile(_model).Plan!;
+            _executionPlan = SemanticExecutionPlan.Compile(_model).Plan;
             var plan = Plan();
             if (!plan.Success)
             {
@@ -107,7 +107,7 @@ public class when_building_the_generated_screen_composition_application(when_bui
 
             var kept = Environment.GetEnvironmentVariable(KeepVariable);
             _keep = !string.IsNullOrWhiteSpace(kept);
-            _application = _keep ? Path.GetFullPath(kept!) : SpecTemporaryRoot.NewPath("stage-generated-react");
+            _application = _keep ? Path.GetFullPath(kept) : SpecTemporaryRoot.NewPath("stage-generated-react");
             if (_keep && Directory.Exists(_application))
             {
                 Directory.Delete(_application, recursive: true);
@@ -117,7 +117,7 @@ public class when_building_the_generated_screen_composition_application(when_bui
             Write(plan, _application);
             var generationArtifact = generationPlan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("TenantOrderId.cs", StringComparison.Ordinal));
             var generationPath = Path.Combine(_application, generationArtifact.RelativePath);
-            Directory.CreateDirectory(Path.GetDirectoryName(generationPath)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(generationPath));
             File.WriteAllBytes(generationPath, [.. generationArtifact.Bytes]);
         }
 

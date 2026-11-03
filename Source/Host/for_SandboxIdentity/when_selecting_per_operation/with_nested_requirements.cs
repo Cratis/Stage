@@ -19,7 +19,7 @@ public class with_nested_requirements : given.a_started_multimodule_host
     void should_include_module_feature_and_operation_requirements()
     {
         var query = SemanticModelWalker.Slices(_model).SelectMany(located => located.Slice.Queries).Single(query => query.Name == "RestrictedItems");
-        string.Join(',', Policies(query.Authorization!).Order(StringComparer.Ordinal)).ShouldEqual("IsSales,IsShopper,Special");
+        string.Join(',', Policies(query.Authorization).Order(StringComparer.Ordinal)).ShouldEqual("IsSales,IsShopper,Special");
     }
 
     static IEnumerable<string> Policies(SemanticAuthorization requirement) => requirement switch

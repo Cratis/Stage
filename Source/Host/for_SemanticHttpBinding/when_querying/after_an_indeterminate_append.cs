@@ -32,7 +32,7 @@ public class after_an_indeterminate_append : a_bound_semantic_model
 
     async Task Because()
     {
-        _app.MapGet("/stage/status", () => SemanticHost.Status(_semanticRuntime!, "Projects", "/tmp/smoke23"));
+        _app.MapGet("/stage/status", () => SemanticHost.Status(_semanticRuntime, "Projects", "/tmp/smoke23"));
         BuildRouting();
         await Request("POST", Route, Payload);
         (_keyedStatus, _body, _) = await Request("GET", "/api/projects/registration/public-lookup/public-by-id?projectId=3fa85f64-5717-4562-b3fc-2c963f66afa6");

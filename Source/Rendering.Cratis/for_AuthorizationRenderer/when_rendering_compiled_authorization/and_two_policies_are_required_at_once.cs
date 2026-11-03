@@ -33,7 +33,7 @@ public class and_two_policies_are_required_at_once : Specification
 
     void Establish()
     {
-        _application = new ScreenplayCompiler().Compile(Source).Value!;
+        _application = new ScreenplayCompiler().Compile(Source).Value;
         _diagnostics = [];
     }
 

@@ -20,7 +20,7 @@ public class when_admitting_the_v22_golden_vector : Specification
     void Because()
     {
         var model = ExecutableSemanticModel.Create(_model.LanguageVersion, _model.SemanticVersion, _model.Application with { Name = "Golden" });
-        _plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model, []).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Golden", "Golden"));
+        _plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model, []).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Golden", "Golden"));
     }
 
     [Fact] void should_read_the_full_v22_vector() => _model.SemanticVersion.ShouldEqual(SemanticVersion.V22);

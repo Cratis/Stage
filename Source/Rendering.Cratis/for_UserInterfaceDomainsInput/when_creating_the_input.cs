@@ -27,7 +27,7 @@ public class when_creating_the_input : Specification
     [Fact] void should_write_normalized_domains_with_distinct_identities_in_ordinal_order() => System.Text.Encoding.UTF8.GetString(_input.Bytes.AsSpan()).ShouldEqual("{\"Sales/Retail\":[\"a\",\"b\"],\"Support\":[\"c\",\"d\"]}");
     [Fact] void should_not_depend_on_the_order_or_spelling_given() => _input.Bytes.SequenceEqual(_reordered.Bytes).ShouldBeTrue();
     [Fact] void should_read_back() => _read.ShouldBeTrue();
-    [Fact] void should_read_the_identities_by_domain() => string.Join(',', _domains!["Support"]).ShouldEqual("c,d");
+    [Fact] void should_read_the_identities_by_domain() => string.Join(',', _domains["Support"]).ShouldEqual("c,d");
 
     static KeyValuePair<string, IEnumerable<string>> Domain(string domain, params string[] slices) => KeyValuePair.Create(domain, (IEnumerable<string>)slices);
 }

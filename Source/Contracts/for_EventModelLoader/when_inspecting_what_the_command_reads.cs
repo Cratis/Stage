@@ -11,7 +11,7 @@ public class when_inspecting_what_the_command_reads : given.a_compiled_model_usi
 {
     IReadOnlyList<ReadsDefinition> _reads = [];
 
-    void Because() => _reads = _slice.Command!.Reads;
+    void Because() => _reads = _slice.Command.Reads;
 
     [Fact] void should_carry_the_declared_read() => _reads.Count.ShouldEqual(1);
     [Fact] void should_name_the_read_model() => _reads[0].ReadModel.ShouldEqual("InvoiceScope");

@@ -55,7 +55,7 @@ public class when_omitting_non_renderable_default_lookups : a_register_project_r
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("lookup-policy"), "lookup-policy", "Lookup.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         if (!hasQuery)
         {
             // Text binding currently needs a query to infer the identifier. The validated semantic model
@@ -69,7 +69,7 @@ public class when_omitting_non_renderable_default_lookups : a_register_project_r
             model = ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, application);
         }
 
-        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), _options);
+        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), _options);
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         if (!hasQuery)
         {

@@ -72,12 +72,12 @@ public class when_planning_the_screen_composition_application : a_screen_composi
 
     JsonElement[] Screens() => [.. _document.RootElement.GetProperty("screens").EnumerateArray()];
 
-    string[] Names(string collection) => [.. _document.RootElement.GetProperty(collection).EnumerateArray().Select(_ => _.GetProperty("name").GetString()!)];
+    string[] Names(string collection) => [.. _document.RootElement.GetProperty(collection).EnumerateArray().Select(_ => _.GetProperty("name").GetString())];
 
     string[] FormCommands() => [.. Screens()
         .SelectMany(screen => screen.GetProperty("slotContent").TryGetProperty("forms", out var forms) ? forms.EnumerateArray() : Enumerable.Empty<JsonElement>())
         .Where(_ => _.GetProperty("componentName").GetString() == "Stage:commandForm")
-        .Select(_ => _.GetProperty("properties").GetProperty("command").GetString()!)
+        .Select(_ => _.GetProperty("properties").GetProperty("command").GetString())
         .Distinct(StringComparer.Ordinal)];
 
     JsonElement[] GuardedActions() => [.. Elements(_document.RootElement).Where(_ =>

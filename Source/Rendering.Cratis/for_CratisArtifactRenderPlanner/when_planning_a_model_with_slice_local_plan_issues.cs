@@ -15,7 +15,7 @@ public class when_planning_a_model_with_slice_local_plan_issues : Specification
     ArtifactRenderPlan _supported = null!;
     ArtifactRenderPlan _refused = null!;
 
-    void Establish() => _loaded = when_loading_a_model_with_slice_local_plan_issues.Create().Loaded!;
+    void Establish() => _loaded = when_loading_a_model_with_slice_local_plan_issues.Create().Loaded;
 
     void Because()
     {

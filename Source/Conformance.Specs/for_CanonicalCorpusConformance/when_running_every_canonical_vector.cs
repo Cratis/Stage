@@ -33,7 +33,7 @@ public class when_running_every_canonical_vector(when_running_every_canonical_ve
         public context()
         {
             Expected = expected_conformance_table.Load();
-            CorpusVersion = canonical_corpus_vectors.CorpusAssembly.GetName().Version!.ToString(3);
+            CorpusVersion = canonical_corpus_vectors.CorpusAssembly.GetName().Version.ToString(3);
             var vectors = canonical_corpus_vectors.All;
             var actual = new Dictionary<string, IReadOnlyDictionary<conformance_surface, conformance_observation>>();
             foreach (var vector in vectors)

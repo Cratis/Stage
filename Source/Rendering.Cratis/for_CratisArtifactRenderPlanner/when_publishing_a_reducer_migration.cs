@@ -9,6 +9,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
+[PerFactSpecificationLifecycle]
 public class when_publishing_a_reducer_migration : a_generated_application
 {
     const string FoldPath = when_migrating_a_classic_reducer.FoldPath;

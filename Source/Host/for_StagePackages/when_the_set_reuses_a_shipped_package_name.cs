@@ -16,7 +16,7 @@ public class when_the_set_reuses_a_shipped_package_name : given.a_packages_folde
 
     void Because() => _packages = StagePackages.Read(Root);
 
-    [Fact] void should_refuse_the_set() => _packages!.Diagnostics.ShouldNotBeEmpty();
-    [Fact] void should_approve_no_package() => _packages!.Set.IsEmpty.ShouldBeTrue();
-    [Fact] void should_serve_no_file() => _packages!.CanServe("@acme/scene.charts/dist/index.js").ShouldBeFalse();
+    [Fact] void should_refuse_the_set() => _packages.Diagnostics.ShouldNotBeEmpty();
+    [Fact] void should_approve_no_package() => _packages.Set.IsEmpty.ShouldBeTrue();
+    [Fact] void should_serve_no_file() => _packages.CanServe("@acme/scene.charts/dist/index.js").ShouldBeFalse();
 }

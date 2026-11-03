@@ -20,13 +20,13 @@ public class a_scene_model : Specification
     {
         var syntax = new ScreenplayCompiler().Compile(Source);
         syntax.Success.ShouldBeTrue();
-        _eventModel = new ScreenplayEventModelVisitor().Visit(syntax.Value!);
-        _scene = new ScreenplaySceneVisitor().Visit(syntax.Value!);
+        _eventModel = new ScreenplayEventModelVisitor().Visit(syntax.Value);
+        _scene = new ScreenplaySceneVisitor().Visit(syntax.Value);
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("model"), "model", "model.play", Source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         compilation.Success.ShouldBeTrue();
-        _semanticModel = compilation.Value!.Model;
+        _semanticModel = compilation.Value.Model;
     }
 
     public const string Source = """

@@ -25,18 +25,18 @@ public class when_creating_input_with_specification_descriptions : Specification
     {
         var input = AuthoringMetadataInput.Create(_compilation);
         input.ShouldNotBeNull();
-        _accepted = AuthoringMetadataInput.TryRead(input!, _compilation.Model, out _catalog);
+        _accepted = AuthoringMetadataInput.TryRead(input, _compilation.Model, out _catalog);
     }
 
     [Fact] void should_admit_the_metadata_it_creates() => _accepted.ShouldBeTrue();
-    [Fact] void should_include_only_the_three_described_specifications() => _catalog!.Entries.Count.ShouldEqual(3);
+    [Fact] void should_include_only_the_three_described_specifications() => _catalog.Entries.Count.ShouldEqual(3);
 
     [Fact]
     void should_key_normalized_descriptions_by_the_specification_identity()
     {
         foreach (var specification in _compilation.Model.Application.Modules.Single().Features.Single().Slices.SelectMany(slice => slice.Specifications))
         {
-            _catalog!.Entries[specification.Id.ToString()].ShouldEqual(new AuthoringMetadataInput.Metadata("Witnesses <registration> & lookup\nNext\nLast\nEnd", null));
+            _catalog.Entries[specification.Id.ToString()].ShouldEqual(new AuthoringMetadataInput.Metadata("Witnesses <registration> & lookup\nNext\nLast\nEnd", null));
         }
     }
 

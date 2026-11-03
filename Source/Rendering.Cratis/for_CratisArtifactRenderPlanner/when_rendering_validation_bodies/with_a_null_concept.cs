@@ -22,8 +22,8 @@ public class with_a_null_concept
         Assert.True(plan.Success, opaque_policy_model.Errors(plan));
         var assembly = opaque_policy_model.Compile(plan);
         var conceptType = assembly.GetTypes().Single(type => type.Name == "Amount");
-        var validator = (IValidator)Activator.CreateInstance(assembly.GetTypes().Single(type => type.Name == "AmountValidator"))!;
-        var context = (IValidationContext)Activator.CreateInstance(typeof(ValidationContext<>).MakeGenericType(conceptType), [null])!;
+        var validator = (IValidator)Activator.CreateInstance(assembly.GetTypes().Single(type => type.Name == "AmountValidator"));
+        var context = (IValidationContext)Activator.CreateInstance(typeof(ValidationContext<>).MakeGenericType(conceptType), [null]);
 
         var exception = Assert.Throws<InvalidOperationException>(() => validator.Validate(context));
 

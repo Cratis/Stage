@@ -17,5 +17,5 @@ public class when_loading_a_directory_scene : given.a_model_path
     async Task Because() => (_, _scene) = await SemanticHost.LoadModel(_directory, _issues);
 
     [Fact] void should_report_no_unsupported_issues() => _issues.ShouldBeEmpty();
-    [Fact] void should_synthesize_both_screens_from_the_folder_model() => _scene!.Screens.Count.ShouldEqual(2);
+    [Fact] void should_synthesize_both_screens_from_the_folder_model() => _scene.Screens.Count.ShouldEqual(2);
 }

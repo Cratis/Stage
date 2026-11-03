@@ -21,5 +21,5 @@ public class when_creating_authoring_documentation_with_invalid_xml : Specificat
         CratisRendering.CreateProfile("Projects", new("Projects", "Projects")), _compilation));
 
     [Fact] void should_report_a_malformed_render_contract() => _error.ShouldBeOfExactType<InvalidArtifactRenderContract>();
-    [Fact] void should_explain_that_the_metadata_contains_invalid_xml_characters() => _error!.Message.ShouldContain("contains invalid XML characters");
+    [Fact] void should_explain_that_the_metadata_contains_invalid_xml_characters() => _error.Message.ShouldContain("contains invalid XML characters");
 }

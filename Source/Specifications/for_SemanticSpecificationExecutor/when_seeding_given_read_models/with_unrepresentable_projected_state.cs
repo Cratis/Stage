@@ -18,7 +18,7 @@ public class with_unrepresentable_projected_state : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("app"), "app", "application.play", with_keyed_state.Source);
         var compilation = new SemanticModelCompiler().Compile("SeedAdmission", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         var original = plan.Specifications.Values.Single(specification => specification.Name == "FoldingAnAppend");
         var seed = original.GivenReadModels.Single();
         var count = seed.Values.Single(value => value.Value is SemanticNumberValue);

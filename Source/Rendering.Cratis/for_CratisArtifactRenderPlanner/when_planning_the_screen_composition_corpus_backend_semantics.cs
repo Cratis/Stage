@@ -32,14 +32,14 @@ public class when_planning_the_screen_composition_corpus_backend_semantics : Spe
             SemanticDocumentSet.Create([.. documents], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
 
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success, string.Join(Environment.NewLine, execution.Issues));
 
         var options = new CratisRenderingOptions("Workspaces", "Workspaces");
         var request = new ArtifactRenderRequest(
             model,
-            execution.Plan!,
+            execution.Plan,
             CratisRendering.CreateProfile(model.Application.Name, options),
             new(ArtifactRenderScopeKind.Application, model.Application.Id));
         _plan = new CratisArtifactRenderPlanner().Plan(request);

@@ -45,17 +45,21 @@ public class when_the_specification_cannot_be_rendered_faithfully : given.a_slic
     }
 
     // The document, not the target, is what makes this unrenderable — CommandScenario does support Given.
-    [Fact] void should_decline_a_specification_that_seeds_prior_state() =>
+    [Fact]
+    void should_decline_a_specification_that_seeds_prior_state() =>
         _withGiven.ShouldContain("the document does not say which event source those events belong to");
-    [Fact] void should_decline_a_specification_stating_read_model_state() =>
+    [Fact]
+    void should_decline_a_specification_stating_read_model_state() =>
         _withReadModels.ShouldContain("no assertion in the scenario family");
-    [Fact] void should_decline_a_specification_exercising_another_slice_s_command() =>
+    [Fact]
+    void should_decline_a_specification_exercising_another_slice_s_command() =>
         _withAnotherCommand.ShouldContain("which this slice does not declare");
     [Fact] void should_decline_a_specification_that_asserts_nothing() => _assertingNothing.ShouldEqual("it asserts nothing");
 
     // A rejected command appends nothing, so a document stating both contradicts itself. Rendering either half
     // would drop the other silently, which is the one thing this renderer is written not to do.
-    [Fact] void should_decline_a_specification_expecting_both_a_rejection_and_events() =>
+    [Fact]
+    void should_decline_a_specification_expecting_both_a_rejection_and_events() =>
         _expectingBoth.ShouldContain("a rejected command appends nothing");
     [Fact] void should_render_one_that_states_only_what_it_exercises_and_expects() => _renderable.ShouldBeNull();
 }

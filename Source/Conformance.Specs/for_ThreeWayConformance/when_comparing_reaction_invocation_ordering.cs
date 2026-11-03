@@ -29,6 +29,6 @@ public class when_comparing_reaction_invocation_ordering : a_reaction_plan
         Compile("reaction Worker\n  when Started\n    item\n    invokes Complete\n      item = item", "then readmodel Marker\n  item = \"one\"", new() { Action = "when append Started\n  item = \"one\"\n  amount = 1" });
         await Execute();
         AssertMatchesReference();
-        Assert.Single(_result.Trace!.ReadModels);
+        Assert.Single(_result.Trace.ReadModels);
     }
 }

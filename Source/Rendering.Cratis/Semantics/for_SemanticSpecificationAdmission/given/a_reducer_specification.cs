@@ -36,7 +36,7 @@ public class a_reducer_specification : Specification
         var loaded = await when_rendering_a_pure_reducer.Load(source);
         _request = new(
             loaded.Model,
-            SemanticExecutionPlan.Compile(loaded.Model).Plan!,
+            SemanticExecutionPlan.Compile(loaded.Model).Plan,
             CratisRendering.CreateProfile("Projects", new("Projects", "Projects")),
             new(ArtifactRenderScopeKind.Application, loaded.Model.Application.Id))
         {

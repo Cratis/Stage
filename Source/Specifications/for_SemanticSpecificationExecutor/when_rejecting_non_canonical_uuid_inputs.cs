@@ -38,7 +38,7 @@ public class when_rejecting_non_canonical_uuid_inputs : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("app"), "app", "app.play", source);
         var compilation = new SemanticModelCompiler().Compile("UuidInputs", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         var command = plan.Commands.Values.Single();
         var values = command.Properties.Select(property => new SemanticPropertyValue(property.Id, SemanticValue.Text(property.Name switch
         {

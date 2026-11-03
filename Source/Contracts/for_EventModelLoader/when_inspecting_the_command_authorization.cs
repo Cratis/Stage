@@ -11,7 +11,7 @@ public class when_inspecting_the_command_authorization : given.a_compiled_model_
 {
     AuthorizationRequirement _authorization = null!;
 
-    void Because() => _authorization = _slice.Command!.Authorization!;
+    void Because() => _authorization = _slice.Command.Authorization;
 
     [Fact] void should_carry_the_requirement() => _authorization.ShouldNotBeNull();
 

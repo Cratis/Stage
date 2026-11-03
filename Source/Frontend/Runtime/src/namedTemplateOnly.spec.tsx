@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from 'vitest';
 import type { ExternalComponent, Screen } from '@cratis/scene.model';
-import { composeStageScreen, stageComposition } from './App';
+import { composeStageScreen, stageComposition } from './index';
 
 const slot = (parent: ExternalComponent, name: string) => (parent.slots[name] ?? []) as unknown as ExternalComponent[];
 
@@ -11,6 +11,21 @@ describe('the stage composition', () => {
     const scene = { layouts: [], screenTemplates: [], screens: [] } as never;
 
     it('composes with only the template the screen names', () => expect(stageComposition(scene, [], '').namedTemplateOnly).toBe(true));
+
+    const screen = { name: 'Landing' } as Screen;
+    const chrome = (showFooter?: boolean, showThemeSwitcher?: boolean) =>
+        stageComposition(scene, [], '', undefined, undefined, undefined, showFooter, showThemeSwitcher).chrome!(screen, 'AppShell');
+
+    it('should hide the footer for a public positional false argument', () => expect(chrome(false).footer).toBeUndefined());
+    it('should show the footer by default', () => expect(chrome().footer).toHaveLength(1));
+    it('should retain the theme switcher when only the footer is hidden', () => {
+        const topbar = chrome(false).topbar[0] as unknown as ExternalComponent;
+        expect(slot(topbar, 'end').map(element => element.id)).toContain('topbar-theme');
+    });
+    it('should hide the theme switcher for the eighth positional false argument', () => {
+        const topbar = chrome(true, false).topbar[0] as unknown as ExternalComponent;
+        expect(slot(topbar, 'end').map(element => element.id)).not.toContain('topbar-theme');
+    });
 });
 
 // Acme Purchasing's Suppliers screen names the default blueprint's MasterDetailScreen and fills its list and details (StudioIssues: master-detail on Play).

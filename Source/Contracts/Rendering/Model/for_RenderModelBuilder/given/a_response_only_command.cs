@@ -36,9 +36,9 @@ public class a_response_only_command : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("response"), "response", "response.play", source);
         var compilation = new SemanticModelCompiler().Compile("Sample", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var profile = ArtifactRenderProfile.Create("cratis", "1", "Cratis.Stage.Rendering.Cratis", "1", []);
-        return new(model, SemanticExecutionPlan.Compile(model).Plan!, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        return new(model, SemanticExecutionPlan.Compile(model).Plan, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id));
     }
 
     void Establish()

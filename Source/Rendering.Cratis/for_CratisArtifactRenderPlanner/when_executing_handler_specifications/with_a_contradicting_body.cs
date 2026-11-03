@@ -3,6 +3,7 @@
 
 #if DEBUG
 using Cratis.Specifications;
+using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Xunit;
 
 using context = Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_executing_handler_specifications.with_a_contradicting_body.context;
@@ -13,7 +14,7 @@ public class with_a_contradicting_body(context fixture) : IClassFixture<context>
 {
     [Fact] void should_build_without_warnings() => fixture.Warnings.ShouldEqual(string.Empty);
     [Fact] void should_execute_the_generated_specification() => fixture.Results.Length.ShouldBeGreaterThan(0);
-    [Fact] void should_fail_the_event_payload_assertion() => fixture.Results.Any(result => result.Name.Contains("should_have_appended_order_placed_with_name", StringComparison.Ordinal) && result.Outcome == "Failed").ShouldBeTrue();
+    [Fact] void should_fail_the_event_payload_assertion() => fixture.Results.Any(result => result.Matches(methodName: "should_have_appended_order_placed_with_name") && result.Outcome == "Failed").ShouldBeTrue();
 
     public class context : given.a_handler_application
     {

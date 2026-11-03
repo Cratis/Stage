@@ -44,7 +44,7 @@ public class and_a_target_roots_on_a_blueprint_shell : an_application_targeting_
         ],
     };
 
-    [Fact] void should_resolve_the_blueprint_shell_when_the_installed_version_satisfies_the_pin() => _satisfied.Targets[0].Shell!.Package.ShouldEqual("Cratis.Blueprint.Default");
+    [Fact] void should_resolve_the_blueprint_shell_when_the_installed_version_satisfies_the_pin() => _satisfied.Targets[0].Shell.Package.ShouldEqual("Cratis.Blueprint.Default");
     [Fact] void should_have_no_findings_when_the_pin_is_satisfied() => _satisfied.Targets[0].Findings.ShouldBeEmpty();
     [Fact] void should_name_the_shell_without_inventing_its_structure() => _satisfied.Targets[0].Layout.ShouldBeNull();
     [Fact] void should_fail_the_build_when_the_pin_is_not_satisfied() => _unsatisfied.Targets[0].Findings.Any(finding => finding.Kind == RenderFindingKind.RootTemplateInvalid).ShouldBeTrue();

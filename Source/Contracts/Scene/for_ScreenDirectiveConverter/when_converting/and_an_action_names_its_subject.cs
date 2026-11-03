@@ -39,7 +39,7 @@ public class and_an_action_names_its_subject : Specification
     public void should_carry_the_item_inputs_of_a_plain_action()
     {
         var input = new InteractionArgumentSyntax("itemId", "item.rowId", SourceLocation.Start);
-        var inputs = (IDictionary<string, IDictionary<string, object?>>)PlainAction(ScreenActionSubjectKind.Item, input).Properties["subjectInputs"]!;
+        var inputs = (IDictionary<string, IDictionary<string, object?>>)PlainAction(ScreenActionSubjectKind.Item, input).Properties["subjectInputs"];
         inputs["itemId"]["subject"].ShouldEqual("item.rowId");
     }
 

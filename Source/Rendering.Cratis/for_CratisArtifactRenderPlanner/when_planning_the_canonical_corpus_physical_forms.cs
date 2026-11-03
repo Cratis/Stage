@@ -24,7 +24,7 @@ public class when_planning_the_canonical_corpus_physical_forms : a_register_proj
         _otherFormPlans = [.. Corpus.SourceForms.Where(_ => _.Name != "single").Select(form =>
         {
             var model = Compile(form).Model;
-            return CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, scope, _options);
+            return CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, scope, _options);
         })];
     }
 

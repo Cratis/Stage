@@ -19,7 +19,7 @@ public class when_exercising_translation_specifications : given.a_translation_sp
     {
         ChangeCapture(null, recovery: true, change: specification => specification with
         {
-            GivenEvents = [new(specification.WhenAppended!.EventContract, specification.WhenAppended.Values)],
+            GivenEvents = [new(specification.WhenAppended.EventContract, specification.WhenAppended.Values)],
             ThenEvents = [],
             ThenNoEvents = true
         });
@@ -31,7 +31,7 @@ public class when_exercising_translation_specifications : given.a_translation_sp
     async Task should_fail_an_unchanged_record_expectation_if_the_handler_appends_again() =>
         await AssertionFailsFor(specification => specification with
         {
-            GivenEvents = [new(specification.WhenAppended!.EventContract, specification.WhenAppended.Values)]
+            GivenEvents = [new(specification.WhenAppended.EventContract, specification.WhenAppended.Values)]
         });
 
     [Fact]
@@ -39,7 +39,7 @@ public class when_exercising_translation_specifications : given.a_translation_sp
     {
         ChangeCapture(new(SemanticCaptureConditionKind.Added, []), specification => specification with
         {
-            GivenEvents = [new(specification.WhenAppended!.EventContract, [.. specification.WhenAppended.Values.Select(value => value with { Value = new SemanticTextValue(OtherKey) })])]
+            GivenEvents = [new(specification.WhenAppended.EventContract, [.. specification.WhenAppended.Values.Select(value => value with { Value = new SemanticTextValue(OtherKey) })])]
         });
         Render(clientOnly: true);
         await RunGenerated("when_receiving_a_shipment");
@@ -58,7 +58,7 @@ public class when_exercising_translation_specifications : given.a_translation_sp
     {
         ChangeCapture(new(SemanticCaptureConditionKind.Added, []), recovery: true, change: specification => specification with
         {
-            GivenEvents = [new(specification.WhenAppended!.EventContract, specification.WhenAppended.Values) { EventSource = new(SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Text), new SemanticTextValue("another-stream")) }],
+            GivenEvents = [new(specification.WhenAppended.EventContract, specification.WhenAppended.Values) { EventSource = new(SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Text), new SemanticTextValue("another-stream")) }],
             ThenEvents = [],
             ThenNoEvents = true
         });
@@ -88,7 +88,7 @@ public class when_exercising_translation_specifications : given.a_translation_sp
             {
                 ThenEvents = [.. specification.ThenEvents.Select(expected => expected with
                 {
-                    EventSource = expected.EventSource! with { Value = new SemanticTextValue("11111111-1111-1111-1111-111111111111") }
+                    EventSource = expected.EventSource with { Value = new SemanticTextValue("11111111-1111-1111-1111-111111111111") }
                 })]
             })]
         } : slice);
@@ -127,7 +127,7 @@ public class when_exercising_translation_specifications : given.a_translation_sp
     {
         Render(clientOnly: true);
         var exception = await Assert.ThrowsAsync<TargetInvocationException>(() => RunGenerated(name));
-        exception.InnerException!.GetType().Namespace.ShouldEqual("Xunit.Sdk");
+        exception.InnerException.GetType().Namespace.ShouldEqual("Xunit.Sdk");
     }
 }
 #endif

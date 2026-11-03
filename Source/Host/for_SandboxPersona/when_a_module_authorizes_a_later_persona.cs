@@ -16,6 +16,6 @@ public class when_a_module_authorizes_a_later_persona : given.a_persona_model
 
     void Because() => _principal = Create(Personas + "\n" + Module);
 
-    [Fact] void should_use_the_persona_the_module_admits() => _principal!.FindFirstValue("sub").ShouldEqual("persona:Shopper");
-    [Fact] void should_carry_its_role() => _principal!.IsInRole("Shopper").ShouldBeTrue();
+    [Fact] void should_use_the_persona_the_module_admits() => _principal.FindFirstValue("sub").ShouldEqual("persona:Shopper");
+    [Fact] void should_carry_its_role() => _principal.IsInRole("Shopper").ShouldBeTrue();
 }

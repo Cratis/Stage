@@ -24,5 +24,5 @@ public class when_a_file_handler_also_declares_produces : a_file_handler_slice
     void Because() => _error = Catch.Exception(() => new StateChangeSliceRenderer().Render(_slice, _applicationSet, "CratisApp"));
 
     [Fact] void should_reject_instead_of_substituting_declarative_production() => _error.ShouldBeOfExactType<UnsupportedFileBackedCommandHandler>();
-    [Fact] void should_keep_the_original_file_reference() => Assert.Same(_command.Handler!.File, ((UnsupportedFileBackedCommandHandler)_error).File);
+    [Fact] void should_keep_the_original_file_reference() => Assert.Same(_command.Handler.File, ((UnsupportedFileBackedCommandHandler)_error).File);
 }

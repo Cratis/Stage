@@ -21,6 +21,6 @@ public class and_a_schema_rejected_the_append : Specification
         ConstraintViolations = [new ContractConstraintViolation { ConstraintName = "SchemaValidation", Message = "Property 'registeredFor' is required." }]
     });
 
-    [Fact] void should_not_report_success() => _result!.IsSuccess.ShouldBeFalse();
-    [Fact] void should_report_the_schema_error() => _result!.ExceptionMessages.Single().ShouldEqual("SchemaValidation: Property 'registeredFor' is required.");
+    [Fact] void should_not_report_success() => _result.IsSuccess.ShouldBeFalse();
+    [Fact] void should_report_the_schema_error() => _result.ExceptionMessages.Single().ShouldEqual("SchemaValidation: Property 'registeredFor' is required.");
 }

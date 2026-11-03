@@ -42,7 +42,7 @@ public class when_refusing_a_slice_referencing_a_public_event : Specification
             }] }]
         };
         var model = ExecutableSemanticModel.Create(original.LanguageVersion, original.SemanticVersion, application);
-        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Slice, selected.Id), new("Contracts", "Contracts"));
+        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Slice, selected.Id), new("Contracts", "Contracts"));
         if (form == "then")
         {
             plan.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Code == "STAGE-ESM-032" && diagnostic.Artifact == occurrence.EventContract);
@@ -74,9 +74,9 @@ public class when_refusing_a_slice_referencing_a_public_event : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("public-reference"), "public-reference", "PublicReference.play", source);
         var compilation = new SemanticModelCompiler().Compile(corpus.ApplicationName, SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var slice = model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.Name == "Shipments");
-        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Slice, slice.Id), new("Contracts", "Contracts"));
+        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Slice, slice.Id), new("Contracts", "Contracts"));
         plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-032" && diagnostic.Artifact == model.Application.Modules.Single().Features.Single().Slices.SelectMany(candidate => candidate.Events).Single(@event => @event.Name == "OrderShipped").Id);
         plan.Artifacts.ShouldBeEmpty();
     }

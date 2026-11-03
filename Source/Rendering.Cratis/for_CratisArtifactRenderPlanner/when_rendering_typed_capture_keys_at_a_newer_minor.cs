@@ -68,7 +68,7 @@ public class when_rendering_typed_capture_keys_at_a_newer_minor : Specification
     {
         SetTypes(SemanticTypeReference.ForPrimitive(source), SemanticTypeReference.ForPrimitive(append));
         var audited = Check();
-        audited!.ShouldContain(expected);
+        audited.ShouldContain(expected);
         Versions(32, 1);
         Check().ShouldEqual(audited);
     }
@@ -88,7 +88,7 @@ public class when_rendering_typed_capture_keys_at_a_newer_minor : Specification
     SemanticApplicationContext Context()
     {
         var options = new CratisRenderingOptions("Orders", "Orders");
-        var request = new ArtifactRenderRequest(_model, SemanticExecutionPlan.Compile(_model).Plan!, CratisRendering.CreateProfile(_model.Application.Name, options), new(ArtifactRenderScopeKind.Application, _model.Application.Id));
+        var request = new ArtifactRenderRequest(_model, SemanticExecutionPlan.Compile(_model).Plan, CratisRendering.CreateProfile(_model.Application.Name, options), new(ArtifactRenderScopeKind.Application, _model.Application.Id));
         return new(request, options);
     }
 
@@ -107,8 +107,8 @@ public class when_rendering_typed_capture_keys_at_a_newer_minor : Specification
 
     void Versions(uint major, uint minor)
     {
-        typeof(ExecutableSemanticModel).GetField("<LanguageVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(_model, new LanguageVersion(major, minor));
-        typeof(ExecutableSemanticModel).GetField("<SemanticVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(_model, new SemanticVersion(major, minor));
+        typeof(ExecutableSemanticModel).GetField("<LanguageVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(_model, new LanguageVersion(major, minor));
+        typeof(ExecutableSemanticModel).GetField("<SemanticVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(_model, new SemanticVersion(major, minor));
     }
 
     void SetTypes(SemanticTypeReference key, SemanticTypeReference destination)
@@ -116,7 +116,7 @@ public class when_rendering_typed_capture_keys_at_a_newer_minor : Specification
         var slice = SemanticVersionFeatures.Slices(_model.Application).Single();
         var events = slice.Events.Select(contract => contract with { Properties = [.. contract.Properties.Select(property => property with { Type = key })] }).ToImmutableArray();
         var captures = slice.Captures.Select(capture => capture with { Appends = [.. capture.Appends.Select(append => append with { EventSourceType = destination })] }).ToImmutableArray();
-        typeof(SemanticSlice).GetProperty(nameof(SemanticSlice.Events))!.SetValue(slice, events);
-        typeof(SemanticSlice).GetProperty(nameof(SemanticSlice.Captures))!.SetValue(slice, captures);
+        typeof(SemanticSlice).GetProperty(nameof(SemanticSlice.Events)).SetValue(slice, events);
+        typeof(SemanticSlice).GetProperty(nameof(SemanticSlice.Captures)).SetValue(slice, captures);
     }
 }

@@ -28,7 +28,7 @@ public class when_consuming_authenticated_placements : Specification
     void should_refuse_missing_or_duplicate_token(int occurrences)
     {
         var registry = new InlineCodeTokens();
-        var token = registry.Issue(Code("return 1;"), Site).Token!;
+        var token = registry.Issue(Code("return 1;"), Site).Token;
         var result = InlineCodeSplicer.Splice(string.Concat(Enumerable.Repeat(token.ToString(), occurrences)), registry);
         Assert.Null(result.Text);
         Assert.NotEmpty(result.Diagnostics);
@@ -38,8 +38,8 @@ public class when_consuming_authenticated_placements : Specification
     void should_refuse_foreign_render_forged_and_tampered_tokens_together()
     {
         var registry = new InlineCodeTokens();
-        var token = registry.Issue(Code("return 1;"), Site).Token!;
-        var other = new InlineCodeTokens().Issue(Code("return 1;"), Site).Token!;
+        var token = registry.Issue(Code("return 1;"), Site).Token;
+        var other = new InlineCodeTokens().Issue(Code("return 1;"), Site).Token;
         var tampered = token.ToString().Replace("stage_inline:", "stage_inline:0", StringComparison.Ordinal);
         var result = InlineCodeSplicer.Splice($"{other}{tampered}{InlineCodeTokens.Prefix}unkeyed-sha256{InlineCodeTokens.Suffix}", registry);
         Assert.Null(result.Text);
@@ -52,7 +52,7 @@ public class when_consuming_authenticated_placements : Specification
     void should_refuse_forged_or_tampered_token_even_when_the_genuine_token_is_present(bool tampered)
     {
         var registry = new InlineCodeTokens();
-        var genuine = registry.Issue(Code("return 1;"), Site).Token!.ToString();
+        var genuine = registry.Issue(Code("return 1;"), Site).Token.ToString();
         var forged = tampered ? genuine.Replace("stage_inline:", "stage_inline:0", StringComparison.Ordinal) :
             InlineCodeTokens.Prefix + "forged" + InlineCodeTokens.Suffix;
         var result = InlineCodeSplicer.Splice(genuine + forged, registry);
@@ -106,8 +106,8 @@ public class when_consuming_authenticated_placements : Specification
         var code = Code("return 1;");
         var first = new InlineCodeTokens();
         var second = new InlineCodeTokens();
-        var a = first.Issue(code, Site).Token!;
-        var b = second.Issue(code, Site).Token!;
+        var a = first.Issue(code, Site).Token;
+        var b = second.Issue(code, Site).Token;
         Assert.NotEqual(a.ToString(), b.ToString());
         InlineCodeSplicer.Splice(a.ToString(), first).Text.ShouldEqual(InlineCodeSplicer.Splice(b.ToString(), second).Text);
         CSharpInlineLanguagePack.Fingerprint(first.Slots.Values.Select(slot => slot.Code)).ShouldEqual(CSharpInlineLanguagePack.Fingerprint(second.Slots.Values.Select(slot => slot.Code)));

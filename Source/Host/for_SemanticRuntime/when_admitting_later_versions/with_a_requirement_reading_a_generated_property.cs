@@ -40,11 +40,11 @@ public class with_a_requirement_reading_a_generated_property : Specification
         };
 
         // Fault injection bypasses the typed-model validator, which rejects generated reads.
-        typeof(ExecutableSemanticModel).GetField("<Application>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(model, application);
-        _plan = SemanticExecutionPlan.Compile(model).Plan!;
+        typeof(ExecutableSemanticModel).GetField("<Application>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(model, application);
+        _plan = SemanticExecutionPlan.Compile(model).Plan;
     }
 
     void Because() => _admission = new(_plan);
 
-    [Fact] void should_refuse_the_hand_built_command_with_the_shared_diagnostic() => _admission.Blocking.ShouldContain(entry => entry.Artifact == _plan.Commands.Keys.Single().ToString() && entry.Details!.StartsWith("STAGE-ESM-038:", StringComparison.Ordinal));
+    [Fact] void should_refuse_the_hand_built_command_with_the_shared_diagnostic() => _admission.Blocking.ShouldContain(entry => entry.Artifact == _plan.Commands.Keys.Single().ToString() && entry.Details.StartsWith("STAGE-ESM-038:", StringComparison.Ordinal));
 }

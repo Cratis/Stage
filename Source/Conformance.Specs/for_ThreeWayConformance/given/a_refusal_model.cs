@@ -94,7 +94,7 @@ internal static class a_refusal_model
         var compilation = new SemanticModelCompiler().Compile("Refusals", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
 
-        return compilation.Value!.Model;
+        return compilation.Value.Model;
     }
 }
 #endif

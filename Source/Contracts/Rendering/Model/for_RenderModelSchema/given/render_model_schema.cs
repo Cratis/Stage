@@ -25,7 +25,7 @@ internal static class render_model_schema
 
     internal static string FilePath(string relativePath) => Path.Combine(ModelDirectory(), relativePath);
 
-    static string ModelDirectory([System.Runtime.CompilerServices.CallerFilePath] string file = "") => Path.GetFullPath(Path.Combine(Path.GetDirectoryName(file)!, "../.."));
+    static string ModelDirectory([System.Runtime.CompilerServices.CallerFilePath] string file = "") => Path.GetFullPath(Path.Combine(Path.GetDirectoryName(file), "../.."));
 
     static JsonNode Transform(JsonSchemaExporterContext context, JsonNode node)
     {
@@ -55,21 +55,21 @@ internal static class render_model_schema
         if (obj["type"] is not JsonArray types) return;
         for (var index = types.Count - 1; index >= 0; index--)
         {
-            if (types[index]!.GetValue<string>() == "null") types.RemoveAt(index);
+            if (types[index].GetValue<string>() == "null") types.RemoveAt(index);
         }
-        if (types.Count == 1) obj["type"] = types[0]!.DeepClone();
+        if (types.Count == 1) obj["type"] = types[0].DeepClone();
     }
 
     static void ApplyConstants(Type type, JsonObject properties)
     {
-        if (type == typeof(RenderCommand)) properties["kind"]!["const"] = "command";
-        if (type == typeof(RenderReaction)) properties["kind"]!["const"] = "reaction";
-        if (type == typeof(RenderProvenance)) properties["status"]!["const"] = RenderProvenance.Absent.Status;
+        if (type == typeof(RenderCommand)) properties["kind"]["const"] = "command";
+        if (type == typeof(RenderReaction)) properties["kind"]["const"] = "reaction";
+        if (type == typeof(RenderProvenance)) properties["status"]["const"] = RenderProvenance.Absent.Status;
         if (type == typeof(RenderModel))
         {
-            properties["schema"]!["const"] = RenderModel.Schema;
-            properties["canonicalization"]!["const"] = 1;
-            properties["minor"]!["const"] = 0;
+            properties["schema"]["const"] = RenderModel.Schema;
+            properties["canonicalization"]["const"] = 1;
+            properties["minor"]["const"] = 0;
         }
     }
 }

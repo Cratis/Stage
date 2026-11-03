@@ -48,12 +48,12 @@ public class when_rendering_reducer_observer_filters
             : "[EventSourceType(\"stored-orders\")]";
         Assert.Contains(expected, reducer.Content, StringComparison.Ordinal);
         Assert.Empty(RenderedOutput.Errors(files));
-        var type = RenderedOutput.Load(files).GetType($"Projects.Orders.Ordering.Totals.{(self ? "Total" : "Fold")}")!;
+        var type = RenderedOutput.Load(files).GetType($"Projects.Orders.Ordering.Totals.{(self ? "Total" : "Fold")}");
         if (withStream)
         {
             var attribute = Assert.Single(type.GetCustomAttributes(false), attribute => attribute.GetType().IsGenericType);
             Assert.Equal(typeof(FromEventSourceAttribute<>), attribute.GetType().GetGenericTypeDefinition());
-            Assert.Equal("stored-entries", attribute.GetType().GetProperty("Stream")!.GetValue(attribute));
+            Assert.Equal("stored-entries", attribute.GetType().GetProperty("Stream").GetValue(attribute));
         }
         else
         {
@@ -85,7 +85,7 @@ public class when_rendering_reducer_observer_filters
             Streams = [.. source.Streams.Select(stream => stream with { StreamKind = stream.StreamKind == "stored-entries" ? "All" : stream.StreamKind })]
         });
         var model = ExecutableSemanticModel.Create(original.LanguageVersion, original.SemanticVersion, original.Application with { EventSources = [.. sources] });
-        var plan = when_rendering_a_pure_reducer.Plan(loaded with { Model = model, Plan = SemanticExecutionPlan.Compile(model).Plan! });
+        var plan = when_rendering_a_pure_reducer.Plan(loaded with { Model = model, Plan = SemanticExecutionPlan.Compile(model).Plan });
         Assert.False(plan.Success);
         Assert.Empty(plan.Artifacts);
 

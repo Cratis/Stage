@@ -128,6 +128,7 @@ internal static class SemanticStateChangeArtifactRenderer
         var results = new SemanticCommandResultRendering(command, context, locals);
 
         var severities = command.Validations.Select(rule => rule.Severity)
+            .Concat(context.DeniedOperations.ContainsKey(command.Id) ? [SemanticValidationSeverity.Error] : [])
             .Concat(command.CodeValidations.Select(_ => SemanticValidationSeverity.Error))
             .Concat(command.Requirements.Select(requirement => requirement.Severity))
             .Concat(command.Properties.SelectMany(property => ReferencedValidations(property.Type, context, []).Select(rule => rule.Severity)))
@@ -346,7 +347,7 @@ internal static class SemanticStateChangeArtifactRenderer
 
         // A protected command evaluates its requirements inside Handle, with the decision reads, not in the parameterless validator.
         var requirements = command.Reads.IsDefaultOrEmpty ? command.Requirements : [];
-        if (command.Validations.IsEmpty && command.CodeValidations.IsEmpty && requirements.IsEmpty && constrained.Length == 0)
+        if (command.Validations.IsEmpty && command.CodeValidations.IsEmpty && requirements.IsEmpty && constrained.Length == 0 && !context.DeniedOperations.ContainsKey(command.Id))
         {
             return;
         }
@@ -357,6 +358,10 @@ internal static class SemanticStateChangeArtifactRenderer
         SemanticValidationRendering.RenderMatchFields(builder, command.Validations, commandName);
         builder.Summary($"Initializes validation rules for {commandName}.")
             .OpenBlock($"public {commandName}Validator()");
+        if (context.DeniedOperations.TryGetValue(command.Id, out var denial))
+        {
+            builder.Line($"RuleFor(_ => _).Must(_ => false).WithMessage({CSharpCodeBuilder.StringLiteral(SemanticDeniedValidations.Message(command, denial))});");
+        }
         var raw = SemanticDateComparisonAdmission.Raw(context.Application, command);
         var hasBodies = !command.CodeValidations.IsEmpty;
         foreach (var rule in command.Validations)

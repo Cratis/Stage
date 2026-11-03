@@ -170,7 +170,7 @@ internal static class SemanticVersionFeatures
         .Concat(Slices(application).SelectMany(slice => slice.Commands).SelectMany(DescribedHandlersInCommand))
         .Concat(RoutesInApplication(application))
         .Concat(application.Concepts.SelectMany(concept => UnknownValidationRules(concept.Validations, concept.Id, "concept", concept.Name)))
-        .Concat(Slices(application).SelectMany(slice => slice.Commands).SelectMany(command => UnknownValidationRules(command.Validations, command.Id, "command", command.Name)))
+        .Concat(Slices(application).SelectMany(slice => slice.Commands).SelectMany(UnknownCommandValidationRules))
         .Concat(Slices(application).SelectMany(slice => slice.Commands).SelectMany(command => UnsupportedGenerated(command, application.Concepts)));
 
     /// <summary>
@@ -474,7 +474,7 @@ internal static class SemanticVersionFeatures
             yield return route;
         }
 
-        foreach (var feature in UnknownValidationRules(command.Validations, command.Id, "command", command.Name)) yield return feature;
+        foreach (var feature in UnknownCommandValidationRules(command)) yield return feature;
         foreach (var feature in UnsupportedGenerated(command, null)) yield return feature;
 
         foreach (var reason in UnsupportedCommandResults(command))
@@ -624,15 +624,10 @@ internal static class SemanticVersionFeatures
             .Where(trigger => trigger.RequirementId is not null && HasStandaloneEventBody(reaction, trigger))
             .Select(trigger => ReactionBodyFeature(reaction, trigger)));
 
-    static SemanticVersionFeature ReactionBodyFeature(SemanticReaction reaction, SemanticReactionTrigger trigger) =>
-        new(Automation, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' has an opaque body for trigger kind '{trigger.Kind}', which Stage does not support yet.");
+    internal static IEnumerable<SemanticVersionFeature> UnknownCommandValidationRules(SemanticCommand command) =>
+        UnknownValidationRules(command.Validations, command.Id, "command", command.Name);
 
-    static IEnumerable<SemanticVersionFeature> UnknownValidationRules(
-        IEnumerable<SemanticValidationRule> rules, SemanticId owner, string kind, string name) =>
-        rules.Where(rule => !KnownValidationRule(rule.Kind)).Select(rule => new SemanticVersionFeature(
-            "STAGE-ESM-005", StageExecutionCapability.Command, owner, kind, $"{kind} '{name}' declares unsupported validation rule kind '{rule.Kind}' on property '{rule.Property}'."));
-
-    static bool KnownValidationRule(SemanticValidationRuleKind kind) => kind is
+    internal static bool KnownValidationRule(SemanticValidationRuleKind kind) => kind is
         SemanticValidationRuleKind.NotEmpty or SemanticValidationRuleKind.Maximum or SemanticValidationRuleKind.Minimum or
         SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual or SemanticValidationRuleKind.GreaterThan or
         SemanticValidationRuleKind.GreaterThanOrEqual or SemanticValidationRuleKind.LessThan or SemanticValidationRuleKind.LessThanOrEqual or
@@ -641,6 +636,14 @@ internal static class SemanticVersionFeatures
         SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation or
         SemanticValidationRuleKind.Contains or SemanticValidationRuleKind.NotContains or
         SemanticValidationRuleKind.StartsWith or SemanticValidationRuleKind.EndsWith or SemanticValidationRuleKind.DecimalPlaces;
+
+    static SemanticVersionFeature ReactionBodyFeature(SemanticReaction reaction, SemanticReactionTrigger trigger) =>
+        new(Automation, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' has an opaque body for trigger kind '{trigger.Kind}', which Stage does not support yet.");
+
+    static IEnumerable<SemanticVersionFeature> UnknownValidationRules(
+        IEnumerable<SemanticValidationRule> rules, SemanticId owner, string kind, string name) =>
+        rules.Where(rule => !KnownValidationRule(rule.Kind)).Select(rule => new SemanticVersionFeature(
+            "STAGE-ESM-005", StageExecutionCapability.Command, owner, kind, $"{kind} '{name}' declares unsupported validation rule kind '{rule.Kind}' on property '{rule.Property}'."));
 
     static IEnumerable<SemanticVersionFeature> NonEventTrigger(SemanticReaction reaction, SemanticReactionTrigger trigger)
     {

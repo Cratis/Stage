@@ -50,6 +50,7 @@ internal static class SemanticVersionFeatureAdmission
         if (context.Request.Scope.Kind == ArtifactRenderScopeKind.Application)
         {
             features = SemanticVersionFeatures.InApplication(context.Application).Except(SemanticVersionFeatures.RoutesInApplication(context.Application))
+                .Except(context.DeniedValidationFeatures)
                 .Except(SemanticOccurrenceAdmission.AdmittedTriggers(context)).Concat(features);
         }
 

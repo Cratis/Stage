@@ -75,7 +75,7 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     // Re-frozen when Debug specifications gained the Chronicle.Testing telemetry dependency.
     // Re-frozen for merged Scene 4.86.0 / Screenplay 4.258.0 output.
     // Re-frozen for Cratis/Stage#120 merged with train 10: authentication artifacts and host wiring on top of the train 10 output.
-    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(_qualified)).ShouldEqual("80045884b9b7cdd3c7c519248e420dccf3c5a3437c334cbc3322df24acea553d");
+    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(_qualified)).ShouldEqual("827b10b112e331a02833eda998b10df9702da0abedd78d7f7ee2791c4d3bfd69");
 
     // Re-frozen when the license header became the caller's choice and specifications moved into the application project.
     // Re-frozen for #424: generated C# uses short type names and using directives above the namespace.
@@ -84,7 +84,7 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     // Re-frozen for #741: only .gitignore gains the .yarn/ line.
     // Re-frozen for merged Scene 4.86.0 / Screenplay 4.258.0 output.
     // Re-frozen for Cratis/Stage#120 merged with train 10: authentication artifacts and host wiring on top of the train 10 output.
-    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("5aade00990301f61bcf0e3e1bd7b397fec4180da10d02effa5d9e26b34ab8002");
+    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("0fb6fc850881b40ec3302d933f222a28d92b5e987e68a446e42e74e56c3087c3");
     [Fact] void should_pin_the_screen_fragments() => string.Join('\n', _plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal)).Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}")).ShouldEqual("""
         Workspaces/Tracking/WorkItemComments/Screens.scene.json acd7f05ae339201f3867044a5a7ae3e7f3501e0ae90aac9b9742fa24cc0b98da 2270
         Workspaces/Tracking/WorkItemDetails/Screens.scene.json 536a72745002460a699cdb87ea8e6638ac38d4867978a3cce2cebcf24a5f1811 9963

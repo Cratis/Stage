@@ -29,8 +29,8 @@ public class when_disposed : given.a_model_root
 
     async Task Destroy()
     {
-        await _first.DisposeAsync();
-        await _second.DisposeAsync();
+        if (_first is not null) await _first.DisposeAsync();
+        if (_second is not null) await _second.DisposeAsync();
     }
 
     [Fact] public async Task should_close_the_current_worker() => await ((IAsyncDisposable)_next).Received(1).DisposeAsync();

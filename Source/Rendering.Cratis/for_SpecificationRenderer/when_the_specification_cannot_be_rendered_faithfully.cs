@@ -21,27 +21,27 @@ public class when_the_specification_cannot_be_rendered_faithfully : given.a_slic
     void Because()
     {
         _withGiven = SpecificationRenderer.Unrenderable(
-            Specification("Seeding", given: [Event("InvoiceRegistered", ("invoiceNumber", "INV-1"))], when: When("RegisterInvoice"), then: [Event("InvoiceRegistered")]),
+            Specification("Seeding", given: [Event("InvoiceRegistered", ("invoiceNumber", "INV-1"))], when: CommandInvocation("RegisterInvoice"), then: [Event("InvoiceRegistered")]),
             _sliceSyntax);
         _withReadModels = SpecificationRenderer.Unrenderable(
             Specification(
                 "Reading",
-                when: When("RegisterInvoice"),
+                when: CommandInvocation("RegisterInvoice"),
                 then: [Event("InvoiceRegistered")],
                 thenReadModels: [new SpecificationReadModelSyntax("InvoiceList", [], SourceLocation.Start)]),
             _sliceSyntax);
         _withAnotherCommand = SpecificationRenderer.Unrenderable(
-            Specification("Elsewhere", when: When("CancelInvoice"), then: [Event("InvoiceRegistered")]), _sliceSyntax);
-        _assertingNothing = SpecificationRenderer.Unrenderable(Specification("Nothing", when: When("RegisterInvoice")), _sliceSyntax);
+            Specification("Elsewhere", when: CommandInvocation("CancelInvoice"), then: [Event("InvoiceRegistered")]), _sliceSyntax);
+        _assertingNothing = SpecificationRenderer.Unrenderable(Specification("Nothing", when: CommandInvocation("RegisterInvoice")), _sliceSyntax);
         _expectingBoth = SpecificationRenderer.Unrenderable(
             Specification(
                 "Both",
-                when: When("RegisterInvoice"),
+                when: CommandInvocation("RegisterInvoice"),
                 then: [Event("InvoiceRegistered")],
                 errors: [new(null, SourceLocation.Start)]),
             _sliceSyntax);
         _renderable = SpecificationRenderer.Unrenderable(
-            Specification("Registering", when: When("RegisterInvoice"), then: [Event("InvoiceRegistered")]), _sliceSyntax);
+            Specification("Registering", when: CommandInvocation("RegisterInvoice"), then: [Event("InvoiceRegistered")]), _sliceSyntax);
     }
 
     // The document, not the target, is what makes this unrenderable — CommandScenario does support Given.

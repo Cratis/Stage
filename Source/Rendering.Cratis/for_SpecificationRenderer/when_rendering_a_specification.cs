@@ -26,7 +26,7 @@ public class when_rendering_a_specification : given.a_slice_with_specifications
         _appended = SpecificationRenderer.Render(
             Specification(
                 "RegisteringAnInvoice",
-                when: When(
+                when: CommandInvocation(
                     "RegisterInvoice",
                     ("invoiceId", "9c858901-8a57-4791-81fe-4c455b099bc9"),
                     ("invoiceNumber", "INV-000123"),
@@ -40,7 +40,7 @@ public class when_rendering_a_specification : given.a_slice_with_specifications
         _rejected = SpecificationRenderer.Render(
             Specification(
                 "RejectingAnInvoiceWithNoNumber",
-                when: When("RegisterInvoice", ("invoiceId", "9c858901-8a57-4791-81fe-4c455b099bc9")),
+                when: CommandInvocation("RegisterInvoice", ("invoiceId", "9c858901-8a57-4791-81fe-4c455b099bc9")),
                 errors: [new(null, Screenplay.Diagnostics.SourceLocation.Start)]),
             _command,
             _slice,
@@ -52,7 +52,7 @@ public class when_rendering_a_specification : given.a_slice_with_specifications
         _withoutIdentity = SpecificationRenderer.Render(
             Specification(
                 "RegisteringWithoutSayingWhich",
-                when: When("RegisterInvoice", ("invoiceNumber", "INV-000124")),
+                when: CommandInvocation("RegisterInvoice", ("invoiceNumber", "INV-000124")),
                 then: [Event("InvoiceRegistered", ("invoiceNumber", "INV-000124"))]),
             _command,
             _slice,

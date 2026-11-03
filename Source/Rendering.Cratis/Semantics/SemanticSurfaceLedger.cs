@@ -442,8 +442,6 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticSpecification", rendered, "ThenInvocations");
         Add(entries, "SemanticSpecificationInvocation", rendered, "Command Values");
 
-        AddLifecycles(entries, rejected("STAGE-ESM-016"));
-
         // Screenplay 4.125 added ESM v10: reaction execution identity, observer filters and production routes.
         // Admit each construct only on the paths that can preserve it.
         Add(entries, "SemanticReaction", rendered, "RunsAs");
@@ -473,27 +471,32 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticReadPathExpression", reads, "Read PropertyId");
         Add(entries, "SemanticOneOfExpression", rejected("STAGE-ESM-006"), "CollectionProperty");
 
-        return entries;
-    }
+        // State machines and workflows (ESM v36, Screenplay 5.1.0). The runtime drives them on the Orleans silo and the renderer emits
+        // Cratis.Orleans state machines and workflow definitions; what neither can express is refused with its STAGE-LIFECYCLE diagnostic.
+        var lifecycleNotRendered = rejected("STAGE-LIFECYCLE-010");
+        var scheduled = rejected("STAGE-LIFECYCLE-007");
+        var verifiedByTheReferenceEvaluator = ignored("Lifecycle specifications are verified by the reference lifecycle evaluator in the spec runner; no generated specification is emitted.");
+        Add(entries, "SemanticApplication", rendered, "StateMachines Workflows");
+        Add(entries, "SemanticStateMachine", rendered, "Name ReadModel States Transitions");
+        Add(entries, "SemanticStateMachine", verifiedByTheReferenceEvaluator, "Specifications");
+        Add(entries, "SemanticState", rendered, "Name IsInitial IsFinal Entering");
+        Add(entries, "SemanticStateEntry", rendered, "Kind Command Workflow");
+        Add(entries, "SemanticStateEntryKind", rendered, "SendCommand StartWorkflow");
+        Add(entries, "SemanticStateTransition", rendered, "From Event Guard To");
+        Add(entries, "SemanticWorkflow", rendered, "Name Subject Nodes Edges");
+        Add(entries, "SemanticWorkflow", verifiedByTheReferenceEvaluator, "Specifications");
+        Add(entries, "SemanticWorkflowNode", rendered, "Name Kind TriggerKind Event StateMachine State Command MaxAttempts AttemptTimeout RetryDelay Duration ExpiresAfter");
+        Add(entries, "SemanticWorkflowNode", scheduled, "Every At OnDayOfWeek OnDayOfMonth");
+        Add(entries, "SemanticWorkflowNode", lifecycleNotRendered, "Condition WhenTrue WhenFalse ApproverKind Approver Items MaxParallel JoinMode JoinCount");
+        Add(entries, "SemanticWorkflowEdge", rendered, "From Outlet To");
+        Add(entries, "SemanticWorkflowNodeKind", rendered, "Trigger Action Wait");
+        Add(entries, "SemanticWorkflowNodeKind", lifecycleNotRendered, "Decision Approval ForEach Join");
+        Add(entries, "SemanticLifecycleSpecification", verifiedByTheReferenceEvaluator, "Name Given WhenAppended WhenStarted Outcomes Then");
+        Add(entries, "SemanticLifecycleOutcome", verifiedByTheReferenceEvaluator, "Node Outlet");
+        Add(entries, "SemanticLifecycleExpectation", verifiedByTheReferenceEvaluator, "Kind Target Command");
+        Add(entries, "SemanticLifecycleExpectationKind", verifiedByTheReferenceEvaluator, "State Sends Starts Completes Fails Waits");
 
-    // Screenplay 5.1 added ESM v36 state machines and workflows (Screenplay#1118, #1119). Stage does not render or run them yet (Stage#927):
-    // ESM v36 stays outside the admitted range, and every lifecycle member is gated so a populated lifecycle is a security-relevant unknown.
-    static void AddLifecycles(Dictionary<string, SemanticSurfaceDisposition> entries, SemanticSurfaceDisposition lifecycles)
-    {
-        Add(entries, "SemanticApplication", lifecycles, "StateMachines Workflows");
-        Add(entries, "SemanticStateMachine", lifecycles, "Name ReadModel States Transitions Specifications");
-        Add(entries, "SemanticState", lifecycles, "Name IsInitial IsFinal Entering");
-        Add(entries, "SemanticStateEntry", lifecycles, "Kind Command Workflow");
-        Add(entries, "SemanticStateEntryKind", lifecycles, "SendCommand StartWorkflow");
-        Add(entries, "SemanticStateTransition", lifecycles, "From Event Guard To");
-        Add(entries, "SemanticWorkflow", lifecycles, "Name Subject Nodes Edges Specifications");
-        Add(entries, "SemanticWorkflowNode", lifecycles, "Name Kind TriggerKind Event StateMachine State Every At OnDayOfWeek OnDayOfMonth Command MaxAttempts AttemptTimeout RetryDelay Condition WhenTrue WhenFalse Duration ExpiresAfter ApproverKind Approver Items MaxParallel JoinMode JoinCount");
-        Add(entries, "SemanticWorkflowNodeKind", lifecycles, "Trigger Action Decision Wait Approval ForEach Join");
-        Add(entries, "SemanticWorkflowEdge", lifecycles, "From Outlet To");
-        Add(entries, "SemanticLifecycleSpecification", lifecycles, "Name Given WhenAppended WhenStarted Outcomes Then");
-        Add(entries, "SemanticLifecycleOutcome", lifecycles, "Node Outlet");
-        Add(entries, "SemanticLifecycleExpectation", lifecycles, "Kind Target Command");
-        Add(entries, "SemanticLifecycleExpectationKind", lifecycles, "State Sends Starts Completes Fails Waits");
+        return entries;
     }
 
     static void Add(

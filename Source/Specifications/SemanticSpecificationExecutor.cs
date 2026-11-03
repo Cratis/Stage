@@ -102,6 +102,11 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
             }
         }
 
+        if (!cancellationToken.IsCancellationRequested)
+        {
+            results.AddRange(SemanticLifecycleSpecifications.Run(plan, selection));
+        }
+
         var enriched = results.Select(result => EnrichCaseFailure(result, options)).ToArray();
 
         return new("stage-spec-run/1", plan.Model.Application.Id.ToString(), plan.Revision.ToString(), enriched);

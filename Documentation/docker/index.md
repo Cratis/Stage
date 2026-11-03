@@ -67,8 +67,20 @@ you will see in the log line the host prints and in the Workbench.
 | `9090` | HTTP | The model's API — commands, queries, OpenAPI and the Scalar reference. See [URLs of a running Stage](../reference/urls.md). |
 | `35000` | HTTPS | The Chronicle kernel: gRPC (HTTP/2) for the Stage's own client, plus the **Chronicle Workbench**, its API and OAuth (HTTP/1.1) on the same port. |
 
-Those two are all a caller needs. The kernel's remaining ports (Orleans clustering on `11111` and `30000`) are
-internal to the container and can be ignored.
+Those two are all a caller needs. The remaining ports are internal to the container and can be ignored: the kernel's
+Orleans clustering on `11111` and `30000`, and the Stage's own Orleans silo on `21111` and `31000`.
+
+### The Stage silo
+
+The Stage hosts its own Orleans silo through [Cratis.Orleans](https://github.com/Cratis/Orleans), next to the
+Chronicle kernel, so durable state machines and workflows have grains to run on. It uses the local configuration:
+localhost clustering and in-memory grain storage, so it starts without MongoDB and nothing it holds survives the
+container. Jobs, Chronicle-backed event-sourced state machines and the workflow engine are registered.
+
+The kernel is itself an Orleans silo in the same container and binds the Orleans default ports, so the Stage silo
+listens on its own (`21111` silo, `31000` gateway) and joins a distinct cluster (`cratis-stage`). Override the ports
+with `Stage:Orleans:SiloPort` and `Stage:Orleans:GatewayPort` in `cratis-stage.json` if something else in your
+container needs them.
 
 :::caution
 **Port `35000` is HTTPS only — reach it as `https://localhost:35000`.** Kestrel can only serve HTTP/1.1 and
@@ -273,7 +285,8 @@ docker run --rm -p 9090:9090 -p 35000:35000 \
 The semantic engine evaluates validation, requirements, authorization, conditional production and constraints
 before accepting a command. Accepted facts are appended to Chronicle as one batch; a failed append does not
 commit the in-process read-model state. `GET /stage/semantic/admission` lists the model's admitted and
-unsupported artifacts. `GET /stage/status` includes `engine: "semantic"`. If Screenplay cannot compile an
+unsupported artifacts, state machines and workflows included; `GET /stage/lifecycles` reports where state machines are and what
+workflows wait for (see [State machines and workflows](../reference/state-machines-and-workflows.md)). `GET /stage/status` includes `engine: "semantic"`. If Screenplay cannot compile an
 executable plan, the host returns `state: "unsupported"` with issues; `/api/**` responds with HTTP 501
 instead of performing a partial model. Only Error-severity compiler diagnostics become blocking
 `Plan` issues. Information and Warning diagnostics are returned separately in the optional `notes`

@@ -6,20 +6,6 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// <summary>Reviewed reference-bearing ESM members. New identity-bearing members require a classification here.</summary>
 internal static class SemanticDependencyReferences
 {
-    const string LifecycleRefusal = "ESM v36 lifecycle (state machine/workflow) member: Stage does not index or render lifecycles yet (Cratis/Stage#927); a populated value leaves the graph incomplete.";
-
-    const string Refused = """
-        SemanticApplication:StateMachines Workflows
-        SemanticStateMachine:ReadModel States Transitions Specifications
-        SemanticWorkflow:Subject Nodes Specifications
-        SemanticState:Entering
-        SemanticStateEntry:Command
-        SemanticStateTransition:Event Guard
-        SemanticWorkflowNode:Event Command Condition Items
-        SemanticLifecycleSpecification:Given WhenAppended WhenStarted Then
-        SemanticLifecycleExpectation:Command
-        """;
-
     static readonly IReadOnlyDictionary<SemanticDependencyKind, string> _groups = new Dictionary<SemanticDependencyKind, string>
     {
         [SemanticDependencyKind.Declaration] = """
@@ -155,6 +141,15 @@ internal static class SemanticDependencyReferences
         SemanticReaction:From Triggers
         SemanticReactionTrigger:Source Where Produces Invokes
         SemanticInvocation:Command Mappings OnRefused
+        SemanticApplication:StateMachines Workflows
+        SemanticStateMachine:ReadModel States Transitions Specifications
+        SemanticState:Entering
+        SemanticStateEntry:Command
+        SemanticStateTransition:Event Guard
+        SemanticWorkflow:Subject Nodes Edges Specifications
+        SemanticWorkflowNode:Event Command Condition Items
+        SemanticLifecycleSpecification:Given WhenAppended WhenStarted Then
+        SemanticLifecycleExpectation:Command
         """,
         [SemanticDependencyKind.Capture] = """
         SemanticCapture:EventsSource Appends Children Nested
@@ -174,7 +169,6 @@ internal static class SemanticDependencyReferences
     {
         var entries = new Dictionary<string, SemanticDependencyClassification>(StringComparer.Ordinal);
         foreach (var group in _groups) Add(entries, group.Value, new(group.Key));
-        Add(entries, Refused, new(null, null, LifecycleRefusal));
         return entries;
     }
 

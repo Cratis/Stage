@@ -32,6 +32,8 @@ public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
     // Re-frozen for #424: the scaffold places using directives outside the namespace.
     // Re-frozen for #660: only Directory.Build.props gains CratisReadProtection On.
     const string FrozenRepositoryRootDigest = "183b9dbf2784ba79a902196c276d2ea221defe1076a85e6d4519b48878b9ebba";
+    // Re-frozen for Cratis/Stage#926: the application hosts an Orleans silo; every earlier digest re-frozen with it.
+    // Re-frozen for Chronicle 19.114.0 and Cratis.Orleans 1.33.1 with the telemetry callback registration removed; every earlier digest re-frozen with it.
 
     string _digest = null!;
 

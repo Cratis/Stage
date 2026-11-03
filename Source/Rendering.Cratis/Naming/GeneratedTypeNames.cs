@@ -161,9 +161,7 @@ internal static class GeneratedTypeNames
             }
             foreach (var projection in slice.Projections.Where(projection => projection.Scope is not null))
             {
-                var projectionName = GeneratedPascalCase.From(projection.Name);
-                var implementationName = slice.ReadModels.Any(readModel => GeneratedPascalCase.From(readModel.Name) == projectionName)
-                    ? $"{projectionName}Projection" : projectionName;
+                var implementationName = GeneratedPascalCase.ProjectionImplementation(projection.Name, slice.ReadModels.Single(readModel => readModel.Id == projection.ReadModel).Name);
                 foreach (var name in Names(ns, implementationName, projection.Id, "Projection")) yield return name;
             }
         }

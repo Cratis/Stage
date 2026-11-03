@@ -94,6 +94,14 @@ internal static class GeneratedPascalCase
         return names.Distinct(StringComparer.Ordinal).Count() == names.Length && !names.Contains("readModels", StringComparer.Ordinal);
     }
 
+    // Screenplay variant projections carry an internal length-prefixed name, not an authored CLR name.
+    internal static string ProjectionImplementation(string name, string readModel)
+    {
+        var model = From(readModel);
+        var projection = name.Contains(':', StringComparison.Ordinal) ? model : From(name);
+        return projection == model ? $"{projection}Projection" : projection;
+    }
+
     internal static bool ProjectionTypeNameIsSafe(string name) => From(name) != "Define";
 
     internal static bool ConstraintTypeNameIsSafe(string name) => From(name) != "Define";

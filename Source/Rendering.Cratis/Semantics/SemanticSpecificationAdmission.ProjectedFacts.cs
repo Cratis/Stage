@@ -15,7 +15,7 @@ internal static partial class SemanticSpecificationAdmission
         var facts = SemanticProjectionFactSpecification.WithAppendedFact(specification);
         return CanSeedProjectedAbsence(context, specification) &&
             (!facts.GivenEvents.IsEmpty || !specification.GivenReadModels.IsEmpty || specification.ThenReadModels.IsEmpty) &&
-            HasRenderableGivenEvents(context, facts) && GivenKeysMatchProjectedProperties(context, facts) && !GivenEventsViolateConstraints(context, facts) &&
+            HasRenderableOrderedGivenEvents(context, facts) && GivenKeysMatchProjectedProperties(context, facts) && !GivenEventsViolateConstraints(context, facts) &&
             specification.ThenReadModels.All(expected => ReadModelMatches(context, expected) &&
                 (SemanticProjectionSpecificationSeeds.Contains(specification, expected) || IsProjectedFromFacts(context, facts, expected))) &&
             specification.ThenAbsentReadModels.All(expected => CanAssertAbsence(context, specification, expected));

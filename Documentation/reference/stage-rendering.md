@@ -672,6 +672,33 @@ Moving an existing model from v7 to v8 widens stored event schemas from int32 to
 that change within the same generation; plan a new event generation before upgrading
 ([Stage #204](https://github.com/Cratis/Stage/issues/204)). TypeScript properties remain `number`.
 
+## Root joins with an explicit key
+
+Root projection joins can correlate a required scalar event property with a read-model property of the same type.
+For example, a variant can retain the latest title for an issue even when the retitle event's source is a different issue:
+
+```play
+projection WorkItem
+  from IssueRetitled key issueId
+    title = title
+  variant Filed
+    enters on IssueFiled
+```
+
+Here `Filed` is a read model with an `id String key` and `title String`; `IssueRetitled` supplies `issueId String`
+and `title String`. Stage renders the root join with `join.On(model => model.Id)` and
+`join.UsingKey(evt => evt.IssueId)`. The specification executor uses the same key, rather than the event source id.
+Omitting the key, or using `$eventSourceId`, retains event-source correlation. Literal, optional, mismatched,
+composite, event-context and child or nested join keys remain unsupported.
+
+The Chronicle server must be **19.112.4 or later**. Chronicle still backfills joins by event source id rather than
+by the explicit key ([Chronicle#5439](https://github.com/Cratis/Chronicle/issues/5439)). Stage refuses a specification
+if a differently keyed join fact is followed by any root `from` event, including a later update to the event-source
+instance rather than the keyed instance. A subsequent command is conservatively refused too. This check applies
+across the given history and the action; it does not prevent the issue at runtime in a rendered application.
+Until Chronicle resolves the issue, append the root facts before differently keyed join events. Backfill with a key
+that equals the event source id remains admitted.
+
 ## Generated C# global usings
 
 An application render writes `GlobalUsings.cs` at the backend root with `global using` directives for

@@ -32,10 +32,6 @@ internal static partial class SemanticSpecificationAdmission
     {
         foreach (var specification in SemanticOpaqueBodyDependencies.WithoutUncontrolledClockSpecifications(SemanticCommandBodyAdmission.WithoutBodySpecifications(WithoutReactionCascades(context, slice, diagnostics), context, diagnostics), context, diagnostics))
         {
-            if (TryRefuseDeniedOperation(context, slice, specification, diagnostics))
-            {
-                continue;
-            }
             if (TryRefuseUnboundEventMetadata(context, specification, diagnostics))
             {
                 continue;
@@ -72,19 +68,26 @@ internal static partial class SemanticSpecificationAdmission
     internal static bool TriggerValuesMatch(SemanticApplicationContext context, SemanticSpecification specification, SemanticCommand command) =>
         CommandValuesMatch(context, specification, command);
 
-    static bool TryRefuseDeniedOperation(SemanticApplicationContext context, SemanticSlice slice, SemanticSpecification specification, ICollection<ArtifactRenderDiagnostic> diagnostics)
+    static bool TryRefuseDeniedOperation(SemanticApplicationContext context, SemanticSpecification specification, ICollection<ArtifactRenderDiagnostic> diagnostics)
     {
         if (context.DeniedOperations.Count == 0) return false;
 
-        var invoked = specification.When is { } when
-            ? Enumerable.Repeat(when.Command, 1)
-            : slice.Reactions.SelectMany(reaction => reaction.Triggers).SelectMany(trigger => trigger.Invokes).Select(invocation => invocation.Command);
-        foreach (var command in invoked.Where(context.DeniedOperations.ContainsKey).Distinct())
+        foreach (var command in InvokedCommands(context, specification).Where(context.DeniedOperations.ContainsKey).Distinct())
         {
             diagnostics.Add(new("STAGE-ESM-011", ArtifactRenderDiagnosticSeverity.Error, $"Specification '{specification.Name}' cannot render: command '{context.Commands[command].Name}' denies every invocation (STAGE-DEGRADE-002).", specification.Id));
             return true;
         }
         return false;
+    }
+
+    static IEnumerable<SemanticId> InvokedCommands(SemanticApplicationContext context, SemanticSpecification specification)
+    {
+        if (specification.When is { } when) return [when.Command];
+        if (specification.WhenAppended is null && specification.WhenRedelivered is null) return [];
+
+        var active = ReactionCandidates(context, specification)
+            .Where(candidate => specification.ThenNoEvents || specification.WhenRedelivered is not null || candidate.Fires).ToArray();
+        return active.Length == 1 ? active[0].Trigger.Invokes.Select(invocation => invocation.Command) : [];
     }
 
     static bool TryRefuseUnboundEventMetadata(SemanticApplicationContext context, SemanticSpecification specification, ICollection<ArtifactRenderDiagnostic> diagnostics)
@@ -174,6 +177,10 @@ internal static partial class SemanticSpecificationAdmission
     {
         foreach (var specification in WithRenderableGeneratedValues(context, slice.Specifications.Select(specification => specification.WithPinnedActionValues()), diagnostics))
         {
+            if (TryRefuseDeniedOperation(context, specification, diagnostics))
+            {
+                continue;
+            }
             if (CommandTriggersReaction(context, specification))
             {
                 if (SemanticReactionCascade.IsRejectedByTrigger(context, specification))
@@ -201,6 +208,7 @@ internal static partial class SemanticSpecificationAdmission
 
     static void ValidateCascade(SemanticApplicationContext context, SemanticReactionCascade cascade, ICollection<ArtifactRenderDiagnostic> diagnostics)
     {
+        if (TryRefuseDeniedOperation(context, cascade.Reaction, diagnostics)) return;
         ValidateReactionAppend(context, cascade.Reaction, diagnostics);
         if (cascade.Trigger is { } trigger && !CanRenderSpecification(context, trigger))
         {

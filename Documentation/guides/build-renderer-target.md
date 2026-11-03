@@ -358,7 +358,7 @@ Collect independent target diagnostics so an author can fix several issues in on
 
 | Code | Meaning | Action |
 | --- | --- | --- |
-| `STAGE-ESM-005` | A command shape or validation implementation cannot be rendered faithfully. Each unsupported command capability reports its own reason, with the command identity retained for source navigation. | Read every reported reason, not just the first. Use the corresponding model fix below. |
+| `STAGE-ESM-005` | A command shape or validation implementation cannot be rendered faithfully. Each unsupported command capability reports its own reason, with the command identity retained for source navigation. An unknown rule kind or undefined severity on a command instead degrades with `STAGE-DEGRADE-002`, denying the operation and skipping its specifications with `STAGE-ESM-011`; concept rules still refuse. | Read every reported reason, not just the first. Use the corresponding model fix below. |
 | `STAGE-ESM-053` | Neither a production nor its command names an event source. Stage does not yet render event-source identity allocation for such a production ([Stage#629](https://github.com/Cratis/Stage/issues/629)). | Supply the intended destination in the model. A production that requires Stage to invent an identity remains refused. |
 
 The `STAGE-ESM-005` reasons do not widen or narrow admission. Requirements have no authored name in the ESM, so diagnostics identify their one-based position and referenced command properties. Several reasons can share the same code and command identity.

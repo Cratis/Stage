@@ -122,7 +122,7 @@ internal sealed partial class SemanticApplicationContext
     /// <summary>
     /// Gets commands by semantic identity.
     /// </summary>
-    public IReadOnlyDictionary<SemanticId, SemanticCommand> Commands { get; }
+    public IReadOnlyDictionary<SemanticId, SemanticCommand> Commands { get; private set; }
 
     /// <summary>
     /// Gets read models by semantic identity.
@@ -196,6 +196,10 @@ internal sealed partial class SemanticApplicationContext
     /// Gets the degradations admission recorded while it kept rendering, each paired with the warning it added to the plan diagnostics.
     /// </summary>
     internal List<ArtifactRenderDegradation> Degradations { get; } = [];
+
+    internal Dictionary<SemanticId, string> DeniedOperations { get; } = [];
+
+    internal List<SemanticVersionFeature> DeniedValidationFeatures { get; } = [];
 
     /// <summary>
     /// Gets the $eventContext paths whose projection mappings were omitted, by read model.
@@ -358,6 +362,40 @@ internal sealed partial class SemanticApplicationContext
             projection.Scope is null && !projection.Transitions.IsEmpty && projection.Target == SemanticProjectionTargetKind.ReadModel &&
             ReadModels.TryGetValue(projection.ReadModel, out var readModel) && readModel.Properties.Count(property => property.IsIdentifier) == 1 &&
             !SemanticCratisAdmission.FlatProjectionRenders(this, projection, readModel);
+    }
+
+    // Validation rules the target cannot interpret (Stage#810) deny the enclosing command rather than dropping its contract.
+    // Only selected slices are rewritten, so commands outside the render neither warn nor deny.
+    internal void DenyUnsupportedValidations(List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        foreach (var located in SelectedSlices())
+        {
+            var commands = located.Slice.Commands.ToArray();
+            for (var index = 0; index < commands.Length; index++)
+            {
+                var command = commands[index];
+                if (!SemanticDeniedValidations.Denies(command))
+                {
+                    continue;
+                }
+
+                var reason = SemanticDeniedValidations.Reason(command);
+                DeniedOperations[command.Id] = reason;
+                DeniedValidationFeatures.AddRange(SemanticVersionFeatures.UnknownCommandValidationRules(command));
+                var warning = new ArtifactRenderDiagnostic(
+                    ArtifactRenderDegradationCodes.UnsupportedConstruct,
+                    ArtifactRenderDiagnosticSeverity.Warning,
+                    $"Command '{command.Name}' denies every invocation: {reason}.",
+                    command.Id);
+                diagnostics.Add(warning);
+                Degradations.Add(new(warning, "Upgrade the Cratis target to one that renders this validation rule, or replace it with a supported declarative rule."));
+                commands[index] = command with { Validations = [.. command.Validations.Where(rule => !SemanticDeniedValidations.IsDenied(rule))] };
+            }
+
+            _slices[located.Slice.Id] = located with { Slice = located.Slice with { Commands = [.. commands] } };
+        }
+
+        Commands = IndexIdentities(_slices.Values.SelectMany(_ => _.Slice.Commands), _ => _.Id, "command");
     }
 
     // Event-context mappings the renderer cannot express (Stage#876) are omitted from a read model nothing decides on, so the rest of the view still renders.

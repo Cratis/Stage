@@ -403,6 +403,13 @@ recorded warning to an Error, so `Success` becomes false while `Outcome` remains
 safe publication. Strict acceptance is not a request to discard safe artifacts or reports;
 planning itself never publishes files.
 
+An unknown validation rule kind or undefined severity on a command records one
+`STAGE-DEGRADE-002` warning and degradation evidence for that command. Its inventory uses
+`DenyEnclosingOperation`: an always-failing Error-severity validator rejects every invocation
+before argument resolution, the handler, or any append. Specifications invoking the denied
+command are skipped with `STAGE-ESM-011`. Strict acceptance promotes the degradation warning
+to an Error. Concept validation rules and fixable authoring errors in known rules still refuse.
+
 `WithAcceptance(plan.Degradations, strict: false)` restores the original warning evidence.
 Release-baseline warnings and source diagnostics retain that evidence across plan
 reconstruction. `WithInventory` accepts a validated construct inventory; its locations carry

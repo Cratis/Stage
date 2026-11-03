@@ -127,6 +127,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticValidationRule", rendered, "Kind Message Property Severity Operand");
         Add(entries, "SemanticValidationRule", rendered, "Name RequirementId");
         Add(entries, "SemanticValidationRuleKind", rendered, "NotEmpty Maximum Minimum Equal NotEqual GreaterThan GreaterThanOrEqual LessThan LessThanOrEqual Length AllGreaterThan AllGreaterThanOrEqual Matches Checksum Contains NotContains StartsWith EndsWith RulePredicate CodeValidation DecimalPlaces");
+
+        // Unknown concept rules still refuse; unknown command rules degrade by denying the enclosing operation.
         Add(entries, "SemanticValidationRuleKind", rejected("STAGE-ESM-005"), "Unknown");
         Add(entries, "SemanticValidationSeverity", rendered, "Error Information Warning");
 

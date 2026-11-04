@@ -34,7 +34,7 @@ public class when_selecting_service_layout : a_register_project_render_request
         _explicitlyOff = CratisRendering.PlanScaffold(_plan with { ServiceLayout = false });
         _scaffold = CratisRendering.PlanScaffold(layout);
         _both = CratisRendering.PlanScaffold(layout with { RepositoryRoot = true });
-        _bothMessage = string.Join("\n", _both.Diagnostics.Select(diagnostic => diagnostic.Message));
+        _bothMessage = string.Join('\n', _both.Diagnostics.Select(diagnostic => diagnostic.Message));
         var scope = new ArtifactRenderScope(ArtifactRenderScopeKind.Application, _model.Application.Id);
         _defaultApplication = CratisRendering.Plan(_model, _executionPlan, scope, _options);
         _explicitlyOffApplication = CratisRendering.Plan(_model, _executionPlan, scope, _options with { ServiceLayout = false });
@@ -77,10 +77,10 @@ public class when_selecting_service_layout : a_register_project_render_request
     [Fact] void should_plan_no_artifacts_for_the_repository_root_combination() => _both.Artifacts.ShouldBeEmpty();
     [Fact] void should_say_why_the_combination_is_refused() => _bothMessage.Contains("RepositoryRoot", StringComparison.Ordinal).ShouldBeTrue();
 
-    static bool IsRepositoryFile(string path) => path is ".editorconfig" or "Directory.Build.props" or "Directory.Build.targets" or "Directory.Packages.props" or "Projects.slnx" or "docker-compose.yml";
+    static bool IsRepositoryFile(string path) => string.Equals(path, ".editorconfig", StringComparison.Ordinal) || string.Equals(path, "Directory.Build.props", StringComparison.Ordinal) || string.Equals(path, "Directory.Build.targets", StringComparison.Ordinal) || string.Equals(path, "Directory.Packages.props", StringComparison.Ordinal) || string.Equals(path, "Projects.slnx", StringComparison.Ordinal) || string.Equals(path, "docker-compose.yml", StringComparison.Ordinal);
 
     static string Describe(IEnumerable<PlannedArtifact> artifacts, string folder) =>
-        string.Join("\n", artifacts.Select(artifact => $"{artifact.RelativePath[folder.Length..]}:{ArtifactBytes(artifact)}").Order(StringComparer.Ordinal));
+        string.Join('\n', artifacts.Select(artifact => $"{artifact.RelativePath[folder.Length..]}:{ArtifactBytes(artifact)}").Order(StringComparer.Ordinal));
 
     static string ArtifactBytes(PlannedArtifact artifact) => Convert.ToHexString(artifact.Bytes.AsSpan());
 }

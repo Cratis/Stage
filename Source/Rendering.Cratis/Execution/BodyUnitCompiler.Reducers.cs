@@ -25,7 +25,7 @@ public static partial class BodyUnitCompiler
             var unit = compilation.Render(context, descriptor!, body!);
             MetadataReference[] references = [.. PureTransitionAdmission.AnalysisReferences(), SemanticGenerationBodyAdmission.FundamentalsReference, SemanticGenerationBodyAdmission.ChronicleReference];
             var build = new UnitBuild(unit.Sources, references, Microsoft.CodeAnalysis.CSharp.LanguageVersion.Latest, (hash, peSha) =>
-                new BodyUnitEntry(requirement.RequirementId, requirement.Role.ToString(), true, UnitHash: hash, PeSha256: peSha, EntryType: unit.EntryType, EntryMethod: unit.EntryMethod, WrapperType: $"{context.TypedContextsNamespace}.{SemanticTypedContextRenderer.WrapperName(descriptor!)}")
+                new BodyUnitEntry(requirement.RequirementId, requirement.Role.ToString(), true, UnitHash: hash, PeSha256: peSha, EntryType: unit.EntryType, EntryMethod: unit.EntryMethod, WrapperType: $"{context.TypedContextsNamespace}.{context.ContextNames.ContextWrapper(descriptor!)}")
                 {
                     BodySha256 = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(body!))),
                     PropertyNames = StateProperties(context).DistinctBy(member => member.Property.Id).ToImmutableDictionary(member => member.Property.Id.ToString(), member => Identifiers.ToPascalCase(member.Property.Name)),

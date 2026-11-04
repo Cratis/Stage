@@ -164,6 +164,21 @@ class SpecShardsTests(unittest.TestCase):
         self.assertRegex(jobs["build"], r"needs: \[[^\]\n]*\bstandalone-generated-application\b")
         self.assertIn("STANDALONE_RESULT: ${{ needs.standalone-generated-application.result }}", jobs["build"])
 
+    def test_event_contracts_builds_run_enabled_and_counted_only_in_the_standalone_job(self):
+        lane = self.workflow_jobs()["standalone-generated-application"]
+        fixture = SHARDS["EVENT_CONTRACTS_FIXTURE"]
+        name = SHARDS["PLANNER"] + "." + fixture + ".should_build_the_release_application_and_its_referenced_contracts"
+        for dedicated_lane in (False, True):
+            with self.subTest(dedicated_lane=dedicated_lane):
+                shards = SHARDS["matrix"](blueprint_templates_lane=dedicated_lane)["include"]
+                self.assertEqual(0, sum(self.matches_filter(name, shard["filter"]) for shard in shards))
+        filters = re.findall(r'--filter "([^"]+)"', lane)
+        self.assertEqual(1, sum(self.matches_filter(name, expression) for expression in filters))
+        # Without the opt-in variable all four facts skip, so the lane must enable them and count executions.
+        self.assertIn('STAGE_EVENT_CONTRACTS_BUILD: "1"', lane)
+        self.assertIn("STAGE_EVENT_CONTRACTS_PROOF_ROOT: ${{ runner.temp }}/", lane)
+        self.assertIn("executed != 4 or skipped != 0", lane)
+
     @staticmethod
     def workflow_jobs():
         workflow = Path(__file__).with_name("workflows").joinpath("dotnet-build.yml").read_text()

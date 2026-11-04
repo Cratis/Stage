@@ -11,14 +11,14 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 internal static partial class PureTransitionAdmission
 {
-    static bool SafeBinary(IBinaryOperation operation, Compilation compilation)
+    static bool SafeBinary(IBinaryOperation operation, TrustScope scope)
     {
         if (operation.OperatorKind == BinaryOperatorKind.Add && IsTextOperands(operation))
         {
             return true;
         }
 
-        if (IsUnsafeOperand(operation.LeftOperand, compilation) || IsUnsafeOperand(operation.RightOperand, compilation))
+        if (IsUnsafeOperand(operation.LeftOperand, scope) || IsUnsafeOperand(operation.RightOperand, scope))
         {
             return false;
         }
@@ -30,8 +30,8 @@ internal static partial class PureTransitionAdmission
         operation.Type?.SpecialType == SpecialType.System_String &&
         StringOrChar(operation.LeftOperand) && StringOrChar(operation.RightOperand);
 
-    static bool IsUnsafeOperand(IOperation operand, Compilation compilation) =>
-        !SafeValue(operand.Type, compilation) && operand.ConstantValue is not { HasValue: true, Value: null };
+    static bool IsUnsafeOperand(IOperation operand, TrustScope scope) =>
+        !SafeValue(operand.Type, scope) && operand.ConstantValue is not { HasValue: true, Value: null };
 
     static bool AreComparableOperands(IBinaryOperation operation) =>
         AreNumericOperands(operation) ||

@@ -41,8 +41,9 @@ internal static class SemanticSharedReferences
         SemanticApplicationContext context,
         IReadOnlyList<LocatedSemanticSlice> slices)
     {
-        var concepts = new HashSet<SemanticId>();
-        var types = new HashSet<SemanticId>();
+        var closure = new SemanticTypeClosure(context);
+        var concepts = closure.Concepts;
+        var types = closure.Types;
         foreach (var located in slices)
         {
             var slice = located.Slice;
@@ -131,21 +132,11 @@ internal static class SemanticSharedReferences
         return ([.. context.Application.Concepts.Where(concept => concepts.Contains(concept.Id))],
             [.. context.Application.Types.Where(type => types.Contains(type.Id))]);
 
-        void Properties(IEnumerable<SemanticProperty> properties)
-        {
-            foreach (var property in properties) Reference(property.Type);
-        }
+        void Properties(IEnumerable<SemanticProperty> properties) => closure.Properties(properties);
 
-        void Reference(SemanticTypeReference? reference)
-        {
-            if (reference?.Kind == SemanticTypeReferenceKind.Concept) concepts.Add(reference.Target);
-            if (reference?.Kind == SemanticTypeReferenceKind.CompositeType) Composite(reference.Target);
-        }
+        void Reference(SemanticTypeReference? reference) => closure.Reference(reference);
 
-        void Composite(SemanticId id)
-        {
-            if (types.Add(id)) Properties(context.Types[id].Properties);
-        }
+        void Composite(SemanticId id) => closure.Composite(id);
 
         void Event(SemanticId id) => Properties(context.Events[id].Properties);
         void ReadModel(SemanticId id) => Properties(context.ReadModels[id].Properties);

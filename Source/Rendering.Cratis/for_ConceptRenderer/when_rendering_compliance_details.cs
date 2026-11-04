@@ -32,7 +32,8 @@ public class when_rendering_compliance_details : compliance_concepts
 
     [Fact] void should_keep_bare_personal_data_without_details() => _files["BarePersonal"].Content.ShouldNotContain("ComplianceDetails");
     [Fact] void should_render_the_personal_alias_reason() => _files["ReasonPersonal"].Content.ShouldContain("[ComplianceDetails(\"A contact address.\")]");
-    [Fact] void should_render_every_human_category() => new Dictionary<string, string>
+    [Fact]
+    void should_render_every_human_category() => new Dictionary<string, string>
     {
         ["Origin"] = "racial or ethnic origin",
         ["Opinions"] = "political opinions",

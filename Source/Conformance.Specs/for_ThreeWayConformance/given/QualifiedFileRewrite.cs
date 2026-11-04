@@ -82,7 +82,7 @@ static class QualifiedFileRewrite
 
     static QualifiedReference? Reference(SemanticModel model, AliasQualifiedNameSyntax name)
     {
-        for (SyntaxNode node = name; ; )
+        for (SyntaxNode node = name; ;)
         {
             var symbol = Symbol(model, node);
             if (symbol is INamedTypeSymbol type) return Create(node, type.OriginalDefinition);

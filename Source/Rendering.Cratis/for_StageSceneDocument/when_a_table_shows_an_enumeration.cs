@@ -46,9 +46,11 @@ public class when_a_table_shows_an_enumeration : Specification
         var profile = CratisRendering.CreateProfile("Sales", new("Sales", "Sales"));
         var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id));
         var context = new SemanticApplicationContext(request, new("Sales", "Sales"));
-        var result = StageSceneDocument.Render("""
+        var result = StageSceneDocument.Render(
+            """
             {"toolbar":{"slice":"Sales.Opportunities.CaptureOpportunity"},"screens":[{"name":"Pipeline","slotContent":{"content":[{"componentName":"core:table","properties":{"typeName":"Sales.Opportunities.Pipeline.Opportunity"},"slots":{"columns":[{"componentName":"core:column","properties":{"property":"stage","label":"Stage"}},{"componentName":"core:column","properties":{"property":"title","label":"Title"}}]}}]}}]}
-            """, context);
+            """,
+            context);
         var document = JsonNode.Parse(result);
         _columns = document["screens"][0]["slotContent"]["content"][0]["slots"]["columns"].AsArray();
         _dialogOptions = JsonNode.Parse(document["commandSchemas"]["CaptureOpportunity"].GetValue<string>())["properties"]["stage"]["enum"].AsArray();

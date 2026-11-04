@@ -26,7 +26,8 @@ public class when_running_the_lifecycle_specifications : Specification
         _renderable = await executor.Run(a_lifecycle_source.Plan(a_lifecycle_source.RenderableSource), SemanticSpecificationSelection.All, new());
     }
 
-    [Fact] void should_run_every_state_machine_and_workflow_specification() => _all.Results.Where(result => result.SliceKind is "StateMachine" or "Workflow").Select(result => result.Name).ShouldContainOnly(
+    [Fact]
+    void should_run_every_state_machine_and_workflow_specification() => _all.Results.Where(result => result.SliceKind is "StateMachine" or "Workflow").Select(result => result.Name).ShouldContainOnly(
         ["SendingStartsTheCollection", "AnOverdueInvoiceIsOverdue", "APaidInvoiceIsTagged", "NoPaymentIsWrittenOff", "TheRunWaits"]);
     [Fact] void should_report_nothing_failing() => _all.Results.SelectMany(result => result.Failures).ShouldBeEmpty();
     [Fact] void should_pass_them() => _all.Results.Where(result => result.SliceKind is "StateMachine" or "Workflow").All(result => result.Outcome == SemanticSpecificationOutcome.Passed).ShouldBeTrue();

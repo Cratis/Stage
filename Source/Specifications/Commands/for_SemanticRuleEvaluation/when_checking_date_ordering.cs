@@ -82,7 +82,12 @@ public class when_checking_date_ordering : Specification
         var id = SemanticId.Create(SemanticKind.Property, "date");
         var comparison = Enum.Parse<SemanticComparisonOperator>(operation switch
         {
-            "==" => "Equal", "!=" => "NotEqual", ">" => "GreaterThan", ">=" => "GreaterThanOrEqual", "<" => "LessThan", _ => "LessThanOrEqual"
+            "==" => "Equal",
+            "!=" => "NotEqual",
+            ">" => "GreaterThan",
+            ">=" => "GreaterThanOrEqual",
+            "<" => "LessThan",
+            _ => "LessThanOrEqual"
         });
         var condition = new SemanticComparison(new(id, null), comparison, new(default, SemanticValue.Text("2026-01-01T00:00:00Z")));
         var values = new Dictionary<SemanticId, SemanticValue> { [id] = SemanticValue.Text("2026-01-01T01:00:00+01:00") };

@@ -112,6 +112,7 @@ internal static class GeneratedTypeNames
         bool? commandReceiptTime = null)
     {
         var selectedSlices = slices.Select(selected => (Path: selected.Path.Select(GeneratedPascalCase.From).ToArray(), selected.Slice)).ToArray();
+        var readModels = AllSlices(application).SelectMany(located => located.Slice.ReadModels).ToDictionary(readModel => readModel.Id);
         foreach (var source in eventSources ?? application.EventSources)
         {
             foreach (var name in Names(eventSourcesNamespace, EventSourceName(source.Name), source.Id, "EventSource", generated: true)) yield return name;
@@ -161,9 +162,7 @@ internal static class GeneratedTypeNames
             }
             foreach (var projection in slice.Projections.Where(projection => projection.Scope is not null))
             {
-                var projectionName = GeneratedPascalCase.From(projection.Name);
-                var implementationName = slice.ReadModels.Any(readModel => GeneratedPascalCase.From(readModel.Name) == projectionName)
-                    ? $"{projectionName}Projection" : projectionName;
+                var implementationName = ProjectionImplementationName(projection, readModels);
                 foreach (var name in Names(ns, implementationName, projection.Id, "Projection")) yield return name;
             }
         }
@@ -253,6 +252,11 @@ internal static class GeneratedTypeNames
 
     internal static IEnumerable<(IEnumerable<string> Path, SemanticSlice Slice)> AllSlices(SemanticApplication application) =>
         application.Modules.SelectMany(module => module.Features.SelectMany(feature => Feature(feature, [module.Name, feature.Name])));
+
+    static string ProjectionImplementationName(SemanticProjection projection, Dictionary<SemanticId, SemanticReadModel> readModels) =>
+        readModels.TryGetValue(projection.ReadModel, out var target)
+            ? GeneratedPascalCase.ProjectionImplementation(projection.Name, target.Name)
+            : GeneratedPascalCase.From(projection.Name);
 
     static IEnumerable<(IEnumerable<string> Path, SemanticSlice Slice)> Feature(SemanticFeature feature, string[] path) =>
         feature.Slices.Select(slice => ((IEnumerable<string>)[.. path, slice.Name], slice))

@@ -51,6 +51,7 @@ public class with_a_coded_constraint_error : Specification
     }
 
     [Fact] void should_admit_the_coded_error() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_assert_the_named_violation() => Encoding.UTF8.GetString(_plan.Artifacts.Single(_ => _.RelativePath.EndsWith("when_reusing_description.cs", StringComparison.Ordinal)).Bytes.AsSpan())
+    [Fact]
+    void should_assert_the_named_violation() => Encoding.UTF8.GetString(_plan.Artifacts.Single(_ => _.RelativePath.EndsWith("when_reusing_description.cs", StringComparison.Ordinal)).Bytes.AsSpan())
         .ShouldContain("ShouldHaveConstraintViolationFor(\"UniqueDescription\")");
 }

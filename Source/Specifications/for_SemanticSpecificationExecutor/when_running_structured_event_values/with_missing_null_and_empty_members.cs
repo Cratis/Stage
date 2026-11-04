@@ -21,12 +21,15 @@ public class with_missing_null_and_empty_members : given.a_structured_event
         var detailsType = _plan.Model.Application.Types.Single();
         var tags = detailsType.Properties.Single(property => property.Name == "tags").Id;
         var label = detailsType.Properties.Single(property => property.Name == "label").Id;
-        fact = fact with { Values = [.. fact.Values.Select(member => properties.Single(property => property.Id == member.TargetProperty).Name switch
+        fact = fact with
+        {
+            Values = [.. fact.Values.Select(member => properties.Single(property => property.Id == member.TargetProperty).Name switch
         {
             "details" => member with { Value = new SemanticCompositeValue([new(label, SemanticValue.Null)]) },
             "entries" => member with { Value = new SemanticArrayValue([.. ((SemanticArrayValue)member.Value).Values.Take(2), new SemanticCompositeValue([new(tags, SemanticValue.Null)])]) },
             _ => member
-        })] };
+        })]
+        };
         var instance = new SemanticRuntimeTypes(_plan).Materialize(fact);
         _entries = (Array)instance.GetType().GetProperty("entries").GetValue(instance);
         _details = instance.GetType().GetProperty("details").GetValue(instance);

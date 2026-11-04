@@ -10,7 +10,8 @@ public class with_a_rejected_body : given.a_reducer_specification
 {
     protected override string Body => "return new Total(Guid.NewGuid(), context.Event.Amount);";
     void Because() => Validate();
-    [Fact] void should_include_the_analysis_verdict()
+    [Fact]
+    void should_include_the_analysis_verdict()
     {
         Refusal().ShouldContain("STAGE-ESM-022");
         Refusal().ShouldContain("NewGuid");

@@ -62,7 +62,7 @@ const renameAction = action('WorkItemDetails.details.1-section.2-action', 'Renam
     { type: 'object', properties: { workItemId: uuid, title: { type: 'string' } }, required: ['workItemId', 'title'] },
     [{ name: 'workItemId' }, { name: 'title', label: 'New title' }]);
 const addCommentAction = action('WorkItemDetails.details.2-section.2-section.1-section.0-action', 'AddComment', null,
-    { type: 'object', properties: { commentId: uuid, workItemId: uuid, text: { type: 'string' } }, required: ['commentId', 'workItemId', 'text'] },
+    { type: 'object', properties: { commentId: { ...uuid, 'x-concept': 'CommentId' }, workItemId: { ...uuid, 'x-concept': 'WorkItemId' }, text: { type: 'string' } }, required: ['commentId', 'workItemId', 'text'] },
     [{ name: 'commentId' }, { name: 'workItemId' }, { name: 'text' }]);
 
 const scene = {
@@ -303,7 +303,9 @@ describe('when driving the two-item screen composition corpus', () => {
         renderStage();
         await screen.findByText(commentB.text);
 
-        fireEvent.click(screen.getByRole('button', { name: 'Add comment' }));
+        const addComment = screen.getByRole('button', { name: 'Add comment' }) as HTMLButtonElement;
+        expect(addComment.disabled).toBe(false);
+        fireEvent.click(addComment);
         const commentId = await screen.findByLabelText('commentId') as HTMLInputElement;
         expect(commentId.value).toEqual('');
         expect((screen.getByLabelText('workItemId') as HTMLInputElement).value).toEqual(workItemB.workItemId);

@@ -76,14 +76,17 @@ public class when_a_nested_block_declares_keys : Specification
 
     [Fact] void should_render_output_that_compiles() => string.Join(Environment.NewLine, _compilationErrors).ShouldEqual(string.Empty);
 
-    [Fact] void should_carry_the_block_key_onto_the_event_that_declares_none() =>
+    [Fact]
+    void should_carry_the_block_key_onto_the_event_that_declares_none() =>
         _file.Content.ShouldContain(
             "[FromEvent<ShippingAddressSet>(key: nameof(ShippingAddressSet.OrderNumber), parentKey: nameof(ShippingAddressSet.OrderNumber))]");
 
-    [Fact] void should_let_a_key_written_on_one_event_win_over_the_block_key() =>
+    [Fact]
+    void should_let_a_key_written_on_one_event_win_over_the_block_key() =>
         _file.Content.ShouldContain("[FromEvent<CarrierAssigned>(key: nameof(CarrierAssigned.ShipmentRef)");
 
-    [Fact] void should_not_route_a_keyed_nested_event_on_the_event_source_id() =>
+    [Fact]
+    void should_not_route_a_keyed_nested_event_on_the_event_source_id() =>
         _file.Content.ShouldNotContain("[FromEvent<ShippingAddressSet>]");
 
     static EventSyntax Event(string name, params string[] properties) =>

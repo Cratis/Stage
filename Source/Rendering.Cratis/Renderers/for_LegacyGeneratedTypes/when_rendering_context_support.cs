@@ -11,8 +11,10 @@ public class when_rendering_context_support : an_application_reading_the_context
 {
     async Task Because() => await _renderer.Render([_application], _targetDirectory, _output, _error);
 
-    [Fact] void should_emit_both_support_files() =>
+    [Fact]
+    void should_emit_both_support_files() =>
         _codeOutput.Files.Count(file => file.RelativePath.StartsWith("Generated", StringComparison.Ordinal)).ShouldEqual(2);
-    [Fact] void should_inventory_every_emitted_declaration() =>
+    [Fact]
+    void should_inventory_every_emitted_declaration() =>
         InventoryAssertions.Missing(_codeOutput.Files, new([_application]), "AcmeBilling").ShouldBeEmpty();
 }

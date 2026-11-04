@@ -18,14 +18,17 @@ public class and_every_operand_is_a_literal : given.a_validation_block
 
     void Because() => _converted = ValidationRuleConverter.Convert([Block(Literal)]);
 
-    [Fact] void should_carry_every_supported_scalar_kind() =>
+    [Fact]
+    void should_carry_every_supported_scalar_kind() =>
         _converted.Select(rules => rules.PropertyName).ShouldContainOnly(KindsTakingAnOperand.Where(kind => kind is not (ValidationRuleKind.AllGreaterThan or ValidationRuleKind.AllGreaterThanOrEqual)).Select(kind => kind.ToString()));
 
-    [Fact] void should_carry_the_stated_threshold() =>
+    [Fact]
+    void should_carry_the_stated_threshold() =>
         _converted.Single(rules => rules.PropertyName == nameof(ValidationRuleKind.GreaterThan))
             .Rules.OfType<GreaterThan>().Single().Threshold.ShouldEqual(5d);
 
-    [Fact] void should_carry_the_stated_pattern() =>
+    [Fact]
+    void should_carry_the_stated_pattern() =>
         _converted.Single(rules => rules.PropertyName == nameof(ValidationRuleKind.Matches))
             .Rules.OfType<Matches>().Single().Pattern.ShouldEqual("^INV-[0-9]{6}$");
 }

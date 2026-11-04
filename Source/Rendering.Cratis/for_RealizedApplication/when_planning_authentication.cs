@@ -14,7 +14,8 @@ public class when_planning_authentication : given.a_model_with_authentication_an
     JsonNode AuthProxy => JsonNode.Parse(Text(".runtime/authproxy.application.json"))!;
 
     [Fact] void should_plan_without_errors() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error).ShouldBeEmpty();
-    [Fact] void should_list_every_provider_with_its_kind_and_identity() =>
+    [Fact]
+    void should_list_every_provider_with_its_kind_and_identity() =>
         AuthProxy["Cratis"]["AuthProxy"]["Application"]["Providers"].ToJsonString().ShouldEqual("[{\"Kind\":\"EntraId\",\"Identity\":\"EntraId\"},{\"Kind\":\"GitHub\",\"Identity\":\"GitHub\"},{\"Kind\":\"OpenId\",\"Identity\":\"Partner\"}]");
     [Fact] void should_tell_authproxy_the_application_has_onboarding() => AuthProxy["Cratis"]["AuthProxy"]["Application"]["Onboarding"].GetValue<bool>().ShouldBeTrue();
     [Fact] void should_trust_the_identity_authproxy_forwards() => JsonNode.Parse(Text("appsettings.json"))["Cratis"]["Arc"]["TrustForwardedIdentityHeaders"].GetValue<bool>().ShouldBeTrue();

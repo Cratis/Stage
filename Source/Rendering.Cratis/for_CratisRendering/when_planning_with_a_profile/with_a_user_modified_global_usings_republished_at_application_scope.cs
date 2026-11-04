@@ -15,9 +15,10 @@ public class with_a_user_modified_global_usings_republished_at_application_scope
         : planned;
 
     [Fact] void should_be_compatible() => _check.ShouldBeOfExactType<CratisPublicationCheck.Compatible>();
-    [Fact] void should_replace_the_modification_with_the_scaffold_bytes() => Encoding.UTF8.GetString(_full.Artifacts.Single(artifact => artifact.RelativePath == GlobalUsingsPath).Bytes.AsSpan())
+    [Fact]
+    void should_replace_the_modification_with_the_scaffold_bytes() => Encoding.UTF8.GetString(_full.Artifacts.Single(artifact => artifact.RelativePath == GlobalUsingsPath).Bytes.AsSpan())
         .ShouldEqual(Encoding.UTF8.GetString(ScaffoldBytes()));
     [Fact] void should_compile_with_only_the_planned_global_usings() => string.Join(Environment.NewLine, _errors).ShouldEqual(string.Empty);
 
-    byte[] ScaffoldBytes() => CratisRendering.PlanScaffold(_options).Artifacts.Single(artifact => artifact.RelativePath == GlobalUsingsPath).Bytes.ToArray();
+    byte[] ScaffoldBytes() => [.. CratisRendering.PlanScaffold(_options).Artifacts.Single(artifact => artifact.RelativePath == GlobalUsingsPath).Bytes];
 }

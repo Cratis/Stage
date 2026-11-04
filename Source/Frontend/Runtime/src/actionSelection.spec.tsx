@@ -29,7 +29,7 @@ const keyedRows = rows.map(({ shipmentId, consignee }) => ({ id: shipmentId, con
 
 type Field = { name: string; label: string; sourceProperty?: string };
 
-function renderShipments(screenRows: Record<string, unknown>[] = rows, fields: Field[] = [{ name: 'carrier', label: 'Carrier' }], query = 'AllShipments') {
+function renderShipments(screenRows: Record<string, unknown>[] = rows, fields: Field[] = [{ name: 'carrier', label: 'Carrier' }], query = 'AllShipments', generationMode = 'manual') {
     const routes = { commands: { DispatchShipment: '/api/dispatch' }, queries: { [query]: '/api/shipments' }, commandSchemas: { DispatchShipment: dispatch } };
     registerStageCommands(routes);
     registerTestQueries(routes.queries);
@@ -40,7 +40,7 @@ function renderShipments(screenRows: Record<string, unknown>[] = rows, fields: F
     globalThis.location.hash = '#/Shipments';
     const table = element('shipments', 'core:table', { query, typeName: 'ShipmentRow' }, { columns: [element('consignee', 'core:column', { property: 'consignee', label: 'Consignee' })] });
     // What a screen's toolbar renders an action as: the command, its schema and the form's own fields, which leave the key out.
-    const item = element('dispatch', 'core:action', { command: 'DispatchShipment', label: 'Dispatch', schema: dispatch, fields, generationMode: 'manual' });
+    const item = element('dispatch', 'core:action', { command: 'DispatchShipment', label: 'Dispatch', schema: dispatch, fields, generationMode });
     render(
         <PrimeReactProvider>
             <StageDataProvider routes={routes} locale='en' locales={['en']} screen='Shipments'>
@@ -62,6 +62,15 @@ describe('an action on a list screen whose rows carry the key it acts on', () =>
         // The table shows its rows before the screen's data has published them, so wait for the action to see them.
         await waitFor(() => expect((screen.getByRole('button', { name: 'Dispatch' }) as HTMLButtonElement).disabled).toBe(true));
         expect((screen.getByRole('button', { name: 'Dispatch' }) as HTMLButtonElement).title).toBe('Select a row first');
+    });
+
+    it('binds a plain auto action to the selected row without a rowAction hint', async () => {
+        const fetched = renderShipments(rows, [{ name: 'shipmentId', label: 'Shipment' }, { name: 'carrier', label: 'Carrier' }], 'AllShipments', 'auto');
+        await screen.findByText('Fjordline');
+        await waitFor(() => expect((screen.getByRole('button', { name: 'Dispatch' }) as HTMLButtonElement).disabled).toBe(true));
+        await submitSelected(fetched);
+        const [, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;
+        expect(JSON.parse(String(init?.body))).toEqual({ shipmentId: rows[1].shipmentId, carrier: 'Posten' });
     });
 
     it('is enabled without a selection when its form asks for the key', async () => {

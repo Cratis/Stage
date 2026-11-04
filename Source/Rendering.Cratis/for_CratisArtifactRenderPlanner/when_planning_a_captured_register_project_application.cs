@@ -69,10 +69,12 @@ public class when_planning_a_captured_register_project_application : a_register_
     [Fact] void should_render_the_captured_semantic_revision() => _capturedPlans.TrueForAll(_ => _.SemanticRevision == Corpus.SemanticRevision).ShouldBeTrue();
     [Fact] void should_order_all_paths_ordinally() => _capturedPlans.Concat(_directPlans).All(_ => _.Artifacts.Select(artifact => artifact.RelativePath).SequenceEqual(_.Artifacts.Select(artifact => artifact.RelativePath).Order(StringComparer.Ordinal))).ShouldBeTrue();
     [Fact] void should_match_each_direct_plans_ordered_paths() => _capturedPlans.Zip(_directPlans).All(pair => pair.First.Artifacts.Select(_ => _.RelativePath).SequenceEqual(pair.Second.Artifacts.Select(_ => _.RelativePath))).ShouldBeTrue();
-    [Fact] void should_match_each_direct_plans_raw_bytes() => Assert.True(
+    [Fact]
+    void should_match_each_direct_plans_raw_bytes() => Assert.True(
         _capturedPlans.Zip(_directPlans).All(pair => pair.First.Artifacts.Zip(pair.Second.Artifacts).All(artifacts => artifacts.First.Bytes.SequenceEqual(artifacts.Second.Bytes))),
         DescribeArtifactMismatches());
-    [Fact] void should_match_each_direct_plans_hashes() => Assert.True(
+    [Fact]
+    void should_match_each_direct_plans_hashes() => Assert.True(
         _capturedPlans.Zip(_directPlans).All(pair => pair.First.Artifacts.Select(_ => _.Sha256).SequenceEqual(pair.Second.Artifacts.Select(_ => _.Sha256))),
         DescribeArtifactMismatches());
     [Fact] void should_match_ordered_paths_across_captured_physical_forms() => _capturedPlans.Skip(1).All(plan => plan.Artifacts.Select(_ => _.RelativePath).SequenceEqual(_capturedPlans[0].Artifacts.Select(_ => _.RelativePath))).ShouldBeTrue();

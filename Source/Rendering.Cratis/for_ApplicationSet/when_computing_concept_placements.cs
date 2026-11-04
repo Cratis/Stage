@@ -57,11 +57,14 @@ public class when_computing_concept_placements : Specification
         _applicationSet = new ApplicationSet([application]);
     }
 
-    [Fact] void should_place_a_slice_specific_concept_in_its_own_slice_folder() =>
+    [Fact]
+    void should_place_a_slice_specific_concept_in_its_own_slice_folder() =>
         _applicationSet.ConceptPlacements["SliceOnly"].ShouldContainOnly("Billing", "Invoices", "Register");
-    [Fact] void should_place_a_feature_shared_concept_in_the_feature_folder() =>
+    [Fact]
+    void should_place_a_feature_shared_concept_in_the_feature_folder() =>
         _applicationSet.ConceptPlacements["FeatureShared"].ShouldContainOnly("Billing", "Invoices");
-    [Fact] void should_place_a_module_shared_concept_in_the_module_folder() =>
+    [Fact]
+    void should_place_a_module_shared_concept_in_the_module_folder() =>
         _applicationSet.ConceptPlacements["ModuleShared"].ShouldContainOnly("Billing");
     [Fact] void should_place_a_concept_shared_across_modules_at_the_root() => _applicationSet.ConceptPlacements["AppWide"].ShouldBeEmpty();
     [Fact] void should_place_an_unused_concept_at_the_root() => _applicationSet.ConceptPlacements["Unused"].ShouldBeEmpty();

@@ -178,7 +178,14 @@ internal static class SemanticRunScopedMappings
 #pragma warning disable CHR0002
         builder.Join<TEvent>(join =>
         {
-            if (!child) join.On(Property<TReadModel, object>(properties.Single(property => property.Id == definition.On).Name));
+            if (!child)
+            {
+                join.On(Property<TReadModel, object>(properties.Single(property => property.Id == definition.On).Name));
+                if (definition.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var id] } })
+                {
+                    join.UsingKey(Property<TEvent, object>(plan.Events[definition.EventContract].Properties.Single(property => property.Id == id).Name));
+                }
+            }
             ApplyMappings(join, definition.Mappings, properties, plan.Events[definition.EventContract], plan);
         });
 #pragma warning restore CHR0002

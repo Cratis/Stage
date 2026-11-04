@@ -53,10 +53,13 @@ public class when_preflighting_unrenderable_projection_blocks : Specification
         var feature = module.Features.Single();
         var slice = feature.Slices.Single();
         var projection = slice.Projections.Single();
-        var changed = application with { Modules = [module with { Features = [feature with
+        var changed = application with
+        {
+            Modules = [module with { Features = [feature with
         {
             Slices = [slice with { Projections = [projection with { Blocks = [.. projection.Blocks, new UnknownBlock(SourceLocation.Start)] }] }]
-        }] }] };
+        }] }]
+        };
         var set = new ApplicationSet([changed]);
         Assert.IsType<UnsupportedLegacyProjection>(Catch.Exception(() => new StateViewSliceRenderer().Render(set.Slices.Single(), set, "CratisApp")));
     }

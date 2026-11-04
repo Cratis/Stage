@@ -21,15 +21,18 @@ public class when_the_renderer_emits_the_read_model_a_query_returns : a_slice_de
     void Because() =>
         UnrenderedConstructs.Report(_builder, _slice, RenderedConstructs.ReadModel, _diagnostics, "InvoiceSummary");
 
-    [Fact] void should_report_the_narrowing_its_rendered_method_does_not_have() =>
+    [Fact]
+    void should_report_the_narrowing_its_rendered_method_does_not_have() =>
         _diagnostics.ShouldContain(
             "Slice 'Summary' declares 1 query declaration(s) with no rendered equivalent — it is rendered as a method " +
             "reading the whole read model, without the narrowing the document states.");
 
-    [Fact] void should_report_the_performer_holding_the_body_it_does_not_render() =>
+    [Fact]
+    void should_report_the_performer_holding_the_body_it_does_not_render() =>
         _diagnostics.ShouldContain(
             "Slice 'Summary' declares 1 query performer declaration(s) with no rendered equivalent — the query logic is not rendered.");
 
-    [Fact] void should_not_report_the_query_as_having_no_method() =>
+    [Fact]
+    void should_not_report_the_query_as_having_no_method() =>
         _diagnostics.Exists(diagnostic => diagnostic.StartsWith("Query 'All'", StringComparison.Ordinal)).ShouldBeFalse();
 }

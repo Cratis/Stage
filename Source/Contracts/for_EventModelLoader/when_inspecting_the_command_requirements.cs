@@ -18,12 +18,16 @@ public class when_inspecting_the_command_requirements : given.a_compiled_model_u
     [Fact] void should_leave_an_undeclared_message_unset() => _requirements[1].Message.ShouldBeNull();
 
     // The same condition tree a 'produces when' guard carries — one condition grammar in the language, one here.
-    [Fact] void should_carry_the_condition_as_a_comparison() =>
+    [Fact]
+    void should_carry_the_condition_as_a_comparison() =>
         _requirements[0].Condition.ShouldBeOfExactType<ProducedEventComparison>();
-    [Fact] void should_name_the_state_the_requirement_reads() =>
+    [Fact]
+    void should_name_the_state_the_requirement_reads() =>
         ((ProducedEventComparison)_requirements[0].Condition).Property.ShouldEqual("InvoiceScope.isStarted");
-    [Fact] void should_carry_the_comparison_operator() =>
+    [Fact]
+    void should_carry_the_comparison_operator() =>
         ((ProducedEventComparison)_requirements[0].Condition).Operator.ShouldEqual(ProducedEventComparisonOperator.Equal);
-    [Fact] void should_carry_the_compared_value() =>
+    [Fact]
+    void should_carry_the_compared_value() =>
         ((ProducedEventComparison)_requirements[0].Condition).Value.ShouldEqual("false");
 }

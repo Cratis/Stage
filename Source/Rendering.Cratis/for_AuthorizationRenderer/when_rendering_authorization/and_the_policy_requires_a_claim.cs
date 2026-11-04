@@ -16,7 +16,8 @@ public class and_the_policy_requires_a_claim : an_application_with_policies
     void Because() => _error = Catch.Exception(() => Render(Authorize("Owner")));
 
     [Fact] void should_block_the_artifact() => _error.ShouldBeOfExactType<AuthorizationCannotBeRendered>();
-    [Fact] void should_report_the_claim_as_unrenderable() =>
+    [Fact]
+    void should_report_the_claim_as_unrenderable() =>
         _error.Message.ShouldEqual(
             "STAGE-AUTH-001: Command 'RegisterInvoice' references policy 'Owner', which requires the claim 'sub'. The artifact was not rendered because " +
             "faithful authorization requires the future Screenplay-owned portable policy backend.");

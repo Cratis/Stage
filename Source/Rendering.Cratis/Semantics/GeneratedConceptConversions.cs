@@ -21,7 +21,7 @@ internal static class GeneratedConceptConversions
             var symbol = compilation.GetTypeByMetadataName($"{context.CommonNamespace}.{Identifiers.ToPascalCase(concept.Name)}");
             var primitive = ResolvePrimitive(types.Primitive(concept.Primitive), compilation);
             if (symbol is null || primitive is null) continue;
-            if (PureTransitionAdmission.Generated(symbol, compilation)) trusted.Add(symbol, primitive);
+            if (PureTransitionAdmission.Generated(symbol, new TrustScope(compilation, context.TypedContextTypeNames))) trusted.Add(symbol, primitive);
         }
         return trusted;
     }

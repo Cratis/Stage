@@ -422,11 +422,13 @@ history; subsequent command, append and reaction facts fold on top through Chron
 seeding. Other keys retain their projected history, and invoked commands read the same seeded world. Seed-only
 models can be asserted and queried without a projection. Projected seeds must contain every scalar property
 and an identifier equal to their key; partial or null projected seeds remain `Unsupported(GivenReadModel)`
-because concrete scenario records cannot preserve missing-property presence. Generated absence specifications
-also seed complete scalar records for independent projections, preserving the same history replacement and
-later command or append replay. They can assert absence beside presence at another seeded key or inspect
-seeds without an action. Partial or null seeds, seeded decision reads, reducers, dependent projection scopes
-and seeded query combinations retain `STAGE-ESM-011`.
+because concrete scenario records cannot preserve missing-property presence. Generated projection specifications
+also seed complete scalar records with identifiers matching their keys for independent projections, preserving
+the same history replacement and later command or append replay. Positive read-model expectations do not
+require an absence assertion; specifications can also assert absence beside presence at another seeded key
+or inspect seeds without an action. Partial or null seeds, seeded command reads (including decision reads),
+reducers, dependent projection scopes and seeded query combinations retain `STAGE-ESM-011`, except for the
+already-supported query-only lookup of one complete seeded record.
 
 Per-run projections reject optional or composite
 read-model properties and non-identifier

@@ -26,13 +26,12 @@ public class with_an_authored_scene : a_screen_composition_render
     // Components 4.38.1 (only the npm package pin changes).
     // Recomputed for merged Screenplay 4.258.0 and npm @cratis/scene 4.86.0.
     // Recomputed for Screenplay 4.259.0: the scaffold now emits the published matcher pin.
-    // Re-frozen for Cratis/Stage#120 merged with train 10: authentication artifacts and host wiring on top of the train 10 output.
-    // Re-frozen for Cratis/Stage#937: only Directory.Packages.props pins Pkcs to 10.0.14 and documents Xml runtime servicing.
-    // Recomputed for Screenplay 5.0.0: the scaffold emits the 5.0.0 matcher pin.
-    // Recomputed for Screenplay 5.1.0: the scaffold emits the 5.1.0 matcher pin.
-    // Re-frozen after merging main (Screenplay 5.1.0) into train 10: the 4.259.0-era constants were stale.
-    const string Before = "47f22b22b80b58b82f4ac97e354c75ecd5e552cc9fd9a1d0f901934a08fb0d9d";
-    // Recomputed for Cratis/Stage#926: the scaffold now hosts an Orleans silo, pins Cratis.Orleans 1.33.1 and moves to Chronicle 19.114.0.
+    // Re-frozen for Cratis/Stage#209 on Scene 4.86.0 and Screenplay 4.259.0: native guarded-action serialization and restored guard/message bridges.
+    // Re-frozen after train 11: authored submit continuations, response contracts/reference schemas and bundled runtime changes;
+    // generated documentation/specification imports, Entra host artifacts/wiring/dependencies and Yarn preapprovals;
+    // Components 4.38.1, Cratis.Specifications 5.1.0, Microsoft.Identity.Web 4.16.1 and the Pkcs 10.0.13 security pin.
+    // Re-captured by execution for train 11 merge (#209/#857 with #925): native guards on Scene 4.87.0 and merged scaffold/runtime output.
+    const string Before = "96beb62d803a0c1f5bd0a8ae5d39728acc73d6864934a888f74bc97157f7f531";
 
     ArtifactRenderPlan _plan = null!;
 

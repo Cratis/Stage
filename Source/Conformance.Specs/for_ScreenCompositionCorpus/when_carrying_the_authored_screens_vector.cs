@@ -4,6 +4,7 @@
 using System.Collections.Immutable;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Cratis.Screenplay.CanonicalCorpus;
 using Cratis.Screenplay.Semantics;
@@ -49,11 +50,57 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
         });
     }
 
-    // Re-frozen for Scene 4.86.0 guarded fragments and empty onSubmit arrays on the two authored forms.
-    [Fact] void should_pin_the_authored_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("ab84b541d8c0e601987b690a079acc823ecd40329838ca5848567e1e674c9503");
-    [Fact] void should_pin_the_authored_scene_length() => _bytes.Length.ShouldEqual(24309);
+    // Scene 4.86.0 originally added empty onSubmit arrays to the two authored forms.
+    // Re-frozen for Cratis/Stage#209 on Scene 4.86.0: native Close (-34 bytes) and double-click alternatives (-273 bytes).
+    // Train 11 carries their authored submit navigation: +156 bytes for details and +153 for list.
+    [Fact] void should_pin_the_authored_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("16e71ed659eac083ba4faf3479098d01b426222869ada359b91ee9c826ff2f8d");
+
+    // Re-frozen after train 11: the restored native guards plus the two authored submit continuations (23693 + 309 bytes).
+    [Fact] void should_pin_the_authored_scene_length() => _bytes.Length.ShouldEqual(24002);
     [Fact] void should_carry_the_guarded_close_action() => Encoding.UTF8.GetString(_bytes).ShouldContain("\"alternatives\"");
-    [Fact] void should_carry_the_guarded_double_click_branches() => Encoding.UTF8.GetString(_bytes).ShouldContain($"\"path\":\"{SceneGuards.GuardPath}\"");
+    [Fact]
+    void should_carry_the_guarded_double_click_branches()
+    {
+        var scene = JsonNode.Parse(_bytes)!;
+        var screen = scene["screens"]!.AsArray().Single(screen => screen!["name"]!.GetValue<string>() == "WorkItemList")!;
+        var bindings = screen["slotContent"]!["list"]![3]!["behaviors"]![0]!["bindings"];
+
+        // The authored open-status branch precedes otherwise; neither its navigation nor the fallback may move or disappear.
+        var expected = JsonNode.Parse("""
+            [{
+              "actions": [],
+              "alternatives": [{
+                "condition": {
+                  "enumeration": ["open", "closed"],
+                  "kind": "comparison",
+                  "left": { "subject": "item.status" },
+                  "operator": "Equal",
+                  "right": "open"
+                },
+                "actions": [{
+                  "arguments": [{ "name": "workItemId", "value": { "path": "item.workItemId" } }],
+                  "kind": "Navigate",
+                  "onFailure": [],
+                  "onResult": [],
+                  "onSuccess": [],
+                  "screen": "WorkItemDetails"
+                }]
+              }],
+              "otherwise": [{
+                "arguments": [],
+                "kind": "Notify",
+                "level": "Info",
+                "message": { "text": "This work item is closed" },
+                "onFailure": [],
+                "onResult": [],
+                "onSuccess": []
+              }],
+              "trigger": { "kind": "DoubleClick" }
+            }]
+            """);
+
+        JsonNode.DeepEquals(bindings, expected).ShouldBeTrue();
+    }
     [Fact] void should_type_the_close_guard_by_the_enumeration_of_the_details_status() => Guards().Count(_ => _.Contains("\"left\":{\"subject\":\"item.status\"},\"operator\":\"Equal\",\"right\":\"open\"", StringComparison.Ordinal) && _.Contains("\"enumeration\":[\"open\",\"closed\"]", StringComparison.Ordinal)).ShouldBeGreaterThanOrEqual(2);
     [Fact] void should_type_every_status_comparison() => OpenStatusComparison.Count(Encoding.UTF8.GetString(_bytes)).ShouldEqual(ClosedEnumeration.Count(Encoding.UTF8.GetString(_bytes)));
     [Fact] void should_name_enumerations_as_the_scene_runtime_declares_them() => Encoding.UTF8.GetString(_bytes).ShouldContain("\"trigger\":{\"kind\":\"DoubleClick\"}");
@@ -67,24 +114,29 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     // Re-frozen for Cratis/Stage#816 and Cratis/Stage#757: only src/bindings.ts command imports and the package.json fundamentals resolution change.
     // Re-frozen for #741 (.gitignore gains .yarn/) and #734 (.yarnrc.yml preapproves @cratis/*).
     // Re-frozen when Debug specifications gained the Chronicle.Testing telemetry dependency.
-    // Re-frozen for merged Scene 4.86.0 / Screenplay 4.258.0 output.
-    // Re-frozen for Cratis/Stage#120 merged with train 10: authentication artifacts and host wiring on top of the train 10 output.
-    // Re-frozen for Cratis/Stage#937: only Directory.Packages.props pins Pkcs to 10.0.14 and documents Xml runtime servicing.
-    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(_qualified)).ShouldEqual("c094ab94dc4a23b38b3d1e6302c2f3fb8d870637e05497659e26227cb40af89c");
+    // Re-frozen for Cratis/Stage#209 on Scene 4.86.0: reviewed native guards and restored runtime guard/message bridges.
+    // Re-frozen after train 11: submit continuations, response contracts/reference schemas and bundled runtime changes;
+    // generated documentation/specification imports, Entra host artifacts/wiring/dependencies and Yarn preapprovals.
+    // Re-captured by execution for train 11 merge (#209/#857 with #925): native guards on Scene 4.87.0 and merged scaffold/runtime output.
+    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(_qualified)).ShouldEqual("5f7a860b01ec26a56a327bff1b180d6b6e12ce3569b7e7ec5c192589c73e39c3");
 
     // Re-frozen when the license header became the caller's choice and specifications moved into the application project.
     // Re-frozen for #424: generated C# uses short type names and using directives above the namespace.
     // Re-frozen for Cratis/Stage#816 and Cratis/Stage#757: only src/bindings.ts command imports and the package.json fundamentals resolution change.
     // Re-captured on Train 8b: only #660 adds CratisReadProtection On relative to main; all Scene artifacts match main.
     // Re-frozen for #741: only .gitignore gains the .yarn/ line.
-    // Re-frozen for merged Scene 4.86.0 / Screenplay 4.258.0 output.
-    // Re-frozen for Cratis/Stage#120 merged with train 10: authentication artifacts and host wiring on top of the train 10 output.
-    // Re-frozen for Cratis/Stage#937: only Directory.Packages.props pins Pkcs to 10.0.14 and documents Xml runtime servicing.
-    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("528899055199af0a0b3ccbb6c364cf14a8c9f2f0402984096f36a40522774e4b");
+    // Re-frozen for Cratis/Stage#209 on Scene 4.86.0: reviewed native guards and restored runtime guard/message bridges.
+    // Re-frozen after train 11: submit continuations, response contracts/reference schemas and bundled runtime changes;
+    // generated documentation/specification imports, Entra host artifacts/wiring/dependencies and Yarn preapprovals.
+    // Re-captured by execution for train 11 merge (#209/#857 with #925): native guards on Scene 4.87.0 and merged scaffold/runtime output.
+    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("4f4409fd0b2e290372fbc9d867d238037560be69160d81f7ce07c5ee9e55ac27");
+
+    // The #209 restoration removed 34 details bytes and 273 list bytes on Scene 4.86.0.
+    // Train 11 adds the authored submit navigation: details 9773 -> 9929; list 6402 -> 6555; comments is unchanged.
     [Fact] void should_pin_the_screen_fragments() => string.Join('\n', _plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal)).Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}")).ShouldEqual("""
         Workspaces/Tracking/WorkItemComments/Screens.scene.json acd7f05ae339201f3867044a5a7ae3e7f3501e0ae90aac9b9742fa24cc0b98da 2270
-        Workspaces/Tracking/WorkItemDetails/Screens.scene.json 536a72745002460a699cdb87ea8e6638ac38d4867978a3cce2cebcf24a5f1811 9963
-        Workspaces/Tracking/WorkItemList/Screens.scene.json af0735bc0d0bb8dfa8227f4960c7e93cc97e599e05eb46232c0e1b470ef7ceb0 6828
+        Workspaces/Tracking/WorkItemDetails/Screens.scene.json c8a74e3f707a26878d1e3edcfe7348bd18e7df5dd9d199625abc5a018c96d36a 9929
+        Workspaces/Tracking/WorkItemList/Screens.scene.json f849abdf5408d218df994e1c4ccbe4df6daf59ae8f988a8f6015d24aca1c2417 6555
         """);
 
     static IEnumerable<PlannedArtifact> Legacy(IEnumerable<PlannedArtifact> artifacts) => SeparateSpecificationsLayout.RestoreWithLicenseHeader(artifacts, ApplicationName, ApplicationName)

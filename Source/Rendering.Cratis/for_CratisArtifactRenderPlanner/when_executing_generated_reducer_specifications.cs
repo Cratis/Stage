@@ -100,7 +100,7 @@ public class when_executing_generated_reducer_specifications : a_generated_appli
             BuildWarnings(build).ShouldEqual(string.Empty);
             var proxies = GeneratedFiles("*.ts").Select(ReadGeneratedFile).ToArray();
             Assert.Contains(proxies, proxy => proxy.Contains("class ById", StringComparison.Ordinal));
-            Assert.DoesNotContain(proxies, proxy => proxy.Contains("class Reduce", StringComparison.Ordinal) || proxy.Contains("class Transition_", StringComparison.Ordinal));
+            Assert.DoesNotContain(proxies, proxy => proxy.Contains("class Reduce", StringComparison.Ordinal) || proxy.Contains("Transition", StringComparison.Ordinal));
             var test = await Run("reducer-test.log", "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo");
             Assert.Contains("Passed!", test, StringComparison.Ordinal);
         }

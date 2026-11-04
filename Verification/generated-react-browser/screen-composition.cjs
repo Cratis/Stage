@@ -338,11 +338,13 @@ function collectComponents(value, components = []) {
 function isGuardedClose(component) {
     const properties = component.properties ?? {};
     const alternatives = Array.isArray(properties.alternatives) ? properties.alternatives : [];
-    const fallback = JSON.stringify(properties.otherwise ?? '').toLowerCase();
-    return component.componentName === 'core:action' &&
-        alternatives.some(alternative => alternative.command === 'CloseWorkItem' &&
-            JSON.stringify(alternative.condition ?? {}).includes('item.status') && JSON.stringify(alternative.condition ?? {}).includes('open')) &&
-        fallback.includes('hidden');
+    return ['core:action', 'core:guarded-action'].includes(component.componentName) &&
+        alternatives.some(alternative => {
+            const condition = alternative.condition ?? {};
+            const subject = component.componentName === 'core:guarded-action' ? condition.left?.subject : condition.left?.path;
+            return alternative.command === 'CloseWorkItem' && condition.kind === 'comparison' &&
+                subject === 'item.status' && condition.operator === 'Equal' && condition.right === 'open';
+        }) && properties.otherwise?.outcome === 'Hidden';
 }
 
 function assertSceneDocument(result, scene) {
@@ -889,6 +891,12 @@ function selfTest() {
     const guardedScene = { screens: [{ slotContent: { content: [{ id: 'Details.close', componentName: 'core:action', properties: { label: 'Close', alternatives: [{ command: 'CloseWorkItem', condition: { kind: 'comparison', left: { path: 'item.status' }, operator: 'Equal', right: 'open' } }], otherwise: { outcome: 'Hidden' } } }] } }] };
     const guardedResult = { assertions: [], remainingBlockers: [] };
     assertSceneDocument(guardedResult, guardedScene);
+    const nativeClose = { id: 'Details.close', componentName: 'core:guarded-action', properties: { label: 'Close', alternatives: [{ command: 'CloseWorkItem', condition: { kind: 'comparison', left: { subject: 'item.status' }, operator: 'Equal', right: 'open' } }], otherwise: { outcome: 'Hidden' } } };
+    const nativeScene = { screens: [{ slotContent: { content: [nativeClose] } }] };
+    const nativeResult = { assertions: [], remainingBlockers: [] };
+    assertSceneDocument(nativeResult, nativeScene);
+    const wrongGuard = condition => ({ ...nativeClose, properties: { ...nativeClose.properties, alternatives: [{ command: 'CloseWorkItem', condition }] } });
+    const nativeCondition = nativeClose.properties.alternatives[0].condition;
     const checks = [
         ['a query carrying B identity matches B', requestContainsWorkItem(commentQueryForB, workItemB), true],
         ['a query carrying B identity does not match A', requestContainsWorkItem(commentQueryForB, workItemA), false],
@@ -900,7 +908,15 @@ function selfTest() {
         ['a route with parameters is still the details screen', hashRoute(`${baseUrl}/#/WorkItemDetails?workItemId=${workItemB.id}`), '#/WorkItemDetails'],
         ['commentId does not match the Work Item Id label', fieldLabelPattern('commentId').test('Work Item Id'), false],
         ['an unguarded Close in the scene is a blocker', unguardedResult.remainingBlockers.length, 3],
-        ['a Close guarded by status with a hidden fallback passes', guardedResult.remainingBlockers, []]
+        ['a Close guarded by status with a hidden fallback passes', guardedResult.remainingBlockers, []],
+        ['a native Close guarded by status with a hidden fallback passes', nativeResult.remainingBlockers, []],
+        ['a native guard for another subject fails', isGuardedClose(wrongGuard({ ...nativeCondition, left: { subject: 'item.otherStatus' } })), false],
+        ['a native guard for another status fails', isGuardedClose(wrongGuard({ ...nativeCondition, right: 'closed' })), false],
+        ['a native guard with a different comparison fails', isGuardedClose(wrongGuard({ ...nativeCondition, operator: 'NotEqual' })), false],
+        ['a native guard with no comparison kind fails', isGuardedClose(wrongGuard({ ...nativeCondition, kind: undefined })), false],
+        ['a native guard with no hidden fallback fails', isGuardedClose({ ...nativeClose, properties: { ...nativeClose.properties, otherwise: { outcome: 'Disabled' } } }), false],
+        ['a native guard for another command fails', isGuardedClose({ ...nativeClose, properties: { ...nativeClose.properties, alternatives: [{ command: 'RenameWorkItem', condition: nativeCondition }] } }), false],
+        ['an unrelated component carrying guard properties fails', isGuardedClose({ ...nativeClose, componentName: 'core:text' }), false]
     ];
 
     const failures = checks.filter(([, actual, expected]) => JSON.stringify(actual) !== JSON.stringify(expected));

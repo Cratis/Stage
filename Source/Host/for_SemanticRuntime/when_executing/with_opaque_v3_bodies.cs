@@ -25,13 +25,16 @@ public class with_opaque_v3_bodies : a_semantic_runtime
     async Task Because()
     {
         _code = await Execute(slice => slice with { Commands = [slice.Commands.Single() with { CodeValidations = [new("code-body")] }] });
-        _predicate = await Execute(slice => slice with { Commands = [slice.Commands.Single() with
+        _predicate = await Execute(slice => slice with
+        {
+            Commands = [slice.Commands.Single() with
         {
             Validations = [new(slice.Commands[0].Properties[1].Id, SemanticValidationRuleKind.RulePredicate, null, null)
             {
                 Name = "CheckProject", RequirementId = "predicate-body"
             }]
-        }] });
+        }]
+        });
         var concept = _runtime.Plan.Model.Application.Concepts[0];
         _concept = await Execute(slice => slice, application => application with
         {

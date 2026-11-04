@@ -115,7 +115,8 @@ public class when_executing_captured_register_project_output : a_register_projec
     [Fact] void should_have_no_failures_for_valid_names() => _validations.SelectMany(_ => _.Errors).ShouldBeEmpty();
     [Fact] void should_reject_an_empty_name() => _emptyNameValidation.IsValid.ShouldBeFalse();
     [Fact] void should_report_exactly_one_empty_name_failure() => _emptyNameValidation.Errors.Count.ShouldEqual(1);
-    [Fact] void should_report_the_name_property() => Assert.True(
+    [Fact]
+    void should_report_the_name_property() => Assert.True(
         _emptyNameValidation.Errors.Select(_ => _.PropertyName).SequenceEqual(["name"]),
         $"Expected exactly [name]; actual ({_emptyNameValidation.Errors.Count}): [{string.Join(", ", _emptyNameValidation.Errors.Select(_ => _.PropertyName))}]");
     [Fact] void should_report_the_exact_corpus_rejection_message() => _emptyNameValidation.Errors.Select(_ => _.ErrorMessage).ShouldEqual(_expectedRejectionMessage);

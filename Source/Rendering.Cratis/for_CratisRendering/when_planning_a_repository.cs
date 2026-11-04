@@ -25,7 +25,8 @@ public class when_planning_a_repository : Specification
     }
 
     [Fact] void should_succeed() => _result.Success.ShouldBeTrue();
-    [Fact] void should_plan_the_repository_files_in_ordinal_order() => string.Join("\n", _result.Artifacts.Select(artifact => artifact.RelativePath)).ShouldEqual(
+    [Fact]
+    void should_plan_the_repository_files_in_ordinal_order() => string.Join('\n', _result.Artifacts.Select(artifact => artifact.RelativePath)).ShouldEqual(
         ".editorconfig\nAcme.slnx\nDirectory.Build.props\nDirectory.Build.targets\nDirectory.Packages.props\nSource/Composition/Composition.csproj\nSource/Composition/Program.cs\ndocker-compose.yml");
     [Fact] void should_plan_the_same_files_whatever_the_service_order() => _reordered.Digest.ShouldEqual(_result.Digest);
 

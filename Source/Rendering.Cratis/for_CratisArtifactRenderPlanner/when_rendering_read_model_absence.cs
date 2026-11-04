@@ -91,7 +91,8 @@ public class when_rendering_read_model_absence : Specification
     [Fact] void should_compile_against_the_pinned_scenario_api() => string.Join(Environment.NewLine, RenderedOutput.Errors(_files)).ShouldEqual(string.Empty);
     [Fact] void should_compile_without_warnings() => string.Join(Environment.NewLine, RenderedOutput.Warnings(_files)).ShouldEqual(string.Empty);
     [Fact] async Task should_pass_absence_and_presence_after_replay() => await RunProjected(LoadWithArtifacts(_files));
-    [Fact] async Task should_fail_absence_at_an_existing_key()
+    [Fact]
+    async Task should_fail_absence_at_an_existing_key()
     {
         var source = Source.Replace("then no readmodel InvoiceView for \"third\"", "then no readmodel InvoiceView for \"second\"", StringComparison.Ordinal)
             .Replace("        then readmodel InvoiceView\n          invoiceId = \"second\"\n          description = \"Second\"\n", string.Empty, StringComparison.Ordinal);

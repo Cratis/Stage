@@ -16,7 +16,7 @@ public class when_loading_a_model_without_authentication : Specification
     async Task Establish()
     {
         _root = Directory.CreateDirectory(SpecTemporaryRoot.NewPath("stage-realization")).FullName;
-        File.WriteAllText(Path.Combine(_root, "shop.play"), """
+        await File.WriteAllTextAsync(Path.Combine(_root, "shop.play"), """
             module Projects
               feature Registration
                 slice StateChange RegisterProject

@@ -47,7 +47,8 @@ public class and_roles_are_alternatives : Specification
             _diagnostics);
     }
 
-    [Fact] void should_preserve_the_exact_role_disjunction() =>
+    [Fact]
+    void should_preserve_the_exact_role_disjunction() =>
         _attribute.ShouldEqual("Roles(\"Administrator\", \"Auditor\")");
     [Fact] void should_not_report_anything() => _diagnostics.ShouldBeEmpty();
 }

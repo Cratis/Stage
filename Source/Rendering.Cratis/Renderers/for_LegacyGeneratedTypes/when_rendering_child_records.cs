@@ -14,6 +14,7 @@ public class when_rendering_child_records : a_projection_with_children_blocks
 
     void Because() => _file = new StateViewSliceRenderer().Render(_detailsSlice, _applicationSet, "AcmeBilling");
 
-    [Fact] void should_inventory_every_emitted_declaration() =>
+    [Fact]
+    void should_inventory_every_emitted_declaration() =>
         InventoryAssertions.Missing([_file], _applicationSet, "AcmeBilling").ShouldBeEmpty();
 }

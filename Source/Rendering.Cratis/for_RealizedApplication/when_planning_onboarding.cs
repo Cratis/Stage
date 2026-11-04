@@ -30,11 +30,13 @@ public class when_planning_onboarding : given.a_model_with_authentication_and_on
     [Fact] void should_authorize_inviters_against_the_tenant_they_invite_into() => Text("GeneratedOnboarding/OnboardingInvitations.cs").ShouldContain("MemberPersonaClaims.Holds(context.Principal, tenants.Current.Value");
     [Fact] void should_render_the_command_that_invites_a_member() => Text("GeneratedOnboarding/OnboardingInvitations.cs").ShouldContain("public record InviteMemberToTenant(string Email, IReadOnlyList<string> Personas)");
     [Fact] void should_reject_a_persona_outside_the_grant() => Text("GeneratedOnboarding/OnboardingInvitations.cs").ShouldContain("OnboardingRules.MemberGrantable.Contains(persona");
-    [Fact] void should_record_an_invitation_in_the_tenant_of_the_caller_and_publish_it_to_the_outbox_ante_observes() =>
+    [Fact]
+    void should_record_an_invitation_in_the_tenant_of_the_caller_and_publish_it_to_the_outbox_ante_observes() =>
         Text("GeneratedOnboarding/InvitationPublisher.cs").ShouldContain("EventStoreNamespaceName.Default");
     [Fact] void should_publish_an_invitation_once() => Text("GeneratedOnboarding/InvitationPublisher.cs").ShouldContain("new IdempotencyKey($\"invitation:{context.EventSourceId}\")");
     [Fact] void should_protect_the_address_of_the_invitee_in_the_event_log() => Text("GeneratedOnboarding/OnboardingEvents.cs").ShouldContain("[property: PII] string Email");
-    [Fact] void should_observe_the_seven_outcomes_of_ante() => new[] { "InvitationTokenIssued", "InvitationRejected", "InvitationToJoinTenantAccepted", "InvitationToCreateTenantAccepted", "OrganizationRegistrationCompleted", "OrganizationRegistrationDeclined", "LegalTermsAccepted" }
+    [Fact]
+    void should_observe_the_seven_outcomes_of_ante() => new[] { "InvitationTokenIssued", "InvitationRejected", "InvitationToJoinTenantAccepted", "InvitationToCreateTenantAccepted", "OrganizationRegistrationCompleted", "OrganizationRegistrationDeclined", "LegalTermsAccepted" }
         .Where(outcome => !Text("GeneratedOnboarding/AnteOutcomes.cs").Contains($"({outcome} @event", StringComparison.Ordinal)).ShouldBeEmpty();
     [Fact] void should_provision_each_outcome_once() => Text("GeneratedOnboarding/Provisioning.cs").ShouldContain("AppendOnce(eventSourceId, @event, new IdempotencyKey(key))");
     [Fact] void should_send_the_invitation_through_herald_with_the_link_on_the_public_origin() => Text("GeneratedOnboarding/OnboardingEmails.cs").ShouldContain("/invite/{issued.Token}");

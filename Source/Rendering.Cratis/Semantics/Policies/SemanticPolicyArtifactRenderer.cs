@@ -166,7 +166,7 @@ internal static class SemanticPolicyArtifactRenderer
             .Line("for (var current = type.BaseType; current is not null; current = current.BaseType)")
             .Line("{")
             .Line("    if (current.IsGenericType && current.GenericTypeArguments.Length == 1 && (current.GenericTypeArguments[0] == typeof(string) || current.GenericTypeArguments[0] == typeof(global::System.Guid) || current.GenericTypeArguments[0] == typeof(global::System.DateOnly) || current.GenericTypeArguments[0] == typeof(global::System.DateTimeOffset)) &&")
-            .Line("        (current.GetGenericTypeDefinition().FullName == \"Cratis.Concepts.ConceptAs`1\" || current.GetGenericTypeDefinition().FullName == \"Cratis.Chronicle.Events.EventSourceId`1\")) return true;")
+            .Line("        (current.GetGenericTypeDefinition() == typeof(global::Cratis.Concepts.ConceptAs<>) || current.GetGenericTypeDefinition() == typeof(global::Cratis.Chronicle.Events.EventSourceId<>))) return true;")
             .Line("}")
             .Line("return false;")
             .EndBlock()
@@ -218,7 +218,7 @@ internal static class SemanticPolicyArtifactRenderer
             }
 
             return (Descriptor: Descriptor(context, site.RequirementId, site.Operation), Body: body!);
-        }).OrderBy(_ => SemanticPolicyContextRuntime.Body(_.Descriptor), StringComparer.Ordinal).ToArray();
+        }).OrderBy(_ => SemanticPolicyContextRuntime.Body(context, _.Descriptor), StringComparer.Ordinal).ToArray();
         if (bodies.Length == 0)
         {
             return [];
@@ -233,7 +233,7 @@ internal static class SemanticPolicyArtifactRenderer
             SemanticPolicyContextRuntime.RenderWrapper(context, site.Descriptor) with { Sources = [site.Descriptor.OperationId!.Value] },
             SemanticPolicyContextRuntime.RenderBodies(context, [site], evaluators: true) with
             {
-                RelativePath = Path.Combine(context.PoliciesFolder, $"PolicyBodies_{SemanticTypedContextRenderer.Suffix(site.Descriptor)}.cs"),
+                RelativePath = Path.Combine(context.PoliciesFolder, context.ContextNames.ContextPolicyFile(site.Descriptor)),
                 Sources = [site.Descriptor.OperationId!.Value]
             }
         }));
@@ -313,7 +313,7 @@ internal static class SemanticPolicyArtifactRenderer
 
         var bodies = context.Domain.Count == 0 ? "PolicyBodies" : $"global::{context.PoliciesNamespace}.PolicyBodies";
 
-        return $"{bodies}.{SemanticPolicyContextRuntime.Evaluate(descriptor)}(ref unavailable, context, {text})";
+        return $"{bodies}.{SemanticPolicyContextRuntime.Evaluate(context, descriptor)}(ref unavailable, context, {text})";
     }
 
     static string Condition(SemanticPolicyCondition condition, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, bool command, string argument, string subject) => condition switch

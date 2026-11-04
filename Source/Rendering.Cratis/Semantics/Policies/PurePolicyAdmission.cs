@@ -39,14 +39,14 @@ internal static class PurePolicyAdmission
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
         var model = compilation.GetSemanticModel(tree);
         var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>()
-            .Single(declaration => declaration.Identifier.Text == SemanticPolicyContextRuntime.Body(descriptor));
+            .Single(declaration => declaration.Identifier.Text == SemanticPolicyContextRuntime.Body(context, descriptor));
 
         // Name refused reads before compile errors, so `context.Artifact.Amount` reports the read, not CS1061.
         var refused = RefusedRead(method.Body!, model, context);
         if (refused is not null) return Reject("STAGE-ESM-015", refused);
 
         // Enclosing generated namespaces outrank the SDK's implicit global usings and could rebind a type the body names.
-        var referenced = PureTransitionAdmission.MethodTypeReferences(tree, model, SemanticPolicyContextRuntime.BodyPrefix);
+        var referenced = PureTransitionAdmission.MethodTypeReferences(tree, model, SemanticPolicyContextRuntime.Body(context, descriptor));
         var shadow = context.NamespacePaths.GroupBy(path => path.Split('.')[^1], StringComparer.Ordinal).FirstOrDefault(group =>
             PureTransitionAdmission.ShadowsAuditedName(group.Key) ||
             referenced.Any(reference => reference.Name == group.Key && (reference.Namespace is null || group.Any(path => path != reference.Namespace))))?.Key;
@@ -59,7 +59,7 @@ internal static class PurePolicyAdmission
         if (errors.Length > 0)
         {
             var error = errors[0];
-            var location = CSharpInlineIndentation.Locate(code, body, code.IndexOf($"static bool {SemanticPolicyContextRuntime.Body(descriptor)}(", StringComparison.Ordinal));
+            var location = CSharpInlineIndentation.Locate(code, body, code.IndexOf($"static bool {SemanticPolicyContextRuntime.Body(context, descriptor)}(", StringComparison.Ordinal));
             var detail = $"{error.Id}: {error.GetMessage(System.Globalization.CultureInfo.InvariantCulture)}";
             if (location is null || !error.Location.IsInSource || error.Location.SourceTree != tree || error.Location.SourceSpan.Start < location.Start ||
                 error.Location.SourceSpan.Start > location.Start + location.Length)
@@ -70,7 +70,7 @@ internal static class PurePolicyAdmission
             return Reject("STAGE-ESM-019", $"Policy body {PureTransitionAdmission.SourceLocation(requirement, body, location.ToBody(error.Location.SourceSpan.Start - location.Start))}: {detail}");
         }
 
-        var verdict = PureTransitionAdmission.Walk(model, method.Body!, descriptor, context.RootNamespace);
+        var verdict = PureTransitionAdmission.Walk(model, method.Body!, descriptor, context);
         if (verdict.Accepted && verdict.ContextReads.Any(read => !SemanticPolicyContextRuntime.SuppliedMembers.Contains(read, StringComparer.Ordinal)))
         {
             return Reject("STAGE-ESM-015", "The policy body reads a PolicyContext member Stage does not supply.");
@@ -90,7 +90,7 @@ internal static class PurePolicyAdmission
             var owner = symbol?.ContainingType;
             if (symbol is IPropertySymbol && owner is not null && contexts.Contains(owner.ContainingNamespace.ToDisplayString(), StringComparer.Ordinal))
             {
-                if (owner.Name.StartsWith("TypedContext_", StringComparison.Ordinal) && SemanticPolicyContextRuntime.RefusedMembers.Contains(symbol.Name, StringComparer.Ordinal))
+                if (TypedContextTypes.IsContext(owner, context.TypedContextTypeNames) && SemanticPolicyContextRuntime.RefusedMembers.Contains(symbol.Name, StringComparer.Ordinal))
                 {
                     return symbol.Name == "Tenant"
                         ? "The policy body reads context.Tenant; Stage does not supply PolicyContext.Tenant at Arc's authorization boundary."

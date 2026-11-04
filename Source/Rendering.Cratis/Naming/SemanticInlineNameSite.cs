@@ -10,7 +10,17 @@ namespace Cratis.Stage.Rendering.Cratis.Naming;
 /// <param name="Scope">The declaring member or namespace scope.</param>
 /// <param name="TypeScope">An optional scope of types visible to the authored body.</param>
 /// <param name="PathScope">An optional case-insensitive output directory scope.</param>
-internal sealed record SemanticInlineNameSite(string Key, string Stem, string Identity, string Scope, string? TypeScope = null, string? PathScope = null);
+/// <param name="QualifiedStem">An optional owner-qualified name tried after the stem and before any identity suffix.</param>
+/// <param name="Derived">An optional projection of the allocated name to further spellings that must be unique in the same scopes.</param>
+internal sealed record SemanticInlineNameSite(
+    string Key,
+    string Stem,
+    string Identity,
+    string Scope,
+    string? TypeScope = null,
+    string? PathScope = null,
+    string? QualifiedStem = null,
+    Func<string, IEnumerable<string>>? Derived = null);
 
 /// <summary>An existing modeled or generated declaration that a helper must not displace.</summary>
 /// <param name="Scope">The scope containing the declaration.</param>

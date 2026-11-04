@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
@@ -99,6 +100,45 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
 
     string PackageProperty(string name) => PackageJson().RootElement.GetProperty(name).GetString()!;
 
+    [Fact]
+    void should_align_every_scene_peer_with_both_frontend_manifests()
+    {
+        using var frontend = FrontendManifest("package.json");
+        using var runtime = FrontendManifest(Path.Combine("Runtime", "package.json"));
+        var dependencies = ScenePackages(frontend.RootElement.GetProperty("dependencies"));
+        var peers = ScenePackages(runtime.RootElement.GetProperty("peerDependencies"));
+        var expected = new[] { "@cratis/scene.blueprint.default", "@cratis/scene.components", "@cratis/scene.engine", "@cratis/scene.model", "@cratis/scene.primereact", "@cratis/scene.react" };
+        dependencies.Keys.Order(StringComparer.Ordinal).ShouldEqual(expected);
+        peers.Keys.Order(StringComparer.Ordinal).ShouldEqual(expected);
+        foreach (var name in expected)
+        {
+            peers[name].ShouldEqual(CratisFrontendPackageSet.Current.ScenePackageVersion);
+            dependencies[name].ShouldEqual(peers[name]);
+        }
+    }
+
+    [Fact]
+    void should_omit_only_the_optional_scene_peer_from_the_default_scaffold()
+    {
+        using var runtime = FrontendManifest(Path.Combine("Runtime", "package.json"));
+        var peers = ScenePackages(runtime.RootElement.GetProperty("peerDependencies"));
+        var metadata = runtime.RootElement.GetProperty("peerDependenciesMeta").EnumerateObject()
+            .Where(peer => peer.Name.StartsWith("@cratis/scene.", StringComparison.Ordinal)).ToArray();
+        metadata.Select(peer => peer.Name).ShouldEqual(["@cratis/scene.primereact"]);
+        metadata.Single().Value.GetProperty("optional").GetBoolean().ShouldBeTrue();
+        using var generated = PackageJson();
+        var packages = ScenePackages(generated.RootElement.GetProperty("dependencies"));
+        packages.Keys.Order(StringComparer.Ordinal).ShouldEqual(peers.Keys.Except(metadata.Select(peer => peer.Name)).Order(StringComparer.Ordinal));
+        foreach (var peer in packages) peer.Value.ShouldEqual(peers[peer.Key]);
+    }
+
+    static Dictionary<string, string> ScenePackages(JsonElement section) => section.EnumerateObject()
+        .Where(package => package.Name.StartsWith("@cratis/scene.", StringComparison.Ordinal))
+        .ToDictionary(package => package.Name, package => package.Value.GetString()!, StringComparer.Ordinal);
+
+    static JsonDocument FrontendManifest(string relativePath, [CallerFilePath] string specification = "") =>
+        JsonDocument.Parse(File.ReadAllText(Path.Combine(Path.GetDirectoryName(specification)!, "..", "..", "Frontend", relativePath)));
+
     string PackageScript(string name) => PackageJson().RootElement.GetProperty("scripts").GetProperty(name).GetString()!;
 
     string DependencyVersions()
@@ -126,13 +166,13 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
             $"@cratis/scene.model={CratisFrontendPackageSet.Current.ScenePackageVersion}",
             $"@cratis/scene.react={CratisFrontendPackageSet.Current.ScenePackageVersion}",
             $"@cratis/stage.runtime={ScaffoldPackageVersions.StageRuntime}",
-            "@types/node=26.6.4",
+            "@types/node=26.6.6",
             "@types/react=19.3.0",
             "@types/react-dom=19.3.0",
-            "@vitejs/plugin-react=6.1.1",
+            "@vitejs/plugin-react=6.1.2",
             "lucide-react=1.52.0",
-            "react=19.3.0",
-            "react-dom=19.3.0",
+            "react=19.3.1",
+            "react-dom=19.3.1",
             "react-router-dom=7.18.4",
             "reflect-metadata=0.2.2",
             "rxjs=7.8.2",

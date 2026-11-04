@@ -58,7 +58,11 @@ public class with_directly_selected_translate_reactions : when_settling_reaction
             Id = SemanticId.Parse("sem1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
             Name = "Translated",
             Kind = SemanticSliceKind.Translate,
-            Commands = [], Events = [], ReadModels = [], Projections = [], Specifications = []
+            Commands = [],
+            Events = [],
+            ReadModels = [],
+            Projections = [],
+            Specifications = []
         };
         var application = model.Application with { Modules = [module with { Features = [feature with { Slices = [slice with { Reactions = [] }, translated] }] }] };
         var plan = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, application)).Plan;

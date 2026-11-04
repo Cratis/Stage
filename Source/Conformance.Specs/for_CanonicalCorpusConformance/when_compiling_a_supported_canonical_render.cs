@@ -24,11 +24,23 @@ public class when_compiling_a_supported_canonical_render : a_rendered_canonical_
 
     [Fact]
     void should_reject_a_render_without_a_project() =>
-        Assert.ThrowsAny<Exception>(() => rendered_compilation.Errors(_plan.Artifacts.Where(file => !file.RelativePath.EndsWith(".csproj", StringComparison.Ordinal)))).Message.ShouldEqual("A published canonical render must contain exactly one C# project.");
+        Assert.ThrowsAny<Exception>(() => rendered_compilation.Errors(_plan.Artifacts.Where(file => !file.RelativePath.EndsWith(".csproj", StringComparison.Ordinal)))).Message.ShouldEqual("A published canonical render must contain exactly one root C# project, and at most one nested Events.Contracts project.");
 
     [Fact]
     void should_reject_multiple_projects() =>
-        Assert.ThrowsAny<Exception>(() => rendered_compilation.Errors(_plan.Artifacts.Append(PlannedArtifact.CreateText("Other.csproj", "<Project />")))).Message.ShouldEqual("A published canonical render must contain exactly one C# project.");
+        Assert.ThrowsAny<Exception>(() => rendered_compilation.Errors(_plan.Artifacts.Append(PlannedArtifact.CreateText("Other.csproj", "<Project />")))).Message.ShouldEqual("A published canonical render must contain exactly one root C# project, and at most one nested Events.Contracts project.");
+
+    [Fact]
+    void should_accept_a_nested_event_contracts_project()
+    {
+        var contracts = Assert.Single(_plan.Artifacts, file => file.RelativePath.EndsWith(".Events.Contracts.csproj", StringComparison.Ordinal));
+        contracts.RelativePath.ShouldEqual($"{Path.GetFileNameWithoutExtension(contracts.RelativePath)}/{Path.GetFileName(contracts.RelativePath)}");
+        rendered_compilation.Errors(_plan).ShouldBeEmpty();
+    }
+
+    [Fact]
+    void should_reject_an_unrecognized_nested_project() =>
+        Assert.ThrowsAny<Exception>(() => rendered_compilation.Errors(_plan.Artifacts.Append(PlannedArtifact.CreateText("Other/Other.csproj", "<Project />")))).Message.ShouldEqual("A published canonical render must contain exactly one root C# project, and at most one nested Events.Contracts project.");
 
     [Fact]
     void should_treat_errors_without_a_source_as_harness_errors() =>

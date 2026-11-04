@@ -44,13 +44,15 @@ public class when_running_property_keyed_removal_only_projections : Specificatio
 
     [Fact] public async Task should_remove_only_the_instance_named_by_the_property() => await ShouldPass(_plan);
 
-    [Fact] public async Task should_isolate_each_run()
+    [Fact]
+    public async Task should_isolate_each_run()
     {
         await ShouldPass(_plan);
         await ShouldPass(_plan);
     }
 
-    [Fact] public async Task should_replace_property_keyed_history_before_applying_the_action()
+    [Fact]
+    public async Task should_replace_property_keyed_history_before_applying_the_action()
     {
         var source = Source.Replace("        given readmodel InvoiceView\n          invoiceId = \"first\"", "        given InvoiceRemoved\n          for \"unrelated\"\n          invoiceId = \"second\"\n        given readmodel InvoiceView\n          invoiceId = \"first\"", StringComparison.Ordinal);
         await ShouldPass(Compile(source));

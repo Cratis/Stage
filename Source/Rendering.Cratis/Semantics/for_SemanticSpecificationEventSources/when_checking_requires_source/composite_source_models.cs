@@ -81,10 +81,13 @@ internal static class composite_source_models
         var collection = scope.Children.Single();
         var nested = collection.Scope.Nested.Single();
         var contribution = nested.Scope.From.Single();
-        return scope with { Children = [collection with { Scope = collection.Scope with
+        return scope with
+        {
+            Children = [collection with { Scope = collection.Scope with
         {
             Nested = [nested with { Scope = nested.Scope with { From = [contribution with { ParentKey = null }] } }]
-        } }] };
+        } }]
+        };
     });
 
     internal static SemanticId Event(ExecutableSemanticModel model, string name) =>

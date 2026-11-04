@@ -2,18 +2,18 @@
 # Regenerate: STAGE_WRITE_FRAMEWORK_NAME_CATALOG=1 dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --filter "FullyQualifiedName~for_FrameworkNameCatalog"
 format	1
 scaffold	3
-pin	Cratis	22.166.0
-pin	Cratis.Arc.Chronicle.Testing	22.166.0
-pin	Cratis.Arc.MongoDB	22.166.0
+pin	Cratis	22.166.1
+pin	Cratis.Arc.Chronicle.Testing	22.166.1
+pin	Cratis.Arc.MongoDB	22.166.1
 pin	Cratis.Choreography	2.2.0
 pin	Cratis.Choreography.Chronicle	2.2.0
-pin	Cratis.Chronicle	19.125.0
-pin	Cratis.Chronicle.AspNetCore	19.125.0
-pin	Cratis.Chronicle.Testing	19.125.0
-pin	Cratis.Screenplay	5.3.1
-pin	Cratis.Screenplay.Matching	5.3.1
-pin	Cratis.Specifications	5.1.0
-pin	Cratis.Specifications.XUnit	5.1.0
+pin	Cratis.Chronicle	19.125.1
+pin	Cratis.Chronicle.AspNetCore	19.125.1
+pin	Cratis.Chronicle.Testing	19.125.1
+pin	Cratis.Screenplay	5.3.2
+pin	Cratis.Screenplay.Matching	5.3.2
+pin	Cratis.Specifications	5.2.3
+pin	Cratis.Specifications.XUnit	5.2.3
 pin	Microsoft.NET.Test.Sdk	18.11.0
 pin	NSubstitute	6.2.0
 pin	TargetFramework	net10.0
@@ -25,35 +25,35 @@ package	AS	Azure.Identity	1.17.2
 package	AS	Azure.Security.KeyVault.Certificates	4.6.0
 package	AS	Azure.Security.KeyVault.Secrets	4.6.0
 package	AS	Castle.Core	5.2.1
-package	AS	Cratis	22.166.0
-package	AS	Cratis.Arc	22.166.0
-package	AS	Cratis.Arc.Chronicle	22.166.0
-package	AS	Cratis.Arc.Chronicle.CodeAnalysis	22.166.0
-package	AS	Cratis.Arc.Chronicle.Testing	22.166.0
-package	AS	Cratis.Arc.Core	22.166.0
-package	AS	Cratis.Arc.Core.CodeAnalysis	22.166.0
-package	AS	Cratis.Arc.MongoDB	22.166.0
-package	AS	Cratis.Arc.ProxyGenerator.Build	22.166.0
-package	AS	Cratis.Arc.Screenplay.Embedded	22.166.0
-package	AS	Cratis.Arc.Swagger	22.166.0
-package	AS	Cratis.Arc.Testing	22.166.0
+package	AS	Cratis	22.166.1
+package	AS	Cratis.Arc	22.166.1
+package	AS	Cratis.Arc.Chronicle	22.166.1
+package	AS	Cratis.Arc.Chronicle.CodeAnalysis	22.166.1
+package	AS	Cratis.Arc.Chronicle.Testing	22.166.1
+package	AS	Cratis.Arc.Core	22.166.1
+package	AS	Cratis.Arc.Core.CodeAnalysis	22.166.1
+package	AS	Cratis.Arc.MongoDB	22.166.1
+package	AS	Cratis.Arc.ProxyGenerator.Build	22.166.1
+package	AS	Cratis.Arc.Screenplay.Embedded	22.166.1
+package	AS	Cratis.Arc.Swagger	22.166.1
+package	AS	Cratis.Arc.Testing	22.166.1
 package	AS	Cratis.Choreography	2.2.0
 package	AS	Cratis.Choreography.Chronicle	2.2.0
 package	AS	Cratis.Choreography.Storage	2.2.0
 package	AS	Cratis.Choreography.Storage.MongoDB	2.1.2
-package	AS	Cratis.Chronicle	19.125.0
-package	AS	Cratis.Chronicle.AspNetCore	19.125.0
-package	AS	Cratis.Chronicle.CodeAnalysis	19.125.0
-package	AS	Cratis.Chronicle.Connections	19.125.0
-package	AS	Cratis.Chronicle.Testing	19.125.0
+package	AS	Cratis.Chronicle	19.125.1
+package	AS	Cratis.Chronicle.AspNetCore	19.125.1
+package	AS	Cratis.Chronicle.CodeAnalysis	19.125.1
+package	AS	Cratis.Chronicle.Connections	19.125.1
+package	AS	Cratis.Chronicle.Testing	19.125.1
 package	AS	Cratis.Fundamentals	7.33.1
 package	AS	Cratis.Metrics.Roslyn	7.33.1
 package	AS	Cratis.Observability.SourceGenerators	7.33.1
-package	AS	Cratis.Screenplay	5.3.1
-package	AS	Cratis.Screenplay.Contexts	5.3.1
-package	AS	Cratis.Screenplay.Matching	5.3.1
-package	AS	Cratis.Specifications	5.1.0
-package	AS	Cratis.Specifications.XUnit	5.1.0
+package	AS	Cratis.Screenplay	5.3.2
+package	AS	Cratis.Screenplay.Contexts	5.3.2
+package	AS	Cratis.Screenplay.Matching	5.3.2
+package	AS	Cratis.Specifications	5.2.3
+package	AS	Cratis.Specifications.XUnit	5.2.3
 package	AS	DnsClient	1.8.0
 package	AS	FluentValidation	12.2.0
 package	AS	Grpc.Core.Api	2.84.0
@@ -114,8 +114,8 @@ package	AS	Humanizer.Core.zh-CN	3.0.10
 package	AS	Humanizer.Core.zh-Hans	3.0.10
 package	AS	Humanizer.Core.zh-Hant	3.0.10
 package	AS	JsonCons.JmesPath	1.0.0
-package	AS	Microsoft.AspNetCore.Authentication.JwtBearer	10.0.0
-package	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect	10.0.0
+package	AS	Microsoft.AspNetCore.Authentication.JwtBearer	10.0.13
+package	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect	10.0.13
 package	AS	Microsoft.Bcl.AsyncInterfaces	8.0.0
 package	AS	Microsoft.Bcl.Cryptography	10.0.2
 package	AS	Microsoft.Build.Framework	18.9.6
@@ -138,12 +138,12 @@ package	AS	Microsoft.Extensions.Telemetry.Abstractions	10.11.0
 package	AS	Microsoft.Identity.Abstractions	12.7.0
 package	AS	Microsoft.Identity.Client	4.90.1
 package	AS	Microsoft.Identity.Client.Extensions.Msal	4.83.1
-package	AS	Microsoft.Identity.Web	4.16.1
-package	AS	Microsoft.Identity.Web.Certificate	4.16.1
-package	AS	Microsoft.Identity.Web.Certificateless	4.16.1
-package	AS	Microsoft.Identity.Web.Diagnostics	4.16.1
-package	AS	Microsoft.Identity.Web.TokenAcquisition	4.16.1
-package	AS	Microsoft.Identity.Web.TokenCache	4.16.1
+package	AS	Microsoft.Identity.Web	4.17.0
+package	AS	Microsoft.Identity.Web.Certificate	4.17.0
+package	AS	Microsoft.Identity.Web.Certificateless	4.17.0
+package	AS	Microsoft.Identity.Web.Diagnostics	4.17.0
+package	AS	Microsoft.Identity.Web.TokenAcquisition	4.17.0
+package	AS	Microsoft.Identity.Web.TokenCache	4.17.0
 package	AS	Microsoft.IdentityModel.Abstractions	8.23.0
 package	AS	Microsoft.IdentityModel.JsonWebTokens	8.23.0
 package	AS	Microsoft.IdentityModel.Logging	8.23.0

@@ -37,7 +37,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     // Re-frozen for Cratis/Stage#937: only Directory.Packages.props pins Pkcs to 10.0.14 and documents Xml runtime servicing.
     // Re-frozen for Cratis/Stage#926: the scaffold hosts an Orleans silo (Program.cs, Directory.Packages.props, the project).
     // Re-frozen for Choreography 2.2.0 with Chronicle 19.124.0 and Arc 22.165.2: the scaffold uses the renamed hosting APIs.
-    const string Digest = "08852d8ff73e3d99fc00782025d9275f291fa74fa2f0a0170e7b00eb7b775903";
+    const string Digest = "30e34737f53e3d997070effc73cdb829015be000cbb20d91725a3a8f0d0c838e";
 
     const string Manifest = """
         .editorconfig 0071ecdc7a762e5966d5f6e6c72cc6b53d96c918c2e32dbe74059ffbc792859f 741
@@ -62,7 +62,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         GlobalUsings.cs 74b2438fda9d5bc192e6fcd6b44837b6129b532faa99555d77013f62f1ec3f8e 137
         Program.cs 4360b0fc8bb0ec722ac718c5645a7ec20741c054fd8f8144208c5fe084dfe4cf 1741
         README.md aa64c1ef6846ab9796feb390c9aa112864126aaac54c9c81c0e50fea02d38e74 2392
-        Workspaces.csproj e3121d1b427686020a2ce6d32bf73071cd19039fd37e84d84d259126e650966e 2621
+        Workspaces.csproj 1522eb45142924ef10de656d6fa50babd44d49304d9e3bf9bf558adc8fbeea44 2865
         Workspaces.slnx f74d3ddcde0097a4bdb2ce376128f76d0ed516c309d01f273f9b92c394ba2166 62
         Workspaces/Tracking/AddComment/AddComment.cs 8ca9724697e5cbf55e8c5245c666a43d94e1a63eb322b36651e6d9500ce89c67 944
         Workspaces/Tracking/AddComment/when_adding_a_comment.cs 5f692eef442134983246c572182e653f6775912ed3154134f4c62ddd45f9b56b 1525
@@ -80,7 +80,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Workspaces/Tracking/WorkItemList/when_listing_created_work_items_is_queried.cs d8b0763763dd34ab7dc7433ffc16d6597e3987ef673c412616ff92c7fcc172da 1521
         appsettings.json 43edcdf830ab948374c5c6ca2a700b2eed65134267d1830119cb803620cfd9cf 442
         docker-compose.yml a92e4b00e441d43ea07066f158322c0d02a7e1cc1f2c5853b3547b21567fba4a 559
-        package.json 66eb49c0984c0fa1afaea06b248293dd66d3488dd735a66ca41353d24f17a070 1255
+        package.json 6721bf9a25ecc656687e186e6c152d5be23fe554a121ce944777b306c8f7ef2d 1343
         scene.json ebb374ed2550f019cbd51055f7498fdf87e51db7a0d85479f7c65274fce7d55e 3894
         src/bindings.ts 03e22a6c7526dfaeb680dbb58a79f3e49399c615debcfd8e2eafa86e8e6150bb 2325
         src/stage-scene.json f295e8fd70f788d651c363b00357f0a678c2fbabcdd10039994fc1fa9697038b 4435
@@ -129,7 +129,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Workspaces/Tracking/WorkItemList/when_listing_created_work_items_is_queried.cs 85c389d9b510cfbb130f4937d6468023e0331db217f6a91b9e6c8980916110c7 2493
         appsettings.json 43edcdf830ab948374c5c6ca2a700b2eed65134267d1830119cb803620cfd9cf 442
         docker-compose.yml a92e4b00e441d43ea07066f158322c0d02a7e1cc1f2c5853b3547b21567fba4a 559
-        package.json 66eb49c0984c0fa1afaea06b248293dd66d3488dd735a66ca41353d24f17a070 1255
+        package.json 6721bf9a25ecc656687e186e6c152d5be23fe554a121ce944777b306c8f7ef2d 1343
         scene.json ebb374ed2550f019cbd51055f7498fdf87e51db7a0d85479f7c65274fce7d55e 3894
         src/bindings.ts 03e22a6c7526dfaeb680dbb58a79f3e49399c615debcfd8e2eafa86e8e6150bb 2325
         src/stage-scene.json f295e8fd70f788d651c363b00357f0a678c2fbabcdd10039994fc1fa9697038b 4435
@@ -194,7 +194,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("0e444f478756406dc5f7664cf05c5935b4921aaa3ea564d2e9c82c9209283a70"); // Re-frozen for #741 (.gitignore gains the .yarn/ line), Scene 4.86.0, Cratis/Stage#120 merged with train 10 and #937 (only Directory.Packages.props pins Pkcs and documents Xml runtime servicing).
+            plan.Diagnostics).ShouldEqual("9c3132542e9db8f4a2539b02bdf5aea9d99c1be38c97795b10ad343263deb100"); // Re-frozen for #741 (.gitignore gains the .yarn/ line), Scene 4.86.0, Cratis/Stage#120 merged with train 10 and #937 (only Directory.Packages.props pins Pkcs and documents Xml runtime servicing).
     }
 
     [Theory]

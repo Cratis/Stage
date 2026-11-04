@@ -10,13 +10,13 @@ using Cratis.Stage.Rendering.Cratis.Naming;
 namespace Cratis.Stage.Rendering.Cratis.Semantics.Lifecycles;
 
 /// <summary>
-/// Renders the state machines of a model as Cratis.Orleans event-sourced state machines and its workflows as workflow
+/// Renders the state machines of a model as Cratis.Choreography event-sourced state machines and its workflows as workflow
 /// definitions with the performers, signals and triggers that run them on the silo the application hosts.
 /// </summary>
 internal static class SemanticLifecycleArtifactRenderer
 {
-    const string StateMachines = "global::Cratis.Orleans.Chronicle.StateMachines";
-    const string Workflows = "global::Cratis.Orleans.Workflows";
+    const string StateMachines = "global::Cratis.Choreography.Chronicle.StateMachines";
+    const string Workflows = "global::Cratis.Choreography.Workflows";
 
     internal static string Folder(SemanticApplicationContext context) => string.Join('/', context.Domain.Append("Lifecycles"));
 
@@ -64,7 +64,7 @@ internal static class SemanticLifecycleArtifactRenderer
             .Line($"protected override global::System.Type InitialState => typeof({initial});")
             .BlankLine()
             .Line("/// <inheritdoc/>")
-            .Line($"public override global::System.Collections.Immutable.IImmutableList<global::Cratis.Orleans.StateMachines.IState<{modelType}>> CreateStates() => [{string.Join(", ", machine.States.Select(state => $"new {Identifiers.ToPascalCase(state.Name)}()"))}];")
+            .Line($"public override global::System.Collections.Immutable.IImmutableList<global::Cratis.Choreography.StateMachines.IState<{modelType}>> CreateStates() => [{string.Join(", ", machine.States.Select(state => $"new {Identifiers.ToPascalCase(state.Name)}()"))}];")
             .BlankLine()
             .Line("/// <inheritdoc/>");
 
@@ -98,7 +98,7 @@ internal static class SemanticLifecycleArtifactRenderer
             .Distinct(StringComparer.Ordinal).ToArray();
         var sends = state.Entering.Where(entry => entry.Kind == SemanticStateEntryKind.SendCommand).ToArray();
         builder.Summary($"The {state.Name} state of the {machine.Name} state machine.")
-            .OpenBlock($"public sealed class {Identifiers.ToPascalCase(state.Name)} : global::Cratis.Orleans.StateMachines.State<{modelType}>")
+            .OpenBlock($"public sealed class {Identifiers.ToPascalCase(state.Name)} : global::Cratis.Choreography.StateMachines.State<{modelType}>")
             .Line("/// <inheritdoc/>")
             .Line($"protected override global::System.Collections.Immutable.IImmutableList<global::System.Type> AllowedTransitions => [{string.Join(", ", allowed.Select(target => $"typeof({Identifiers.ToPascalCase(target)})"))}];");
         if (starts.Length + sends.Length > 0)
@@ -121,7 +121,7 @@ internal static class SemanticLifecycleArtifactRenderer
 
             for (var index = 0; index < starts.Length; index++)
             {
-                builder.Line($"var started{index} = await global::Cratis.Orleans.Chronicle.Workflows.WorkflowStateExtensions.StartWorkflow(this, {CSharpCodeBuilder.StringLiteral(starts[index])});")
+                builder.Line($"var started{index} = await global::Cratis.Choreography.Chronicle.Workflows.WorkflowStateExtensions.StartWorkflow(this, {CSharpCodeBuilder.StringLiteral(starts[index])});")
                     .Line($"if (!started{index}.Admitted) throw new global::System.InvalidOperationException({CSharpCodeBuilder.StringLiteral($"Entering {state.Name} in {machine.Name} could not start {starts[index]}.")});");
             }
 
@@ -140,7 +140,7 @@ internal static class SemanticLifecycleArtifactRenderer
         var nodes = graph.Nodes.Select(node =>
             $"new({CSharpCodeBuilder.StringLiteral(node.Name)}, {Workflows}.Graphs.WorkflowNodeKind.{node.Kind}, new({CSharpCodeBuilder.StringLiteral(node.Capability)}, 1), {CSharpCodeBuilder.StringLiteral(node.ConfigurationJson)}, [{string.Join(", ", node.Outlets.Select(CSharpCodeBuilder.StringLiteral))}], new({node.MaxAttempts}, global::System.TimeSpan.FromSeconds({node.AttemptTimeout.TotalSeconds:0.###}), global::System.TimeSpan.FromSeconds({node.RetryDelay.TotalSeconds:0.###}), 1))");
         var edges = graph.Edges.Select(edge => $"new({CSharpCodeBuilder.StringLiteral(edge.From)}, {CSharpCodeBuilder.StringLiteral(edge.Outlet)}, {CSharpCodeBuilder.StringLiteral(edge.To)})");
-        builder.Summary($"The {workflow.Name} workflow as a definition for the Cratis.Orleans workflow engine.")
+        builder.Summary($"The {workflow.Name} workflow as a definition for the Cratis.Choreography workflow engine.")
             .OpenBlock($"public sealed class {name}Workflow : {Workflows}.Definitions.IWorkflowDefinitions")
             .Line($"static readonly {Workflows}.Definitions.WorkflowDefinitionSnapshot _definition = new(")
             .Line($"    {CSharpCodeBuilder.StringLiteral(workflow.Name)},")
@@ -202,7 +202,7 @@ internal static class SemanticLifecycleArtifactRenderer
             var cls = $"{Identifiers.ToPascalCase(@event.Name)}WorkflowSignal";
             builder.Summary($"Resumes the workflow runs that wait for {@event.Name} about the same subject.")
                 .Attribute($"global::Cratis.Chronicle.Reactors.ReactorAttribute({CSharpCodeBuilder.StringLiteral($"{context.RootNamespace}.Lifecycles.{cls}")})")
-                .OpenBlock($"public class {cls}(global::Cratis.Orleans.Chronicle.Workflows.IWorkflowSignals signals) : global::Cratis.Chronicle.Reactors.IReactor")
+                .OpenBlock($"public class {cls}(global::Cratis.Choreography.Chronicle.Workflows.IWorkflowSignals signals) : global::Cratis.Chronicle.Reactors.IReactor")
                 .Summary($"Signals the waits for {@event.Name}.")
                 .OpenBlock($"public async global::System.Threading.Tasks.Task On{Identifiers.ToPascalCase(@event.Name)}({types.EventType(@event)} @event, global::Cratis.Chronicle.Events.EventContext context)")
                 .Line($"await signals.Signal(new {Workflows}.WorkflowScope(context.Namespace.Value), new {Workflows}.Contracts.WorkflowCorrelationKey(context.EventSourceId.Value), new {Workflows}.Contracts.WorkflowContractReference({CSharpCodeBuilder.StringLiteral(@event.Name)}, 1), {Workflows}.Contracts.WorkflowData.Empty, {Workflows}.WorkflowActor.System);")
@@ -220,7 +220,7 @@ internal static class SemanticLifecycleArtifactRenderer
         builder.Summary("Starts workflow runs when the events their triggers name are appended.")
             .OpenBlock("public static class GeneratedWorkflows")
             .Summary("Adds the event triggers of the modeled workflows.")
-            .OpenBlock("public static void Configure(global::Cratis.Orleans.Chronicle.Workflows.EventSourcedWorkflowsOptions options)");
+            .OpenBlock("public static void Configure(global::Cratis.Choreography.Chronicle.Workflows.EventSourcedWorkflowsOptions options)");
         foreach (var workflow in context.Application.Workflows)
         {
             var model = context.ReadModels[workflow.Subject];

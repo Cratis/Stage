@@ -78,6 +78,8 @@ public static class CratisServiceConfiguration
             },
             configureChronicleBuilder: chronicleBuilder => chronicleBuilder.WithCamelCaseNamingPolicy());
 
+        builder.Services.AddSingleton<Action<ChronicleTelemetryOptions>>(_ => { });
+
         SandboxIdentityOptions.Configure(builder.Services, builder.Configuration);
         StageHttpRouteOptions.AlignIntrospection(builder.Services);
 

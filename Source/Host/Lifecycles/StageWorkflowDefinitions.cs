@@ -1,10 +1,10 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Choreography.Workflows;
+using Cratis.Choreography.Workflows.Definitions;
+using Cratis.Choreography.Workflows.Graphs;
 using Cratis.DependencyInjection;
-using Cratis.Orleans.Workflows;
-using Cratis.Orleans.Workflows.Definitions;
-using Cratis.Orleans.Workflows.Graphs;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Lifecycles;
@@ -12,7 +12,7 @@ using Cratis.Stage.Contracts.Lifecycles;
 namespace Cratis.Stage.Host.Lifecycles;
 
 /// <summary>
-/// Serves the workflows of the loaded model to the Cratis.Orleans workflow engine as definition snapshots.
+/// Serves the workflows of the loaded model to the Cratis.Choreography workflow engine as definition snapshots.
 /// </summary>
 [IgnoreConvention]
 internal sealed class StageWorkflowDefinitions : IWorkflowDefinitions
@@ -65,7 +65,7 @@ internal sealed class StageWorkflowDefinitions : IWorkflowDefinitions
             new WorkflowId(graph.Workflow.Name),
             new WorkflowAreaKey(Area),
             new WorkflowVersion(1),
-            new Cratis.Orleans.Workflows.Contracts.WorkflowSubjectKind(plan.ReadModels[graph.Workflow.Subject].Name),
+            new Cratis.Choreography.Workflows.Contracts.WorkflowSubjectKind(plan.ReadModels[graph.Workflow.Subject].Name),
             new WorkflowGraph([.. nodes], [.. edges]),
             new WorkflowCatalogVersion(plan.Revision.ToString()),
             []);

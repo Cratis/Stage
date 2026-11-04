@@ -33,7 +33,7 @@ public class with_an_authored_scene : a_screen_composition_render
     // Re-captured by execution for train 11 merge (#209/#857 with #925): native guards on Scene 4.87.0 and merged scaffold/runtime output.
     // Recomputed for Chronicle 19.117.0: the scaffold emits the matching package and development image pins.
     // Recomputed for Screenplay 5.3.1: the scaffold emits the matching matcher pin.
-    const string Before = "8c3c9f31533f31d88f3b71a2b24e4afa8bbc0086ad4aa47d82d9f6d95a9873dc";
+    const string Before = "4baed3d97baa81e156c7489fbd4c24f7333f64e8f299e9668110b29a3980b9e9";
 
     ArtifactRenderPlan _plan = null!;
 

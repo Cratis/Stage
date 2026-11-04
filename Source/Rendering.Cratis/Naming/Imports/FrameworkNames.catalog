@@ -5,10 +5,10 @@ scaffold	3
 pin	Cratis	22.146.0
 pin	Cratis.Arc.Chronicle.Testing	22.146.0
 pin	Cratis.Arc.MongoDB	22.146.0
-pin	Cratis.Chronicle	19.116.0
-pin	Cratis.Chronicle.AspNetCore	19.116.0
-pin	Cratis.Chronicle.Testing	19.116.0
-pin	Cratis.Screenplay.Matching	5.1.0
+pin	Cratis.Chronicle	19.117.0
+pin	Cratis.Chronicle.AspNetCore	19.117.0
+pin	Cratis.Chronicle.Testing	19.117.0
+pin	Cratis.Screenplay.Matching	5.3.1
 pin	Cratis.Specifications	5.1.0
 pin	Cratis.Specifications.XUnit	5.1.0
 pin	Microsoft.NET.Test.Sdk	18.11.0
@@ -34,11 +34,11 @@ package	AS	Cratis.Arc.ProxyGenerator.Build	22.146.0
 package	AS	Cratis.Arc.Screenplay.Embedded	22.146.0
 package	AS	Cratis.Arc.Swagger	22.146.0
 package	AS	Cratis.Arc.Testing	22.146.0
-package	AS	Cratis.Chronicle	19.116.0
-package	AS	Cratis.Chronicle.AspNetCore	19.116.0
-package	AS	Cratis.Chronicle.CodeAnalysis	19.116.0
-package	AS	Cratis.Chronicle.Connections	19.116.0
-package	AS	Cratis.Chronicle.Testing	19.116.0
+package	AS	Cratis.Chronicle	19.117.0
+package	AS	Cratis.Chronicle.AspNetCore	19.117.0
+package	AS	Cratis.Chronicle.CodeAnalysis	19.117.0
+package	AS	Cratis.Chronicle.Connections	19.117.0
+package	AS	Cratis.Chronicle.Testing	19.117.0
 package	AS	Cratis.Fundamentals	7.30.2
 package	AS	Cratis.Metrics.Roslyn	7.27.0
 package	AS	Cratis.Orleans	1.33.1
@@ -47,7 +47,7 @@ package	AS	Cratis.Orleans.Storage	1.33.1
 package	AS	Cratis.Orleans.Storage.MongoDB	1.32.3
 package	AS	Cratis.Screenplay	4.208.0
 package	AS	Cratis.Screenplay.Contexts	4.208.0
-package	AS	Cratis.Screenplay.Matching	5.1.0
+package	AS	Cratis.Screenplay.Matching	5.3.1
 package	AS	Cratis.Specifications	5.1.0
 package	AS	Cratis.Specifications.XUnit	5.1.0
 package	AS	DnsClient	1.8.0
@@ -552,6 +552,7 @@ namespace	AS	Cratis.Chronicle.Observation.Reducers
 namespace	AS	Cratis.Chronicle.Observation.Reducers.Clients
 namespace	AS	Cratis.Chronicle.Observation.States
 namespace	AS	Cratis.Chronicle.Observation.Webhooks
+namespace	AS	Cratis.Chronicle.Observation.Webhooks.Signing
 namespace	AS	Cratis.Chronicle.Observation.Webhooks.Validation
 namespace	AS	Cratis.Chronicle.Occurrences
 namespace	AS	Cratis.Chronicle.Patches

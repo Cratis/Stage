@@ -29,6 +29,7 @@ public static class StageChronicleDefinitions
     // projection tries to write, which surfaces as a failed observer partition rather than a registration error.
     // Read models are projected into the kernel's in-memory store so the whole Stage runs without any database.
     const string InMemorySinkTypeId = "InMemory";
+    const string NoneSinkTypeId = "None";
 
     // The property a read model document is identified by, and the schema keyword that says so.
     const string IdentityPropertyName = "id";
@@ -100,7 +101,7 @@ public static class StageChronicleDefinitions
             Type = new() { Identifier = readModelIdentifier, Generation = FirstGeneration },
             ContainerName = ModelNaming.ToIdentifier(readModel.Name),
             DisplayName = readModel.Name,
-            Sink = new ChronicleSinks.SinkDefinition { ConfigurationId = Guid.Empty, TypeId = InMemorySinkTypeId },
+            Sink = new ChronicleSinks.SinkDefinition { ConfigurationId = Guid.Empty, TypeId = readModel.Projection is { IsActive: false } ? NoneSinkTypeId : InMemorySinkTypeId },
             Schema = WithIdentityProperty(readModel.Schema),
             Indexes = [],
             ObserverType = ChronicleReadModels.ReadModelObserverType.Projection,

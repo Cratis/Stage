@@ -57,6 +57,11 @@ public sealed record LoadedSemanticModel(ExecutableSemanticModel Model, Semantic
     public ApplicationRealization Realization { get; init; } = ApplicationRealization.None;
 
     /// <summary>
+    /// Gets the explicitly passive read models retained from the same compilation, outside portable ESM bytes.
+    /// </summary>
+    public ImmutableHashSet<SemanticId> PassiveReadModels { get; init; } = [];
+
+    /// <summary>
     /// Gets the compiler diagnostics in their original order and severity.
     /// </summary>
     public ImmutableArray<SemanticModelLoadDiagnostic> Diagnostics { get; init; } = [];

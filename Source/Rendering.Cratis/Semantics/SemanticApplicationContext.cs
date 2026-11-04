@@ -43,6 +43,8 @@ internal sealed partial class SemanticApplicationContext
         RootNamespace = options.RootNamespace;
         ContractsFolder = $"{options.ProjectName}.Events.Contracts";
         Domain = DomainPlacementInput.From(request.Profile);
+        PassiveReadModelsInput.TryRead(request.Profile, request.Model, out var passiveReadModels);
+        PassiveReadModels = passiveReadModels;
         Strings = StringsCatalogInput.From(request.Profile);
         ReducerConventionInput.TryRead(request.Profile, Application.Name, out var reducerConvention);
         ReducerConvention = reducerConvention;
@@ -98,6 +100,9 @@ internal sealed partial class SemanticApplicationContext
     /// Gets the semantic application.
     /// </summary>
     public SemanticApplication Application { get; }
+
+    /// <summary>Gets the explicitly passive identities admitted from the hashed profile input.</summary>
+    public ImmutableHashSet<SemanticId> PassiveReadModels { get; }
 
     /// <summary>
     /// Gets the destination-independent application namespace.
@@ -356,6 +361,11 @@ internal sealed partial class SemanticApplicationContext
                 new GeneratedTypeName(CatalogNames.Qualify(RootNamespace, type.Namespace), type.Name))
         ]);
     }
+
+    /// <summary>Checks the explicitly admitted identity, never a read-model name or query shape.</summary>
+    /// <param name="readModelId">The read-model identity.</param>
+    /// <returns>Whether it was explicitly marked passive.</returns>
+    internal bool IsPassive(SemanticId readModelId) => PassiveReadModels.Contains(readModelId);
 
     // A flat projection the flat rendering cannot take is expressed as the scope that says the same, so one admission and one renderer decide.
     internal void ScopeFlatProjections()

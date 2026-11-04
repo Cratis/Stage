@@ -27,6 +27,9 @@ internal sealed record SemanticVersionFeature(string Code, StageExecutionCapabil
 /// </remarks>
 internal static class SemanticVersionFeatures
 {
+    /// <summary>The code for passive projections that cannot replay only the requested event-source stream.</summary>
+    internal const string PassiveReadModelReplay = "STAGE-ESM-061";
+
     /// <summary>
     /// The code for ESM v6 triggers, reactions, captures, automation and translate slices and their specification forms.
     /// </summary>

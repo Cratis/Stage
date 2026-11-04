@@ -129,6 +129,7 @@ internal static class SemanticStateViewArtifactRenderer
             RenderReducerAttributes(builder, readModel, located, context);
             var reducer = located.Slice.Reducers.SingleOrDefault(candidate => candidate.ReadModel == readModel.Id);
             var self = reducer is not null && context.SelfReduces(reducer.ReadModel);
+            RenderPassivity(builder, readModel, context);
             builder.Attribute("global::Cratis.Arc.Queries.ModelBound.ReadModelAttribute")
                 .OpenBlock(Declaration(readModel, located, context));
             foreach (var query in queries)
@@ -287,6 +288,14 @@ internal static class SemanticStateViewArtifactRenderer
             documentation.Attribute($"global::Cratis.Arc.Queries.ModelBound.PathAttribute({CSharpCodeBuilder.StringLiteral(path)})");
         }
         return documentation;
+    }
+
+    static void RenderPassivity(CSharpCodeBuilder builder, SemanticReadModel readModel, SemanticApplicationContext context)
+    {
+        if (context.IsPassive(readModel.Id))
+        {
+            builder.Attribute("global::Cratis.Chronicle.ReadModels.Passive");
+        }
     }
 
     // A performer owns the result; retain the route and shape whether its body is available or not.

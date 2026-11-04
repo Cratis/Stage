@@ -50,6 +50,7 @@ internal static partial class SemanticCratisAdmission
         _ = SemanticDependencyIndex.OutOfIndex;
         PassesPreconditions(context, slices, diagnostics);
 
+        ValidatePassiveReadModels(context, slices, diagnostics);
         ValidatePolicyBindings(context, diagnostics);
         Collect(() => ValidateStrings(context, slices, diagnostics), context.Application.Id, diagnostics, context);
         Collect(() => ValidateMatchPatterns(context, slices, diagnostics), context.Application.Id, diagnostics, context);

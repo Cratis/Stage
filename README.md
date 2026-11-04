@@ -15,12 +15,13 @@
 
 ---
 
-Stage has three responsibilities around a Screenplay application:
+Use Stage to turn a Screenplay model into application source, explore it in a disposable host, or check its
+modeled specifications:
 
-1. **Runtime** — provide a disposable host that directly performs the subset of modeled backend behavior Stage
+1. **Renderer** — turn compiled Screenplay syntax into a reviewable [Cratis Arc](https://github.com/Cratis/Arc) + [Chronicle](https://github.com/Cratis/Chronicle) application on disk.
+2. **Runtime** — provide a disposable host that directly performs the subset of modeled backend behavior Stage
    currently understands.
-2. **Specification runner** — verify the specifications declared in the model and write structured results.
-3. **Renderer** — turn compiled Screenplay syntax into a reviewable [Cratis Arc](https://github.com/Cratis/Arc) + [Chronicle](https://github.com/Cratis/Chronicle) application on disk.
+3. **Specification runner** — verify the specifications declared in the model and write structured results.
 
 The renderer is the project's highest-priority path. Direct runtime execution and specification verification are
 useful, but partial; they must not be read as proof that every Screenplay construct has executable semantics.
@@ -33,7 +34,12 @@ the modeling language, [Studio](https://github.com/Cratis/Studio) the collaborat
 [Scene](https://github.com/Cratis/Scene) the platform-neutral UI model, and
 [Prologue](https://github.com/Cratis/Prologue) captures existing system behavior into event models. What Stage
 renders is an event-sourced CQRS application built on Cratis Arc and Chronicle, the Cratis event-sourcing
-database and runtime.
+database and runtime. Adoption is optional: using Arc or Chronicle does not require this model-first workflow.
+
+For code-generation integration, start with the [renderer excerpt](#renderer--highest-priority) if you already have
+an executable semantic model and execution plan. With an existing Screenplay model, use the
+[sandbox setup](#running-the-sandbox) to explore supported behavior or the
+[specification runner](#running-modeled-specifications) to check its declared expectations.
 
 ## Authoritative input
 
@@ -66,7 +72,8 @@ project/root-namespace options; neither caller should copy target policy.
 
 `CratisRendering.Plan(...)` returns the existing destination-independent `ArtifactRenderPlan` with normalized
 paths, exact bytes, SHA-256 hashes, and typed diagnostics. Callers supply destination-independent project and root
-namespace names; the facade derives every target, renderer, profile, package, and runtime version itself:
+namespace names; the facade derives every target, renderer, profile, package, and runtime version itself.
+This integration excerpt assumes an already compiled model and execution plan; it is not a standalone program:
 
 ```csharp
 var options = new CratisRenderingOptions("Projects", "Projects");
@@ -80,8 +87,9 @@ all generated semantic C# source, imports, and specification namespaces. For exa
 even when the semantic application is named `Projects`. Module, feature, and slice plans use the same namespace
 as the application plan. Neither the application display name nor a destination folder overrides this option.
 
-The plan must be published only when `plan.Success` is `true`. A failed plan carries diagnostics and **no candidate
-artifacts**. Callers that need the immutable package-owned profile for a lower-level `ArtifactRenderRequest` can use
+The plan must be published only when `plan.Success` is `true`. With the illustrated default refusal behavior,
+unsupported semantics produce diagnostics and **no candidate artifacts**. Callers that need the immutable
+package-owned profile for a lower-level `ArtifactRenderRequest` can use
 `CratisRendering.CreateProfile(...)`; they must not reconstruct or modify it. The planner rejects changed identities,
 versions, input rosters, bytes, and hashes.
 
@@ -174,14 +182,29 @@ engine's forms. Ambiguous compatibility translations fail registration rather th
 Definition conformance does not establish execution support for literal or template mappings in the pinned sandbox;
 those remain runtime limitations.
 
-Runtime commands evaluate their modeled `produces` mappings, append the resulting facts to Chronicle, and echo
-the payload as the response. Modeled command validation and authorization are not yet enforced by this runtime
-path.
+The semantic engine is the default. For admitted modeled commands and queries, it evaluates validation and
+authorization with the supplied caller, applies production mappings, appends accepted facts to Chronicle, and
+serves keyed snapshot queries from its in-process world. Unsupported constructs refuse execution rather than
+silently dropping behavior. See [Semantic execution](Documentation/docker/index.md#opt-in-to-semantic-execution)
+for the admitted subset and limitations.
 
-Stage does not yet evaluate modeled query authorization. The disposable sandbox permits queries against its own
-in-memory Chronicle data; this is not production authorization. Keep the sandbox behind an authenticated host or
-bind its published ports to loopback, as in the examples below. Generated applications use the renderer's admitted
-Arc authorization contracts instead. Query-pipeline rejections still prevent reading or returning data.
+In the deprecated legacy runtime (`Stage__Runtime__Engine=eventmodel`), commands evaluate their modeled `produces`
+mappings, append the resulting facts to Chronicle, and echo the payload as the response. This legacy path does not
+enforce modeled command validation or authorization, or evaluate modeled query authorization. Query-pipeline
+rejections still prevent reading or returning data. Generated applications use the renderer's admitted Arc
+authorization contracts instead; sandbox behavior does not establish their behavior.
+
+Modeled policy evaluation depends on the supplied identity; this is not production authorization. When sandbox
+persona mode is enabled, `/api/**` and `/.cratis/me` use the server-selected persona even for an anonymous or
+otherwise low-privilege requester; with no selected persona, those requests are anonymous. The persona simulates
+a caller, not authentication of the requesting human. Forwarded identity requires server-side opt-in and disables
+persona mode. Its headers are unsigned: every request must arrive through a trusted AuthProxy that strips client
+identity headers and writes its own. See [Sandbox identity](Documentation/docker/index.md#sandbox-identity).
+
+[Read-model diagnostics](Documentation/docker/index.md#browse-read-models-in-a-semantic-session) expose the whole
+session independently of modeled query authorization. Keep the sandbox private behind an authenticated host or
+bind its published ports to loopback, as in the examples below. Loopback publication is not authentication or a
+complete isolation guarantee.
 
 The host serves a browser bundle at `/`. It obtains `/stage/scene`, the Scene translation produced from the exact
 same compile as the runtime event model, and renders modeled screen content through `@cratis/scene.react`. Screen
@@ -214,7 +237,8 @@ a live runtime.
 
 ## Running the sandbox
 
-Mount a folder containing one or more `.play` files:
+You need Docker, a folder containing one or more valid `.play` files, and available host ports 9090 and 35000.
+Mount that folder:
 
 ```bash
 docker run --rm \

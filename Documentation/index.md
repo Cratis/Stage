@@ -3,7 +3,8 @@ title: Stage
 description: Compile Screenplay source, run modeled specifications, render reviewable Cratis code, or explore the supported runtime behavior in a disposable host.
 ---
 
-Stage compiles folders of Screenplay (`.play`) files and provides three related but deliberately different paths:
+Use Stage when you have a Screenplay (`.play`) model and want application source, disposable exploration, or
+checks of modeled expectations. Stage compiles the source and provides three related but deliberately different paths:
 
 1. **Renderer** — writes reviewable Cratis Arc + Chronicle backend code to disk.
 2. **Runtime host** — performs the subset of modeled behavior Stage currently supports in a disposable sandbox.
@@ -11,16 +12,26 @@ Stage compiles folders of Screenplay (`.play`) files and provides three related 
 
 These paths share the same compiled Screenplay syntax, but none should be mistaken for complete language coverage.
 The renderer is the highest-priority path; the runtime and specification runner remain intentionally partial.
+Stage belongs to the experimental Cratis model-first layer. Adoption is optional: you can supply Screenplay source
+without Studio, and using Arc or Chronicle does not require this workflow.
+
+Start with the [renderer integration excerpt](#renderer) if you already have an executable semantic model and
+execution plan. For an existing Screenplay model, use [the Stage container](docker/index.md) to explore supported
+behavior or [the specification runner](docker/spec-runner.md) to check declared expectations.
 
 ## What works today
 
 ### Renderer
 
-`Cratis.Stage.Rendering.Cratis` now exposes a pure `CratisArtifactRenderPlanner` for the executable semantic model
-(ESM). It accepts an immutable `ArtifactRenderRequest` and returns the complete in-memory `ArtifactRenderPlan`
-before anything is written. The plan carries an explicit artifact-schema version, and every artifact has a
-normalized relative path, exact bytes, and SHA-256 hash; errors are typed diagnostics and make the plan
-non-publishable.
+`Cratis.Stage.Rendering.Cratis` owns Cratis target policy through the `CratisRendering` facade: dependency pins,
+scaffold inputs, profile creation, and planning for the executable semantic model (ESM). Callers supply the model,
+execution plan, semantic scope, and explicit project/root-namespace options; CLI and Studio callers must not copy
+target policy.
+
+The lower-level pure `CratisArtifactRenderPlanner` accepts an immutable `ArtifactRenderRequest` and returns the
+complete in-memory `ArtifactRenderPlan` before anything is written. The plan carries an explicit artifact-schema
+version, and every artifact has a normalized relative path, exact bytes, and SHA-256 hash; errors are typed
+diagnostics and make the plan non-publishable.
 
 The first direct ESM capability is deliberately narrow and complete: concepts and composite types, one
 `RegisterProject`-shaped command with `not empty` validation, its event destination and mappings, a one-instance
@@ -29,35 +40,17 @@ stable semantic identities and materialized ESM mappings directly. It never conv
 `ApplicationSyntax`, guesses a mapping, emits a `TODO`, or performs filesystem, process, network, clock, or ambient
 environment access.
 
-A caller supplies exact scaffold/template bytes as profile inputs:
+This integration excerpt assumes an already compiled model and execution plan; it is not a standalone program.
+The facade creates the package-owned profile rather than accepting caller-built target policy:
 
 ```csharp
-var scaffold = CratisArtifactRenderInput.CreateText(
-    "Projects.csproj",
-    "1.1.1",
-    projectFileContent);
-var profile = ArtifactRenderProfile.Create(
-    CratisArtifactRenderPlanner.Target,
-    "22.1.0",
-    CratisArtifactRenderPlanner.Renderer,
-    "1",
-    [scaffold]);
-var request = new ArtifactRenderRequest(
-    semanticModel,
-    executionPlan,
-    profile,
-    new(ArtifactRenderScopeKind.Application, semanticModel.Application.Id));
-
-var plan = new CratisArtifactRenderPlanner().Plan(request);
-if (!plan.Success)
-{
-    foreach (var diagnostic in plan.Diagnostics)
-    {
-        Console.Error.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
-    }
-}
+var options = new CratisRenderingOptions("Projects", "Projects");
+var scope = new ArtifactRenderScope(ArtifactRenderScopeKind.Application, model.Application.Id);
+var plan = CratisRendering.Plan(model, executionPlan, scope, options);
 ```
 
+Publish only when `plan.Success` is `true`. With the illustrated default refusal behavior, unsupported semantics
+produce diagnostics and **no candidate artifacts**.
 Application, module, feature, and slice scopes produce the same paths and bytes for the artifacts they share.
 Application scope also includes the fully resolved scaffold inputs. Unsupported reachable semantics block
 publication rather than producing a thinner application.
@@ -196,11 +189,25 @@ Screens, layouts, forms, and other frontend/UI artifacts remain outside this bac
 ### Runtime host
 
 The `cratis/stage` container starts Arc, an in-memory Chronicle kernel, OpenAPI/Scalar, and the modeled API surface.
-The semantic engine is the default: it evaluates admitted validation, authorization and production mappings,
-appends accepted facts to Chronicle, and serves keyed snapshot queries from its in-process world. Unsupported
-constructs refuse execution rather than silently dropping behavior. See [Semantic execution](docker/index.md#opt-in-to-semantic-execution)
+The semantic engine is the default: for admitted modeled commands and queries, it evaluates validation and
+authorization with the supplied caller, applies production mappings, appends accepted facts to Chronicle, and
+serves keyed snapshot queries from its in-process world. Unsupported constructs refuse execution rather than
+silently dropping behavior. See [Semantic execution](docker/index.md#opt-in-to-semantic-execution)
 for the admitted subset and limitations. Set `Stage__Runtime__Engine=eventmodel` to retain the deprecated legacy
-runtime. It logs one warning at startup and will be removed in Stage v6.
+runtime. It logs one warning at startup and will be removed in Stage v6. That legacy path appends produced facts
+and echoes command payloads without enforcing modeled command validation or authorization; it does not evaluate
+modeled query authorization. Sandbox behavior does not establish generated-application behavior.
+
+Modeled policy evaluation depends on the supplied identity; this is not production authorization. When sandbox
+persona mode is enabled, `/api/**` and `/.cratis/me` use the server-selected persona even for an anonymous or
+otherwise low-privilege requester; with no selected persona, those requests are anonymous. The persona simulates
+a caller, not authentication of the requesting human. Forwarded identity requires server-side opt-in and disables
+persona mode. Its headers are unsigned: every request must arrive through a trusted AuthProxy that strips client
+identity headers and writes its own. See [Sandbox identity](docker/index.md#sandbox-identity).
+
+[Read-model diagnostics](docker/index.md#browse-read-models-in-a-semantic-session) expose the whole session
+independently of modeled query authorization. Keep the sandbox private behind an authenticated host or bind its
+published ports to loopback, as below. Loopback publication is not authentication or a complete isolation guarantee.
 
 ### Specification runner
 
@@ -210,8 +217,10 @@ slice through a live generated or runtime application.
 
 ## Curtain up
 
+You need Docker, a current folder containing valid Screenplay source, and available host ports 9090 and 35000.
+
 ```bash
-docker run --rm -p 9090:9090 -p 35000:35000 -v "$PWD":/eventmodel cratis/stage:latest
+docker run --rm -p 127.0.0.1:9090:9090 -p 127.0.0.1:35000:35000 -v "$PWD":/eventmodel:ro cratis/stage:latest
 ```
 
 That mounts the current folder, compiles every `.play` file beneath it, and starts the sandbox. The model's API is

@@ -789,7 +789,7 @@ jobs:
             --filter "FullyQualifiedName~when_building_rendered_event_contracts" \
             --logger "trx;LogFileName=event-contracts.trx" --results-directory ./TestResults/standalone-generated-application/event-contracts
 
-      - name: Require both event contracts builds to execute and pass
+      - name: Require all four event contracts builds to execute and pass
         if: ${{ !cancelled() && steps.extract.outcome == 'success' }}
         run: |
           python3 - <<'PY'
@@ -801,8 +801,8 @@ jobs:
           executed = int(counters.get("executed", "0")) if counters is not None else 0
           # VSTest leaves the notExecuted counter at zero for an xUnit skip; the per-test outcome records it.
           skipped = sum(result.get("outcome") == "NotExecuted" for result in results)
-          if executed != 2 or skipped != 0 or len(results) != 2 or any(result.get("outcome") != "Passed" for result in results):
-              raise SystemExit(f"Expected 2 executed and passed event contracts builds and none skipped, got executed={executed}, skipped={skipped}, "
+          if executed != 4 or skipped != 0 or len(results) != 4 or any(result.get("outcome") != "Passed" for result in results):
+              raise SystemExit(f"Expected 4 executed and passed event contracts builds and none skipped, got executed={executed}, skipped={skipped}, "
                                f"{[(r.get('testName'), r.get('outcome')) for r in results]}.")
           print(f"{executed} event contracts builds executed and passed, {skipped} skipped")
           PY

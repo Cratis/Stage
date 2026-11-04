@@ -30,17 +30,9 @@ Reference:
 
 For value-rule evaluation, use Screenplay's public `SemanticValidationRules.Check` API rather than copying the reference evaluator. Its single-rule and concept overloads return `Satisfied`, `Failed` or `NotEvaluable`; the last is an unsupported check, never a pass. Keep target-runtime validation dependencies in generated code, not in target-neutral fixture checks.
 
-The renderer extension surface is the contracts under `Cratis.Stage.Contracts.Rendering`. The Cratis renderer is a useful behavioral example, but its admission classes, semantic indexes, naming code, emitters, scaffold conventions, and other internal helpers are Cratis implementation details. They are not reusable renderer APIs. Build target-owned equivalents around the public contracts rather than taking a dependency on `Cratis.Stage.Rendering.Cratis`.
+The renderer extension surface is `Cratis.Stage.Contracts.Rendering`. Implement your planner against these contracts; do not reference `Cratis.Stage.Rendering.Cratis` to reuse its admission classes, indexes, naming code or emitters. Those are one target's implementation, not renderer extension APIs.
 
-### Cratis C# type-name convention
-
-The Cratis target writes every generated C# file with short type names and ordinary `using` directives above the file-scoped namespace, sorted ordinally, the way a person writes C#. A namespace the generated project's global usings already import gets no directive, and `System` types use their C# keywords (`string`, `int`, `bool`). When a short name would be ambiguous above the namespace, such as a model concept named `TaskStatus` beside `System.Threading.Tasks.TaskStatus` from the global usings, the concept's namespace is imported with a directive inside the file-scoped namespace instead, which C# searches first. That directive is written with `global::` only when an enclosing namespace could rebind its first segment. A known collision instead receives a deterministic namespace alias, for example `using StageImport0 = global::Cratis.Arc.Identity;` and `StageImport0::IIdentityProvider`. Aliases also support generic and nested type references without adding ordinary import candidates. Generated expressions and signatures never fall back to fully qualified names. An uncataloged identity or unknown scope (including unknown bases, own usings, conditional directives, malformed layouts, or relocated authored spans) refuses finalization with `STAGE-CSHARP-IMPORT` and no publishable artifacts. This is a Cratis C# target convention, not a Screenplay or shared renderer-contract requirement.
-
-The renderers still construct each reference fully qualified, so naming stays exact; the resolver rewrites the finished file. It models C# name lookup: type parameters and nested types, then the file's namespace, then each enclosing namespace out to the global namespace, then the file's `using` directives together with the project's global usings. It uses the complete application's generated declarations, even for a scoped plan, and an embedded catalog generated from the scaffold's compile assets. It does not inspect the output folder or user dependencies, so custom types belong outside generated namespaces, as described in [Customize a rendered application](customize-rendered-application.md#keep-custom-types-out-of-generated-namespaces). Authored C# bodies are never rewritten; their names only constrain which namespaces a file may import. Generated `nameof` references whose binding is shadowed are refused rather than silently rebound.
-
-Authenticated command and reaction bodies are admitted against the scaffold's implicit BCL usings and nullable/warning-as-error settings, without executing them. Reaction bodies must satisfy the generated synchronous `IEnumerable<object>?` return contract; effect-only fallthrough, incompatible returns, and unsuppressed compiler warnings refuse generation. Reaction admission represents `EventContext` only as an opaque value: runtime member accesses without a parity-tested declaration are conservatively refused. Missing pinned reference material also refuses admission. An omitted specification remains a refused inventory owner with its exact original omission warning and recorded omission; mixed realized/omitted inventories are degraded, not complete. Genuine safety errors remain refused and nonpublishable.
-
-Existing applications see a one-time text change in generated files on their next regeneration. The scaffold's `.editorconfig` sets `csharp_using_directive_placement = outside_namespace` to match.
+The next steps are to compile one logical application, define the exact profile your target accepts, and implement the planner shown below. Keep scope selection, semantic admission and emission separate in that implementation. If you choose declarative templates for emission, “Author a renderer kit” covers that optional branch; the planner still owns admission and artifact construction. Detailed Cratis conventions and compatibility constraints follow the authoring path later on this page.
 
 ## Compile Screenplay before calling the planner
 
@@ -198,6 +190,282 @@ static bool Supports(ArtifactRenderProfile profile)
 
 Accepted input bytes must be parsed or copied deterministically wherever they affect output. `ArtifactRenderPlan` carries target and renderer versions and, as prerelease `InputProvenance`, the profile input digests, every implementation input and the planner component versions. Provenance stays outside the output-only `Digest` and has its own digest. The target's profile contract and support matrix must still document the accepted roster.
 
+## Implement a pure planner
+
+Implement `SelectScope`, `Admit` and `Emit` as target-owned operations around `IArtifactRenderPlanner.Plan(...)`. Start with the sequencing below: reject an unsupported profile, select the requested scope, admit its reachable semantics, and only then emit artifacts. The helper names show responsibilities, not reusable Stage APIs.
+
+Given the same immutable request, the planner must return the same plan or contract failure. Keep file reads, process execution and dependency resolution in the caller. Inside `Plan(...)`, do not:
+
+- read or write files;
+- start a compiler, formatter, package manager, or other process;
+- use the network;
+- read the clock, random values, environment variables, current directory, or machine identity;
+- inspect installed or workspace dependencies;
+- mutate the semantic model, execution plan, profile, or profile input bytes.
+
+```csharp
+using Cratis.Screenplay.Semantics;
+using Cratis.Stage.Contracts.Rendering;
+
+namespace Acme.Screenplay.Rendering;
+
+public sealed class AcmeArtifactRenderPlanner : IArtifactRenderPlanner
+{
+    public const string Target = "acme";
+    public const string TargetVersion = "3.2.0";
+    public const string Renderer = "acme-code";
+    public const string RendererVersion = "1.0.0";
+
+    public ArtifactRenderPlan Plan(ArtifactRenderRequest request)
+    {
+        var diagnostics = new List<ArtifactRenderDiagnostic>();
+        var artifacts = new List<PlannedArtifact>();
+
+        if (!Supports(request.Profile))
+        {
+            diagnostics.Add(new(
+                "ACME-RENDER-001",
+                ArtifactRenderDiagnosticSeverity.Error,
+                "The request does not match the supported target, renderer, versions, and input roster.",
+                request.Model.Application.Id));
+
+            return ArtifactRenderPlan.Create(request, [], [.. diagnostics]);
+        }
+
+        var selected = SelectScope(request);
+        diagnostics.AddRange(Admit(request, selected));
+        if (diagnostics.Any(_ => _.Severity == ArtifactRenderDiagnosticSeverity.Error))
+        {
+            return ArtifactRenderPlan.Create(request, [], [.. diagnostics]);
+        }
+
+        artifacts.AddRange(Emit(request, selected));
+        if (request.Scope.Kind == ArtifactRenderScopeKind.Application)
+        {
+            artifacts.Add(PlannedArtifact.CreateBinary(
+                "project.json",
+                request.Profile.Inputs[0].Bytes));
+        }
+
+        return ArtifactRenderPlan.Create(
+            request,
+            [.. artifacts],
+            [.. diagnostics]);
+    }
+
+    // Supports, SelectScope, Admit, and Emit are deterministic target-owned code.
+}
+```
+
+Build target-local indexes keyed by `SemanticId`. Use `ExecutableSemanticModel` and `SemanticExecutionPlan` mappings for command production, destinations, properties, projection transitions, affected-instance keys, queries, and typed specification values. Never join artifacts by a short or display name.
+
+Implement `SelectScope` first so the admission pass can inspect both the selection and every semantic dependency it needs. `Admit` must reject reachable behavior your target cannot preserve: slice kinds, validation, authorization, event destinations and mappings, projection transitions and cardinality, query keys and delivery, concept and composite types, optionality, and specification expectations. Include lifecycle, persistence, transport and package choices in that decision. Collect independent diagnostics before returning; never turn a refused construct into a placeholder handler or guessed default.
+
+Then implement `Emit` for the admitted subset using the in-memory artifact factories. The scope and artifact rules below apply to that implementation. If you are extending the Cratis target, also apply the construct-specific constraints under “Admit target semantics before emission”; the version matrix describes that target, not a capability granted to every renderer.
+
+## Apply scope semantics consistently
+
+`SelectScope` must apply the request's scope without changing how an artifact renders. `ArtifactRenderScopeKind` has four admitted values:
+
+- `Application` selects the entire application;
+- `Module` selects one module and everything below it;
+- `Feature` selects one feature and everything below it, including nested features;
+- `Slice` selects one slice.
+
+The accompanying `ArtifactRenderScope.Artifact` must be the matching semantic identity in `request.Model`. `ArtifactRenderPlan.Create(...)` rejects unknown kinds, unset identities, an application scope with the wrong application identity, and module, feature, or slice identities outside the model.
+
+Decide whether a narrow scope emits a compilable dependency closure or an intentionally incomplete review fragment. That policy determines which dependencies `Admit` must inspect and which files `Emit` must produce. Do not call a fragment compilable. Application scope normally includes application-wide configuration, scaffolding and common types; narrower scopes must not silently acquire destination-dependent files.
+
+The Cratis target includes the concepts, composite types and authorization policies referenced by selected slices, including transitive composite-type dependencies. Unreferenced shared declarations are excluded from module, feature and slice plans; application plans still include all concepts and composite types. Shared artifacts keep the same paths and bytes across scopes.
+
+Cratis scoped plans target an already-scaffolded repository. They do not include the application scaffold or other slices' event and read-model declarations. Those declarations must already exist when a selected slice references them. Each modeled policy has its own `GeneratedPolicies/{Name}Policy.cs` file, named from the whole application model, never from the selection. The shared policy runtime is selection-independent, but upgrading from the aggregate layout requires an application render first.
+
+**Before your first scoped render after upgrading from the aggregate policy layout, render the entire application.** The old `GeneratedPolicies/Policies.cs` contains every generated policy class and registration. A scoped render replaces that file but creates new policy files only for its selected operations, silently removing unselected operations' policy classes and registrations. An application-scope render migrates every operation and opaque use site to the split layout before subsequent scoped renders. The pure planner does not inspect destination files. Before writing a scoped Cratis plan, publishers must call `CratisRendering.CheckPublication(plan, readExistingFile)`. The reader receives an application-root-relative path and returns its text, or null only when the file is confirmed absent; a read failure must throw so the check fails closed. The typed `CratisPublicationCheck.Compatible` result permits this policy-layout replacement; `CratisPublicationCheck.RequiresApplicationScope` carries the offending `Paths` and a `Reason`. On the latter, refuse publication or render the entire application first.
+
+The check reads only `GeneratedPolicies/Policies.cs`, `GeneratedPolicies/PolicyBodies.cs` and `TypedContexts/PolicyContext.cs` paths that the plan itself would overwrite, using their planned placement. It checks content, not mere file presence: the split layout keeps these legacy paths. Identical planned text (after newline normalization) is compatible; otherwise C# declarations must identify the selection-independent registry and shared declarations, without aggregate `StagePolicy_*` classes, per-site bodies or `TypedContext_*` wrappers. Unrecognized content requires application scope. Application-scope plans are always compatible. A scaffold-only plan never contains policy files, so there is nothing to check.
+
+This check does not replace the publisher's destination ownership, concurrency, recovery or write-failure checks. See [publication checks](../reference/plan-from-sources.md#publication-check) for the signature and caller flow.
+
+Any artifact present in two scopes must have the same normalized path, kind, and exact bytes. Scope changes selection only; they must not change how the same artifact is rendered.
+
+## Produce deterministic artifacts
+
+### Never write a file header
+
+Targets and templates must not write the caller's file header. `ArtifactRenderPlan.Create`
+applies it once to final content, after symbol resolution, and shifts implementation stub
+locators to address the published bytes. Exact profile admission must ignore inputs matched
+by `ArtifactFileHeader.IsInput`; the core validates those inputs. Declare language syntax through
+`ArtifactRenderRequest.CommentSyntaxes`, never in templates. The default table and refusal rules
+are in [File header option](../reference/plan-from-sources.md#file-header-option).
+
+Header ownership is explicit: authored text that happens to match the header is still authored
+text and receives another header. Recreating a plan from its own artifacts preserves the
+`PlannedArtifact.AppliedFileHeaderSha256` marker and does not prepend again. Pipelines rebuilding
+artifacts after planning must preserve both the headed bytes and this marker. A pipeline that
+publishes without an `ArtifactRenderPlan` can use `ArtifactFileHeader.Apply` instead; planners
+must not call it themselves. These contracts do not change Axon's profile admission; adoption
+there is a separate target update.
+
+### Normalize output
+
+Create every output in memory with the public factories:
+
+```csharp
+var source =
+    "export interface RegisterProject {\n" +
+    "    name: string;\n" +
+    "}\n";
+
+var artifact = PlannedArtifact.CreateText(
+    "src/register-project.ts",
+    source);
+```
+
+`PlannedArtifact.CreateText(...)` normalizes CRLF and CR to LF, encodes UTF-8 without a byte-order mark, and computes a lowercase SHA-256 hash. `PlannedArtifact.CreateBinary(...)` preserves exact bytes and hashes them.
+
+`ArtifactRenderPlan.Create(...)` then:
+
+- verifies the model/execution-plan revision and scope;
+- revalidates and normalizes artifact paths;
+- orders artifacts by ordinal relative path;
+- rejects duplicate paths and case-insensitive collisions;
+- deterministically orders diagnostics by severity, code, semantic identity, and message;
+- copies target, renderer, application, and semantic revision metadata into the plan.
+
+Artifact paths must be slash-separated and relative. Rooted paths, drive-qualified paths, empty segments, `.`, and `..` are invalid.
+
+The target must also make its own emission deterministic:
+
+- order declarations by stable semantic identity or another documented stable key;
+- sort every dictionary, set, and filesystem-derived input before it reaches the request;
+- never let enumeration order choose semantics or resolve a conflict;
+- keep physical workspace roots and publication destinations out of content;
+- resolve all templates and package versions into the profile before planning;
+- avoid timestamps, generated random identifiers, machine-specific headers, and formatter-version drift.
+
+The Cratis renderer orders read-model parameter declarations, generated constructor arguments, and assertions by ordinal semantic ID so serializing and deserializing the model does not change artifact bytes. This can change positional record parameter order in directly source-generated output from source declaration order; the captured route already uses canonical order.
+
+A plan describes destination-independent bytes. Publication, staging, stale-file removal, recovery, and overwrite policy belong after successful planning.
+
+## Verify the generated code
+
+Once the planner produces stable artifacts, verify that the target toolchain accepts those exact bytes. Add target-owned verification that:
+
+1. creates a request from trusted Screenplay fixtures and an exact profile;
+2. requires successful compilation, execution-plan admission, and target planning;
+3. materializes the plan's exact bytes into a fresh temporary directory without rewriting or formatting them;
+4. verifies each materialized file against the planned SHA-256;
+5. restores only exact pinned target dependencies from trusted sources;
+6. runs the target compiler or build with warnings treated as errors;
+7. runs focused target-framework tests where compilation cannot prove behavior;
+8. repeats in a clean environment to expose ambient dependency assumptions.
+
+Keep formatting and code generation inside the pure planner. A verifier that reformats or patches generated files is testing different artifacts from those in the plan.
+
+Treat generated build definitions as code execution. Verify trusted fixtures in an isolated environment, and do not execute package scripts or build targets from untrusted profile inputs.
+
+## Specify the renderer
+
+Exercise the planner's contracts separately from compiling its output. At minimum, add specifications for:
+
+1. exact target, renderer, version, and profile-input admission;
+2. missing, extra, malformed, or wrong-version profile inputs failing closed;
+3. every supported semantic form producing expected paths, kinds, bytes, and hashes;
+4. unsupported reachable semantics producing target errors and no dependent artifacts;
+5. compiler diagnostics and execution issues remaining owned by their upstream phases;
+6. reversed semantic and profile-input enumeration producing byte-identical plans;
+7. repeated planning producing byte-identical plans without filesystem, process, network, clock, or environment effects;
+8. application, module, feature, and slice scope selection and dependency policy;
+9. shared artifacts having identical paths and bytes across scopes;
+10. rooted, drive-qualified, empty-segment, and traversing paths being rejected;
+11. duplicate and case-insensitive-colliding paths being rejected;
+12. changed accepted input bytes deterministically changing every affected artifact;
+13. specifications rendering from typed semantic values without string guessing;
+14. the exact generated package closure compiling against pinned versions.
+
+Golden files are useful for review, but assert the plan metadata and diagnostics as well as source text. Add invariance tests that perturb input order; one successful snapshot does not prove determinism.
+
+## Integrate through the CLI's static roster
+
+A working planner does not automatically become a CLI target. The Cratis CLI bundles targets through a static, reviewed roster; it does not discover arbitrary renderer packages in the analyzed workspace. Its wrapper contract and roster are internal CLI seams, not a public plugin API.
+
+To bundle a target, coordinate a CLI change that:
+
+1. adds a target package reference and an internal target wrapper under `cli/Source/Cli/Commands/Render`;
+2. gives the wrapper a stable command-line target name;
+3. constructs the exact immutable profile and resolved inputs;
+4. calls the target planner with the admitted model and execution plan;
+5. explicitly adds the wrapper to `RenderTargetRoster`;
+6. adds target selection, profile, package-closure, plan, and publication specifications;
+7. passes successful plans to the existing managed artifact publisher.
+
+The current CLI command requests application scope. Module, feature, and slice scopes are public planner-contract capabilities, but users cannot select them until the CLI adds explicit command support.
+
+Preserve the static roster. Workspace plugin loading would execute code across a larger trust boundary and allow unreviewed dependency and target-version conflicts.
+
+## Document the support contract
+
+Give users enough information to decide whether their model fits your target before they render it. Publish a support matrix that distinguishes:
+
+- supported Screenplay semantic forms;
+- blocked forms and their target diagnostic codes;
+- exact target, renderer, compiler, runtime, and package versions;
+- exact profile inputs and defaults;
+- scope and dependency-closure behavior;
+- generated artifact layout and text conventions;
+- generated-code verification fixtures;
+- known non-bijective source-recovery concerns.
+
+A source adapter recovering generated code can be an additional regression oracle, but it cannot prove behavioral equivalence. Target realization choices that Screenplay does not express will not round-trip.
+
+## Implementation checklist
+
+Before declaring a target ready:
+
+- [ ] Compile the complete logical application with stable document keys.
+- [ ] Stop on compiler diagnostics or execution-plan issues before target planning.
+- [ ] Define stable target and renderer identities with exact versions.
+- [ ] Resolve and hash every external input before creating the profile.
+- [ ] Admit the exact profile roster and fail closed on every mismatch.
+- [ ] Implement scope selection and document narrow-scope dependency behavior.
+- [ ] Index and join semantics by `SemanticId`, never display names.
+- [ ] Admit all selected and reachable semantics before dependent emission.
+- [ ] Keep `Plan(...)` free of filesystem, process, network, clock, random, and ambient-state access.
+- [ ] Emit all artifacts in memory through `PlannedArtifact` factories.
+- [ ] Leave headers to Stage, ignore header inputs in target admission, and declare comment syntax on the request.
+- [ ] Make ordering, names, paths, text encoding, line endings, and hashes deterministic.
+- [ ] Preserve diagnostic ownership and use stable target-owned codes.
+- [ ] Verify profile, admission, scope, collision, and determinism behavior with specifications.
+- [ ] Materialize and compile the exact generated bytes against pinned target dependencies.
+- [ ] Document the support matrix, profile, artifact layout, diagnostics, and verification environment.
+- [ ] Add the target to the CLI only through its reviewed static roster.
+
+The remaining sections separate the public contract locations from Cratis-specific choices and compatibility constraints. Use the Cratis details when extending that target or designing an equivalent admission boundary; they are not additional APIs that another renderer must implement. Application authors adding services or styles to generated output should use the customization hooks instead of changing the renderer.
+
+## Public API reference
+
+The renderer-facing public contracts are defined in:
+
+- `Source/Contracts/Rendering/IArtifactRenderPlanner.cs`
+- `Source/Contracts/Rendering/ArtifactRenderProfile.cs`
+- `Source/Contracts/Rendering/ArtifactRenderPlan.cs`
+- `Source/Contracts/Rendering/ArtifactFileHeader.cs`
+- `Source/Contracts/Rendering/ArtifactCommentSyntax.cs`
+- `Source/Contracts/Rendering/ArtifactFileHeaderResult.cs`
+
+Use the Screenplay `SemanticModelCompiler` and `SemanticExecutionPlan` APIs shown above to build the request. Renderer-specific files under `Source/Rendering.Cratis` can illustrate one target's decisions, but they are not a shared helper library or an extension contract for other targets.
+
+### Cratis C# type-name convention
+
+The Cratis target writes generated C# with short type names and ordinally sorted `using` directives above the file-scoped namespace. It omits namespaces already imported by the project's global usings and uses C# keywords for `System` types. When a concept's short name would be ambiguous above the namespace, it imports the concept's namespace inside the file-scoped namespace, where C# searches first. A known collision instead gets a deterministic alias, such as `using StageImport0 = global::Cratis.Arc.Identity;` with `StageImport0::IIdentityProvider`. Aliases also support generic and nested references. A directive uses `global::` when an enclosing namespace could rebind its first segment. Generated expressions and signatures do not fall back to fully qualified names. An uncataloged identity or unknown scope—including unknown bases, own usings, conditional directives, malformed layouts or relocated authored spans—refuses finalization with `STAGE-CSHARP-IMPORT` and no publishable artifacts. This convention belongs to the Cratis target, not Screenplay or the shared contracts.
+
+Cratis emitters construct fully qualified references first; the resolver then rewrites the finished file using C# name lookup. It considers type parameters and nested types, the file's namespace and each enclosing namespace, then file and global usings. Resolution uses the whole application's generated declarations even for a scoped plan, plus an embedded catalog from the scaffold's compile assets. It does not inspect the output folder or user dependencies. Put custom types outside generated namespaces, as described in [Customize a rendered application](customize-rendered-application.md#keep-custom-types-out-of-generated-namespaces). Authored C# bodies are never rewritten: their names constrain available imports. A shadowed generated `nameof` reference is refused rather than rebound.
+
+Authenticated command and reaction bodies are admitted without execution against the scaffold's implicit BCL usings and nullable/warning-as-error settings. Reaction bodies must satisfy the synchronous `IEnumerable<object>?` return contract; effect-only fallthrough, incompatible returns and unsuppressed warnings refuse generation. `EventContext` is opaque during admission, so runtime member access without an admitted declaration is refused, as is missing pinned reference material. An omitted specification retains its original warning, recorded omission and refused inventory owner. Mixed realized/omitted inventories are degraded, not complete; safety errors remain nonpublishable.
+
+Regeneration changes existing generated files to this naming style. The scaffold's `.editorconfig` sets `csharp_using_directive_placement = outside_namespace` to match.
+
 ### Localized Cratis validation messages
 
 Screenplay retains `$strings.<key>` in the ESM as a **key**, not display text. If a model uses these messages on command or concept validation rules or command `require` guards, pass its companion `.strings` file contents to the additive `CratisRendering.CreateProfile(applicationName, options, scene, stringsFiles, defaultLocale)` overload. `stringsFiles` maps relative `<base>.<locale>.strings` paths (using `/`, not `\`) to original file contents; choose an explicit `defaultLocale` present in that set. Locale tags are checked syntactically without consulting the planner host's installed culture data. The generated application must run with culture data (such as ICU) that supports the selected locales; it resolves them at startup. The caller reads files **before** planning; the planner only consumes validated, hashed profile bytes. Without the optional catalog, `STAGE-ESM-002`/`STAGE-ESM-005` still reject these messages.
@@ -272,76 +540,9 @@ or Chronicle compatibility gate. Baseline assessment and destination publication
 checks are independent: `CheckPublication` still refuses changed event type ids
 with `STAGE-EVENT-002`, even on a plan carrying baseline warnings.
 
-## Implement a pure planner
-
-`IArtifactRenderPlanner.Plan(...)` is a pure planning boundary. Given the same immutable request, it must return the same plan or the same contract failure. It must not:
-
-- read or write files;
-- start a compiler, formatter, package manager, or other process;
-- use the network;
-- read the clock, random values, environment variables, current directory, or machine identity;
-- inspect installed or workspace dependencies;
-- mutate the semantic model, execution plan, profile, or profile input bytes.
-
-```csharp
-using Cratis.Screenplay.Semantics;
-using Cratis.Stage.Contracts.Rendering;
-
-namespace Acme.Screenplay.Rendering;
-
-public sealed class AcmeArtifactRenderPlanner : IArtifactRenderPlanner
-{
-    public const string Target = "acme";
-    public const string TargetVersion = "3.2.0";
-    public const string Renderer = "acme-code";
-    public const string RendererVersion = "1.0.0";
-
-    public ArtifactRenderPlan Plan(ArtifactRenderRequest request)
-    {
-        var diagnostics = new List<ArtifactRenderDiagnostic>();
-        var artifacts = new List<PlannedArtifact>();
-
-        if (!Supports(request.Profile))
-        {
-            diagnostics.Add(new(
-                "ACME-RENDER-001",
-                ArtifactRenderDiagnosticSeverity.Error,
-                "The request does not match the supported target, renderer, versions, and input roster.",
-                request.Model.Application.Id));
-
-            return ArtifactRenderPlan.Create(request, [], [.. diagnostics]);
-        }
-
-        var selected = SelectScope(request);
-        diagnostics.AddRange(Admit(request, selected));
-        if (diagnostics.Any(_ => _.Severity == ArtifactRenderDiagnosticSeverity.Error))
-        {
-            return ArtifactRenderPlan.Create(request, [], [.. diagnostics]);
-        }
-
-        artifacts.AddRange(Emit(request, selected));
-        if (request.Scope.Kind == ArtifactRenderScopeKind.Application)
-        {
-            artifacts.Add(PlannedArtifact.CreateBinary(
-                "project.json",
-                request.Profile.Inputs[0].Bytes));
-        }
-
-        return ArtifactRenderPlan.Create(
-            request,
-            [.. artifacts],
-            [.. diagnostics]);
-    }
-
-    // Supports, SelectScope, Admit, and Emit are deterministic target-owned code.
-}
-```
-
-The sample shows the sequencing, not reusable helper APIs. `SelectScope`, `Admit`, and `Emit` are target-owned functions that you implement against the public semantic and rendering contracts.
-
 ## Admit target semantics before emission
 
-Create one target-owned admission phase. Evaluate the selected artifacts and all semantics reachable from them before emitting dependent files. Admission must decide whether the target can exactly realize:
+Use the admission boundary from the planner example to define your target's supported subset. Evaluate selected artifacts and their reachable semantics before emitting dependent files. The Cratis details below illustrate the decisions involved; another target must make its own decisions about:
 
 - each reachable slice kind;
 - command validation and authorization;
@@ -360,7 +561,7 @@ Collect independent target diagnostics so an author can fix several issues in on
 | --- | --- | --- |
 | `STAGE-ESM-005` | A command shape or validation implementation cannot be rendered faithfully. Each unsupported command capability reports its own reason, with the command identity retained for source navigation. | Read every reported reason, not just the first. Use the corresponding model fix below. |
 
-These reasons do not widen or narrow admission. Requirements have no authored name in the ESM, so diagnostics identify their one-based position and referenced command properties. Several reasons can share the same code and command identity.
+Read each reason attached to the command before changing the model. Requirements have no authored name in the ESM, so diagnostics identify their one-based position and referenced command properties. Several reasons can share the same code and command identity.
 
 | Reason | Why it is refused | Model fix |
 | --- | --- | --- |
@@ -402,7 +603,7 @@ ESM v3 (`3.0` language and semantic versions) adds implementation attachments. `
 
 Verified C# Boolean named rule predicates and command/concept code-validation iterators render into dependency-free Arc validators. They require a `pure` envelope and one matching wrapper-ready descriptor from the same compilation. App-local typed contexts supply `Artifact`, `Value`, `Property` and derived `IsWholeArtifact`; command artifacts omit generated properties. Reads of `Tenant`, `CausedBy` or `Occurred` fail with `STAGE-ESM-015` naming the member, rather than substituting another clock or ambient value. Missing bodies remain `STAGE-ESM-020`, unsupported envelopes and compile errors give `STAGE-ESM-019`, descriptor mismatches give `STAGE-ESM-021`, and symbols outside the closed pure allowlist give `STAGE-ESM-022`. Messages and severities are retained; a missing message uses the reference fallback `A value does not satisfy the 'RulePredicate' rule.` Every failure rejects regardless of severity. Optional validated concepts with body rules and the existing unsupported validation combinations remain refused. Code-validation bodies emit `IEnumerable<string>` methods and a `.Custom(...)` validator that adds one error per yielded message in order; no messages means no failure. Only these iterator roles admit `yield return` and interpolated strings. Every interpolation, including nested or locally assigned strings, is emitted through `global::System.FormattableString.Invariant`; holes may format audited fixed-width numbers, decimal, Boolean, char, string, `DateTimeOffset` or `TimeSpan`, never arbitrary generated objects. Hole expressions still pass the closed pure walk. `yield break`, unbounded loops, ambient metadata and all other forbidden constructs remain refused. Boolean rules, reducers and policies do not gain iterator or interpolation support. The Host and specification executor still do not execute these bodies. Reducer transitions with verified C# bodies and wrapper-ready descriptors render as Chronicle `IReducerFor<T>` methods. The body uses generated PascalCase C# members (`context.Event.Amount`, not authored lowercase names). A member-casing compile error names the generated member and maps back to the inline `.play` line/column or attachment file line/column; Stage never rewrites the body. The body returns nullable state (`null` deletes), and must satisfy Stage's closed-compilation `pure` symbol allowlist; forbidden symbols report `STAGE-ESM-022`. Event source identity supplies the key: a reducer requires a matching keyed lookup query and a required Guid/Text identifier (or identifier concept). Each public generated `On` compares every non-null result's identifier, including both concept `TypedValue` and `Value`, with the original event-source string using ordinal equality and Chronicle's canonical Guid conversion; a mismatch throws and discards the batch. A noncanonical UUID source string is not silently normalized. Null still deletes. This guards the emitted write, not just a later query lookup (which cannot detect a record stored under another source). `Occurred` and checked `SequenceNumber` come directly from Chronicle's event context. The wrapper permits `context.Tenant` reads and translates Chronicle's `Default` namespace to the portable zero-GUID `TenantId.Default`, and Chronicle's `NotSet` sentinel to `TenantId.NotSet`. Named namespaces retain their exact spelling and casing. The command runtime and generated command handlers honor Arc's `IsDefault`: both named `Default` and unresolved `NotSet` map to the portable zero GUID. A request without a tenant header is the ordinary single-tenant case and addresses Chronicle's default namespace, so its command and reducer see the same portable tenant. Chronicle's explicit `NotSet` namespace remains the empty portable sentinel. Named tenants still use the shared translation implementation. An empty named namespace or a namespace parsing as the zero GUID collides with a portable sentinel and throws before executing a tenant-reading body; it is never collapsed into the default tenant. Reducers that do not read `Tenant` skip namespace translation. Bodies can compare `context.Tenant` with `TenantId.Default` and `TenantId.NotSet`. Scoped renders emit only wrappers consumed by selected reducers; other descriptors remain validate-only. Reducer read-model specs replay only matching events from the expected key; specs depending on `Occurred`, `SequenceNumber` or `Tenant` and action/query expectations against reducer-built models fail `STAGE-ESM-011`. A query-only specification of one complete seeded read model can still be admitted: Chronicle's `ReadModelScenario` seeds that lookup directly, rather than replaying the reducer. ESM v3 cannot express absence in `then readmodel`, so generated specs assert only representable presence and values; the Stage-side `ReducerDeletion` target conformance test asserts delete-by-null against Chronicle's `ReadModelScenario`. A Screenplay absence expectation is needed before this can be a generated specification. Unsupported shapes and body compile failures still fail closed with `STAGE-ESM-019`; a missing, foreign or non-ready descriptor gives `STAGE-ESM-021`. The `pure` gate admits **finite evaluation assuming sufficient resources and deterministic results across machines on the same .NET runtime major version**, rather than arbitrary C#. Exceptions are deterministic outcomes that discard the Chronicle batch; there is no bounded-time, bounded-memory, or recovery-from-resource-exhaustion promise. The audited subset consists of fixed-width integer and decimal arithmetic (checked or unchecked), bool, char, strings, literals, locals, null-coalescing/conditional access, constant patterns, generated record constructors/`with`/property reads and generated-type tests; `if`/`else`, constant `switch`, `return` and finite `foreach`; and throws constructed only as `InvalidOperationException(string)` or `ArgumentException(string)`. The audited Math signatures are `Abs(int/decimal)`, `Min`/`Max`/`Clamp`/`Sign(decimal)`, and `Round(decimal, MidpointRounding.ToEven)`, `Truncate`/`Floor`/`Ceiling(decimal)`; other overloads are refused. Text admits string/char-only concatenation (including `+=`), `Length`, indexing, `==`, `!=`, `Substring(int, int)`, `IsNullOrEmpty`, and `Equals`, `StartsWith`, `EndsWith`, `Contains`, `IndexOf` with the *constant field* `StringComparison.Ordinal`; Unicode-dependent casing and whitespace classification (including `OrdinalIgnoreCase`, `Trim`, and `IsNullOrWhiteSpace`) are excluded; only decimal `ToString(CultureInfo.InvariantCulture)` is admitted for numeric formatting. The audited time signatures are `DateTimeOffset.AddTicks(long)`, `DateTimeOffset + TimeSpan`, `DateTimeOffset - DateTimeOffset`, `DateTimeOffset >= DateTimeOffset`, and direct `DateTimeOffset.Year`/`Month`/`Day`/`Hour`/`Minute`/`Second`/`Ticks`; `TimeSpan.Add(TimeSpan)`, `TimeSpan == TimeSpan`, and `TimeSpan.Ticks`. Other time operations (including `UtcDateTime`, `LocalDateTime`, `Offset` and double-taking additions) are refused.
 
-Reducer-visible collection inputs are rendered as `ImmutableArray<T>` rather than interfaces that could reveal mutable lists or arrays; nested composites containing collection interfaces are refused until their whole closure can be snapshotted. Local finite arrays and immutable arrays can be read or enumerated, but not mutated. The exact fixture-covered signatures include `Select`, `Where`, predicate `Count`/`Any`, `All`, decimal-only sequential `Sum` (verified against .NET 10 source), `First`/`FirstOrDefault`, `Last`/`LastOrDefault`, `Take`, `Skip`, `Concat`, `ToImmutableArray`, `ToArray`, and seeded `Aggregate`; integer `Sum` is refused because vector width changes overflow outcomes (use seeded `Aggregate` with explicit unchecked integer addition instead). The roster is an exact BCL-member-signature allowlist: adding an audited overload requires a fixture. LINQ calls cannot consume a source produced by another LINQ call, even through a local; parameterless `Any` and `Count` are refused. This deliberately avoids selector elision differences from `IsSizeOptimized` and other `AppContext` switches. Lambda bodies must be a single pure expression over their own parameters and the typed context: no assignments/increments, captured locals or non-context parameters (including enumerables), nested LINQ, divide/modulo, checked operations, potentially overflowing decimal arithmetic or narrowing decimal conversions, array indexing, throws or other non-ordinal invocations. Enumerable locals are single-assignment. Hash collections, sorting, `Distinct`, `GroupBy`, `OrderBy`, floating and native-sized numbers, `BigInteger`, `DateTime`, parsing, ambient culture/time/randomness, implicit user conversions, arbitrary casts, `typeof`, `nameof`, `sizeof`, non-generated `default`, local functions, unbounded loops, `goto`, `try`, `using`, and `lock` are refused with `STAGE-ESM-022`, naming the construct or symbol. UUID identity properties can be read from generated event records, but `Guid.Empty`, parsing, constructors and other Guid members are refused. The gate is not an OS sandbox. It rejects any physical CR in a body before reducer analysis or emitted-artifact hashing because `PlannedArtifact.CreateText` normalizes CR to LF even inside verbatim strings; the attachment envelope hashes the original candidate **before** reducer analysis and CR refusal. Accepted reducer and policy body bytes therefore equal emitted body bytes. Iterator validation bodies are the explicit exception: their interpolations gain invariant formatting wrappers after the original expressions pass admission.
+Reducer-visible collection inputs are rendered as `ImmutableArray<T>` rather than interfaces that could reveal mutable lists or arrays; nested composites containing collection interfaces are refused until their whole closure can be snapshotted. Local finite arrays and immutable arrays can be read or enumerated, but not mutated. The admitted signatures include `Select`, `Where`, predicate `Count`/`Any`, `All`, decimal-only sequential `Sum` on .NET 10, `First`/`FirstOrDefault`, `Last`/`LastOrDefault`, `Take`, `Skip`, `Concat`, `ToImmutableArray`, `ToArray`, and seeded `Aggregate`; integer `Sum` is refused because vector width changes overflow outcomes (use seeded `Aggregate` with explicit unchecked integer addition instead). The roster is an exact BCL-member-signature allowlist: adding an audited overload requires a fixture. LINQ calls cannot consume a source produced by another LINQ call, even through a local; parameterless `Any` and `Count` are refused. This deliberately avoids selector elision differences from `IsSizeOptimized` and other `AppContext` switches. Lambda bodies must be a single pure expression over their own parameters and the typed context: no assignments/increments, captured locals or non-context parameters (including enumerables), nested LINQ, divide/modulo, checked operations, potentially overflowing decimal arithmetic or narrowing decimal conversions, array indexing, throws or other non-ordinal invocations. Enumerable locals are single-assignment. Hash collections, sorting, `Distinct`, `GroupBy`, `OrderBy`, floating and native-sized numbers, `BigInteger`, `DateTime`, parsing, ambient culture/time/randomness, implicit user conversions, arbitrary casts, `typeof`, `nameof`, `sizeof`, non-generated `default`, local functions, unbounded loops, `goto`, `try`, `using`, and `lock` are refused with `STAGE-ESM-022`, naming the construct or symbol. UUID identity properties can be read from generated event records, but `Guid.Empty`, parsing, constructors and other Guid members are refused. The gate is not an OS sandbox. It rejects any physical CR in a body before reducer analysis or emitted-artifact hashing because `PlannedArtifact.CreateText` normalizes CR to LF even inside verbatim strings; the attachment envelope hashes the original candidate **before** reducer analysis and CR refusal. Accepted reducer and policy body bytes therefore equal emitted body bytes. Iterator validation bodies are the explicit exception: their interpolations gain invariant formatting wrappers after the original expressions pass admission.
 
 Production admission uses the rendered reducer's containing class name, namespace, transition member name and usings plus SDK implicit BCL globals and synthetic generated declarations against the exact `Microsoft.NETCore.App.Ref` **10.0.12** pack for `net10.0`; a missing pack fails closed, with no new Release dependencies. Generated types and namespace segments that could rebind unqualified type references in a reducer body are refused, as are generated declarations shadowing reducer runtime types. Synthetic concepts mirror exactly Stage's primitive-to-concept implicit operator: a non-null primitive of the modeled type may initialize its generated Common concept, including an identifier concept. Both conversion safety and symbol admission check the same operator shape against an explicit set of modeled concept symbols in that compilation. Concept-to-primitive conversion (use `.Value`), projection-source concept-to-concept conversion, record equality, base-class operators and arbitrary user operators remain refused, as do null-literal or null-default operands converted to concepts. Other synthetic operators remain omitted; these omissions may only refuse more, never admit more. Render profiles are pinned per Stage version, so the Debug CI parity compilation with the pinned real Cratis references compares **full bound member identities** (owner, kind, name, generic arity, parameter and result types, including implicit `foreach` GetEnumerator/MoveNext/Current) of every audited fixture against the production compilation for the same rendered file shape. Every admitted BCL member signature must appear in a parity fixture; new members without fixtures are refused. Chronicle batches events per key, threads null state into the next event (`IsFirst` becomes true), and persists only final batch state: a delete followed by recreation is not an intermediate materialization. A thrown transition discards the entire batch. A resumed batch straddling the watermark can be folded twice, so non-idempotent pure bodies can double-count; this is a Chronicle issue, not a Stage retry policy. Chronicle's exact runtime read-model-type check is satisfied by the generated `T?` return type; statement bodies cannot declare a subtype. Whole opaque policies are admitted through the same gate against their own namespace and signature (see above). A plan that rejects a body emits no artifacts. A v3 model with only an unreferenced opaque policy and no reducers renders the same selected slice bytes as v2. The in-memory runtime and specification executor leave a reached opaque policy unsupported (Authorization capability), preserving left-to-right short-circuit outcomes rather than guessing allow or deny. Unknown version pairs still fail `STAGE-ESM-016`.
 
@@ -484,8 +685,8 @@ violated also fails `STAGE-ESM-039`, because Arc's returned violation order is n
 candidate/sorted-name order. Single-constraint names and non-localized messages remain supported.
 Generated refusal scenarios refuse coded or multiple rejection expectations with `STAGE-ESM-011`
 rather than discarding an expected code. Commands without branches keep their original bare-command output. The independent
-executor also settles branch cascades and redelivery; the unmodified `InvocationRefusalsCorpus.V19`
-therefore runs reference-versus-executor but retains the precise `STAGE-ESM-011` rendered redelivery refusal.
+executor also settles branch cascades and redelivery. Rendered redelivery specifications remain
+refused with `STAGE-ESM-011`.
 
 `then no events` is a positive success assertion, not an omitted expectation. Generated command
 specifications assert zero successful appends after subtracting seeded history, alongside any response or
@@ -508,204 +709,6 @@ numbers remain bounded by ±(2^53−1). See [Generated C# numbers](../reference/
 
 [Generated values and command responses](../reference/generated-values-rendering.md) describes the UUID mapping, pins, relational assertions, runtime responses and the precise `038` limits.
 
-Renderer reaction admission retains mixed effects (`037`), unsupported context (`013`) and trigger-kind refusals (`024`). Execution identity (`034`) is narrowed to `runs as` invocations whose authorization reads claims or uses an opaque gate: Screenplay treats system claims as unknown, whereas Arc supplies `[System]` subject claims. Role-only and authenticated-only gates render without changing generated policies. The renderer admits event reactions and Automation artifacts, and the Host settles admitted event reactions and cascading commands in one guarded append. The specification executor settles them with its own loop, independent of Screenplay's reference, so three-way conformance compares two implementations. The legacy syntax engine retains its reaction execution refusals. Every Automation read-surface member triggers StateView admission, including query-only or projection-only surfaces that fail `STAGE-ESM-007` without a local read model. Flat projections require every command and reaction producer to append under the projected payload key (`STAGE-ESM-009`); reaction productions must explicitly target that mapped key value. Protected reaction destinations fail `STAGE-ESM-040`, including destinations outside the selected scope. See [Event reaction rendering](../reference/reaction-rendering.md) for destinations, invocation arguments, ordering, retry and catch-up behavior.
+Renderer reaction admission retains mixed effects (`037`), unsupported context (`013`) and trigger-kind refusals (`024`). Execution identity (`034`) is narrowed to `runs as` invocations whose authorization reads claims or uses an opaque gate: Screenplay treats system claims as unknown, whereas Arc supplies `[System]` subject claims. Role-only and authenticated-only gates render without changing generated policies. The renderer admits event reactions and Automation artifacts, and the Host settles admitted event reactions and cascading commands in one guarded append. The specification executor settles them with its own loop, separate from Screenplay's reference evaluator. The legacy syntax engine retains its reaction execution refusals. Every Automation read-surface member triggers StateView admission, including query-only or projection-only surfaces that fail `STAGE-ESM-007` without a local read model. Flat projections require every command and reaction producer to append under the projected payload key (`STAGE-ESM-009`); reaction productions must explicitly target that mapped key value. Protected reaction destinations fail `STAGE-ESM-040`, including destinations outside the selected scope. See [Event reaction rendering](../reference/reaction-rendering.md) for destinations, invocation arguments, ordering, retry and catch-up behavior.
 
 Concept compliance is checked across the whole application, including identity uses outside the selected scope. Other diagnostics apply to the selected scope: a slice-scoped render of a slice that uses none of these constructs can still render, and application triggers refuse only an application render. The in-memory specification executor reports unsupported constructs rather than skipping them. Reducer `from` is rendering-only: neither the executor nor Stage's Host executes reducer bodies. Generated read-model companion specifications for filtered reducers retain `STAGE-ESM-011`, because Chronicle's scenario replay cannot apply the filter; see [Event-source routing](../reference/event-source-routing.md#observer-filters). Keep these constructs in the model and use a renderer that explicitly supports them rather than deleting them to pass admission. A specification that supplies a generated property as input never compiles (`PLAY0485`), so Stage plans nothing for it.
-
-Build target-local indexes keyed by `SemanticId`. Use `ExecutableSemanticModel` and `SemanticExecutionPlan` mappings for command production, destinations, properties, projection transitions, affected-instance keys, queries, and typed specification values. Never join artifacts by a short or display name.
-
-## Apply scope semantics consistently
-
-`ArtifactRenderScopeKind` has four admitted values:
-
-- `Application` selects the entire application;
-- `Module` selects one module and everything below it;
-- `Feature` selects one feature and everything below it, including nested features;
-- `Slice` selects one slice.
-
-The accompanying `ArtifactRenderScope.Artifact` must be the matching semantic identity in `request.Model`. `ArtifactRenderPlan.Create(...)` rejects unknown kinds, unset identities, an application scope with the wrong application identity, and module, feature, or slice identities outside the model.
-
-Selection and dependency closure remain target responsibilities. Define whether a narrow scope emits:
-
-- a compilable closure containing every referenced common and target artifact; or
-- an intentionally incomplete review fragment.
-
-Do not call a fragment compilable. Admission must include every semantic dependency required by the documented policy. Application scope normally includes application-wide configuration, scaffolding, and common types; narrower scopes should not silently acquire destination-dependent files.
-
-The Cratis target includes the concepts, composite types and authorization policies referenced by selected slices, including transitive composite-type dependencies. Unreferenced shared declarations are excluded from module, feature and slice plans; application plans still include all concepts and composite types. Shared artifacts keep the same paths and bytes across scopes.
-
-Cratis scoped plans target an already-scaffolded repository. They do not include the application scaffold or other slices' event and read-model declarations. Those declarations must already exist when a selected slice references them. Each modeled policy has its own `GeneratedPolicies/{Name}Policy.cs` file, named from the whole application model, never from the selection; after the policy-layout migration below, the shared policy runtime does not depend on which operations are selected, so regenerating one slice preserves other operations' policies.
-
-**Before your first scoped render after upgrading from the aggregate policy layout, render the entire application.** The old `GeneratedPolicies/Policies.cs` contains every generated policy class and registration. A scoped render replaces that file but creates new policy files only for its selected operations, silently removing unselected operations' policy classes and registrations. An application-scope render migrates every operation and opaque use site to the split layout before subsequent scoped renders. The pure planner does not inspect destination files. Before writing a scoped Cratis plan, publishers must call `CratisRendering.CheckPublication(plan, readExistingFile)`. The reader receives an application-root-relative path and returns its text, or null only when the file is confirmed absent; a read failure must throw so the check fails closed. The typed `CratisPublicationCheck.Compatible` result permits this policy-layout replacement; `CratisPublicationCheck.RequiresApplicationScope` carries the offending `Paths` and a `Reason`. On the latter, refuse publication or render the entire application first.
-
-The check reads only `GeneratedPolicies/Policies.cs`, `GeneratedPolicies/PolicyBodies.cs` and `TypedContexts/PolicyContext.cs` paths that the plan itself would overwrite, using their planned placement. It checks content, not mere file presence: the split layout keeps these legacy paths. Identical planned text (after newline normalization) is compatible; otherwise C# declarations must identify the selection-independent registry and shared declarations, without aggregate `StagePolicy_*` classes, per-site bodies or `TypedContext_*` wrappers. Unrecognized content requires application scope. Application-scope plans are always compatible. A scaffold-only plan never contains policy files, so there is nothing to check.
-
-This check does not replace the publisher's destination ownership, concurrency, recovery or write-failure checks. See [publication checks](../reference/plan-from-sources.md#publication-check) for the signature and caller flow.
-
-Any artifact present in two scopes must have the same normalized path, kind, and exact bytes. Scope changes selection only; they must not change how the same artifact is rendered.
-
-## Produce deterministic artifacts
-
-### Never write a file header
-
-Targets and templates must not write the caller's file header. `ArtifactRenderPlan.Create`
-applies it once to final content, after symbol resolution, and shifts implementation stub
-locators to address the published bytes. Exact profile admission must ignore inputs matched
-by `ArtifactFileHeader.IsInput`; the core validates those inputs. Declare language syntax through
-`ArtifactRenderRequest.CommentSyntaxes`, never in templates. The default table and refusal rules
-are in [File header option](../reference/plan-from-sources.md#file-header-option).
-
-Header ownership is explicit: authored text that happens to match the header is still authored
-text and receives another header. Recreating a plan from its own artifacts preserves the
-`PlannedArtifact.AppliedFileHeaderSha256` marker and does not prepend again. Pipelines rebuilding
-artifacts after planning must preserve both the headed bytes and this marker. A pipeline that
-publishes without an `ArtifactRenderPlan` can use `ArtifactFileHeader.Apply` instead; planners
-must not call it themselves. These contracts do not change Axon's profile admission; adoption
-there is a separate target update.
-
-### Normalize output
-
-Create every output in memory with the public factories:
-
-```csharp
-var source =
-    "export interface RegisterProject {\n" +
-    "    name: string;\n" +
-    "}\n";
-
-var artifact = PlannedArtifact.CreateText(
-    "src/register-project.ts",
-    source);
-```
-
-`PlannedArtifact.CreateText(...)` normalizes CRLF and CR to LF, encodes UTF-8 without a byte-order mark, and computes a lowercase SHA-256 hash. `PlannedArtifact.CreateBinary(...)` preserves exact bytes and hashes them.
-
-`ArtifactRenderPlan.Create(...)` then:
-
-- verifies the model/execution-plan revision and scope;
-- revalidates and normalizes artifact paths;
-- orders artifacts by ordinal relative path;
-- rejects duplicate paths and case-insensitive collisions;
-- deterministically orders diagnostics by severity, code, semantic identity, and message;
-- copies target, renderer, application, and semantic revision metadata into the plan.
-
-Artifact paths must be slash-separated and relative. Rooted paths, drive-qualified paths, empty segments, `.`, and `..` are invalid.
-
-The target must also make its own emission deterministic:
-
-- order declarations by stable semantic identity or another documented stable key;
-- sort every dictionary, set, and filesystem-derived input before it reaches the request;
-- never let enumeration order choose semantics or resolve a conflict;
-- keep physical workspace roots and publication destinations out of content;
-- resolve all templates and package versions into the profile before planning;
-- avoid timestamps, generated random identifiers, machine-specific headers, and formatter-version drift.
-
-The Cratis renderer orders read-model parameter declarations, generated constructor arguments, and assertions by ordinal semantic ID so serializing and deserializing the model does not change artifact bytes. This can change positional record parameter order in directly source-generated output from source declaration order; the captured route already uses canonical order.
-
-A plan describes destination-independent bytes. Publication, staging, stale-file removal, recovery, and overwrite policy belong after successful planning.
-
-## Verify the generated code
-
-Deterministic bytes do not prove that a target toolchain accepts the generated application. Add target-owned verification that:
-
-1. creates a request from trusted Screenplay fixtures and an exact profile;
-2. requires successful compilation, execution-plan admission, and target planning;
-3. materializes the plan's exact bytes into a fresh temporary directory without rewriting or formatting them;
-4. verifies each materialized file against the planned SHA-256;
-5. restores only exact pinned target dependencies from trusted sources;
-6. runs the target compiler or build with warnings treated as errors;
-7. runs focused target-framework tests where compilation cannot prove behavior;
-8. repeats in a clean environment to expose ambient dependency assumptions.
-
-Keep formatting and code generation inside the pure planner. A verifier that reformats or patches generated files is testing different artifacts from those in the plan.
-
-Treat generated build definitions as code execution. Verify trusted fixtures in an isolated environment, and do not execute package scripts or build targets from untrusted profile inputs.
-
-## Specify the renderer
-
-At minimum, add specifications for:
-
-1. exact target, renderer, version, and profile-input admission;
-2. missing, extra, malformed, or wrong-version profile inputs failing closed;
-3. every supported semantic form producing expected paths, kinds, bytes, and hashes;
-4. unsupported reachable semantics producing target errors and no dependent artifacts;
-5. compiler diagnostics and execution issues remaining owned by their upstream phases;
-6. reversed semantic and profile-input enumeration producing byte-identical plans;
-7. repeated planning producing byte-identical plans without filesystem, process, network, clock, or environment effects;
-8. application, module, feature, and slice scope selection and dependency policy;
-9. shared artifacts having identical paths and bytes across scopes;
-10. rooted, drive-qualified, empty-segment, and traversing paths being rejected;
-11. duplicate and case-insensitive-colliding paths being rejected;
-12. changed accepted input bytes deterministically changing every affected artifact;
-13. specifications rendering from typed semantic values without string guessing;
-14. the exact generated package closure compiling against pinned versions.
-
-Golden files are useful for review, but assert the plan metadata and diagnostics as well as source text. Add invariance tests that perturb input order; one successful snapshot does not prove determinism.
-
-## Integrate through the CLI's static roster
-
-The Cratis CLI uses a static, reviewed roster of bundled targets. It does not discover arbitrary renderer packages from the analyzed workspace. The current CLI wrapper contract and roster are internal CLI implementation seams, not a public plugin API.
-
-To bundle a target, coordinate a CLI change that:
-
-1. adds a target package reference and an internal target wrapper under `cli/Source/Cli/Commands/Render`;
-2. gives the wrapper a stable command-line target name;
-3. constructs the exact immutable profile and resolved inputs;
-4. calls the target planner with the admitted model and execution plan;
-5. explicitly adds the wrapper to `RenderTargetRoster`;
-6. adds target selection, profile, package-closure, plan, and publication specifications;
-7. passes successful plans to the existing managed artifact publisher.
-
-The current CLI command requests application scope. Module, feature, and slice scopes are public planner-contract capabilities, but users cannot select them until the CLI adds explicit command support.
-
-Preserve the static roster. Workspace plugin loading would execute code across a larger trust boundary and allow unreviewed dependency and target-version conflicts.
-
-## Document the support contract
-
-Publish a target support matrix that distinguishes:
-
-- supported Screenplay semantic forms;
-- blocked forms and their target diagnostic codes;
-- exact target, renderer, compiler, runtime, and package versions;
-- exact profile inputs and defaults;
-- scope and dependency-closure behavior;
-- generated artifact layout and text conventions;
-- generated-code verification fixtures;
-- known non-bijective source-recovery concerns.
-
-A source adapter recovering generated code can be an additional regression oracle, but it cannot prove behavioral equivalence. Target realization choices that Screenplay does not express will not round-trip.
-
-## Implementation checklist
-
-Before declaring a target ready:
-
-- [ ] Compile the complete logical application with stable document keys.
-- [ ] Stop on compiler diagnostics or execution-plan issues before target planning.
-- [ ] Define stable target and renderer identities with exact versions.
-- [ ] Resolve and hash every external input before creating the profile.
-- [ ] Admit the exact profile roster and fail closed on every mismatch.
-- [ ] Implement scope selection and document narrow-scope dependency behavior.
-- [ ] Index and join semantics by `SemanticId`, never display names.
-- [ ] Admit all selected and reachable semantics before dependent emission.
-- [ ] Keep `Plan(...)` free of filesystem, process, network, clock, random, and ambient-state access.
-- [ ] Emit all artifacts in memory through `PlannedArtifact` factories.
-- [ ] Leave headers to Stage, ignore header inputs in target admission, and declare comment syntax on the request.
-- [ ] Make ordering, names, paths, text encoding, line endings, and hashes deterministic.
-- [ ] Preserve diagnostic ownership and use stable target-owned codes.
-- [ ] Verify profile, admission, scope, collision, and determinism behavior with specifications.
-- [ ] Materialize and compile the exact generated bytes against pinned target dependencies.
-- [ ] Document the support matrix, profile, artifact layout, diagnostics, and verification environment.
-- [ ] Add the target to the CLI only through its reviewed static roster.
-
-## Public API reference
-
-The renderer-facing public contracts are defined in:
-
-- `Source/Contracts/Rendering/IArtifactRenderPlanner.cs`
-- `Source/Contracts/Rendering/ArtifactRenderProfile.cs`
-- `Source/Contracts/Rendering/ArtifactRenderPlan.cs`
-- `Source/Contracts/Rendering/ArtifactFileHeader.cs`
-- `Source/Contracts/Rendering/ArtifactCommentSyntax.cs`
-- `Source/Contracts/Rendering/ArtifactFileHeaderResult.cs`
-
-Use the Screenplay `SemanticModelCompiler` and `SemanticExecutionPlan` APIs shown above to build the request. Renderer-specific files under `Source/Rendering.Cratis` can illustrate one target's decisions, but they are not a shared helper library or an extension contract for other targets.

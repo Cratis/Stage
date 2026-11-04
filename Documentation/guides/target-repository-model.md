@@ -3,9 +3,9 @@ title: Organize render target and source adapter repositories
 description: Where Cratis keeps renderers and source adapters, the dependency rule each direction follows, where round trips run, and the naming rules for target packages, ids and diagnostics.
 ---
 
-Translation runs in two directions. A **render target** turns a Screenplay model into code for a framework. A **source adapter** recovers a Screenplay model from code written for that framework. Cratis keeps the two directions in separate repository families, each depending only on its own SDK.
+Choose the direction before creating a repository or adding SDK references. To turn a Screenplay model into framework code, build a **render target** in a renderer repository with `Cratis.Stage.Contracts`. To recover Screenplay from existing code, build a **source adapter** in the source ecosystem's repository with `Cratis.Screenplay.Generation` packages. Keep the two packages separate even when they support the same framework.
 
-This page explains where each direction lives, which packages each may depend on, where round trips run, and how targets are named. To build the pieces themselves, see [Build a renderer target](build-renderer-target.md) and [Build a .NET source adapter](https://github.com/Cratis/Screenplay.Generation/blob/main/Documentation/guides/build-source-adapter.md).
+Once you have chosen the repository and package identities below, continue with [Build a renderer target](build-renderer-target.md) or [Build a .NET source adapter](https://github.com/Cratis/Screenplay.Generation/blob/main/Documentation/guides/build-source-adapter.md). A round trip connects the two directions for verification; it does not merge their dependencies.
 
 ## Two repository families
 
@@ -29,7 +29,7 @@ flowchart LR
 | Render (Screenplay → code) | `Cratis/Stage.<Target>` for a third-party ecosystem, such as [Stage.Axon](https://github.com/Cratis/Stage.Axon). The Cratis render target stays in Stage as the reference target. | `Cratis.Stage.Contracts` and the target's own framework packages |
 | Source adapter (code → Screenplay) | The source ecosystem's repository. For a Cratis framework that is the framework's own repository: `Cratis.Arc.Screenplay` lives in [Arc](https://github.com/Cratis/Arc). For a third-party ecosystem it is `Cratis/Screenplay.<Ecosystem>`, such as [Screenplay.CritterStack](https://github.com/Cratis/Screenplay.CritterStack). | `Cratis.Screenplay.Generation` packages |
 
-A repository holds one direction. A render package never references a `Cratis.Screenplay.Generation` package, and a source adapter never references `Cratis.Stage.Contracts`.
+Put renderer implementation and generated-code verification in the renderer repository; keep source recovery in the adapter repository. A render package never references a `Cratis.Screenplay.Generation` package, and a source adapter never references `Cratis.Stage.Contracts`.
 
 The split keeps each package's users from paying for the other direction:
 
@@ -40,7 +40,7 @@ Stage and Screenplay.Generation never reference a target or adapter repository. 
 
 ## Run round trips in the renderer repository
 
-A round trip renders a Screenplay model, recovers it with the ecosystem's source adapter, and compares the two models. It lives in the **renderer** repository, in a spec project that is never packed:
+Once the renderer can produce code, add a round trip in its own repository. The round trip renders a Screenplay model, recovers it with the ecosystem's source adapter, and compares the two models. Keep it in a spec project that is never packed:
 
 - It consumes the source adapter's **published** package, referenced with `PrivateAssets`, so the adapter never becomes a dependency of the render package.
 - It renders the pinned `Cratis.Screenplay.CanonicalCorpus` models.

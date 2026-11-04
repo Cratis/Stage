@@ -3,9 +3,9 @@ title: Generate identifiers and values from a model
 description: Follow a small shop from a Screenplay model to rendered C#, then see when values are generated, how fresh they are, and when not to generate at all.
 ---
 
-A create command wants to hand back the identifier of the thing it just made. If the caller invents that identifier, you inherit its collisions, its guessable shapes and its typos. If you invent it in the handler, you reach for `Guid.NewGuid()` and lose the shape, the ordering and the testability you wanted.
+Use a generated property when the application, rather than its caller, should choose a value. A customer identifier may need a recognizable prefix, an order identifier may need to sort by time, and a specification needs a way to pin either one without changing production generation.
 
-Screenplay splits the decision in two. A **concept** owns the strategy: `generate ulid`, `generate typeid "order"`, `generate nanoid`. A **command property** only says `generated`. Stage renders that into Arc and Chronicle code, and this guide follows one small shop through the whole path:
+Screenplay splits those choices in two. A **concept** owns the strategy: `generate ulid`, `generate typeid "order"`, `generate nanoid`. A **command property** only says `generated`. Stage renders that into Arc and Chronicle code. The shop examples below show how these choices affect command inputs, handlers and responses:
 
 | Value | Concept | What it is | Strategy |
 | --- | --- | --- | --- |
@@ -15,7 +15,7 @@ Screenplay splits the decision in two. A **concept** owns the strategy: `generat
 | `ApiKeyId` | A UUID | Event source of an API key | Implicit `uuid` |
 | `ApiKey` | A secret | A protected value inside an event | None. A caller supplies it |
 
-By the end you have rendered the shop with Stage, read the C# it produced, and seen its 21 generated specifications pass. The last two sections tell you which strategy to pick and when to skip generation.
+The shop's model blocks are illustrative excerpts. Follow them to see what Stage renders, how a generated value reaches the caller, and how deterministic fixtures assert identities and receipt time. The last two sections help you choose a strategy or decide to keep the value caller-supplied.
 
 ## Declare the strategy on the concept
 
@@ -55,7 +55,9 @@ Screenplay checks the strategy while compiling. A generated identifier needs at 
 
 ## Render it with Stage
 
-Stage plans artifacts from `.play` files without writing anything. The console below is the program that produced every output on this page. It references the `Rendering.Cratis` project from this repository's `Source/` folder and calls `CratisRendering.PlanFrom`, described in [Plan artifacts from Screenplay sources](../reference/plan-from-sources.md).
+Stage's planner produces artifacts from `.play` files without writing them. The console program below adds publication checking and file writing around that planner. It uses the `Rendering.Cratis` project in this repository's `Source/` folder and calls `CratisRendering.PlanFrom`, described in [Plan artifacts from Screenplay sources](../reference/plan-from-sources.md).
+
+To use it, create a .NET console project referencing `Source/Rendering.Cratis/Rendering.Cratis.csproj` and supply a complete model containing the declarations, slices and specifications. This page supplies the program body, but not that driver project or the complete shop model.
 
 ```csharp title="Program.cs"
 using System.Collections.Immutable;
@@ -104,7 +106,7 @@ foreach (var artifact in scaffold.Artifacts.Concat(result.Artifacts))
 return 0;
 ```
 
-Run it with the folder that holds `shop.play` and a folder to write into:
+The invocation below assumes you have built your driver as `DocsGvRender.dll` under `render/`, placed the complete `shop.play` in `shop/`, and chosen `out/` as the destination. `DocsGvRender` names that driver, not a Stage CLI command.
 
 ```bash
 dotnet render/bin/Debug/net10.0/DocsGvRender.dll shop out
@@ -115,7 +117,11 @@ Success=True artifacts=17 scaffold=40
 Publication check: Compatible { }
 ```
 
-`Success=True` means no diagnostic has error severity. The publication check compares the plan with the files already in the output folder and refuses changes that would break them, such as an event type id change (`STAGE-EVENT-002`). The program writes nothing unless the result is `Compatible`, which it is for an empty folder. A real publisher also has to protect hand-edited files; see [Build a renderer target](build-renderer-target.md). The rendered project takes its exact NuGet pins from Stage's `Directory.Packages.props` at build time, including the Chronicle client and matching kernel image. Its Cratis npm pins follow `Source/Frontend/package.json`; npm Arc and NuGet Arc use the same release. Stage's package-update workflow synchronizes these frontend pins and regenerates the framework-name catalog, so newly rendered applications move with the verified Stage packages. The slice artifacts land in these files, next to the 40 scaffold files:
+The output block illustrates a successful result. `Success=True` means no diagnostic has error severity. The publication check then compares the plan with files already in the output folder and refuses changes that would break them, such as an event type id change (`STAGE-EVENT-002`). The program writes nothing unless the result is `Compatible`, which it is for an empty folder. A production publisher must also handle ownership and required removals rather than relying on this simple write loop; see [Build a renderer target](build-renderer-target.md).
+
+The rendered project's dependency setup comes from the Stage version you use. At build time, Stage takes exact NuGet pins from `Directory.Packages.props`, including the Chronicle client and matching kernel image. Cratis npm pins follow `Source/Frontend/package.json`; npm Arc and NuGet Arc use the same release. Stage's package-update workflow synchronizes these frontend pins and regenerates the framework-name catalog.
+
+The artifact list below shows where the shop's concepts, handlers and specifications belong alongside the scaffold:
 
 ```text title="Planned slice artifacts"
 Common/ApiKey.cs
@@ -138,7 +144,7 @@ Storefront/Orders/Place/when_placing_at_the_receipt_time.cs
 ```
 
 :::note[Rendering is not compiling]
-A plan proves that Stage admitted the model. This guide also built the rendered application in Debug and ran its specifications: `dotnet build` succeeded and `dotnet test` reported 21 passed, 0 failed. Do the same for your own model before you trust it.
+A successful plan means Stage admitted the model; it does not compile or execute the generated application. After rendering your complete model, build the output and run its specifications. The fixtures below explain what those specifications assert.
 :::
 
 ## Read the rendered concepts

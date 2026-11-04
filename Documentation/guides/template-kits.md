@@ -5,16 +5,25 @@ description: Use the stage-templates/v1 profile to prepare declarative templates
 
 # Author a renderer kit
 
-A renderer kit turns normalized model JSON into artifact parts. Use the `stage-templates/v1` profile when
-several target packs need the same deterministic interpreter without sharing target-language spelling.
-The profile is an interpreter building block; it does not itself install kits, resolve imports or write artifacts.
+Use a renderer kit when you want to express a target's output in declarative templates rather than write
+every emitter in C#. This is an optional implementation choice inside a renderer, not a prerequisite for
+building one. The `stage-templates/v1` profile gives target packs a shared deterministic interpreter while
+leaving target-language spelling to each pack.
+
+The kit declares output templates, paths and optional conditions and fan-out expressions. Your planner supplies
+normalized model JSON, evaluates those declarations, then collects structured artifact parts. It still owns
+symbol resolution and artifact construction: the interpreter does not install kits, resolve imports or write files.
+The helper fragments below illustrate that boundary; they are not a complete kit or a runnable planner.
 
 ## Prepare once, evaluate in a plan
 
-A loaded kit must require the `templates` contract at major version 1. Preparation scans, parses and lints
+Start with a validated `LoadedKit` that requires the `templates` contract at major version 1. Pass it to
+`TemplateProfile.Prepare` with the target's language implementation and any section overrides. Preparation scans, parses and lints
 every declared output template, partial, path, condition and fan-out expression, even if its output is inactive.
 It also validates declared operator tables and section overrides. All preparation diagnostics are returned
-in deterministic code/path/line/message order. Any diagnostic means there is no usable `PreparedTemplates`.
+in deterministic code/path/line/message order. Inspect the returned `TemplatePrepareResult.Diagnostics` before
+using its `Templates`: any diagnostic means there is no usable `PreparedTemplates`. Preparation does not evaluate
+the model, so successful preparation is not yet an artifact plan.
 
 Supply an `ITemplateLanguage` implementation when calling `TemplateProfile.Prepare`. Its `Pack` identifies
 the target pack; its literal, type and placeholder methods own the target syntax. Throw `TemplateLanguageRefusal`
@@ -24,10 +33,22 @@ when the pack cannot safely express an input. The profile converts that exceptio
 Each `PreparedTemplates.BeginPlan(budget, types)` creates a disposable, non-thread-safe session with independent
 state. `ITypeDirectory.TryGet` resolves semantic concept/composite identities to `TemplateSymbol` values.
 Prepared templates may be shared between sessions; never share a session between concurrent evaluations.
-Use `Render`, `RenderPath`, `EvaluateWhen` and `EvaluateForEach` for the declared sources. Path and expression
-methods take an output ID; `Render` takes a declared template path. Missing conditions mean `true`; missing
-fan-out means a single item containing the supplied scope. Present conditions must be Boolean and fan-out must
-be an array of objects. Paths must remain text-only: a symbol or gap causes input refusal 024.
+For each declared output, use `EvaluateWhen` and `EvaluateForEach` to decide whether and for which items it
+contributes artifacts. `RenderPath` evaluates its destination; `Render` evaluates its body. Each call receives
+JSON scope. Path and expression methods take the manifest's output ID; `Render` takes a declared template path.
+Missing conditions mean `true`; missing fan-out means a single item containing the supplied scope. Present
+conditions must be Boolean and fan-out must be an array of objects. Paths must remain text-only: a symbol or gap
+causes input refusal 024.
+
+Expression calls return a `TemplateResult<T>` carrying either a value or a refusal. `Render` returns a
+`TemplateRenderResult`: its usable `TemplateOutput` contains `Segments` and recoverable `Gaps`, not a finished
+source string. Keep symbol segments intact until the caller has enough information to choose imports and
+qualification. A refusal invalidates the whole session, including outputs collected by earlier calls; discard
+them all rather than constructing a partial artifact plan.
+
+To turn these fragments into a working renderer, you still need the loaded kit and its declared sources, an
+`ITemplateLanguage`, an `ITypeDirectory`, JSON scope and the caller that resolves segments into artifacts.
+Those pieces are not supplied by the snippets on this page.
 
 ## Supply JSON scope
 
@@ -56,7 +77,8 @@ Use `lit['null']` for the zero-argument null literal: Scriban reserves `null` in
 {{ sym.imports }}
 ```
 
-These emit declaration, reference and imports insertion-point segments. The caller resolves qualification
+In an output body, these helpers emit declaration, reference and imports insertion-point segments. That is why
+a template can refer to a type without deciding how the finished file imports it. The caller resolves qualification
 and import policy after collecting parts. A handle may be assigned to a local, tested for truth or compared
 to null, then emitted in the body. Capturing, stringifying, comparing with other values, slicing, placing it
 in a container or reading its members causes symbol refusal 022. No placeholder sentinel text is used.

@@ -3,8 +3,9 @@ title: Customize a rendered application
 description: Register services, add dependencies, and restyle a rendered Cratis application from unmanaged files that re-rendering does not replace.
 ---
 
-Keep your adapters and styling separate from generated slice code by putting them in
-`Customizations/` at the application root. The scaffold already looks for these files.
+If you have a rendered Cratis application and want to add an adapter, a dependency or product styling, put those
+changes in `Customizations/` at the application root. The scaffold already looks for these files, so you do not
+need to build a renderer target or author a template kit to use them.
 
 Scaffold files, including `Program.cs`, the project files, `Directory.Packages.props`, and the frontend shell,
 belong to you after first run. Subsequent scoped plans exclude them. An application-scope plan includes them
@@ -21,7 +22,9 @@ plans to keep your edits.
 | `Customizations/Dependencies.props` | Project references, package references, and MSBuild properties    | MSBuild evaluates the project      |
 | `Customizations/styles.css`         | Font and `--cratis-*` token overrides for the frontend            | Vite builds or serves the frontend |
 
-Every file is optional. Without them, the application builds and runs as rendered. The top-level
+Choose only the hooks your application needs: service registrations for an adapter, the props import for a
+separate project or package, and CSS for styling. Every file is optional. Without them, the application builds
+and runs as rendered. The top-level
 `Customizations/` directory is reserved: a model that would generate files there is rejected with
 `STAGE-CRATIS-005`, including case variants.
 
@@ -98,6 +101,9 @@ CLI and Studio integration for new-application selection and migration is separa
 untouched callers remain classic.
 
 ## Register an adapter and its options
+
+Start with the service hooks when your generated application needs to call an external system. Keep the client
+and its configuration in your own files; the modeled commands and queries remain generated.
 
 The repository also contains a catalog adapter and stylesheet in `Samples/Customization/Customizations/`, ready
 to copy into a rendered application.

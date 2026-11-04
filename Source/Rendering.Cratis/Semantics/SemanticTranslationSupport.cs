@@ -118,7 +118,7 @@ internal static class SemanticTranslationSupport
 
     static bool IsOutboundEventReducer(SemanticReducer reducer, SemanticSlice slice) =>
         slice.Kind == SemanticSliceKind.Translate && slice.Direction == SemanticTranslationDirection.Outbound &&
-        reducer.Target == SemanticProjectionTargetKind.Event && reducer.From is null &&
+        reducer.Target == SemanticProjectionTargetKind.Event &&
         reducer.Key == SemanticReducerKey.EventSourceId && reducer.Result == SemanticReducerResult.StateOrDelete;
 
     static bool HasPublicReducerTarget(SemanticReducer reducer, SemanticSlice slice, IReadOnlyDictionary<SemanticId, SemanticEventContract> events) =>

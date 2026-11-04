@@ -11,7 +11,7 @@ internal static partial class SemanticCratisAdmission
     static ArtifactRenderDiagnostic? EventTargetReducerDiagnostic(SemanticReducer reducer, SemanticSlice slice, SemanticApplicationContext context)
     {
         if (reducer.Target != SemanticProjectionTargetKind.Event || IsExclusivePublicReducer(reducer, slice, context)) return null;
-        return Error(SemanticVersionFeatures.PublicEvents, $"Reducer '{reducer.Name}' needs one exclusive, untagged public event in its outbound translation, distinct local private transitions and no From filter.", reducer.ReadModel);
+        return Error(SemanticVersionFeatures.PublicEvents, $"Reducer '{reducer.Name}' needs one exclusive, untagged public event in its outbound translation, distinct local private transitions.", reducer.ReadModel);
     }
 
     static bool IsExclusivePublicReducer(SemanticReducer reducer, SemanticSlice slice, SemanticApplicationContext context) =>

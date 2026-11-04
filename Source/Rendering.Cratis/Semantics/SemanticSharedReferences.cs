@@ -53,8 +53,7 @@ internal static class SemanticSharedReferences
             foreach (var query in slice.Queries) Query(query);
             foreach (var projection in slice.Projections)
             {
-                if (projection.Target == SemanticProjectionTargetKind.Event) Event(projection.ReadModel);
-                else ReadModel(projection.ReadModel);
+                Target(projection.Target, projection.ReadModel);
                 foreach (var eventContract in ProjectionReferencedEventNamesAreUnique.Contracts(projection)) Event(eventContract);
             }
             foreach (var capture in slice.Captures)
@@ -71,7 +70,7 @@ internal static class SemanticSharedReferences
             }
             foreach (var reducer in slice.Reducers)
             {
-                ReadModel(reducer.ReadModel);
+                Target(reducer.Target, reducer.ReadModel);
                 foreach (var transition in reducer.Transitions) Event(transition.EventContract);
             }
             foreach (var specification in slice.Specifications)
@@ -140,6 +139,11 @@ internal static class SemanticSharedReferences
 
         void Event(SemanticId id) => Properties(context.Events[id].Properties);
         void ReadModel(SemanticId id) => Properties(context.ReadModels[id].Properties);
+        void Target(SemanticProjectionTargetKind kind, SemanticId id)
+        {
+            if (kind == SemanticProjectionTargetKind.Event) Event(id);
+            else ReadModel(id);
+        }
 
         void Query(SemanticKeyedQuery query)
         {

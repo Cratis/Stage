@@ -215,7 +215,7 @@ public class when_comparing_scoped_projection_execution(when_comparing_scoped_pr
             var result = new SemanticSpecificationRunner().Run(reference, spec.Id);
             var accepted = Assert.IsType<SemanticAccepted>(result.Execution);
             var readModel = feature.Slices.SelectMany(slice => slice.ReadModels).Single(candidate => candidate.Name == readModelName);
-            return JsonSerializer.Serialize(new[] { First, Second }.Select(key => Snapshot(
+            return JsonSerializer.Serialize(new[] { First, Second }.Select(key => SnapshotOf(
                 accepted.World.ReadModels.SingleOrDefault(instance => instance.ReadModel == readModel.Id && instance.Key is SemanticTextValue value && value.Value == key), readModel, _model)));
         }
 
@@ -238,11 +238,6 @@ public class when_comparing_scoped_projection_execution(when_comparing_scoped_pr
                 return new { company = Text(values["company"]), joined = Text(values["joined"]), label = Text(values["label"]), score = Number(values["score"]) };
             }
 
-            if (readModel.Name == "NestedJoinSummary")
-            {
-                return NestedJoinSnapshot(values, model);
-            }
-
             var noteType = model.Application.Types.Single(type => type.Name == "ProjectNote");
             var infoType = model.Application.Types.Single(type => type.Name == "ProjectInfo");
             var notes = values["notes"] is SemanticArrayValue array ? array.Values.Select(value =>
@@ -254,8 +249,12 @@ public class when_comparing_scoped_projection_execution(when_comparing_scoped_pr
             return new { name = Text(values["name"]), label = Text(values["label"]), visits = Number(values["visits"]), lastSeen = Text(values["lastSeen"]), info, notes };
         }
 
-        static object NestedJoinSnapshot(IReadOnlyDictionary<string, SemanticValue> values, ExecutableSemanticModel model)
+        static object? SnapshotOf(SemanticReadModelInstance? instance, SemanticReadModel readModel, ExecutableSemanticModel model) =>
+            readModel.Name == "NestedJoinSummary" && instance is not null ? NestedJoinSnapshot(instance, readModel, model) : Snapshot(instance, readModel, model);
+
+        static object NestedJoinSnapshot(SemanticReadModelInstance instance, SemanticReadModel readModel, ExecutableSemanticModel model)
         {
+            var values = instance.Values.ToDictionary(value => readModel.Properties.Single(property => property.Id == value.TargetProperty).Name, value => value.Value);
             var linkType = model.Application.Types.Single(type => type.Name == "NestedLink");
             var details = values.GetValueOrDefault("details") is SemanticCompositeValue link
                 ? link.Properties.ToDictionary(member => linkType.Properties.Single(property => property.Id == member.TargetProperty).Name, member => member.Value)

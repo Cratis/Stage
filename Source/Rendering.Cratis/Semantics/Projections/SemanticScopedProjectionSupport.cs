@@ -33,10 +33,9 @@ internal static class SemanticScopedProjectionSupport
     /// <param name="child">Whether this is a child collection.</param>
     /// <param name="identity">The child identity established by the child key.</param>
     /// <param name="isNested">Whether this scope targets a nested object.</param>
-    /// <param name="underChildren">Whether an ancestor of this scope is a child collection.</param>
     /// <returns>The reason, or null when supported.</returns>
-    public static string? Rejection(SemanticProjectionScope scope, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, bool child = false, SemanticId? identity = null, bool isNested = false, bool underChildren = false) =>
-        new ScopeRejection(scope, context, properties, child, identity, isNested, underChildren).Find();
+    public static string? Rejection(SemanticProjectionScope scope, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, bool child = false, SemanticId? identity = null, bool isNested = false) =>
+        new ScopeRejection(scope, context, properties, child, identity, isNested).Find();
 
     /// <summary>
     /// Whether the every literals of a scope are set by the every block itself (Chronicle#4663)
@@ -450,10 +449,12 @@ internal static class SemanticScopedProjectionSupport
         IReadOnlyList<SemanticProperty> properties,
         bool child,
         SemanticId? identity,
-        bool isNested,
-        bool underChildren)
+        bool isNested)
     {
         SemanticId? _protectedIdentity;
+
+        /// <summary>Gets a value indicating whether an ancestor of this scope is a child collection.</summary>
+        public bool UnderChildren { get; init; }
 
         bool IsRoot => !child && !isNested;
 
@@ -521,7 +522,7 @@ internal static class SemanticScopedProjectionSupport
                 return "Children blocks and remove via join inside nested are unsupported: Chronicle's engine does not wire them.";
             }
 
-            if ((child || underChildren) && scope.Nested.Any(nested => nested.Scope.Joins.Length > 0))
+            if (IsJoinInNestedUnderChildren())
             {
                 return "A join inside a nested object under children is not wired by Chronicle's engine.";
             }
@@ -529,8 +530,14 @@ internal static class SemanticScopedProjectionSupport
             return null;
         }
 
+        bool IsJoinInNestedUnderChildren() =>
+            (child || UnderChildren) && scope.Nested.Any(nested => nested.Scope.Joins.Length > 0);
+
+        bool IsJoinOnNestedKey(SemanticProjectionJoin join) =>
+            properties.SingleOrDefault(property => property.Id == join.On) is { } on && IsNestedKey(on);
+
         string? NestedJoinKeyRejection() =>
-            isNested && scope.Joins.Any(join => properties.SingleOrDefault(property => property.Id == join.On) is { } on && IsNestedKey(on))
+            isNested && scope.Joins.Any(IsJoinOnNestedKey)
                 ? "A nested join on the nested object's key cannot render: Chronicle backfills by the nested key, the Screenplay reference does not."
                 : null;
 
@@ -920,7 +927,7 @@ internal static class SemanticScopedProjectionSupport
                 return "A nested block needs an optional composite property.";
             }
 
-            return Rejection(nested.Scope, context, composite.Properties, isNested: true, underChildren: child || underChildren) is { } reason
+            return new ScopeRejection(nested.Scope, context, composite.Properties, false, null, true) { UnderChildren = child || UnderChildren }.Find() is { } reason
                 ? $"A nested block cannot render: {reason}"
                 : null;
         }
@@ -937,7 +944,7 @@ internal static class SemanticScopedProjectionSupport
                 return "A children block has an unsupported collection or identity.";
             }
 
-            return Rejection(children.Scope, context, element.Properties, true, children.IdentifiedBy, underChildren: true) is { } reason
+            return new ScopeRejection(children.Scope, context, element.Properties, true, children.IdentifiedBy, false) { UnderChildren = true }.Find() is { } reason
                 ? $"A children block cannot render: {reason}"
                 : null;
         }

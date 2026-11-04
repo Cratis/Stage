@@ -240,11 +240,7 @@ public class when_comparing_scoped_projection_execution(when_comparing_scoped_pr
 
             if (readModel.Name == "NestedJoinSummary")
             {
-                var linkType = model.Application.Types.Single(type => type.Name == "NestedLink");
-                var details = values.GetValueOrDefault("details") is SemanticCompositeValue link
-                    ? link.Properties.ToDictionary(member => linkType.Properties.Single(property => property.Id == member.TargetProperty).Name, member => member.Value)
-                    : null;
-                return new { reference = details is null ? null : Text(details["reference"]), joined = details is null ? null : Text(details.GetValueOrDefault("value")) };
+                return NestedJoinSnapshot(values, model);
             }
 
             var noteType = model.Application.Types.Single(type => type.Name == "ProjectNote");
@@ -256,6 +252,15 @@ public class when_comparing_scoped_projection_execution(when_comparing_scoped_pr
             }).ToArray() : null;
             var info = values["info"] is SemanticCompositeValue composite ? Text(composite.Properties.Single(member => member.TargetProperty == infoType.Properties.Single().Id).Value) : null;
             return new { name = Text(values["name"]), label = Text(values["label"]), visits = Number(values["visits"]), lastSeen = Text(values["lastSeen"]), info, notes };
+        }
+
+        static object NestedJoinSnapshot(IReadOnlyDictionary<string, SemanticValue> values, ExecutableSemanticModel model)
+        {
+            var linkType = model.Application.Types.Single(type => type.Name == "NestedLink");
+            var details = values.GetValueOrDefault("details") is SemanticCompositeValue link
+                ? link.Properties.ToDictionary(member => linkType.Properties.Single(property => property.Id == member.TargetProperty).Name, member => member.Value)
+                : null;
+            return new { reference = details is null ? null : Text(details["reference"]), joined = details is null ? null : Text(details.GetValueOrDefault("value")) };
         }
 
         static string? Text(SemanticValue? value) => value is SemanticTextValue text ? text.Value : null;

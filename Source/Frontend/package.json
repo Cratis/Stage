@@ -13,8 +13,8 @@
   },
   "dependencies": {
     "@cratis/stage.runtime": "*",
-    "@cratis/arc": "22.165.2",
-    "@cratis/arc.react": "22.165.2",
+    "@cratis/arc": "22.166.0",
+    "@cratis/arc.react": "22.166.0",
     "@cratis/components": "4.38.1",
     "@cratis/fundamentals": "7.33.1",
     "@cratis/scene.blueprint.default": "4.87.0",

@@ -35,7 +35,8 @@ public class with_the_default_composition : a_register_project_render_request
     // Recomputed for Chronicle 19.117.0: the scaffold emits the matching package and development image pins.
     // Recomputed for Screenplay 5.3.1: the scaffold emits the matching matcher pin.
     // Recomputed for Cratis/Stage#967: the scaffold hosts Choreography 2.2.0 with Chronicle 19.124.0 and Arc 22.165.2.
-    const string Before = "69e9b2667c88b66938283a143a7952c614083a0a6473e119bfe0f47373980258";
+    // Recomputed for Arc 22.166.0: the scaffold emits the matching backend and frontend pins.
+    const string Before = "6e2b8a6d03349adfc71cebc4b3e53df7b6c28663f5ead8636201d6d1972b78f5";
 
     ArtifactRenderPlan _plan = null!;
 

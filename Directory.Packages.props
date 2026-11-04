@@ -29,12 +29,12 @@
     <!-- The Orleans silo hosted by the Stage runtime and by every rendered application. Cratis.Orleans.Chronicle requires the Chronicle client pinned below. -->
     <PackageVersion Include="Cratis.Orleans" Version="1.33.1" />
     <PackageVersion Include="Cratis.Orleans.Chronicle" Version="1.33.1" />
-    <PackageVersion Include="Cratis.Chronicle" Version="19.116.0" />
+    <PackageVersion Include="Cratis.Chronicle" Version="19.117.0" />
     <!-- Only the multi-service repository scaffold emits this pin (Stage references no Aspire package). It matches the Aspire version of Chronicle and Studio. -->
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.6.4" />
-    <PackageVersion Include="Cratis.Chronicle.AspNetCore" Version="19.116.0" />
-    <PackageVersion Include="Cratis.Chronicle.Contracts" Version="19.116.0" />
-    <PackageVersion Include="Cratis.Chronicle.Testing" Version="19.116.0" />
+    <PackageVersion Include="Cratis.Chronicle.AspNetCore" Version="19.117.0" />
+    <PackageVersion Include="Cratis.Chronicle.Contracts" Version="19.117.0" />
+    <PackageVersion Include="Cratis.Chronicle.Testing" Version="19.117.0" />
     <!--
         Cratis.Chronicle.Testing 19.114.0 bundles Cratis.Chronicle.Core and Cratis.Chronicle.Grpc, which are built against
         Microsoft.Extensions.Telemetry.Abstractions 10.11.0, but the package does not declare that dependency. Without this

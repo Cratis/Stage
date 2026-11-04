@@ -31,7 +31,8 @@ public class with_an_authored_scene : a_screen_composition_render
     // generated documentation/specification imports, Entra host artifacts/wiring/dependencies and Yarn preapprovals;
     // Components 4.38.1, Cratis.Specifications 5.1.0, Microsoft.Identity.Web 4.16.1 and the Pkcs 10.0.13 security pin.
     // Re-captured by execution for train 11 merge (#209/#857 with #925): native guards on Scene 4.87.0 and merged scaffold/runtime output.
-    const string Before = "96beb62d803a0c1f5bd0a8ae5d39728acc73d6864934a888f74bc97157f7f531";
+    // Recomputed for Chronicle 19.117.0: the scaffold emits the matching package and development image pins.
+    const string Before = "46ab0ec88bc22180050b943cb7bc42f7323da7cab1e050ffd20b68ce65b3d42c";
 
     ArtifactRenderPlan _plan = null!;
 

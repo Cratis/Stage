@@ -32,7 +32,8 @@ public class with_the_default_composition : a_register_project_render_request
     // Recomputed for Screenplay 5.1.0: the scaffold emits the 5.1.0 matcher pin.
     // Re-frozen after merging main (Screenplay 5.1.0) into train 10: the 4.259.0-era constants were stale.
     // Recaptured by the owning spec for train 11's merged pins and rendering deliveries.
-    const string Before = "8c264f0e4407e23ce474950e9094e5a8ccc4b9bf2c82582a00c7a72d16c8bfad";
+    // Recomputed for Chronicle 19.117.0: the scaffold emits the matching package and development image pins.
+    const string Before = "7712f16ebffa02a8a43786a8c33e5144051ce98d97705efb35867ead9648f4a2";
     // Recomputed for Cratis/Stage#926: the scaffold now hosts an Orleans silo, pins Cratis.Orleans 1.33.1 and moves to Chronicle 19.114.0.
 
     ArtifactRenderPlan _plan = null!;

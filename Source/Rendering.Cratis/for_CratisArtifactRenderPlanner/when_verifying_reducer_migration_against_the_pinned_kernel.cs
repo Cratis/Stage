@@ -113,7 +113,7 @@ public class when_verifying_reducer_migration_against_the_pinned_kernel : a_gene
         }
         """;
 
-    // The workflow engine (Cratis.Orleans.Chronicle) contributes its own run-listing reducer; the probes are about the application's.
+    // The workflow engine (Cratis.Choreography.Chronicle) contributes its own run-listing reducer; the probes are about the application's.
     static string ApplicationReducersHelper => """
                 static IEnumerable<IReducerHandler> ApplicationReducers(IEventStore store) =>
                     store.Reducers.GetAllHandlers().Where(handler => !handler.Id.Value.StartsWith("Cratis.", StringComparison.Ordinal));

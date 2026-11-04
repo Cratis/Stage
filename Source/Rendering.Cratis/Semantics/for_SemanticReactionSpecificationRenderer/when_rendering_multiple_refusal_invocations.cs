@@ -22,6 +22,8 @@ public class when_rendering_multiple_refusal_invocations : given.a_refusal_speci
     [Fact] void should_admit_the_specification() => _diagnostics.ShouldBeEmpty();
     [Fact] void should_enable_decision_reads_immediately_on_the_untyped_scenario() => _source.ShouldContain("CommandScenario<object> _scenario = new CommandScenario<object>().UseDecisionReads();");
     [Fact] void should_import_the_decision_reads_extension_namespace() => _source.ShouldContain("using Cratis.Arc.Chronicle.Testing.Commands;");
+    [Fact] void should_suppress_obsolescence_only_for_the_untyped_scenario() => Assert.Matches(@"#pragma warning disable CS0618\s+readonly CommandScenario<object> _scenario = new CommandScenario<object>\(\)\.UseDecisionReads\(\);\s+#pragma warning restore CS0618", _source);
+    [Fact] void should_explain_the_untyped_scenario_workaround() => _source.ShouldContain("// Untyped scenarios cannot select decision reads automatically: https://github.com/Cratis/Arc/issues/3669");
     [Fact] void should_enable_decision_reads_before_any_given() => ShouldEnableDecisionReadsBefore("_scenario.Given");
     [Fact] void should_enable_decision_reads_before_accessing_the_event_log() => ShouldEnableDecisionReadsBefore("_scenario.EventLog");
     [Fact] void should_enable_decision_reads_before_executing_commands() => ShouldEnableDecisionReadsBefore("_scenario.Execute");

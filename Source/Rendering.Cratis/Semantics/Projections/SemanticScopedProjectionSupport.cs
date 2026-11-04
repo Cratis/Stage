@@ -527,11 +527,19 @@ internal static class SemanticScopedProjectionSupport
                 return "A join inside a nested object under children is not wired by Chronicle's engine.";
             }
 
+            if (IsJoinInNestedBelowRoot())
+            {
+                return "A join inside a nested object is admitted only when the nested object is directly at the read-model root; a nested object inside another nested object or inside a children element cannot carry a join.";
+            }
+
             return null;
         }
 
         bool IsJoinInNestedUnderChildren() =>
             (child || UnderChildren) && scope.Nested.Any(nested => nested.Scope.Joins.Length > 0);
+
+        bool IsJoinInNestedBelowRoot() =>
+            !IsRoot && scope.Nested.Any(nested => nested.Scope.Joins.Length > 0);
 
         bool IsJoinOnNestedKey(SemanticProjectionJoin join) =>
             properties.SingleOrDefault(property => property.Id == join.On) is { } on && IsNestedKey(on);

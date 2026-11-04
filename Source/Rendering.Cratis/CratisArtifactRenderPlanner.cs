@@ -257,7 +257,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             diagnostics.AddRange(context.Application.StateMachines.Select(machine => new ArtifactRenderDiagnostic(
                 LifecycleCodes.RestartState,
                 ArtifactRenderDiagnosticSeverity.Warning,
-                $"State machine '{machine.Name}' resumes in its initial state after its grain is reactivated: Cratis.Orleans resolves the state of an event-sourced machine from the followed read model alone, and '{machine.Name}' declares no read model member that records its state.",
+                $"State machine '{machine.Name}' resumes in its initial state after its grain is reactivated: Cratis.Choreography resolves the state of an event-sourced machine from the followed read model alone, and '{machine.Name}' declares no read model member that records its state.",
                 context.Application.Id)));
         }
 

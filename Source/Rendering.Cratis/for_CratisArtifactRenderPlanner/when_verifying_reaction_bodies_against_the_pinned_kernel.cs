@@ -13,8 +13,8 @@ public class when_verifying_reaction_bodies_against_the_pinned_kernel : a_genera
 {
     const string HostSupport = """
         using Cratis.Arc.MongoDB;
-        using Cratis.Orleans.Chronicle.Hosting;
-        using Cratis.Orleans.Hosting;
+        using Cratis.Choreography.Chronicle.Hosting;
+        using Cratis.Choreography.Hosting;
 
         public partial class Program
         {

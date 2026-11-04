@@ -2,8 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Net;
-using Cratis.Orleans.Chronicle.Hosting;
-using Cratis.Orleans.Hosting;
+using Cratis.Choreography.Chronicle.Hosting;
+using Cratis.Choreography.Hosting;
 using Orleans.Configuration;
 using Orleans.Hosting;
 
@@ -44,8 +44,8 @@ public static class StageOrleansConfiguration
         var siloPort = builder.Configuration.GetValue("Stage:Orleans:SiloPort", DefaultSiloPort);
         var gatewayPort = builder.Configuration.GetValue("Stage:Orleans:GatewayPort", DefaultGatewayPort);
 
-        var local = CratisOrleansOptions.Local();
-        builder.AddCratisOrleans(new CratisOrleansOptions
+        var local = CratisChoreographyOptions.Local();
+        builder.AddCratisChoreography(new CratisChoreographyOptions
         {
             Clustering = local.Clustering,
             Storage = local.Storage,

@@ -93,7 +93,9 @@ public class when_strict_planning_retains_performer_metadata : given.a_source_pl
         Assert.Empty(_defaultLegacy.Degradations);
         Assert.False(_defaultLegacy.Strict);
         Assert.Same(_defaultLegacy, _defaultAccepted);
-        Assert.Equal("7eef3947ae9c6aa0a58f96883a69271ae265e2f09832d8d01da7a64aac91684d", _defaultLegacy.Digest);
+
+        // Recomputed for Cratis/Stage#967: Choreography hosting and Arc 22.166.0 scaffold pins.
+        Assert.Equal("6196a0bbf2f46a141717f36a3fbc5cb48a363614da618daac4edc76809bf8008", _defaultLegacy.Digest);
         Assert.DoesNotContain(_normal.Plan.Diagnostics, diagnostic => diagnostic.Code.StartsWith("STAGE-DEGRADE-", StringComparison.Ordinal));
         Assert.Equal(ArtifactRenderOutcome.Partial, _normal.Plan.Outcome);
         Assert.Null(_normal.Plan.Inventory);

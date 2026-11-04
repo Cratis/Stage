@@ -72,6 +72,8 @@ public class when_rendering_a_specification : given.a_slice_with_specifications
     [Fact]
     void should_exercise_the_command_through_a_scenario() =>
         _appended.Content.ShouldContain("readonly CommandScenario<RegisterInvoice> _scenario = new();");
+    [Fact] void should_let_arc_select_decision_reads() => _appended.Content.ShouldNotContain("UseDecisionReads");
+    [Fact] void should_not_suppress_obsolescence() => _appended.Content.ShouldNotContain("#pragma warning");
     [Fact]
     void should_state_the_uuid_the_document_wrote_as_text() =>
         _appended.Content.ShouldContain("Guid.Parse(\"9c858901-8a57-4791-81fe-4c455b099bc9\")");

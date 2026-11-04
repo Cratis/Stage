@@ -17,6 +17,8 @@ public class when_executing_generated_multiple_refusal_invocations_after_a_refus
 {
     [Fact] void should_enable_decision_reads_immediately_on_the_untyped_scenario() => fixture.GeneratedSpecification.ShouldContain("CommandScenario<object> _scenario = new CommandScenario<object>().UseDecisionReads();");
     [Fact] void should_import_the_decision_reads_extension_namespace() => fixture.GeneratedSpecification.ShouldContain("using Cratis.Arc.Chronicle.Testing.Commands;");
+    [Fact] void should_suppress_obsolescence_only_for_the_untyped_scenario() => Assert.Matches(@"#pragma warning disable CS0618\s+readonly CommandScenario<object> _scenario = new CommandScenario<object>\(\)\.UseDecisionReads\(\);\s+#pragma warning restore CS0618", fixture.GeneratedSpecification);
+    [Fact] void should_explain_the_untyped_scenario_workaround() => fixture.GeneratedSpecification.ShouldContain("// Untyped scenarios cannot select decision reads automatically: https://github.com/Cratis/Arc/issues/3669");
     [Fact] void should_enable_decision_reads_before_appending_the_trigger() => ShouldPrecede(".UseDecisionReads()", "_scenario.EventLog");
     [Fact] void should_enable_decision_reads_before_executing_commands() => ShouldPrecede(".UseDecisionReads()", "_scenario.Execute");
     [Fact] void should_capture_the_initial_count_after_appending_the_trigger() => ShouldPrecede("@event)).IsSuccess.ShouldBeTrue();", "var initial = before.Count;");

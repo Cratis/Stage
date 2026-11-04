@@ -18,34 +18,35 @@ public class when_preserving_inventory_fixture_bytes
     // Re-frozen for Cratis/Stage#850: only the policy runtime concept-base comparisons changed.
     // Re-frozen for Cratis/Stage#850: owner-local validation bodies.
     // Recaptured by the owning spec for train 11's merged pins and rendering deliveries.
+    // Recaptured for Cratis/Stage#967: Choreography Program.cs hosting and Arc's automatic typed decision reads.
     static readonly Dictionary<string, string> _digests = new(StringComparer.Ordinal)
     {
         // Re-frozen for Cratis/Stage#120 merged with train 10: authentication artifacts and host wiring on top of the train 10 output.
         // Re-frozen again for Cratis/Stage#850 (denied query, policy typed contexts): only the Policies.cs concept-base comparisons differ from train 10's pin; every other pin equals train 10's after restoring the hashed names.
-        ["append refusal"] = "a22415a6ac0cba579b22d7981822fa9089d259f0a7ce452e2472d4e749e50350",
-        ["cascade with trigger"] = "62f05f08ca11aac19824d16c1fe2c644b457e0cab91425a57bbc02c71cdb0d7b",
-        ["case table"] = "6c905812c89480e4b160f5f7d2b88287316b18c0e430c12296c2c4bb43879810",
-        ["composite keys"] = "d09530f3c863ddacf4d8ba571f85529207e04170e2900b201b23a424a211a8d9",
-        ["denied query"] = "057ceee5b315ed5f4999d059c641df84ad7e7d1a0001e8ec19db8bf291cf7198",
-        ["folder"] = "bf29b7c91621bc4e1e1f840605a0de7452295f05201f7ae95c481b96d852ae47",
-        ["policy typed contexts"] = "e3a1c7f6a06ee335142d6f4ee65922d5edd822b8739bfc3827cc7aa4626065b8",
-        ["query"] = "9994fbe1797a1edabed9ce62742b2696aa30f0494391d30c97427052c731f3cd",
-        ["reaction production"] = "6e358f8b949fd8aeb3acf3c6aec8a0ba2181cfb1ddfa4d3e70b60d09faefae29",
-        ["redelivery"] = "53768fff851033b63bc8e85d32cd25096ae7c02820428ffa25fcab3a57cd6509",
-        ["reducer typed contexts"] = "b0a1f53e43127fb95b801768981bd19adab1ac54c31a2269affb86fa321e2a9d",
-        ["relocated"] = "bf29b7c91621bc4e1e1f840605a0de7452295f05201f7ae95c481b96d852ae47",
-        ["reordered"] = "bf29b7c91621bc4e1e1f840605a0de7452295f05201f7ae95c481b96d852ae47",
-        ["scoped projections"] = "9fbe7aada753d1dde7d45e90394a624b29d014aef69ea6a295b530fb94ac99e7",
-        ["single"] = "bf29b7c91621bc4e1e1f840605a0de7452295f05201f7ae95c481b96d852ae47",
-        ["strings"] = "bf43eeb3a0f064c7ff43ed6f32f6c7b2fa5f15504d8ef080463edb5a75f50d02",
-        ["translation specification"] = "722b6ed8cf313a8b63d4cc2f9aa03e2371886ae36147690b89717ea4b609c517",
-        ["validation typed contexts"] = "1f017cf987cd63fdfbe926880fe3684cfd4faf4f0810b768eb3c98bb4fa362d7",
+        ["append refusal"] = "dfd17e06d3671542d093d647c1107515970df2edf7d4e3f8173d25b72ac146bf",
+        ["cascade with trigger"] = "04e736a9cf97cb632bb249c68e83a3f296fc3bb9d1c5cc9950590475f329d317",
+        ["case table"] = "eff1bfc1d51a7079b4582ed7039a26e848b95f3324195ae0a68324876896ff1b",
+        ["composite keys"] = "af1b26578875184d42bb0509e3eab5f820e3ecf80ca016da7e1dcf911915c6cf",
+        ["denied query"] = "0ef36305266c161bcb212f830aec9fe364e2a0bd27ee4a8e0968461016b12ba6",
+        ["folder"] = "6996ab793768002e51955d76f14b3c58ee97d282571896c5bec9a8bb2aac3764",
+        ["policy typed contexts"] = "e7e9b22f85acb6ac36332ebfec5e1a55000270f9effd4f63565930905a7a045d",
+        ["query"] = "11c4175df1bad828d9d7287b273e4b79ff197cb392357416427a46b71d274155",
+        ["reaction production"] = "afea75a256f6f03a22f236b95a028cee2f6fd315aa58e0c9f9c8993326c29f6d",
+        ["redelivery"] = "2a6a28bdff8d41c41a4a1946bd8f5765ee148fbb4cb8bb3e1e4bd12b68647f0a",
+        ["reducer typed contexts"] = "fe486538ba43a829c035b076ccea976935fa9e18609df8793a70f24ca4f3d18e",
+        ["relocated"] = "6996ab793768002e51955d76f14b3c58ee97d282571896c5bec9a8bb2aac3764",
+        ["reordered"] = "6996ab793768002e51955d76f14b3c58ee97d282571896c5bec9a8bb2aac3764",
+        ["scoped projections"] = "0086d60f22b0bc801b81e5a78e059c76136f964f406a486f7079cbfbd4624da9",
+        ["single"] = "6996ab793768002e51955d76f14b3c58ee97d282571896c5bec9a8bb2aac3764",
+        ["strings"] = "9e335a6105e41d4cb86a45309c30e105dc7dea0fbfac08d5cb93ad5ee12fbc0e",
+        ["translation specification"] = "0c3509e08dc77b7d55facbd6cb0cfb4c440ade0e3b228c529f6a87ca0728b6ac",
+        ["validation typed contexts"] = "b55728602123b752696506bd7a75cdfaaad59a3eed5b79b23c3170aead151bed",
     };
 
     static readonly Dictionary<string, string> _oldDigests = new(StringComparer.Ordinal)
     {
-        ["reducer typed contexts"] = "45d80db27e1610c60427e059fa299942066a521be9054064e353ad1aa8afcf3d",
-        ["validation typed contexts"] = "bc095521dd2d2d2f69eaec662250b4dae937aafc01a2b524d90cc3136470cbe5",
+        ["reducer typed contexts"] = "4d055539a57f591d7d4812ee0e887824c4ff96eb34471fa261defb65b39a1086",
+        ["validation typed contexts"] = "8b5810c3c8d51165397976588eca966438ab89e8d570c512afd879b9dbf0c745",
     };
 
     public static TheoryData<string> Fixtures

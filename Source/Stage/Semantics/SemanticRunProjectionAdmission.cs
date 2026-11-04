@@ -200,7 +200,7 @@ internal static partial class SemanticRunProjectionAdmission
             var rejection = SemanticScopedProjectionSupport.Rejection(scope, new SemanticApplicationContext(plan), readModel.Properties);
             if (rejection is not null)
             {
-                return rejection;
+                return $"The spec runner cannot execute this projection shape: {rejection}";
             }
             if (HasProductOutsideFrom(scope))
             {

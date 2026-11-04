@@ -74,6 +74,8 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     [Fact] void should_enable_corepack_before_installing_with_the_pinned_yarn() => Content("README.md").ShouldContain("corepack enable\nyarn install\n");
     [Fact] void should_document_scaffold_ownership() => Content("README.md").ShouldContain("Scaffold files belong to you after first run");
     [Fact] void should_configure_cratis_with_mongodb_and_camel_case_chronicle_naming() => Content("Program.cs").ShouldContain("configureArcBuilder: arc => arc.WithMongoDB(),\n    configureChronicleBuilder: chronicle => chronicle.WithCamelCaseNamingPolicy()");
+    [Fact] void should_configure_choreography() => Content("Program.cs").ShouldContain("builder.AddCratisChoreography(new CratisChoreographyOptions");
+    [Fact] void should_keep_the_chronicle_telemetry_defaults_resolvable() => Content("Program.cs").ShouldContain("builder.Services.AddSingleton<Action<ChronicleTelemetryOptions>>(_ => { });");
     [Fact] void should_activate_cratis_and_the_health_endpoint_before_running() => ProgramSemantics().ShouldEqual("True|True|True");
     [Fact] void should_emit_the_exact_arc_chronicle_and_mongodb_settings() => AppSettingsSemantics().ShouldEqual("api|False|1|MyApp|chronicle://chronicle-dev-client:chronicle-dev-secret@localhost:35000|mongodb://localhost:27017|MyApp");
     [Fact] void should_wait_for_a_healthy_chronicle_before_starting_the_backend() => Content("README.md").ShouldContain("docker compose up -d --wait\ndotnet run --project MyApp.csproj");
@@ -135,8 +137,9 @@ public class when_creating_the_current_scaffold : a_current_scaffold
             $"Cratis.Chronicle={_profile.CratisChroniclePackageVersion}",
             $"Cratis.Chronicle.AspNetCore={_profile.CratisChroniclePackageVersion}",
             $"Cratis.Chronicle.Testing={_profile.CratisChroniclePackageVersion}",
-            $"Cratis.Orleans={Scaffolding.ScaffoldPackageVersions.Orleans}",
-            $"Cratis.Orleans.Chronicle={Scaffolding.ScaffoldPackageVersions.OrleansChronicle}",
+            $"Cratis.Choreography={Scaffolding.ScaffoldPackageVersions.Choreography}",
+            $"Cratis.Choreography.Chronicle={Scaffolding.ScaffoldPackageVersions.ChoreographyChronicle}",
+            $"Cratis.Screenplay={Scaffolding.ScaffoldPackageVersions.Screenplay}",
             $"Cratis.Screenplay.Matching={Scaffolding.ScaffoldPackageVersions.ScreenplayMatching}",
             $"Cratis.Specifications={_profile.CratisSpecificationsPackageVersion}",
             $"Cratis.Specifications.XUnit={_profile.CratisSpecificationsXUnitPackageVersion}",

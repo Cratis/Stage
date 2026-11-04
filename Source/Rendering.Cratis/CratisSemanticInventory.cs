@@ -19,7 +19,8 @@ static class CratisSemanticInventory
         var context = new SemanticApplicationContext(request, options);
         var assignments = request.SemanticIdentities.Concat(CratisBootstrapLocations.Resolve(context, request)).GroupBy(assignment => assignment.Id).ToDictionary(group => group.Key, group => group.ToArray());
         var owners = CratisSelectedSemanticOwners.Enumerate(context).Distinct().ToArray();
-        var constructs = owners.Select(owner => Construct(owner.Id, owner.Kind, Address(request, assignments, owner.Id), plan, omissionCauses));
+        var deniedCommands = context.Commands.Values.Where(SemanticDeniedValidations.Denies).Select(command => command.Id).ToHashSet();
+        var constructs = owners.Select(owner => Construct(owner.Id, owner.Kind, Address(request, assignments, owner.Id), plan, omissionCauses, deniedCommands));
         return ArtifactRenderInventory.Create([.. constructs]);
     }
 
@@ -51,12 +52,17 @@ static class CratisSemanticInventory
         ArtifactRenderConstructKind kind,
         SemanticAddress address,
         ArtifactRenderPlan plan,
-        IReadOnlyDictionary<SemanticId, ImmutableArray<SemanticId>>? omissionCauses)
+        IReadOnlyDictionary<SemanticId, ImmutableArray<SemanticId>>? omissionCauses,
+        HashSet<SemanticId> deniedCommands)
     {
         var omission = plan.Refusals.SingleOrDefault(refusal => refusal.Artifact == identity);
         var evidence = plan.Degradations.Where(gap => gap.Diagnostic.Artifact == identity).ToArray();
         if (omission is not null && !IsGraphProvenOmission(omission, evidence)) return Omitted(plan, kind, address, omission);
         var placeholder = kind == ArtifactRenderConstructKind.ReadModel ? ArtifactRenderPlaceholderKind.RetainedSignatureOrType : ArtifactRenderPlaceholderKind.ThrowingOperationBody;
+        if (kind == ArtifactRenderConstructKind.Command && deniedCommands.Contains(identity))
+        {
+            placeholder = ArtifactRenderPlaceholderKind.DenyEnclosingOperation;
+        }
         if (omission is not null)
         {
             placeholder = ArtifactRenderPlaceholderKind.GraphProvenOmittedLeaf;

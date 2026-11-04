@@ -29,14 +29,20 @@ public class when_registering_an_invalid_projection
         var slice = feature.Slices.Single();
         var readModel = slice.ReadModel;
         var projection = readModel.Projection;
-        var invalid = projection with { From = new Dictionary<string, FromDefinition>
+        var invalid = projection with
         {
-            ["ItemRegistered"] = projection.From.Single().Value with { Key = "$composite(OrderKey, region=$value(us-east), id=id)" }
-        } };
-        var invalidModel = model with { Collections = [collection with { Modules = [module with { Features = [feature with
+            From = new Dictionary<string, FromDefinition>
+            {
+                ["ItemRegistered"] = projection.From.Single().Value with { Key = "$composite(OrderKey, region=$value(us-east), id=id)" }
+            }
+        };
+        var invalidModel = model with
+        {
+            Collections = [collection with { Modules = [module with { Features = [feature with
         {
             Slices = [slice with { ReadModel = readModel with { Projection = invalid } }]
-        }] }] }] };
+        }] }] }]
+        };
         var services = Substitute.For<IServiceProvider>();
 
         await Assert.ThrowsAsync<UnsupportedProjectionRuntimeExpression>(() =>

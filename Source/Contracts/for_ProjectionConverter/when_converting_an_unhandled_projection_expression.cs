@@ -27,6 +27,7 @@ public class when_converting_an_unhandled_projection_expression : Specification
         _error = Catch.Exception(() => ProjectionConverter.Convert(projection));
     }
 
-    [Fact] void should_reject_the_expression_instead_of_storing_a_different_token() =>
+    [Fact]
+    void should_reject_the_expression_instead_of_storing_a_different_token() =>
         _error.ShouldBeOfExactType<UnsupportedProjectionConversion>();
 }

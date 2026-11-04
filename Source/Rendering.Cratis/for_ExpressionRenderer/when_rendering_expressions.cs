@@ -58,7 +58,8 @@ public class when_rendering_expressions : Specification
     [Fact] void should_render_a_path_as_a_pascal_case_property_reference() => _path.ShouldEqual("InvoiceId");
     [Fact] void should_render_a_dotted_path_segment_by_segment() => _dottedPath.ShouldEqual("BillingContact.Email");
     [Fact] void should_render_a_context_path_against_the_event_context() => _context.ShouldEqual("context.Identity.Id");
-    [Fact] void should_render_an_environment_expression_as_environment_get_environment_variable() =>
+    [Fact]
+    void should_render_an_environment_expression_as_environment_get_environment_variable() =>
         _environment.ShouldEqual("Environment.GetEnvironmentVariable(\"SERVICE_NAME\")");
     [Fact] void should_render_caused_by_with_a_property() => _causedByWithProperty.ShouldEqual("context.CausedBy.Name");
     [Fact] void should_render_caused_by_without_a_property() => _causedByWithoutProperty.ShouldEqual("context.CausedBy");

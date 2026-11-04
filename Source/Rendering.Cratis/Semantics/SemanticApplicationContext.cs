@@ -23,6 +23,8 @@ internal sealed partial class SemanticApplicationContext
     readonly Lazy<IReadOnlyList<GeneratedTypeName>> _generatedTypes;
     readonly Lazy<IReadOnlyDictionary<SemanticId, string>> _responseTypes;
     readonly Lazy<SemanticInlineNames> _inlineNames;
+    readonly Lazy<SemanticInlineNames> _contextNames;
+    readonly Lazy<IReadOnlySet<string>> _typedContextTypes;
     readonly Dictionary<(SemanticSlice Slice, SemanticId? Reducer), SemanticReducerBindingEnvironment> _reducerBindings = [];
     Lazy<IReadOnlyList<GeneratedTypeName>>? _admittedGeneratedTypes;
 
@@ -39,7 +41,10 @@ internal sealed partial class SemanticApplicationContext
         PerformedQueries = performed.Performed;
         PerformedQueryRejections = performed.Rejections;
         RootNamespace = options.RootNamespace;
+        ContractsFolder = $"{options.ProjectName}.Events.Contracts";
         Domain = DomainPlacementInput.From(request.Profile);
+        PassiveReadModelsInput.TryRead(request.Profile, request.Model, out var passiveReadModels);
+        PassiveReadModels = passiveReadModels;
         Strings = StringsCatalogInput.From(request.Profile);
         ReducerConventionInput.TryRead(request.Profile, Application.Name, out var reducerConvention);
         ReducerConvention = reducerConvention;
@@ -76,6 +81,8 @@ internal sealed partial class SemanticApplicationContext
         ]);
         _responseTypes = new(ResolveResponseTypes);
         _inlineNames = new(() => SemanticInlineNames.Create(this));
+        _contextNames = new(() => SemanticInlineNames.CreateContexts(this));
+        _typedContextTypes = new(() => TypedContextTypes.Names(this));
         _generatedTypes = new(() =>
         [
             .. _generatedTypeSeed.Value,
@@ -93,6 +100,9 @@ internal sealed partial class SemanticApplicationContext
     /// Gets the semantic application.
     /// </summary>
     public SemanticApplication Application { get; }
+
+    /// <summary>Gets the explicitly passive identities admitted from the hashed profile input.</summary>
+    public ImmutableHashSet<SemanticId> PassiveReadModels { get; }
 
     /// <summary>
     /// Gets the destination-independent application namespace.
@@ -122,7 +132,7 @@ internal sealed partial class SemanticApplicationContext
     /// <summary>
     /// Gets commands by semantic identity.
     /// </summary>
-    public IReadOnlyDictionary<SemanticId, SemanticCommand> Commands { get; }
+    public IReadOnlyDictionary<SemanticId, SemanticCommand> Commands { get; private set; }
 
     /// <summary>
     /// Gets read models by semantic identity.
@@ -168,6 +178,16 @@ internal sealed partial class SemanticApplicationContext
     internal IReadOnlySet<SemanticId> PerformedQueries { get; }
 
     /// <summary>
+    /// Gets the folder and project name that carry the application's own public events.
+    /// </summary>
+    internal string ContractsFolder { get; }
+
+    /// <summary>
+    /// Gets the own public events and the declarations they need, which render into the contracts project.
+    /// </summary>
+    internal SemanticEventContracts EventContracts => field ??= SemanticEventContracts.From(this);
+
+    /// <summary>
     /// Gets why a performed query cannot render, by the identity of the read model it returns.
     /// </summary>
     internal IReadOnlyDictionary<SemanticId, string> PerformedQueryRejections { get; }
@@ -176,6 +196,12 @@ internal sealed partial class SemanticApplicationContext
 
     /// <summary>Gets whole-application inline names, independent of the requested render scope.</summary>
     internal SemanticInlineNames InlineNames => _inlineNames.Value;
+
+    /// <summary>Gets the typed-context wrapper and helper names, allocated without reading the generated type inventory they feed.</summary>
+    internal SemanticInlineNames ContextNames => _contextNames.Value;
+
+    /// <summary>Gets the full names of exactly the allocated typed-context wrappers and local query shapes.</summary>
+    internal IReadOnlySet<string> TypedContextTypeNames => _typedContextTypes.Value;
 
     internal List<ArtifactRenderDiagnostic> InlineDiagnostics { get; } = [];
 
@@ -196,6 +222,10 @@ internal sealed partial class SemanticApplicationContext
     /// Gets the degradations admission recorded while it kept rendering, each paired with the warning it added to the plan diagnostics.
     /// </summary>
     internal List<ArtifactRenderDegradation> Degradations { get; } = [];
+
+    internal Dictionary<SemanticId, string> DeniedOperations { get; } = [];
+
+    internal List<SemanticVersionFeature> DeniedValidationFeatures { get; } = [];
 
     /// <summary>
     /// Gets the $eventContext paths whose projection mappings were omitted, by read model.
@@ -264,6 +294,12 @@ internal sealed partial class SemanticApplicationContext
     internal CSharpCodeBuilder CodeBuilder() => new(GeneratedProjects.Application, GeneratedTypes, Request.Scope.Kind == ArtifactRenderScopeKind.Application) { SourceLines = SourceLines };
 
     /// <summary>
+    /// Creates a builder for a file of the contracts project, which has no scaffold global usings.
+    /// </summary>
+    /// <returns>The builder.</returns>
+    internal CSharpCodeBuilder ContractsBuilder() => new();
+
+    /// <summary>
     /// Creates a builder for a generated specification file.
     /// </summary>
     /// <returns>The builder.</returns>
@@ -326,6 +362,11 @@ internal sealed partial class SemanticApplicationContext
         ]);
     }
 
+    /// <summary>Checks the explicitly admitted identity, never a read-model name or query shape.</summary>
+    /// <param name="readModelId">The read-model identity.</param>
+    /// <returns>Whether it was explicitly marked passive.</returns>
+    internal bool IsPassive(SemanticId readModelId) => PassiveReadModels.Contains(readModelId);
+
     // A flat projection the flat rendering cannot take is expressed as the scope that says the same, so one admission and one renderer decide.
     internal void ScopeFlatProjections()
     {
@@ -358,6 +399,40 @@ internal sealed partial class SemanticApplicationContext
             projection.Scope is null && !projection.Transitions.IsEmpty && projection.Target == SemanticProjectionTargetKind.ReadModel &&
             ReadModels.TryGetValue(projection.ReadModel, out var readModel) && readModel.Properties.Count(property => property.IsIdentifier) == 1 &&
             !SemanticCratisAdmission.FlatProjectionRenders(this, projection, readModel);
+    }
+
+    // Validation rules the target cannot interpret (Stage#810) deny the enclosing command rather than dropping its contract.
+    // Only selected slices are rewritten, so commands outside the render neither warn nor deny.
+    internal void DenyUnsupportedValidations(List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        foreach (var located in SelectedSlices())
+        {
+            var commands = located.Slice.Commands.ToArray();
+            for (var index = 0; index < commands.Length; index++)
+            {
+                var command = commands[index];
+                if (!SemanticDeniedValidations.Denies(command))
+                {
+                    continue;
+                }
+
+                var reason = SemanticDeniedValidations.Reason(command);
+                DeniedOperations[command.Id] = reason;
+                DeniedValidationFeatures.AddRange(SemanticVersionFeatures.UnknownCommandValidationRules(command));
+                var warning = new ArtifactRenderDiagnostic(
+                    ArtifactRenderDegradationCodes.UnsupportedConstruct,
+                    ArtifactRenderDiagnosticSeverity.Warning,
+                    $"Command '{command.Name}' denies every invocation: {reason}.",
+                    command.Id);
+                diagnostics.Add(warning);
+                Degradations.Add(new(warning, "Upgrade the Cratis target to one that renders this validation rule, or replace it with a supported declarative rule."));
+                commands[index] = command with { Validations = [.. command.Validations.Where(rule => !SemanticDeniedValidations.IsDenied(rule))] };
+            }
+
+            _slices[located.Slice.Id] = located with { Slice = located.Slice with { Commands = [.. commands] } };
+        }
+
+        Commands = IndexIdentities(_slices.Values.SelectMany(_ => _.Slice.Commands), _ => _.Id, "command");
     }
 
     // Event-context mappings the renderer cannot express (Stage#876) are omitted from a read model nothing decides on, so the rest of the view still renders.

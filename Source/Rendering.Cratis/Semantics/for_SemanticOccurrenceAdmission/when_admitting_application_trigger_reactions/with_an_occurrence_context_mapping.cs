@@ -16,8 +16,11 @@ public class with_an_occurrence_context_mapping : given.an_application_trigger_r
         var produced = _trigger.Produces.Single();
         foreach (var member in new[] { SemanticEventContextValueKind.Occurred, SemanticEventContextValueKind.EventSourceIdentity })
         {
-            _trigger = _trigger with { Produces = [produced with { Mappings = [new(produced.Mappings.Single().TargetProperty,
-                new SemanticEventContextExpression(member, new(SemanticTypeReferenceKind.Primitive, SemanticPrimitiveType.Text, default, false, false)))] }] };
+            _trigger = _trigger with
+            {
+                Produces = [produced with { Mappings = [new(produced.Mappings.Single().TargetProperty,
+                new SemanticEventContextExpression(member, new(SemanticTypeReferenceKind.Primitive, SemanticPrimitiveType.Text, default, false, false)))] }]
+            };
             Inspect();
             _messages[member] = _diagnostics.Single(item => item.Artifact == _reaction.Id && item.Code == "STAGE-ESM-024").Message;
         }

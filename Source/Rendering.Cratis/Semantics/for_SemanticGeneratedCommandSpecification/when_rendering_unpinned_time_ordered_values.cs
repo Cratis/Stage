@@ -34,7 +34,8 @@ public class when_rendering_unpinned_time_ordered_values : Specification
     [Fact] void should_leave_pinned_specifications_without_receipt_time_facts() => Render(null).ShouldNotContain("_at_the_receipt_time()");
     [Fact] void should_leave_non_time_ordered_generation_without_clock_setup() => Render("receipt").ShouldNotContain("_scenario.Clock(");
 
-    [Fact] void should_use_the_authored_clock_for_time_ordered_generation()
+    [Fact]
+    void should_use_the_authored_clock_for_time_ordered_generation()
     {
         const string clock = "2027-03-04T10:00:00.1230000Z";
         var source = Render("sortableId", clock);

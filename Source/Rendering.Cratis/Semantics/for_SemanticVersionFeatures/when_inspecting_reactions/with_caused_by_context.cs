@@ -33,7 +33,8 @@ public class with_caused_by_context : given.an_event_reaction
 
     [Fact] void should_report_occurrence_context_for_mappings_destinations_and_invocations() => _refusals.Select(feature => feature.Code).Distinct().ShouldContainOnly(["STAGE-ESM-013"]);
     [Fact] void should_report_the_occurrence_capability() => _refusals.Select(feature => feature.Capability).Distinct().ShouldContainOnly([StageExecutionCapability.Occurrence]);
-    [Fact] void should_name_every_caused_by_member() => _refusals.Select(feature => feature.Message).Distinct().ShouldContainOnly([
+    [Fact]
+    void should_name_every_caused_by_member() => _refusals.Select(feature => feature.Message).Distinct().ShouldContainOnly([
         "Reaction 'ReminderScheduler' maps $context.causedBy.subject, which Stage does not support yet.",
         "Reaction 'ReminderScheduler' maps $context.causedBy.name, which Stage does not support yet.",
         "Reaction 'ReminderScheduler' maps $context.causedBy.userName, which Stage does not support yet."]);

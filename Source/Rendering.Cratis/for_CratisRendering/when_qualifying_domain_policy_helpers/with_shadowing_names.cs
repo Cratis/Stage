@@ -51,7 +51,7 @@ public class with_shadowing_names : Specification
     [Fact] void should_compile_without_warnings() => _warnings.ShouldBeEmpty();
     [Fact] void should_emit_both_operation_policies_for_every_case() => _policies.Count.ShouldEqual(8);
     [Fact] void should_qualify_every_root_value_helper() => _policies.TrueForAll(policy => new[] { "Match", "Path", "Query", "Truth", "Not", "And", "Or" }.All(method => !policy.Replace("PolicyValues.", "", StringComparison.Ordinal).Contains($"PolicyValues.{method}", StringComparison.Ordinal))).ShouldBeTrue();
-    [Fact] void should_qualify_opaque_body_calls() => _policies.TrueForAll(policy => policy.Contains("PolicyBodies.Evaluate_", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_qualify_opaque_body_calls() => _policies.TrueForAll(policy => policy.Contains("PolicyBodies.Evaluate", StringComparison.Ordinal)).ShouldBeTrue();
 
     // The root registry is imported above the namespace, or inside it where a shadowing name must be outranked; no
     // enclosing namespace declares 'Invoices', so the directive needs no global:: either way.

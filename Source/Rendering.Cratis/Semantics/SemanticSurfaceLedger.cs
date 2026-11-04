@@ -88,6 +88,21 @@ internal static class SemanticSurfaceLedger
         Add(entries, "EventContractRevision", ignored("Revision values are carried for admission; evolved events fail STAGE-ESM-026, not generation registration."), "Value");
         Add(entries, "SemanticApplication", rendered, "Concepts Id Modules Name Types Policies EventSources");
 
+        // Screenplay 5.3.1 exposes clock operands and calendar/time-zone metadata in newer ESM pairs.
+        // Those pairs remain outside the audited set and the >=32.0 <33 prospective range;
+        // STAGE-ESM-016 refuses them before rendering. This pin update does not implement clock behavior.
+        var clock = rejected("STAGE-ESM-016");
+        Add(entries, "SemanticApplication", clock, "TimeZone");
+        Add(entries, "SemanticTimeZone", clock, "Configurable Id");
+        Add(entries, "SemanticCommand", clock, "Calendar");
+        Add(entries, "SemanticCommandCalendar", clock, "ContextMember TimeZone");
+        Add(entries, "SemanticClockOperand", clock, "Amount DateOf Kind Unit");
+        Add(entries, "SemanticClockKind", clock, "Now Today");
+        Add(entries, "SemanticClockUnit", clock, "Day Hour Minute");
+        Add(entries, "SemanticConditionOperand", clock, "Clock DateOf");
+        Add(entries, "SemanticValidationRule", clock, "ClockOperand");
+        Add(entries, "SemanticSpecification", clock, "GivenTimeZone");
+
         // Atomic batches use the existing event collection return. Multiple same-event production triggers
         // and routed productions retain STAGE-ESM-043 because their batch boundaries cannot be preserved: a Chronicle reactor
         // returns one append batch, and ordered per-trigger batches that are not duplicated on redelivery need Cratis/Chronicle#5248.
@@ -127,6 +142,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticValidationRule", rendered, "Kind Message Property Severity Operand");
         Add(entries, "SemanticValidationRule", rendered, "Name RequirementId");
         Add(entries, "SemanticValidationRuleKind", rendered, "NotEmpty Maximum Minimum Equal NotEqual GreaterThan GreaterThanOrEqual LessThan LessThanOrEqual Length AllGreaterThan AllGreaterThanOrEqual Matches Checksum Contains NotContains StartsWith EndsWith RulePredicate CodeValidation DecimalPlaces");
+
+        // Unknown concept rules still refuse; unknown command rules degrade by denying the enclosing operation.
         Add(entries, "SemanticValidationRuleKind", rejected("STAGE-ESM-005"), "Unknown");
         Add(entries, "SemanticValidationSeverity", rendered, "Error Information Warning");
 
@@ -188,6 +205,8 @@ internal static class SemanticSurfaceLedger
         // State view: an optional snapshot lookup by identifier or a snapshot/live collection (keyed by one `by` or unkeyed).
         // Query arguments retain concept types, including nested members and collection elements, for Arc validation.
         // QueryShapes records the cross-product rather than treating an enum value as universally supported.
+        // Passivity is carried by SemanticCompilation.PassiveReadModels through PassiveReadModelsInput,
+        // not portable ESM; the attribute and fluent projection flag are rendered for #208.
         Add(entries, "SemanticReadModel", rendered, "Id Name Properties");
         Add(entries, "SemanticProjection", rendered, "Id Name ReadModel Transitions");
         Add(entries, "SemanticProjection", rendered, "Scope");
@@ -220,9 +239,11 @@ internal static class SemanticSurfaceLedger
         // IncludeChildren remain unverified by Stage and refused; Screenplay rejects synthetic null Sets.
         // Child join removal across parents and nested clear/recreation render on Chronicle 19.32.0;
         // differential and MongoDB probes cover both sequences. Root join removal remains blocked by
-        // Chronicle#4263 and Screenplay#563; joins inside nested remain blocked by the pinned Screenplay
-        // reference (Screenplay#1078). Children inside nested remain unsupported. Nested clear requires
-        // a matching root from and identical key.
+        // Chronicle#4263 and Screenplay#563. Joins inside root-level nested objects render as nested joins, except on the
+        // nested key (id), which Chronicle backfills and the reference does not. Joins inside nested under children, children
+        // inside nested and join removals inside nested remain unsupported. Nested clear requires
+        // a matching root from and identical key. Root joins also admit required, type-matched event-property keys;
+        // later root events after a differently keyed join are refused (https://github.com/Cratis/Chronicle/issues/5439).
         Add(entries, "SemanticProjectionScope", rendered, "Children From Joins Every JoinRemovals Nested Removals");
         Add(entries, "SemanticProjectionChildren", rendered, "IdentifiedBy Property Scope");
         Add(entries, "SemanticProjectionCompositeKey", rejected("STAGE-ESM-017"), "Parts Type");
@@ -230,8 +251,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticProjectionEventProperty", rendered, "Path");
         Add(entries, "SemanticProjectionEvery", rendered, "IncludeChildren Mappings SubscribesToAllEvents");
         Add(entries, "SemanticProjectionFrom", rendered, "EventContract Key Mappings ParentKey");
-        Add(entries, "SemanticProjectionJoin", rendered, "EventContract Mappings On");
-        Add(entries, "SemanticProjectionJoin", rejected("STAGE-ESM-017"), "Key");
+        Add(entries, "SemanticProjectionJoin", rendered, "EventContract Key Mappings On");
         Add(entries, "SemanticProjectionJoinRemoval", rendered, "EventContract Key");
         Add(entries, "SemanticProjectionKey", rendered, "Kind");
         Add(entries, "SemanticProjectionKeyKind", rendered, "Value");
@@ -425,7 +445,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticEventVisibility", rendered, "Private");
         Add(entries, "SemanticEventVisibility", publication, "Public");
         Add(entries, "SemanticProjection", publication, "Target");
-        Add(entries, "SemanticReducer", rejected(SemanticVersionFeatures.PublicEvents), "Target");
+        Add(entries, "SemanticReducer", publication, "Target");
         Add(entries, "SemanticProjectionTargetKind", rendered, "ReadModel");
         Add(entries, "SemanticProjectionTargetKind", publication, "Event");
         Add(entries, "SemanticSlice", rendered, "Direction");

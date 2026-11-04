@@ -4,6 +4,7 @@
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Specs;
 using Cratis.Stage.Rendering.Cratis.for_GeneratedReactApplication.given;
+using Cratis.Stage.Rendering.Cratis.Scaffolding;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_RealizedApplication;
@@ -37,9 +38,14 @@ public class when_building_the_application : given.a_model_with_authentication_a
 
     [Fact] void should_build_in_debug_without_warnings() => Failures(_debug).ShouldEqual(string.Empty);
     [Fact] void should_build_in_release_without_warnings() => Failures(_release).ShouldEqual(string.Empty);
-    [Fact] void should_pin_the_chronicle_client_ante_needs() => File.ReadAllText(Path.Combine(_application, "Directory.Packages.props")).ShouldContain("Cratis.Chronicle\" Version=\"19.120.0\"");
-    [Fact] void should_run_the_matching_chronicle_kernel_locally() => File.ReadAllText(Path.Combine(_application, "docker-compose.yml")).ShouldContain("cratis/chronicle:19.120.0-development");
+    [Fact] void should_pin_the_chronicle_client_ante_needs() => File.ReadAllText(Path.Combine(_application, "Directory.Packages.props")).ShouldContain($"Cratis.Chronicle\" Version=\"{ExpectedChronicle}\"");
+    [Fact] void should_run_the_matching_chronicle_kernel_locally() => File.ReadAllText(Path.Combine(_application, "docker-compose.yml")).ShouldContain($"cratis/chronicle:{ExpectedChronicle}-development");
     [Fact] void should_copy_the_email_templates_beside_the_application() => File.ReadAllText(Path.Combine(_application, $"{Application}.csproj")).ShouldContain("Emails/**");
+
+    // Ante needs at least its own Chronicle client; a newer Stage pin is kept as it is.
+    static string ExpectedChronicle => Version.Parse(ScaffoldPackageVersions.Chronicle) >= Version.Parse(ScaffoldPackageVersions.AnteChronicle)
+        ? ScaffoldPackageVersions.Chronicle
+        : ScaffoldPackageVersions.AnteChronicle;
 
     static string Failures(ProcessResult result) => result.ExitCode == 0 && !result.Output.Contains("warning ", StringComparison.Ordinal) ? string.Empty : result.Output;
 }

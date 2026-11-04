@@ -422,11 +422,13 @@ history; subsequent command, append and reaction facts fold on top through Chron
 seeding. Other keys retain their projected history, and invoked commands read the same seeded world. Seed-only
 models can be asserted and queried without a projection. Projected seeds must contain every scalar property
 and an identifier equal to their key; partial or null projected seeds remain `Unsupported(GivenReadModel)`
-because concrete scenario records cannot preserve missing-property presence. Generated absence specifications
-also seed complete scalar records for independent projections, preserving the same history replacement and
-later command or append replay. They can assert absence beside presence at another seeded key or inspect
-seeds without an action. Partial or null seeds, seeded decision reads, reducers, dependent projection scopes
-and seeded query combinations retain `STAGE-ESM-011`.
+because concrete scenario records cannot preserve missing-property presence. Generated projection specifications
+also seed complete scalar records with identifiers matching their keys for independent projections, preserving
+the same history replacement and later command or append replay. Positive read-model expectations do not
+require an absence assertion; specifications can also assert absence beside presence at another seeded key
+or inspect seeds without an action. Partial or null seeds, seeded command reads (including decision reads),
+reducers, dependent projection scopes and seeded query combinations retain `STAGE-ESM-011`, except for the
+already-supported query-only lookup of one complete seeded record.
 
 Per-run projections reject optional or composite
 read-model properties and non-identifier
@@ -436,7 +438,7 @@ An event-source identity
 mapping into a non-identifier property requires exactly the identifier's type without enumeration constraints;
 otherwise it returns `Unsupported(Projection)`. More than one projection for a requested read model also
 returns `Unsupported(Projection)`. They also apply the renderer's scoped-projection admission predicate, so
-composite keys, joins inside nested (blocked by the pinned reference; [Screenplay #1078](https://github.com/Cratis/Screenplay/issues/1078)), and children inside nested remain rejected. The per-run executor runs identity and safe scalar literal `all` mappings natively through `FromAll`, including unrelated event types and sources, creating an instance per event source. Every fact observed by `all` must have the identifier's value type and enumeration values. Root `every` literals at join levels use native `FromEvery.ToValue`: original `from` mappings, including exact same-target Sets, remain declared because Chronicle uses those targets to select join backfills. At join-free levels, literal `every` mappings still lower to each declared `from` block and replace an exact scalar Set on the same target. Prefix overlaps and non-Set collisions remain refused. Empty `all`, Clear (`score = null` is a clear, not a literal Set), child/nested `every` with joins, and `every` including children remain unsupported; IncludeChildren is unverified by Stage. No null-Set behavior is admitted. Queries other than optional snapshots
+composite keys, joins inside nested objects under children, nested joins on the nested key (`id`), children inside nested and join removals inside nested remain rejected; joins inside root-level nested objects render. The per-run executor runs identity and safe scalar literal `all` mappings natively through `FromAll`, including unrelated event types and sources, creating an instance per event source. Every fact observed by `all` must have the identifier's value type and enumeration values. Root `every` literals at join levels use native `FromEvery.ToValue`: original `from` mappings, including exact same-target Sets, remain declared because Chronicle uses those targets to select join backfills. At join-free levels, literal `every` mappings still lower to each declared `from` block and replace an exact scalar Set on the same target. Prefix overlaps and non-Set collisions remain refused. Empty `all`, Clear (`score = null` is a clear, not a literal Set), child/nested `every` with joins, and `every` including children remain unsupported; IncludeChildren is unverified by Stage. No null-Set behavior is admitted. Queries other than optional snapshots
 by identifier return `Unsupported(Query)`. Other unimplemented
 behavior (implicit event-source identity allocation, external effects and
 unsupported expression or value shapes) is also blocked rather than reported as a pass. The semantic

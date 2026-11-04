@@ -57,7 +57,8 @@ public class when_mapping_generated_member_casing_errors : Specification
 
     [Fact] void should_name_the_generated_member_for_an_inline_body() => _inlineError.Message.ShouldContain("Use generated member 'Amount' instead of authored name 'amount'.");
     [Fact] void should_name_the_generated_member_for_a_file_body() => _fileError.Message.ShouldContain("Use generated member 'Amount' instead of authored name 'amount'.");
-    [Fact] void should_map_to_the_authored_inline_line_and_column()
+    [Fact]
+    void should_map_to_the_authored_inline_line_and_column()
     {
         var requirement = _inline.ImplementationRequirements.Single();
         var line = requirement.BodyLines[1];

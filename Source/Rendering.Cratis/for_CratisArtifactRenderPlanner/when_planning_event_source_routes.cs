@@ -55,7 +55,8 @@ public class when_planning_event_source_routes : Specification
     [Fact] void should_retain_the_routed_command() => _model.Application.Modules.Single().Features.Single().Slices.Single().Commands.Single().Route.ShouldNotBeNull();
     [Fact] void should_admit_the_routed_model() => _plan.Success.ShouldBeTrue();
     [Fact] void should_emit_the_definition() => _plan.Artifacts.Any(artifact => artifact.RelativePath == "EventSources/AccountEventSource.cs").ShouldBeTrue();
-    [Fact] void should_compile_the_generated_application()
+    [Fact]
+    void should_compile_the_generated_application()
     {
         // Like the existing compile specs, include the scaffold declarations but not the top-level
         // bootstrap: the Roslyn library harness references Arc/Chronicle, not the Cratis meta-package.

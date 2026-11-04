@@ -23,7 +23,8 @@ public class when_another_read_model_has_an_unguarded_query : a_slice_with_two_r
     void Because() => _file = _renderer.Render(_dashboardSlice, _applicationSet, "CratisApp");
 
     [Fact] void should_render_the_first_projections_read_model() => _file.Content.ShouldContain("public record InvoiceSummary(");
-    [Fact] void should_guard_the_generated_method_with_its_own_querys_policy() =>
+    [Fact]
+    void should_guard_the_generated_method_with_its_own_querys_policy() =>
         _file.Content.ShouldContain("[Roles(\"Accountant\")]\n    public static async Task<InvoiceSummary?> GetInvoiceSummary");
     [Fact] void should_not_publish_it_to_everyone() => _file.Content.Contains("[AllowAnonymous]").ShouldBeFalse();
 }

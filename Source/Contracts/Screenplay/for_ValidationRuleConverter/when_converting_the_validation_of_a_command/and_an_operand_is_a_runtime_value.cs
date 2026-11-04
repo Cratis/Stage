@@ -29,9 +29,11 @@ public class and_an_operand_is_a_runtime_value : given.a_validation_block
 
     [Fact] void should_carry_no_rule_at_all() => _converted.ShouldBeEmpty();
 
-    [Fact] void should_not_substitute_a_threshold() =>
+    [Fact]
+    void should_not_substitute_a_threshold() =>
         _converted.SelectMany(rules => rules.Rules).OfType<GreaterThan>().ShouldBeEmpty();
 
-    [Fact] void should_not_substitute_a_pattern() =>
+    [Fact]
+    void should_not_substitute_a_pattern() =>
         _converted.SelectMany(rules => rules.Rules).OfType<Matches>().ShouldBeEmpty();
 }

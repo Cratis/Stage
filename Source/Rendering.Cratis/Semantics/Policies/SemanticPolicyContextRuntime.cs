@@ -15,9 +15,6 @@ internal static class SemanticPolicyContextRuntime
     /// <summary>The generated identity type, mirroring Screenplay's <c language="csharp">Identity</c>.</summary>
     internal const string IdentityType = "Identity";
 
-    /// <summary>The method prefix of a generated policy body.</summary>
-    internal const string BodyPrefix = "Body_";
-
     /// <summary>The members Stage supplies to an opaque policy body, in Screenplay's <c language="csharp">PolicyContext</c> order.</summary>
     internal static readonly string[] SuppliedMembers = ["Subject", "Identity", "Occurred"];
 
@@ -30,11 +27,11 @@ internal static class SemanticPolicyContextRuntime
     /// <summary>The <c language="csharp">PolicyContext</c> members Stage refuses to supply.</summary>
     internal static readonly string[] RefusedMembers = ["Artifact", "Tenant"];
 
-    internal static string Wrapper(SemanticTypedContextDescriptor descriptor) => $"TypedContext_{SemanticTypedContextRenderer.Suffix(descriptor)}";
+    internal static string Wrapper(SemanticApplicationContext context, SemanticTypedContextDescriptor descriptor) => context.ContextNames.ContextWrapper(descriptor);
 
-    internal static string Body(SemanticTypedContextDescriptor descriptor) => $"{BodyPrefix}{SemanticTypedContextRenderer.Suffix(descriptor)}";
+    internal static string Body(SemanticApplicationContext context, SemanticTypedContextDescriptor descriptor) => context.ContextNames.ContextMethod(descriptor);
 
-    internal static string Evaluate(SemanticTypedContextDescriptor descriptor) => $"Evaluate_{SemanticTypedContextRenderer.Suffix(descriptor)}";
+    internal static string Evaluate(SemanticApplicationContext context, SemanticTypedContextDescriptor descriptor) => context.ContextNames.ContextEvaluate(descriptor);
 
     internal static IEnumerable<(string Namespace, string Name)> GeneratedTypes(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices)
     {
@@ -55,7 +52,7 @@ internal static class SemanticPolicyContextRuntime
         {
             if (descriptor?.OperationId is { } operation && sites.Contains((descriptor.RequirementId, operation)))
             {
-                yield return (string.Join('.', context.Domain.Append("TypedContexts")), Wrapper(descriptor));
+                yield return (string.Join('.', context.Domain.Append("TypedContexts")), Wrapper(context, descriptor));
             }
         }
     }
@@ -97,8 +94,8 @@ internal static class SemanticPolicyContextRuntime
         var identity = context.Domain.Count == 0 ? IdentityType : $"global::{context.RootNamespace}.TypedContexts.{IdentityType}";
         var builder = context.CodeBuilder().Namespace(context.TypedContextsNamespace)
             .Summary("The policy context a verified opaque policy body reads.")
-            .Line($"public sealed record {Wrapper(descriptor)}(string Subject, {identity} Identity, global::System.DateTimeOffset Occurred);");
-        return new(Path.Combine(context.TypedContextsFolder, $"{Wrapper(descriptor)}.cs"), builder.ToString());
+            .Line($"public sealed record {Wrapper(context, descriptor)}(string Subject, {identity} Identity, global::System.DateTimeOffset Occurred);");
+        return new(Path.Combine(context.TypedContextsFolder, $"{Wrapper(context, descriptor)}.cs"), builder.ToString());
     }
 
     /// <summary>
@@ -129,8 +126,8 @@ internal static class SemanticPolicyContextRuntime
             .Line("public sealed record PolicyTenantUnavailable;");
         var runtime = $"global::{context.RootNamespace}.TypedContexts";
         var wrapper = context.Domain.Count == 0
-            ? $"public sealed record {Wrapper(descriptor)}(PolicyArtifactUnavailable Artifact, string Subject, {IdentityType} Identity, PolicyTenantUnavailable Tenant, global::System.DateTimeOffset Occurred);"
-            : $"public sealed record {Wrapper(descriptor)}({runtime}.PolicyArtifactUnavailable Artifact, string Subject, {runtime}.{IdentityType} Identity, {runtime}.PolicyTenantUnavailable Tenant, global::System.DateTimeOffset Occurred);";
+            ? $"public sealed record {Wrapper(context, descriptor)}(PolicyArtifactUnavailable Artifact, string Subject, {IdentityType} Identity, PolicyTenantUnavailable Tenant, global::System.DateTimeOffset Occurred);"
+            : $"public sealed record {Wrapper(context, descriptor)}({runtime}.PolicyArtifactUnavailable Artifact, string Subject, {runtime}.{IdentityType} Identity, {runtime}.PolicyTenantUnavailable Tenant, global::System.DateTimeOffset Occurred);";
         if (context.Domain.Count == 0)
         {
             builder.Line(wrapper);
@@ -163,18 +160,18 @@ internal static class SemanticPolicyContextRuntime
             {
                 // A missing receipt time or an unresolvable subject makes the reached opaque term unavailable,
                 // and the generated policy then denies the whole authorization: it is never treated as false.
-                builder.OpenBlock($"public static bool {Evaluate(descriptor)}(ref bool unavailable, global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, string? subject)")
+                builder.OpenBlock($"public static bool {Evaluate(context, descriptor)}(ref bool unavailable, global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, string? subject)")
                     .OpenBlock("if (context.ReceivedAt == default || subject is null)")
                     .Line("unavailable = true;")
                     .Line("return false;")
                     .EndBlock()
                     .BlankLine()
-                    .Line($"return {Body(descriptor)}(new {contexts}.{Wrapper(descriptor)}(subject, {runtime}.PolicyContextValues.From(context.Principal), context.ReceivedAt));")
+                    .Line($"return {Body(context, descriptor)}(new {contexts}.{Wrapper(context, descriptor)}(subject, {runtime}.PolicyContextValues.From(context.Principal), context.ReceivedAt));")
                     .EndBlock()
                     .BlankLine();
             }
 
-            builder.OpenBlock($"static bool {Body(descriptor)}({contexts}.{Wrapper(descriptor)} context)")
+            builder.OpenBlock($"static bool {Body(context, descriptor)}({contexts}.{Wrapper(context, descriptor)} context)")
                 .RawVerbatim(body, descriptor.RequirementId)
                 .EndBlock()
                 .BlankLine();

@@ -124,6 +124,7 @@ public static partial class CratisRendering
             profile = UserInterfaceDomainsInput.With(profile, domains!);
         }
         profile = Realization.ApplicationRealizationInput.With(profile, loaded.Realization);
+        profile = PassiveReadModelsInput.With(profile, loaded.PassiveReadModels);
         var request = new ArtifactRenderRequest(loaded.Model, loaded.Plan, profile, resolved.Scopes[0])
         {
             AdditionalScopes = resolved.Scopes.RemoveAt(0),

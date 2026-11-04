@@ -17,6 +17,11 @@ internal static class SemanticTranslationAdmission
         if (!SemanticTranslationSupport.RenderableSlice(slice, context.Events)) yield break;
         foreach (var feature in SemanticVersionFeatures.InSlice(slice))
         {
+            if (AdmitsReducerFeature(feature, slice, context))
+            {
+                yield return feature;
+                continue;
+            }
             if (feature.Artifact == slice.Id ||
                 slice.Projections.Any(projection => projection.Id == feature.Artifact && SemanticTranslationSupport.RenderableProjection(projection, context.Events)) ||
                 slice.Captures.Any(capture => capture.Id == feature.Artifact && SemanticTranslationSupport.RenderableCapture(capture, context.Events)))
@@ -33,6 +38,7 @@ internal static class SemanticTranslationAdmission
 
     internal static void Validate(SemanticApplicationContext context, SemanticSlice slice, List<ArtifactRenderDiagnostic> diagnostics)
     {
+        ValidateReducerTags(context, slice, diagnostics);
         if (!SemanticTranslationSupport.RenderableSlice(slice, context.Events))
         {
             diagnostics.Add(new(
@@ -59,6 +65,7 @@ internal static class SemanticTranslationAdmission
                     projection.Id));
             }
         }
+        ValidateReducerNames(slice, diagnostics);
         foreach (var specification in slice.Specifications)
         {
             if (SemanticTranslationSpecificationAdmission.CannotRender(context, slice, specification) is { } reason)
@@ -75,6 +82,41 @@ internal static class SemanticTranslationAdmission
     internal static IEnumerable<GeneratedTypeDeclaration> Declarations(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices) =>
         slices.Where(located => located.Slice.Kind == SemanticSliceKind.Translate).SelectMany(located =>
             located.Slice.Captures.Select(capture => new GeneratedTypeDeclaration(capture.Id, "Capture", string.Join('.', located.Path.Select(Identifiers.ToPascalCase)), context.CaptureMembers(capture).TypeName)));
+
+    static bool AdmitsReducerFeature(SemanticVersionFeature feature, SemanticSlice slice, SemanticApplicationContext context) =>
+        feature.Kind == "reducer" && slice.Reducers.Any(reducer => reducer.ReadModel == feature.Artifact && SemanticTranslationSupport.Reducer(reducer, slice, context.Events));
+
+    static void ValidateReducerTags(SemanticApplicationContext context, SemanticSlice slice, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        foreach (var reducer in slice.Reducers.Where(reducer => HasTaggedReducerTarget(reducer, context)))
+        {
+            diagnostics.Add(new(
+                SemanticVersionFeatures.PublicEvents,
+                ArtifactRenderDiagnosticSeverity.Error,
+                $"Reducer '{reducer.Name}' cannot publish a public event with tags; Chronicle event-target reducer sinks do not carry tags.",
+                reducer.ReadModel));
+        }
+    }
+
+    static bool HasTaggedReducerTarget(SemanticReducer reducer, SemanticApplicationContext context) =>
+        reducer.Target == SemanticProjectionTargetKind.Event &&
+        context.Events.TryGetValue(reducer.ReadModel, out var target) && !target.Tags.IsDefaultOrEmpty;
+
+    static void ValidateReducerNames(SemanticSlice slice, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        foreach (var reducer in slice.Reducers.Where(reducer => reducer.Target == SemanticProjectionTargetKind.Event))
+        {
+            var name = Identifiers.ToPascalCase(reducer.Name);
+            if (name == "SamePublicValue" || name == "PublicEventCannotBeRetracted")
+            {
+                diagnostics.Add(new(
+                    "STAGE-ESM-012",
+                    ArtifactRenderDiagnosticSeverity.Error,
+                    $"Reducer '{reducer.Name}' collides with a reserved publication member.",
+                    reducer.ReadModel));
+            }
+        }
+    }
 
     static bool DeclarationOnly(SemanticSlice slice, SemanticId id, SemanticApplicationContext context) =>
         slice.Events.Any(candidate => candidate.Id == id) &&
@@ -96,7 +138,7 @@ internal static class SemanticTranslationAdmission
 
     static void ValidateConstructs(SemanticSlice slice, List<ArtifactRenderDiagnostic> diagnostics)
     {
-        if (!slice.Commands.IsEmpty || !slice.ReadModels.IsEmpty || !slice.Queries.IsEmpty || !slice.Reducers.IsEmpty || !slice.Reactions.IsDefaultOrEmpty ||
+        if (!slice.Commands.IsEmpty || !slice.ReadModels.IsEmpty || !slice.Queries.IsEmpty || slice.Reducers.Any(reducer => reducer.Target != SemanticProjectionTargetKind.Event) || !slice.Reactions.IsDefaultOrEmpty ||
             slice.Projections.Any(projection => projection.Target != SemanticProjectionTargetKind.Event))
         {
             diagnostics.Add(new(

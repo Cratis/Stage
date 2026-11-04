@@ -440,7 +440,7 @@ public class StateChangeSliceRenderer : ISliceRenderer
             ResolvedTypeKind.Primitive => resolved.ClrTypeName,
             ResolvedTypeKind.Concept when applicationSet.Concepts.TryGetValue(type.Name, out var concept) =>
                 TypeResolver.Resolve(new TypeRefSyntax(concept.Type, false, false, concept.Location), applicationSet) is
-                    { Kind: ResolvedTypeKind.Primitive } underlying ? underlying.ClrTypeName : null,
+                { Kind: ResolvedTypeKind.Primitive } underlying ? underlying.ClrTypeName : null,
             _ => null,
         };
     }

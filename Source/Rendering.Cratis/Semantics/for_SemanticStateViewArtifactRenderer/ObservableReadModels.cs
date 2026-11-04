@@ -9,7 +9,7 @@ using Cratis.Chronicle.ReadModels;
 namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticStateViewArtifactRenderer;
 
 /// <summary>
-/// Test double for <see cref="IReadModels"/> that re-declares the default-implemented <c>Observe</c> as an overridable
+/// Test double for <see cref="IReadModels"/> that re-declares the default-implemented <c lang="csharp">Observe</c> as an overridable
 /// member, so a substitute of it can be configured (NSubstitute cannot intercept default interface methods).
 /// </summary>
 public abstract class ObservableReadModels : IReadModels

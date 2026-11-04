@@ -63,7 +63,9 @@ internal static class escaped_member_application
             new SceneForms.CommandFormLayout([], [new("valueInput", 1, 1, null, 1, null)], null, null));
         var action = new SceneElements.ExternalComponent
         {
-            Id = "submit", Name = "submit", ComponentName = "core:action",
+            Id = "submit",
+            Name = "submit",
+            ComponentName = "core:action",
             Properties = new Dictionary<string, object?>(StringComparer.Ordinal)
             {
                 ["command"] = "Text",
@@ -72,7 +74,9 @@ internal static class escaped_member_application
         };
         var toolbar = new SceneElements.ExternalComponent
         {
-            Id = "toolbar", Name = "toolbar", ComponentName = "core:toolbar",
+            Id = "toolbar",
+            Name = "toolbar",
+            ComponentName = "core:toolbar",
             Properties = new Dictionary<string, object?>(StringComparer.Ordinal),
             Slots = new Dictionary<string, IReadOnlyList<SceneElements.SceneElement>>(StringComparer.Ordinal)
             {

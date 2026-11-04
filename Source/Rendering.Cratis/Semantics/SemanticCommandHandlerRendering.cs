@@ -52,7 +52,9 @@ internal static class SemanticCommandHandlerRendering
     internal static void Prepare(CSharpCodeBuilder builder, SemanticCommand command, SemanticApplicationContext context, SemanticHandleLocals locals)
     {
         if (command.Handler is null) return;
-        builder.Line($"var {locals.Name("handlerPayloads")} = {Call(command, context)};");
+        var names = Enumerable.Range(0, command.Produces.Length).Select(index => PayloadLocal(command, index, context, locals)).ToArray();
+        var target = names.Length == 1 ? names[0] : $"({string.Join(", ", names)})";
+        builder.Line($"var {target} = {Call(command, context)};");
     }
 
     /// <summary>Renders the call that runs the authored handler body against the command snapshot.</summary>
@@ -71,20 +73,15 @@ internal static class SemanticCommandHandlerRendering
         return $"{Method(command, context)}(new {ContextType(command, context)}(new {SnapshotType(command, context)}({string.Join(", ", values)})))";
     }
 
-    internal static string Payload(SemanticCommand command, SemanticProducedEvent produced, SemanticHandleLocals locals)
+    internal static string Payload(SemanticCommand command, SemanticProducedEvent produced, SemanticApplicationContext context, SemanticHandleLocals locals)
     {
-        var value = locals.Name("handlerPayloads");
-        if (command.Produces.Length == 1) return value;
-
         // Productions have positional meaning even when their event type and mappings are equal.
         var index = Enumerable.Range(0, command.Produces.Length).Single(index => ReferenceEquals(command.Produces[index], produced));
-        while (index >= 7)
-        {
-            value += ".Rest";
-            index -= 7;
-        }
-        return $"{value}.Item{index + 1}";
+        return PayloadLocal(command, index, context, locals);
     }
+
+    static string PayloadLocal(SemanticCommand command, int index, SemanticApplicationContext context, SemanticHandleLocals locals) =>
+        Identifiers.EscapeKeyword(locals.Production(index, Identifiers.ToCamelCase(context.Events[command.Produces[index].EventContract].Name)));
 
     static string SnapshotType(SemanticCommand command, SemanticApplicationContext context) => context.InlineNames.HandlerCommand(command);
 }

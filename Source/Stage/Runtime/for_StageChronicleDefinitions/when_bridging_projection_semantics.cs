@@ -162,11 +162,14 @@ public class when_bridging_projection_semantics : Specification
         var readModel = slice.ReadModel;
         var projection = readModel.Projection;
         var from = projection.From.Single().Value;
-        var changed = projection with { From = new Dictionary<string, FromDefinition>
+        var changed = projection with
         {
-            ["ItemRegistered"] = from,
-            ["ItemRegistered+1"] = from
-        } };
+            From = new Dictionary<string, FromDefinition>
+            {
+                ["ItemRegistered"] = from,
+                ["ItemRegistered+1"] = from
+            }
+        };
         Assert.Throws<UnsupportedProjectionEventType>(() => StageChronicleDefinitions.Build(
             WithProjection(model, slice, readModel with { Projection = changed }), "event-log"));
     }
@@ -186,10 +189,13 @@ public class when_bridging_projection_semantics : Specification
         var readModel = slice.ReadModel;
         var projection = readModel.Projection;
         var source = projection.From.Single();
-        var changed = projection with { From = new Dictionary<string, Contracts.Projections.FromDefinition>
+        var changed = projection with
         {
-            ["ItemRegistered+2"] = source.Value
-        } };
+            From = new Dictionary<string, Contracts.Projections.FromDefinition>
+            {
+                ["ItemRegistered+2"] = source.Value
+            }
+        };
         var definition = Assert.Single(StageChronicleDefinitions.Build(WithProjection(model, slice, readModel with { Projection = changed }), "event-log").Projections);
         var eventType = Assert.Single(definition.From).Key;
         Assert.Equal("ItemRegistered", eventType.Id);

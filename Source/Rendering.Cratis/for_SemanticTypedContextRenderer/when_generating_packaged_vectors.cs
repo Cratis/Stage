@@ -364,7 +364,10 @@ public class when_generating_packaged_vectors
             case SemanticContextTypeKinds.Runtime:
                 return type.GetProperty("runtimeToken").GetString() switch
                 {
-                    "Text" => "string", "WholeNumber" => "long", "Boolean" => "bool", "DateTime" => "DateTimeOffset",
+                    "Text" => "string",
+                    "WholeNumber" => "long",
+                    "Boolean" => "bool",
+                    "DateTime" => "DateTimeOffset",
                     "TenantId" => descriptor.Role == SemanticImplementationRole.ReducerTransition
                         ? $"global::{context.RootNamespace}.TypedContexts.TenantId"
                         : "global::Cratis.Screenplay.Contexts.TenantId",
@@ -378,8 +381,7 @@ public class when_generating_packaged_vectors
                 var shape = descriptor.Members.First(member => member.Type.Shape?.ToString() == id).Type.Shape!.Value;
                 if (context.Queries.ContainsKey(shape))
                 {
-                    var suffix = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{descriptor.RequirementId}:{descriptor.OperationId}")))[..16];
-                    return $"TypedContext_{suffix}_ArtifactShape";
+                    return context.ContextNames.ContextShape(descriptor, "Artifact");
                 }
                 var located = context.DeclaringSlice(shape);
                 string name;
@@ -394,8 +396,14 @@ public class when_generating_packaged_vectors
                 {
                     "Primitive" => primitive switch
                     {
-                        "Uuid" => "Guid", "Text" => "string", "WholeNumber" => context.Request.Model.SemanticVersion.IsAtLeast(SemanticVersion.V8) ? "long" : "int", "DecimalNumber" => "decimal",
-                        "Boolean" => "bool", "Date" => "DateOnly", "DateTime" => "DateTimeOffset", _ => throw new InvalidOperationException()
+                        "Uuid" => "Guid",
+                        "Text" => "string",
+                        "WholeNumber" => context.Request.Model.SemanticVersion.IsAtLeast(SemanticVersion.V8) ? "long" : "int",
+                        "DecimalNumber" => "decimal",
+                        "Boolean" => "bool",
+                        "Date" => "DateOnly",
+                        "DateTime" => "DateTimeOffset",
+                        _ => throw new InvalidOperationException()
                     },
                     "Concept" or "CompositeType" => $"global::Projects.Common.{Identifiers.ToPascalCase(descriptor.Types.Single(def => def.Id.ToString() == modelType.GetProperty("target").GetString()).Name)}",
                     _ => throw new InvalidOperationException()

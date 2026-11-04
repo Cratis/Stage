@@ -31,7 +31,10 @@ public class with_authored_screen_partitions : a_partitioned_screen_plan
     // Recomputed for Screenplay 5.0.0: the scaffold emits the 5.0.0 matcher pin.
     // Recomputed for Screenplay 5.1.0: the scaffold emits the 5.1.0 matcher pin.
     // Re-frozen after merging main (Screenplay 5.1.0) into train 10: the 4.259.0-era constants were stale.
-    const string Before = "71cd0a69850583d95da59ce080d99fb855b2aab4d9e69c592d240235e580d6c2";
+    // Recaptured by the owning spec for train 11's merged pins and rendering deliveries.
+    // Recomputed for Chronicle 19.117.0: the scaffold emits the matching package and development image pins.
+    // Recomputed for Screenplay 5.3.1: the scaffold emits the matching matcher pin.
+    const string Before = "d24f879e153abbbd12b0392f26da2106154f93f549937f962f6dc083008636f1";
     // Recomputed for Cratis/Stage#926: the scaffold now hosts an Orleans silo, pins Cratis.Orleans 1.33.1 and moves to Chronicle 19.114.0.
 
     void Because() => _application = AppPlan(_profile);

@@ -72,7 +72,8 @@ public class and_an_external_writer_arrives_during_append : a_semantic_runtime
     }
 
     [Fact] void should_append_the_first_fact_to_the_empty_log() => _first.ShouldBeOfExactType<SemanticAccepted>();
-    [Fact] void should_send_one_unrestricted_scope_for_the_empty_log()
+    [Fact]
+    void should_send_one_unrestricted_scope_for_the_empty_log()
     {
         var scope = _requests[0].ConcurrencyScopes.Single();
         scope.EventSourceId.ShouldEqual("__stage:event-log-tail__");
@@ -85,7 +86,8 @@ public class and_an_external_writer_arrives_during_append : a_semantic_runtime
         scope.Scope.ExpectsNoMatchingEvent.ShouldBeTrue();
     }
 
-    [Fact] void should_send_the_checked_tail_for_the_next_append()
+    [Fact]
+    void should_send_the_checked_tail_for_the_next_append()
     {
         var scope = _requests[1].ConcurrencyScopes.Single();
         scope.EventSourceId.ShouldEqual(_requests[0].ConcurrencyScopes.Single().EventSourceId);

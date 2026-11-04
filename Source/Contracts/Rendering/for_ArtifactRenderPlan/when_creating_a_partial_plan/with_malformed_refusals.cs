@@ -14,7 +14,8 @@ public class with_malformed_refusals : given.an_artifact_render_request
     [Fact] void should_reject_missing_codes() => Reject(new(_request.Model.Application.Id, "specification", []));
     [Fact] void should_reject_a_blank_code() => Reject(new(_request.Model.Application.Id, "specification", [" "]));
     [Fact] void should_reject_null_metadata() => Reject(null!);
-    [Fact] void should_reject_duplicate_identities() => Catch.Exception(() => ArtifactRenderPlan.Create(
+    [Fact]
+    void should_reject_duplicate_identities() => Catch.Exception(() => ArtifactRenderPlan.Create(
         _request,
         [],
         [],

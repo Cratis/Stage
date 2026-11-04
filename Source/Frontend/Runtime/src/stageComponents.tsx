@@ -14,13 +14,13 @@ import { useStageData, useStageQuery } from './stageData';
 import { DialogSlice } from './stageStructure';
 import { StageCommandForm, StageDialogContext, StageDialogFooterContext, carriedBy, identifiersAwaitingSelection, selectedIdentifier, suppliedWithoutAsking } from './StageCommandForm';
 import { useScreenRows } from './stageScreenTables';
-import { type ActionSubject, actionSubjectOf, awaitsSubjectRow, itemSubjectElement, subjectActionProperties, subjectRowOf } from './stageActionSubject';
+import { type ActionSubject, actionCreatesEntity, actionSubjectOf, awaitsSubjectRow, itemSubjectElement, subjectActionProperties, subjectRowOf } from './stageActionSubject';
 import { actionVariant } from './humanize';
 import { readableValue } from './readableValue';
 import { createsEntity, humanize, schemaPropertiesOf, type SchemaProperty } from './stageFormSchema';
 import { registeredCommand } from './commandExecutor';
 import { navigateToScreen } from './stageNavigation';
-import { isGuardedAction, StageGuardedAction } from './StageGuardedAction';
+import { isGuardedAction, StageSceneGuardedAction as StageGuardedAction } from './stageData';
 import { useRowInteractions } from './stageRowInteractions';
 import { StageConfirmDialog } from './StageConfirmDialog';
 import { stageConfirmDialogComponent } from './stageDialogScreens';
@@ -249,14 +249,43 @@ export function StageAction({ element, interactions, slots }: RegisteredProps) {
  * while the command's key is one the screen's rows carry, the form does not ask for it and no row is selected, the action waits, visible
  * and disabled, instead of opening a form that would act on an entity nobody chose.
  */
-function StageCommandAction({ element, interactions }: RegisteredProps) {
+function useCommandAction(input: ExternalComponent) {
+    const { routes, parameters } = useStageData();
+    const schema = text(input, 'schema') || routes?.commandSchemas?.[text(input, 'command')];
+    const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
+    const subject = actionSubjectOf(input);
+    const creates = actionCreatesEntity(input, schema);
+    const { selectableRows, selectedRows } = useScreenRows();
+    const auto = text(input, 'generationMode').toLowerCase() !== 'manual';
+    const rowAction = infersRowAction(input, subject, creates, auto);
+    const fields = auto ? autoActionFields(input, schema, properties, parameters, subject, creates ? [] : selectableRows) : {};
+    const element = { ...input, properties: { ...input.properties, ...fields, ...(schema ? { schema } : {}), createsEntity: creates, rowAction } } as ExternalComponent;
+    return { element, subject, properties, selectedRows };
+}
+
+function infersRowAction(element: ExternalComponent, subject: ActionSubject | undefined, creates: boolean, auto: boolean): boolean {
+    if (creates) return false;
+    if (subject !== undefined) return false;
+    return auto || element.properties.rowAction === true;
+}
+
+/** Keep authored auto-field presentation; only row-carried identifiers become hidden bindings. With no rows there is nothing to filter. */
+function autoActionFields(input: ExternalComponent, schema: string | undefined, properties: SchemaProperty[], parameters: Record<string, string>, subject: ActionSubject | undefined, rows: Record<string, unknown>[]) {
+    const ownFields = input.properties.fields;
+    if (!Array.isArray(ownFields) || ownFields.length === 0) return toolbarCommandFields(schema, properties, parameters, subject, rows);
+    if (rows.length === 0 || subject === 'screen') return {};
+    // Multiple identifiers do not prove a row target: a new comment and its parent must remain declared inputs.
+    if (subject === undefined && input.properties.rowAction !== true && properties.filter(property => property.identifier).length > 1) return {};
+    const carried = new Set(properties.filter(property => carriedByRows(property, subject, rows)).map(property => property.name));
+    // Manual even when nothing is left to ask, so the form does not regenerate the identifiers the row supplies.
+    return { fields: ownFields.filter(field => !carried.has(askedProperty(field))), generationMode: 'manual' };
+}
+
+function StageCommandAction({ element: input, interactions }: RegisteredProps) {
+    const { element, subject, properties, selectedRows } = useCommandAction(input);
     const label = text(element, 'label') || humanize(text(element, 'command'));
     const command = registeredCommand(text(element, 'command'), text(element, 'typeName'), text(element, 'route'));
-    const subject = actionSubjectOf(element);
     const awaiting = useIdentifiersAwaitingSelection(element, subject);
-    const schema = text(element, 'schema');
-    const properties = useMemo(() => schemaPropertiesOf(schema), [schema]);
-    const { selectedRows } = useScreenRows();
     const row = subjectRowOf(subject, selectedRows);
 
     if (!command) {
@@ -279,16 +308,22 @@ function useIdentifiersAwaitingSelection(element: ExternalComponent, subject?: A
     const { parameters } = useStageData();
     const schema = text(element, 'schema');
     const fields = element.properties.fields;
-    const generationMode = text(element, 'generationMode').toLowerCase();
     const properties = useMemo(() => schemaPropertiesOf(schema), [schema]);
     const { selectableRows, selectedRows } = useScreenRows();
     const formFields: unknown[] = Array.isArray(fields) ? fields : [];
-    const asked = formFields.length > 0 || generationMode === 'manual'
+    const asked = hasExplicitActionFields(element, formFields)
         ? new Set(formFields.map(askedProperty).filter(name => name !== ''))
         : undefined;
     if (!asked || subject !== undefined) return [];
+    if (actionCreatesEntity(element, schema)) return [];
 
     return identifiersAwaitingSelection(properties.filter(property => !asked.has(property.name)), parameters, selectedRows, selectableRows);
+}
+
+function hasExplicitActionFields(element: ExternalComponent, fields: unknown[]): boolean {
+    if (fields.length > 0) return true;
+    if (element.properties.rowAction === true) return true;
+    return text(element, 'generationMode').toLowerCase() === 'manual';
 }
 
 /** The command property a form field asks for: its source property when it names one, as the form binds it, else its name. */
@@ -402,7 +437,7 @@ function StageToolbarSliceButton(props: RegisteredProps) {
     const schema = routes?.commandSchemas?.[command];
     const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
     const { selectableRows, selectedRows } = useScreenRows();
-    const awaiting = identifiersAwaitingSelection(properties, parameters, selectedRows, selectableRows);
+    const awaiting = createsEntity(schema ?? '') ? [] : identifiersAwaitingSelection(properties, parameters, selectedRows, selectableRows);
     if (awaiting.length === 0) return <CoreToolbarItem {...props} />;
 
     const label = text(element, 'label', text(element, 'name', element.id));
@@ -466,6 +501,7 @@ export const stageComponents: Record<string, ComponentType<RegisteredProps>> = {
     ...(coreComponents as Record<string, ComponentType<RegisteredProps>>),
     'core:table': StageTable,
     'core:action': StageAction,
+    'core:guarded-action': StageGuardedAction,
     'core:toolbarItem': StageToolbarItem,
     'core:sliceDialog': StageSliceDialog as ComponentType<RegisteredProps>,
     [stageCommandFormComponent]: StageCommandForm,

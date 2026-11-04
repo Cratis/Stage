@@ -18,8 +18,8 @@ public class with_min_a3_generated_application : a_generated_application
     {
         var output = await Run("min-a3-build.log", "build", "MinA3.csproj", "-c", "Debug", "-warnaserror");
         Assert.Contains("Build succeeded.", output, StringComparison.Ordinal);
-        Assert.DoesNotContain(GeneratedFiles("TypedContext_*.cs"), path => path.Contains("_StateShape", StringComparison.Ordinal) || path.Contains("_EventShape", StringComparison.Ordinal));
-        Assert.NotEmpty(GeneratedFiles("TypedContext_*.cs"));
+        Assert.DoesNotContain(GeneratedFiles("*Context*.cs"), path => path.Contains("StateShape", StringComparison.Ordinal) || path.Contains("EventShape", StringComparison.Ordinal));
+        Assert.NotEmpty(GeneratedFiles("*Context.cs"));
     }
 }
 #endif

@@ -165,7 +165,7 @@ public class a_generated_application : a_register_project_render_request
     protected async Task<string> Run(string logName, bool allowFailedTests, params string[] arguments)
     {
         // Bounded so a local run does not start every generated application's build at once.
-        using var slot = await GeneratedApplicationBuilds.Enter(new(GetType().FullName, "dotnet", arguments));
+        using var slot = await GeneratedApplicationBuilds.Enter(new GeneratedApplicationProcess(GetType().FullName, "dotnet", arguments));
         arguments = GeneratedApplicationBuilds.Capped("dotnet", SpecificationsArguments(arguments));
         arguments = GeneratedApplicationBuilds.WithBinlog(arguments, Environment.GetEnvironmentVariable(GeneratedApplicationBuilds.BinlogVariable), _evidence.FullName, logName);
         var startInfo = new ProcessStartInfo("dotnet")

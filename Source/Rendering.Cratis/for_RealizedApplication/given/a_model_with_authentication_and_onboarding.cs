@@ -26,7 +26,7 @@ public class a_model_with_authentication_and_onboarding : Specification
 
     protected bool Has(string path) => _plan.Artifacts.Any(artifact => artifact.RelativePath == path);
 
-    protected static string Source(string onboarding = DefaultOnboarding) => $$"""
+    protected static string Source(string onboarding = DefaultOnboarding, string declarations = "") => $$"""
         concept BookId : Uuid
         concept BookTitle : String
 
@@ -51,7 +51,7 @@ public class a_model_with_authentication_and_onboarding : Specification
           description "Anyone who is signed in"
           policy IsSignedIn
 
-        authentication
+        {{declarations}}authentication
           provider EntraId
           provider GitHub
           provider OpenId name Partner
@@ -92,9 +92,9 @@ public class a_model_with_authentication_and_onboarding : Specification
             images Emails/Images
         """;
 
-    protected static void Write(string folder, string onboarding)
+    protected static void Write(string folder, string onboarding, string declarations = "")
     {
-        File.WriteAllText(Path.Combine(folder, "lending.play"), Source(onboarding));
+        File.WriteAllText(Path.Combine(folder, "lending.play"), Source(onboarding, declarations));
         Directory.CreateDirectory(Path.Combine(folder, "Legal"));
         File.WriteAllText(Path.Combine(folder, "Legal", "terms-of-service.md"), "# Terms\n");
         File.WriteAllText(Path.Combine(folder, "Legal", "privacy-policy.md"), "# Privacy\n");
@@ -109,10 +109,12 @@ public class a_model_with_authentication_and_onboarding : Specification
 
     protected virtual string Onboarding => DefaultOnboarding;
 
+    protected virtual string Declarations => string.Empty;
+
     async Task Establish()
     {
         _folder = Directory.CreateDirectory(SpecTemporaryRoot.NewPath("stage-realized-application")).FullName;
-        Write(_folder, Onboarding);
+        Write(_folder, Onboarding, Declarations);
         _loaded = await SemanticModelLoader.LoadFromPathAsync(_folder, null, Application);
         var profile = CratisRendering.WithRealization(CratisRendering.CreateProfile(Application, new(Application, Application)), _loaded.Realization);
         var request = new ArtifactRenderRequest(_loaded.Model, _loaded.Plan, profile, new(ArtifactRenderScopeKind.Application, _loaded.Model.Application.Id))

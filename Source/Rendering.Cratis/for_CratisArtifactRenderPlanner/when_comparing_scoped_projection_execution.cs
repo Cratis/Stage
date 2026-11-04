@@ -24,7 +24,8 @@ public class when_comparing_scoped_projection_execution(when_comparing_scoped_pr
     [Fact] void should_admit_identity_only_all() => when_rejecting_unsupported_scoped_projections.VerifyFromAllAdmission();
     [Fact] void should_materialize_an_unrelated_source_in_the_reference() => fixture.AllExpected.ShouldEqual(JsonSerializer.Serialize(new[] { new { projectId = First, lastSeen = First }, new { projectId = Second, lastSeen = Second } }));
 
-    [Fact] void should_apply_the_all_literals_to_an_unrelated_instance_in_the_reference() => fixture.AllLiteralExpected.ShouldEqual(JsonSerializer.Serialize(new[]
+    [Fact]
+    void should_apply_the_all_literals_to_an_unrelated_instance_in_the_reference() => fixture.AllLiteralExpected.ShouldEqual(JsonSerializer.Serialize(new[]
     {
         new { projectId = First, label = "fixed", title = "named", score = "12.5" },
         new { projectId = Second, label = "fixed", title = "named", score = "12.5" }
@@ -65,7 +66,7 @@ public class when_comparing_scoped_projection_execution(when_comparing_scoped_pr
             var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
 
             // ClearWith binds to the event-source key, so its root from must use the same key.
-            var source = every_literal_join_projection.Source;
+            var source = nested_join_projection.Source;
             var document = SemanticSourceDocument.Create(catalog.ResolveDocument("differential"), "differential", "Scopes.play", source);
             var compiled = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
             Assert.True(compiled.Success, string.Join(Environment.NewLine, compiled.Diagnostics));
@@ -112,6 +113,21 @@ public class when_comparing_scoped_projection_execution(when_comparing_scoped_pr
                 });
                 Assert.Equal(expectedSnapshot, expected);
                 AddGeneratedSpecification($"Projects/Registration/CompanyLookup/when_{name}.cs", GeneratedLiteralSpecification(facts, expected, name, LiteralView.CompanySummary));
+            }
+
+            // A nested join resolves like the reference whichever of the join and the from comes first.
+            Fact linked = new("ProjectRegistered", First, First, "Local");
+            (string Name, Fact[] Facts)[] nestedJoinCases =
+            [
+                ("a_prior_event_backfilling_a_nested_join", [new("ProjectNamed", First, Name: "Joined"), linked]),
+                ("a_live_event_updating_a_nested_join", [linked, new("ProjectNamed", First, Name: "Joined")]),
+                ("a_nested_join_without_matching_history", [linked, new("ProjectNamed", Second, Name: "Unrelated")]),
+                ("a_joined_event_after_clearing_a_nested_object", [linked, new("ProjectRenamed", First, First, "Cleared"), new("ProjectNamed", First, Name: "Joined")])
+            ];
+            foreach (var (nestedName, nestedFacts) in nestedJoinCases)
+            {
+                var nestedExpected = Reference(nestedFacts, "NestedJoinSummary");
+                AddGeneratedSpecification($"Projects/Registration/NestedJoinLookup/when_{nestedName}.cs", GeneratedLiteralSpecification(nestedFacts, nestedExpected, nestedName, LiteralView.NestedJoinSummary));
             }
 
             Fact[] removedCompanyFacts =
@@ -199,7 +215,7 @@ public class when_comparing_scoped_projection_execution(when_comparing_scoped_pr
             var result = new SemanticSpecificationRunner().Run(reference, spec.Id);
             var accepted = Assert.IsType<SemanticAccepted>(result.Execution);
             var readModel = feature.Slices.SelectMany(slice => slice.ReadModels).Single(candidate => candidate.Name == readModelName);
-            return JsonSerializer.Serialize(new[] { First, Second }.Select(key => Snapshot(
+            return JsonSerializer.Serialize(new[] { First, Second }.Select(key => SnapshotOf(
                 accepted.World.ReadModels.SingleOrDefault(instance => instance.ReadModel == readModel.Id && instance.Key is SemanticTextValue value && value.Value == key), readModel, _model)));
         }
 
@@ -233,7 +249,20 @@ public class when_comparing_scoped_projection_execution(when_comparing_scoped_pr
             return new { name = Text(values["name"]), label = Text(values["label"]), visits = Number(values["visits"]), lastSeen = Text(values["lastSeen"]), info, notes };
         }
 
-        static string? Text(SemanticValue value) => value is SemanticTextValue text ? text.Value : null;
+        static object? SnapshotOf(SemanticReadModelInstance? instance, SemanticReadModel readModel, ExecutableSemanticModel model) =>
+            readModel.Name == "NestedJoinSummary" && instance is not null ? NestedJoinSnapshot(instance, readModel, model) : Snapshot(instance, readModel, model);
+
+        static object NestedJoinSnapshot(SemanticReadModelInstance instance, SemanticReadModel readModel, ExecutableSemanticModel model)
+        {
+            var values = instance.Values.ToDictionary(value => readModel.Properties.Single(property => property.Id == value.TargetProperty).Name, value => value.Value);
+            var linkType = model.Application.Types.Single(type => type.Name == "NestedLink");
+            var details = values.GetValueOrDefault("details") is SemanticCompositeValue link
+                ? link.Properties.ToDictionary(member => linkType.Properties.Single(property => property.Id == member.TargetProperty).Name, member => member.Value)
+                : null;
+            return new { reference = details is null ? null : Text(details["reference"]), joined = details is null ? null : Text(details.GetValueOrDefault("value")) };
+        }
+
+        static string? Text(SemanticValue? value) => value is SemanticTextValue text ? text.Value : null;
         static string? Number(SemanticValue value) => value is SemanticNumberValue number ? number.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : null;
 
         static string GeneratedSpecification(string name, Fact[] facts, string expected)
@@ -353,7 +382,9 @@ public class when_comparing_scoped_projection_execution(when_comparing_scoped_pr
             code.OpenBlock("var actual = _keys.Select(key =>")
                 .Line("var instance = scenario.InstanceForEventSourceId(new EventSourceId(key));")
                 .Line(view == LiteralView.AllLabelSummary ? "Assert.NotNull(instance);" : "if (instance is null) return null;")
-                .Line(view == LiteralView.AllLabelSummary
+                .Line(view == LiteralView.NestedJoinSummary
+                    ? "return new { reference = instance.Details?.Reference.Value.ToString(), joined = instance.Details?.Value?.Value };"
+                    : view == LiteralView.AllLabelSummary
                     ? "return new { projectId = instance.ProjectId.Value.ToString(), label = instance.Label, title = instance.Title.Value, score = instance.Score?.ToString(CultureInfo.InvariantCulture) };"
                     : "return new { company = instance.Company.Value.ToString(), joined = instance.Joined?.Value, label = instance.Label, score = instance.Score?.ToString(CultureInfo.InvariantCulture) };")
                 .EndBlock().Line(");")
@@ -365,7 +396,8 @@ public class when_comparing_scoped_projection_execution(when_comparing_scoped_pr
         enum LiteralView
         {
             AllLabelSummary,
-            CompanySummary
+            CompanySummary,
+            NestedJoinSummary
         }
 
         sealed record Fact(string Event, string Source, string? Id = null, string? Name = null, string? NoteId = null)

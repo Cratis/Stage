@@ -57,6 +57,11 @@ public sealed record LoadedSemanticModel(ExecutableSemanticModel Model, Semantic
     public ApplicationRealization Realization { get; init; } = ApplicationRealization.None;
 
     /// <summary>
+    /// Gets the explicitly passive read models retained from the same compilation, outside portable ESM bytes.
+    /// </summary>
+    public ImmutableHashSet<SemanticId> PassiveReadModels { get; init; } = [];
+
+    /// <summary>
     /// Gets the compiler diagnostics in their original order and severity.
     /// </summary>
     public ImmutableArray<SemanticModelLoadDiagnostic> Diagnostics { get; init; } = [];
@@ -159,7 +164,8 @@ public static partial class SemanticModelLoader
         if (!result.Success)
         {
             throw new InvalidSemanticModel([.. result.Diagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error && diagnostic.Code != "STAGE-PLAN-003")
-                .Select(diagnostic => diagnostic.Source is null ? diagnostic.Message : $"{diagnostic.Source}: {diagnostic.Message}")]) { Notes = result.Notes };
+                .Select(diagnostic => diagnostic.Source is null ? diagnostic.Message : $"{diagnostic.Source}: {diagnostic.Message}")])
+            { Notes = result.Notes };
         }
 
         return result.Loaded!;

@@ -28,7 +28,8 @@ public class when_building_a_file : Specification
     }
 
     [Fact] void should_start_with_the_usings_and_no_header() => _result.StartsWith("using Cratis.Arc;", StringComparison.Ordinal).ShouldBeTrue();
-    [Fact] void should_sort_usings_alphabetically() =>
+    [Fact]
+    void should_sort_usings_alphabetically() =>
         _result.IndexOf("using Cratis.Arc;", StringComparison.Ordinal).ShouldBeLessThan(_result.IndexOf("using System;", StringComparison.Ordinal));
     [Fact] void should_deduplicate_repeated_usings() => CountOccurrences(_result, "using System;").ShouldEqual(1);
     [Fact] void should_emit_the_namespace() => _result.ShouldContain("namespace MyApp.Billing.Invoices;");

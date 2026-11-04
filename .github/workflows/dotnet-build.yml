@@ -77,7 +77,7 @@ jobs:
         uses: Cratis/Workflows/.github/actions/skip-if-already-ran@main
 
       - name: Checkout merge-base history
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -97,7 +97,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Verify Host kernel and client compatibility pins
         run: python3 Verification/verify-runtime-compatibility.py --self-test
@@ -112,10 +112,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup .Net
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
@@ -123,7 +123,7 @@ jobs:
         uses: Cratis/Workflows/.github/actions/dotnet-cache@main
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -170,7 +170,7 @@ jobs:
           find Source -type d -path '*/bin/Debug' -prune -print0 | tar --null -czf build-output.tar.gz -T -
 
       - name: Upload Debug build output
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: debug-build-output
           path: build-output.tar.gz
@@ -204,10 +204,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup .Net
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
@@ -218,13 +218,15 @@ jobs:
           mode: restore
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
+          package-manager-cache: false
 
       - name: Download Debug build output
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
+          digest-mismatch: warn
           name: debug-build-output
 
       - name: Extract Debug build output
@@ -255,7 +257,7 @@ jobs:
 
       - name: Upload spec results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: specs-${{ matrix.name }}
           path: TestResults/${{ matrix.name }}
@@ -359,13 +361,13 @@ jobs:
           } 2>&1 | tee "$RUNNER_TEMP/stage342-bootstrap-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.log"
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Verify scratch survived checkout
         run: python3 -B .github/reducer-mongo-disk.py verify-temp
 
       - name: Setup .Net
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
@@ -605,7 +607,7 @@ jobs:
 
       - name: Upload bootstrap disk diagnostics
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: reducer-mongo-bootstrap
           path: ${{ runner.temp }}/stage342-bootstrap-${{ github.run_id }}-${{ github.run_attempt }}.log
@@ -614,7 +616,7 @@ jobs:
 
       - name: Upload resolved filesystem probe diagnostics
         if: ${{ always() && steps.scratch.outputs.scratch != '' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: reducer-mongo-filesystems
           path: |
@@ -629,7 +631,7 @@ jobs:
 
       - name: Upload probe results and kernel logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: reducer-mongo-results
           path: |
@@ -654,10 +656,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup .Net
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
@@ -707,18 +709,19 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup .Net
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       # Same toolchain the Rendering shards gave this spec before it moved here.
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
+          package-manager-cache: false
 
       - name: Restore NuGet packages
         id: nuget
@@ -732,6 +735,7 @@ jobs:
           name: debug-build-output
 
       - name: Extract Debug build output
+        id: extract
         run: tar -xzf build-output.tar.gz
 
       - name: Restore packages without an exact cache hit
@@ -770,9 +774,42 @@ jobs:
           print(f"{len(results)} standalone application assertions passed")
           PY
 
+      # Builds a rendered application and the event contracts project it references, once in Debug and once in
+      # Release. The facts skip unless enabled, so the count check below is what makes this a gate, not discovery.
+      # spec-shards.py excludes the class from every shard.
+      - name: Build rendered event contracts in Debug and Release
+        if: ${{ !cancelled() && steps.extract.outcome == 'success' }}
+        timeout-minutes: 10
+        env:
+          STAGE_EVENT_CONTRACTS_BUILD: "1"
+          STAGE_EVENT_CONTRACTS_PROOF_ROOT: ${{ runner.temp }}/event-contracts-proof
+        run: |
+          mkdir -p "$STAGE_EVENT_CONTRACTS_PROOF_ROOT"
+          dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --configuration Debug --no-build \
+            --filter "FullyQualifiedName~when_building_rendered_event_contracts" \
+            --logger "trx;LogFileName=event-contracts.trx" --results-directory ./TestResults/standalone-generated-application/event-contracts
+
+      - name: Require all four event contracts builds to execute and pass
+        if: ${{ !cancelled() && steps.extract.outcome == 'success' }}
+        run: |
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          ns = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
+          root = ET.parse("TestResults/standalone-generated-application/event-contracts/event-contracts.trx").getroot()
+          counters = root.find("t:ResultSummary/t:Counters", ns)
+          results = root.findall("t:Results/t:UnitTestResult", ns)
+          executed = int(counters.get("executed", "0")) if counters is not None else 0
+          # VSTest leaves the notExecuted counter at zero for an xUnit skip; the per-test outcome records it.
+          skipped = sum(result.get("outcome") == "NotExecuted" for result in results)
+          if executed != 4 or skipped != 0 or len(results) != 4 or any(result.get("outcome") != "Passed" for result in results):
+              raise SystemExit(f"Expected 4 executed and passed event contracts builds and none skipped, got executed={executed}, skipped={skipped}, "
+                               f"{[(r.get('testName'), r.get('outcome')) for r in results]}.")
+          print(f"{executed} event contracts builds executed and passed, {skipped} skipped")
+          PY
+
       - name: Upload spec results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: standalone-generated-application-results
           path: TestResults/standalone-generated-application
@@ -799,15 +836,15 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup .Net
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -854,7 +891,7 @@ jobs:
 
       - name: Upload results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: live-custom-packages-results
           path: |
@@ -880,15 +917,15 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup .Net
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -949,7 +986,7 @@ jobs:
 
       - name: Upload build and browser results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: generated-react-results
           path: TestResults/generated-react
@@ -970,15 +1007,15 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup .Net
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -1039,7 +1076,7 @@ jobs:
 
       - name: Upload build and browser results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: generated-blueprint-templates-results
           path: TestResults/generated-blueprint-templates
@@ -1054,7 +1091,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Require every selected lane to succeed
         env:
@@ -1074,7 +1111,7 @@ jobs:
       issues: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Open or update the red-nightly issue with the last-green merge range
         env:

@@ -13,7 +13,7 @@ namespace Cratis.Stage.Rendering.Cratis.Scaffolding;
 
 internal static class CratisScaffoldArtifacts
 {
-    internal static IEnumerable<PlannedArtifact> Render(ArtifactRenderProfile profile, string rootNamespace, ImmutableArray<SemanticId> sources, string? applicationName = null, bool generatedWorkflows = false)
+    internal static IEnumerable<PlannedArtifact> Render(ArtifactRenderProfile profile, string rootNamespace, ImmutableArray<SemanticId> sources, string? applicationName = null, bool generatedWorkflows = false, string? contractsFolder = null)
     {
         var realization = applicationName is null ? null : ApplicationRealizationInput.From(profile);
         var strings = StringsCatalogInput.From(profile);
@@ -33,7 +33,8 @@ internal static class CratisScaffoldArtifacts
                 planned = PlannedArtifact.CreateText(planned.RelativePath, Encoding.UTF8.GetString(planned.Bytes.AsSpan()).Replace("builder.Services.AddEventSourcedWorkflows();", $"builder.Services.AddEventSourcedWorkflows({rootNamespace}.Lifecycles.GeneratedWorkflows.Configure);", StringComparison.Ordinal), planned.Sources);
             }
 
-            yield return realization is null ? planned : RealizationScaffold.Patch(planned, realization, rootNamespace);
+            planned = realization is null ? planned : RealizationScaffold.Patch(planned, realization, rootNamespace);
+            yield return contractsFolder is null ? planned : EventContractsScaffold.Patch(planned, contractsFolder);
         }
 
         if (realization is not null)
@@ -42,6 +43,11 @@ internal static class CratisScaffoldArtifacts
             {
                 yield return planned;
             }
+        }
+
+        if (contractsFolder is not null)
+        {
+            yield return EventContractsScaffold.Project(contractsFolder, applicationName!, sources);
         }
 
         if (profile.Inputs.SingleOrDefault(input => input.Name == ReducerConventionInput.Name) is { } convention)

@@ -13,6 +13,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 /// <summary>
 /// Verifies that admitted scoped projections are emitted in a buildable application.
 /// </summary>
+/// <param name="fixture">The generated application build and specification results.</param>
 public class when_rendering_scoped_projections(when_rendering_scoped_projections.context fixture) : IClassFixture<when_rendering_scoped_projections.context>
 {
     [Fact] void should_build_debug_warning_free() => fixture.DebugWarnings.ShouldEqual(string.Empty);

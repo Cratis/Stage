@@ -2,64 +2,91 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { describe, expect, it } from 'vitest';
-import { canEvaluate, evaluateCondition, firstMatch, resolveGuard } from './stageGuards';
+import { canEvaluateGuard, evaluateGuard, selectGuardedInteraction } from '@cratis/scene.engine';
 
-const open = { kind: 'comparison', left: { path: 'item.status' }, operator: 'Equal', right: 'open' };
-const many = { kind: 'comparison', left: { path: 'item.count' }, operator: 'GreaterThan', right: 3 };
+const open = { kind: 'comparison', left: { subject: 'item.status' }, operator: 'Equal', right: 'open' };
+const many = { kind: 'comparison', left: { subject: 'item.count' }, operator: 'GreaterThan', right: 3 };
 
-describe('a guard', () => {
-    it('holds when the field equals the literal', () => expect(evaluateCondition(open, { status: 'open' })).toBe(true));
-    it('does not hold when the field differs', () => expect(evaluateCondition(open, { status: 'closed' })).toBe(false));
-    it('does not hold on a missing field', () => expect(evaluateCondition(open, {})).toBe(false));
-    it('does not hold on a null field, even for not-equal', () =>
-        expect(evaluateCondition({ ...open, operator: 'NotEqual' }, { status: null })).toBe(false));
-    it('orders only numbers', () => {
-        expect(evaluateCondition(many, { count: 4 })).toBe(true);
-        expect(evaluateCondition(many, { count: '4' })).toBe(false);
+describe('Scene native guards over explicitly numbered enumerations', () => {
+    const comparison = (members: string[], numbers: unknown, right = 'open', operator = 'Equal') => ({
+        kind: 'comparison', left: { subject: 'item.status' }, operator, right, enumeration: members, enumerationNumbers: numbers,
     });
-    it('matches text and list contents and prefixes', () => {
-        expect(evaluateCondition({ ...open, operator: 'Contains', right: 'pe' }, { status: 'open' })).toBe(true);
-        expect(evaluateCondition({ ...open, left: { path: 'item.tags' }, operator: 'Contains', right: 'x' }, { tags: ['x'] })).toBe(true);
-        expect(evaluateCondition({ ...open, operator: 'StartsWith', right: 'op' }, { status: 'open' })).toBe(true);
+    const reordered = ['open', 'closed'];
+    const sparse = ['draft', 'issued', 'cancelled'];
+    const numberedComparison = (right: unknown = 'open', operator = 'Equal') => ({
+        ...comparison(reordered, [1, 0]), right, operator,
     });
-    it('combines with and and or', () => {
-        expect(evaluateCondition({ kind: 'logical', left: open, operator: 'And', right: many }, { status: 'open', count: 1 })).toBe(false);
-        expect(evaluateCondition({ kind: 'logical', left: open, operator: 'Or', right: many }, { status: 'open', count: 1 })).toBe(true);
-    });
-    it('reads nested fields', () =>
-        expect(evaluateCondition({ ...open, left: { path: 'item.owner.name' } }, { owner: { name: 'open' } })).toBe(true));
 
-    describe('that cannot be evaluated', () => {
-        const cases: [string, unknown][] = [
-            ['an unknown condition kind', { kind: 'ComparisonWithPathSyntax' }],
-            ['an unknown operator', { ...open, operator: 'Matches' }],
-            ['a non-literal right side', { ...open, right: { kind: 'PathExpressionSyntax' } }],
-            ['a left side that is not about the item', { ...open, left: { path: 'state.status' } }],
-            ['a logical condition with an unevaluable side', { kind: 'logical', left: open, operator: 'And', right: { kind: 'x' } }],
-            ['an unknown logical operator', { kind: 'logical', left: open, operator: 'Xor', right: open }],
-        ];
-        for (const [name, condition] of cases) {
-            it(`is undecided for ${name}, never true`, () => {
-                expect(evaluateCondition(condition, { status: 'open' })).toBeUndefined();
-                expect(canEvaluate([open, condition])).toBe(false);
-            });
-        }
+    it.each([
+        [comparison(reordered, [1, 0]), 1, true],
+        [comparison(reordered, [1, 0]), 0, false],
+        [comparison(reordered, [1, 0], 'open', 'NotEqual'), 0, true],
+        [comparison(sparse, [-1, 4, 90], 'draft'), -1, true],
+        [comparison(sparse, [-1, 4, 90], 'issued'), 4, true],
+        [comparison(sparse, [-1, 4, 90], 'issued'), 1, false],
+        [comparison(sparse, [-1, 4, 90], 'issued'), 7, false],
+        [comparison(sparse, [-1, 4, 90], 'issued', 'NotEqual'), 7, false],
+        [comparison(sparse, [-1, 4, 90], 'issued'), 'ISSUED', true],
+    ])('uses explicit member identity for %j with wire value %s', (condition, status, expected) => {
+        expect(evaluateGuard(condition, { status })).toBe(expected);
+    });
+
+    it.each([[1, 1], [1], [1.5, 0], ['1', 0], null, 1, [Infinity, 0], [NaN, 0]].map(numbers => ({ numbers })))('refuses malformed numbers $numbers', ({ numbers }) => {
+        const condition = comparison(reordered, numbers);
+        expect(canEvaluateGuard(condition)).toBe(false);
+        expect(evaluateGuard(condition, { status: 1 })).toBeUndefined();
+        expect(selectGuardedInteraction([{ condition }], { status: 1 }, true).kind).toBe('unevaluable');
+        expect(canEvaluateGuard({ kind: 'logical', operator: 'Or', left: condition, right: comparison(reordered, [1, 0]) })).toBe(false);
+    });
+
+    it.each(['Equal', 'NotEqual'])('refuses unknown member identities for %s', operator => {
+        expect(evaluateGuard(numberedComparison(90, operator), { status: 'open' })).toBe(false);
+        expect(evaluateGuard(numberedComparison('missing', operator), { status: 1 })).toBe(false);
+    });
+
+    it('combines numbered conditions and selects the first match', () => {
+        const conditions = [numberedComparison(), numberedComparison('closed')];
+        expect(evaluateGuard({ kind: 'logical', operator: 'And', left: conditions[0], right: numberedComparison('closed', 'NotEqual') }, { status: 1 })).toBe(true);
+        expect(selectGuardedInteraction(conditions.map(condition => ({ condition })), { status: 0 }, true)).toEqual({ kind: 'alternative', index: 1 });
+    });
+
+    it.each([undefined, null, ['open', 0]])('refuses invalid member names %j', enumeration => {
+        const condition = { ...numberedComparison(), enumeration };
+        expect(canEvaluateGuard(condition)).toBe(false);
+        expect(evaluateGuard(condition, { status: 1 })).toBeUndefined();
+        expect(selectGuardedInteraction([{ condition }], { status: 1 }, true).kind).toBe('unevaluable');
     });
 });
 
-describe('first-match alternatives', () => {
-    const closed = { ...open, right: 'closed' };
-
-    it('picks the first that holds', () => expect(firstMatch([closed, open, open], { status: 'open' })).toBe(1));
-    it('says none holds', () => expect(firstMatch([closed], { status: 'open' })).toBe(-1));
-    it('is undecided when any alternative is unevaluable', () => expect(firstMatch([open, { kind: 'x' }], { status: 'open' })).toBeUndefined());
-    it('runs only the branch that matched', () => {
-        expect(resolveGuard({ kind: 'firstMatch', index: 0, alternatives: [open] }, { status: 'open' })).toBe(true);
-        expect(resolveGuard({ kind: 'otherwise', alternatives: [open] }, { status: 'open' })).toBe(false);
-        expect(resolveGuard({ kind: 'otherwise', alternatives: [open] }, { status: 'closed' })).toBe(true);
+// These run the published engine, not a second Stage implementation of its semantics.
+describe('Scene guard execution', () => {
+    it('compares the explicit subject', () => expect(evaluateGuard(open, { status: 'open' })).toBe(true));
+    it('does not match a different field value', () => expect(evaluateGuard(open, { status: 'closed' })).toBe(false));
+    it('does not match a missing field', () => expect(evaluateGuard(open, {})).toBe(false));
+    it('compares finite numbers, not numeric strings', () => {
+        expect(evaluateGuard(many, { count: 4 })).toBe(true);
+        expect(evaluateGuard(many, { count: '4' })).toBe(false);
     });
-    it('runs neither branch without a subject', () => {
-        expect(resolveGuard({ kind: 'firstMatch', index: 0, alternatives: [open] }, undefined)).toBeUndefined();
-        expect(resolveGuard({ kind: 'otherwise', alternatives: [open] }, undefined)).toBeUndefined();
+    it('keeps logical operands as closed predicates', () => {
+        expect(evaluateGuard({ kind: 'logical', left: open, operator: 'And', right: many }, { status: 'open', count: 4 })).toBe(true);
+        expect(evaluateGuard({ kind: 'logical', left: open, operator: 'Or', right: many }, { status: 'closed', count: 4 })).toBe(true);
     });
+    it('checks enum membership', () => {
+        const condition = { ...open, enumeration: ['open', 'closed'] };
+        expect(evaluateGuard(condition, { status: 'open' })).toBe(true);
+        expect(evaluateGuard(condition, { status: 'unknown' })).toBe(false);
+    });
+    it.each([
+        { kind: 'unknown' },
+        { ...open, left: { subject: 'screen.status' } },
+        { ...open, left: { subject: 'item.constructor' } },
+        { ...open, operator: 'Mystery' },
+        { ...open, right: { binding: 'item.x' } },
+    ])('refuses an unsupported predicate without taking otherwise: %j', condition => {
+        expect(canEvaluateGuard(condition)).toBe(false);
+        expect(selectGuardedInteraction([{ condition: open }, { condition }], { status: 'open' }, true).kind).toBe('unevaluable');
+    });
+    it('chooses exactly the first matching branch', () => expect(selectGuardedInteraction([{ condition: open }, { condition: open }], { status: 'open' }, true)).toEqual({ kind: 'alternative', index: 0 }));
+    it('uses otherwise only for an unmatched subject', () => expect(selectGuardedInteraction([{ condition: open }], { status: 'closed' }, true).kind).toBe('otherwise'));
+    it('does not use otherwise without a subject', () => expect(selectGuardedInteraction([{ condition: open }], undefined, true).kind).toBe('noSubject'));
 });

@@ -30,6 +30,7 @@ public class with_a_typed_event_body
         Assert.Contains("Handle(IOperationContextAccessor operation)", source, StringComparison.Ordinal);
         Assert.Contains("CommandReceiptTime.OccurredAtReceipt(operation)", source, StringComparison.Ordinal);
         Assert.DoesNotContain("global::Cratis.Arc.IOperationContextAccessor", source, StringComparison.Ordinal);
+        Assert.Contains("var orderStamped = HandleTimedPlace(", source, StringComparison.Ordinal);
     }
 
     [Theory]

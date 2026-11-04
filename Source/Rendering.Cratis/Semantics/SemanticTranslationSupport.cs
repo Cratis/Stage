@@ -42,6 +42,16 @@ internal static class SemanticTranslationSupport
             from.Mappings.All(mapping => target.Properties.Any(property => property.Id == mapping.Target[0]))) &&
         target.Properties.Where(property => !property.Type.IsOptional).All(property => scope.From.Any(from => from.Mappings.Any(mapping => mapping.Target[0] == property.Id)));
 
+    /// <summary>
+    /// Determines whether an outbound reducer folds local private facts into its own public event.
+    /// </summary>
+    /// <param name="reducer">The reducer.</param>
+    /// <param name="slice">The declaring slice.</param>
+    /// <param name="events">The application's event contracts.</param>
+    /// <returns>Whether the event-target structure is supported.</returns>
+    internal static bool Reducer(SemanticReducer reducer, SemanticSlice slice, IReadOnlyDictionary<SemanticId, SemanticEventContract> events) =>
+        IsOutboundEventReducer(reducer, slice) && HasPublicReducerTarget(reducer, slice, events) && HasPrivateReducerTransitions(reducer, events);
+
     /// <summary>Determines whether a translation slice contains only supported translation structures.</summary>
     /// <param name="slice">The slice.</param>
     /// <param name="events">The application's event contracts.</param>
@@ -51,7 +61,7 @@ internal static class SemanticTranslationSupport
         slice.Reactions.IsDefaultOrEmpty &&
         (slice.Captures.IsDefaultOrEmpty || slice.Captures.All(capture => Capture(capture, events))) &&
         slice.Projections.All(projection => projection.Target != SemanticProjectionTargetKind.Event || Projection(projection, events)) &&
-        slice.Reducers.All(reducer => reducer.Target != SemanticProjectionTargetKind.Event);
+        slice.Reducers.All(reducer => reducer.Target != SemanticProjectionTargetKind.Event || Reducer(reducer, slice, events));
 
     /// <summary>Determines whether a foreign or public contract participates in a supported translation.</summary>
     /// <param name="contract">The event contract.</param>
@@ -61,7 +71,9 @@ internal static class SemanticTranslationSupport
     internal static bool Event(SemanticEventContract contract, IEnumerable<SemanticSlice> slices, IReadOnlyDictionary<SemanticId, SemanticEventContract> events) =>
         slices.Any(slice => Slice(slice, events) && (contract.Origin is not null
             ? slice.Captures.Any(capture => capture.EventsSource!.Events.Contains(contract.Id))
-            : contract.Visibility == SemanticEventVisibility.Public && slice.Projections.Any(projection => projection.ReadModel == contract.Id && Projection(projection, events))));
+            : contract.Visibility == SemanticEventVisibility.Public &&
+                (slice.Projections.Any(projection => projection.ReadModel == contract.Id && Projection(projection, events)) ||
+                    slice.Reducers.Any(reducer => reducer.ReadModel == contract.Id && Reducer(reducer, slice, events)))));
 
     /// <summary>
     /// Determines whether a supported capture can render without child processing.
@@ -103,6 +115,21 @@ internal static class SemanticTranslationSupport
     /// <returns>Whether the special event contract can render.</returns>
     internal static bool RenderableEvent(SemanticEventContract contract, IEnumerable<SemanticSlice> slices, IReadOnlyDictionary<SemanticId, SemanticEventContract> events) =>
         Event(contract, slices.Where(slice => RenderableSlice(slice, events)), events);
+
+    static bool IsOutboundEventReducer(SemanticReducer reducer, SemanticSlice slice) =>
+        slice.Kind == SemanticSliceKind.Translate && slice.Direction == SemanticTranslationDirection.Outbound &&
+        reducer.Target == SemanticProjectionTargetKind.Event &&
+        reducer.Key == SemanticReducerKey.EventSourceId && reducer.Result == SemanticReducerResult.StateOrDelete;
+
+    static bool HasPublicReducerTarget(SemanticReducer reducer, SemanticSlice slice, IReadOnlyDictionary<SemanticId, SemanticEventContract> events) =>
+        slice.Events.Any(contract => contract.Id == reducer.ReadModel) &&
+        events.TryGetValue(reducer.ReadModel, out var target) && target.Visibility == SemanticEventVisibility.Public && target.Origin is null && target.Tags.IsDefaultOrEmpty;
+
+    static bool HasPrivateReducerTransitions(SemanticReducer reducer, IReadOnlyDictionary<SemanticId, SemanticEventContract> events) =>
+        !reducer.Transitions.IsDefaultOrEmpty &&
+        reducer.Transitions.Select(transition => transition.EventContract).Distinct().Count() == reducer.Transitions.Length &&
+        reducer.Transitions.All(transition => events.TryGetValue(transition.EventContract, out var source) &&
+            source.Origin is null && source.Visibility == SemanticEventVisibility.Private);
 
     static bool Appends(System.Collections.Immutable.ImmutableArray<SemanticCaptureAppend> appends, IReadOnlyDictionary<SemanticId, SemanticEventContract> events) =>
         appends.All(append => events.TryGetValue(append.EventContract, out var contract) &&

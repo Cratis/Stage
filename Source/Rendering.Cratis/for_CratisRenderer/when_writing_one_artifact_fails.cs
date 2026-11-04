@@ -42,13 +42,16 @@ public class when_writing_one_artifact_fails : a_multi_slice_application
     }
 
     [Fact] void should_fail_the_render_operation() => _exception.ShouldBeOfExactType<RenderingFailed>();
-    [Fact] void should_preserve_the_write_failure() =>
+    [Fact]
+    void should_preserve_the_write_failure() =>
         ((RenderingFailed)_exception).Failures.ShouldContain(failure => failure is SimulatedWriteFailure);
-    [Fact] void should_continue_writing_independent_artifacts() =>
+    [Fact]
+    void should_continue_writing_independent_artifacts() =>
         _failingOutput.Files.ShouldContain(file => file.RelativePath.EndsWith(Path.Combine("InvoiceSummary", "InvoiceSummary.cs"), StringComparison.Ordinal));
     [Fact] void should_not_report_unqualified_completion() => _output.ToString().ShouldNotContain("Rendering complete.");
     [Fact] void should_write_the_advisory_failure_marker() => _failingOutput.FailureMarkerWasWritten.ShouldBeTrue();
-    [Fact] void should_report_the_failed_write() =>
+    [Fact]
+    void should_report_the_failed_write() =>
         _error.ToString().ShouldContain($"Failed to write '{Path.Combine("Billing", "Invoices", "RegisterInvoice", "RegisterInvoice.cs")}'");
 
     sealed class FailingCodeOutput : ICodeOutput

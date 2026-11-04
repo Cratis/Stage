@@ -42,6 +42,29 @@ public class when_auditing_the_executable_model : given.the_executable_surface
             $"Stale ({_stale.Length}): {string.Join(", ", _stale)}; Invalid ({_invalid.Length}): {string.Join(", ", _invalid)}");
 
     [Theory]
+    [InlineData("SemanticApplication.TimeZone")]
+    [InlineData("SemanticTimeZone.Configurable")]
+    [InlineData("SemanticTimeZone.Id")]
+    [InlineData("SemanticCommand.Calendar")]
+    [InlineData("SemanticCommandCalendar.ContextMember")]
+    [InlineData("SemanticCommandCalendar.TimeZone")]
+    [InlineData("SemanticClockOperand.Amount")]
+    [InlineData("SemanticClockOperand.DateOf")]
+    [InlineData("SemanticClockOperand.Kind")]
+    [InlineData("SemanticClockOperand.Unit")]
+    [InlineData("SemanticClockKind.Now")]
+    [InlineData("SemanticClockKind.Today")]
+    [InlineData("SemanticClockUnit.Day")]
+    [InlineData("SemanticClockUnit.Hour")]
+    [InlineData("SemanticClockUnit.Minute")]
+    [InlineData("SemanticConditionOperand.Clock")]
+    [InlineData("SemanticConditionOperand.DateOf")]
+    [InlineData("SemanticValidationRule.ClockOperand")]
+    [InlineData("SemanticSpecification.GivenTimeZone")]
+    public void should_keep_clock_and_calendar_members_outside_the_admitted_pairs(string member) =>
+        _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-016"));
+
+    [Theory]
     [InlineData("SemanticEventContract.Visibility")]
     [InlineData("SemanticEventContract.Origin")]
     [InlineData("SemanticEventVisibility.Public")]
@@ -69,7 +92,7 @@ public class when_auditing_the_executable_model : given.the_executable_surface
 
     [Fact] void should_keep_expression_capture_guards_refused() => _ledger["SemanticCaptureConditionKind.Expression"].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-024"));
 
-    [Fact] void should_keep_event_target_reducers_refused() => _ledger["SemanticReducer.Target"].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-032"));
+    [Fact] void should_admit_event_target_reducers() => _ledger["SemanticReducer.Target"].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
 
     [Theory]
     [InlineData("SemanticSpecification.WhenAppended")]

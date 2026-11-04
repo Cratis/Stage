@@ -22,7 +22,7 @@ internal static partial class BodyUnitSources
         var self = context.SelfReduces(model.Id);
         var located = context.DeclaringSlice(model.Id);
         var ns = SliceNaming.Namespace(context.RootNamespace, located.Path);
-        var helper = SemanticReducerArtifactRenderer.HelperName(descriptor.RequirementId);
+        var helper = context.InlineNames.ReducerTransition(descriptor.RequirementId);
         var name = self ? Identifiers.ToPascalCase(model.Name) : Identifiers.ToPascalCase(reducer.Name);
         var path = $"worker/reducers/{name}/{helper}.cs";
         var builder = context.CodeBuilder().Namespace(ns);

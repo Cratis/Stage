@@ -34,6 +34,7 @@ public class when_scaffold_spelling_removes_the_last_alias_use : Specification
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable)
                 .WithSpecificDiagnosticOptions(
                 [
+
                     // The SDK suppresses these by default: a package built against an older framework assembly version
                     // (MongoDB.Driver against System.Linq.Expressions 6.0) binds to the one the host provides.
                     new KeyValuePair<string, ReportDiagnostic>("CS1701", ReportDiagnostic.Suppress),

@@ -42,6 +42,39 @@ internal sealed partial class SemanticInlineNames
             reservations.AddRange(GeneratedPascalCase.RecordMembers.Concat([name, "Value", "New", "NotSet"])
                 .Select(member => new SemanticInlineNameReservation(scope, member)));
         }
+        AddReducerTransitions(context, sites, reservations);
         return new(sites, reservations);
+    }
+
+    static void AddReducerTransitions(SemanticApplicationContext context, List<SemanticInlineNameSite> sites, List<SemanticInlineNameReservation> reservations)
+    {
+        string[] reducerMembers = ["On", "Reduce", SemanticReducerArtifactRenderer.SelfTransitionMethod, "BeginReplay", "EndReplay", "BeginReplayPartition", "EndReplayPartition"];
+        foreach (var located in context.AllSlices)
+        {
+            foreach (var reducer in located.Slice.Reducers)
+            {
+                // An event-target reducer reduces its event contract, not a read model.
+                var model = SemanticReducerArtifactRenderer.State(context, reducer);
+                var reducerName = Identifiers.ToPascalCase(reducer.Name);
+                var scope = $"reducer:{located.Slice.Id}:{reducer.Name}";
+                var typeScope = $"reducer-types:{located.Slice.Id}:{reducer.Name}";
+                foreach (var transition in reducer.Transitions)
+                {
+                    var eventName = Identifiers.ToPascalCase(context.Events[transition.EventContract].Name);
+                    sites.Add(new(TransitionKey(transition.RequirementId), $"{eventName}Transition", transition.RequirementId, scope, typeScope, null, $"{reducerName}{eventName}Transition"));
+                }
+
+                // The helper is a method of the reducer, or a nested type of the read model it reduces.
+                reservations.AddRange(reducerMembers.Append(reducerName).Append(Identifiers.ToPascalCase(model.Name))
+                    .Concat(GeneratedPascalCase.RecordMembers)
+                    .Concat(model.Properties.Select(context.MemberNames.Property))
+                    .Concat(located.Slice.Queries.Where(query => query.ReadModel == model.Id).Select(query =>
+                        GeneratedPascalCase.QueryMethod(model.Name, model.Properties.Select(property => property.Name), query.Name)))
+                    .Select(member => new SemanticInlineNameReservation(scope, member)));
+
+                // Generated members must not shadow the model types visible to the authored body.
+                reservations.AddRange(context.GeneratedTypes.Select(type => new SemanticInlineNameReservation(typeScope, type.Name)));
+            }
+        }
     }
 }

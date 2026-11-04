@@ -71,9 +71,11 @@ public class when_rendering_a_command_that_reads_the_context : an_application_re
 
     [Fact] void should_render_an_application_that_compiles() => _errors.ShouldBeEmpty();
     [Fact] void should_not_report_anything_as_unreachable() => _error.ToString().ShouldEqual(string.Empty);
-    [Fact] void should_ask_for_the_identity_by_its_full_name() =>
+    [Fact]
+    void should_ask_for_the_identity_by_its_full_name() =>
         _handler.ShouldContain("Cratis.Chronicle.Identities.IIdentityProvider identities");
-    [Fact] void should_ask_for_each_collaborator_once_however_often_it_is_read() =>
+    [Fact]
+    void should_ask_for_each_collaborator_once_however_often_it_is_read() =>
         _handler.ShouldContain(
             "public InvoiceRegistered Handle(IOperationContextAccessor operation, ITenantIdAccessor tenants, Cratis.Chronicle.Identities.IIdentityProvider identities, " +
             "ICausationManager causations, ICurrentPrincipalAccessor principals)");
@@ -90,6 +92,7 @@ public class when_rendering_a_command_that_reads_the_context : an_application_re
     [Fact] void should_preserve_a_named_tenant_in_the_generated_handler() => _tenants["North"].ShouldEqual("North");
     [Fact] void should_preserve_named_tenant_casing_in_the_generated_handler() => _tenants["default"].ShouldEqual("default");
     [Fact] void should_reject_ambiguous_tenants_in_the_generated_handler() => _collisions.TrueForAll(error => error.InnerException?.GetType().Name == "AmbiguousTenant").ShouldBeTrue();
-    [Fact] void should_read_a_claim_from_the_calling_principal() =>
+    [Fact]
+    void should_read_a_claim_from_the_calling_principal() =>
         _handler.ShouldContain("principals.Current?.FindFirst(\"department\")?.Value");
 }

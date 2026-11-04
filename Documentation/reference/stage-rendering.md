@@ -26,23 +26,22 @@ rather than placeholders. A name no package declares renders a placeholder that 
 
 ## Guarded actions and interactions
 
-A simple `action … execute <Command>` translates to `core:action`. A guarded action with ordered
-`when … execute` alternatives and an `otherwise` also translates to `core:action`, carrying its alternatives,
-their guards and the fallback. The Stage frontend runtime (the `@cratis/stage.runtime` package), which a live Stage
-and a generated React application both render with, evaluates the guard against the item the screen's nearest `data` declaration reads:
+A simple `action … execute <Command>` translates to `core:action`. Guarded `when … execute` alternatives
+translate to Scene 4.83.0's `core:guarded-action`, carrying typed conditions, subject references and an optional
+fallback. Stage binds the nearest `data` declaration's query, route and screen-key arguments to the component's
+`item`; a collection supplies its selected row instead. Scene selects and executes the branch through Stage's
+registered Arc commands, for both live and generated applications.
 
-- The first alternative whose guard holds is the command the action executes, with its `with` values read from
-  the item. A missing or null field does not match.
-- When no alternative holds, `otherwise hidden` renders nothing, and `otherwise execute <Command>` offers that
-  command instead.
-- Without an item, the action is not offered at all, even if it has a fallback command.
-- The guard is evaluated again whenever the item changes, so the action follows the data.
+- Only the first matching alternative executes, with its `with` values read from the item.
+- A missing field never matches. A present null matches only `== null`.
+- When no alternative holds, `otherwise hidden` renders nothing; `otherwise execute <Command>` offers that command.
+- No fallback is invented. Without an item or selected row, the action is hidden, even if it has a fallback command.
+- The action follows changes to the item and prevents duplicate execution while its command is pending.
 
 Guarded `on click`, `on double click`, `on select` and `on change` interactions translate to one Scene interaction binding
-per branch, in authored order. The Scene interaction engine runs exactly the branch that holds for the row the
-interaction happened on, or the `otherwise` actions when none does, and runs nothing without a row. A table that
-declares a double click delays its single-row click briefly, so a double click on a row does not first select or
-navigate.
+containing ordered `alternatives` and optional `otherwise` actions. Scene selects the first matching branch for
+the row the interaction happened on, or otherwise when none matches. Without a row it runs nothing. A double
+click does not first select or navigate through the single-click handler.
 
 ### An item change runs a command
 
@@ -67,15 +66,22 @@ changed. Data that reaches the board without the user moving a card runs nothing
 
 ### Guards Stage cannot evaluate
 
-Stage evaluates guards that compare `item.<field>` with a literal using `==`, `!=`, `>`, `>=`, `<`, `<=`,
-`contains` or `startswith`, combined with `and` and `or`. Any other guard, and any fallback other than `hidden`
-or an `execute` that names a command, is refused rather than guessed at: runnable application rendering and
-live Host serving refuse a guarded action with `STAGE-SCENE-ACTION-001` and a guarded interaction with
-`STAGE-SCENE-INTERACTION-001`, identifying it and its source location when source is available. This also
-applies inside sections and template slots, and to guarded actions supplied as Scene JSON. The Host records
-these refusals as unsupported capabilities: `/stage/status` reports `unsupported`, and `/api` requests return
-HTTP 501 rather than executing an unconditional action. If such a guard reaches the frontend runtime anyway, the
-action is shown disabled with the diagnostic and never executes.
+Scene evaluates comparisons of `item.<field>` with literals using `==`, `!=`, `>`, `>=`, `<`, `<=`, `contains`
+and `startswith`, including nested `and` and `or` and enumeration membership. References use `subject`, not
+render-time `path` bindings. Unqualified paths are not implicitly prefixed with `item.`; they remain unsupported.
+An unevaluable condition refuses the whole selection rather than taking a different branch or the fallback.
+
+For guarded actions and item-change interactions, `contains` requires both a string field and a string literal.
+An array or any other non-string operand is unevaluable, even inside an `or` whose other condition is true;
+neither the command nor the fallback runs. An explicit null field can match `== null`, but an absent field
+or nested path never matches that comparison. Stage keeps missing values distinct from null.
+
+Unsupported source or Scene JSON stays refused with `STAGE-SCENE-ACTION-001` or `STAGE-SCENE-INTERACTION-001`,
+including inside sections and template slots. The Host records the capability refusal in `/stage/status` and
+returns HTTP 501 rather than executing an unconditional action. A runtime action without a data declaration or
+whose subject query fails shows `STAGE-SCENE-ACTION-001`; an unsupported predicate that reaches Scene shows
+its disabled action and `SCENE-GUARD-001`. Neither executes a command. Legacy `$guard` envelopes are not emitted
+and remain refused.
 
 ## Conversion diagnostics
 
@@ -143,6 +149,25 @@ apply; strict planning rejects unsafe or degraded output. Modeled specifications
 occurrence, correlation, or sequence values without bound event metadata are not rendered.
 This renderer support does not change Screenplay's reference executor.
 
+## Passive read models
+
+An explicit `passive` directive on a Screenplay read model renders Chronicle's `[Passive]` attribute. A fluent projection also receives `builder.Passive()` immediately after `builder.NoAutoMap()`. Model-bound projections and reducers honor the attribute. The EventModel runtime registers a passive projection as inactive with sink `None`; active projections keep their `InMemory` sink.
+
+```play
+readmodel Current
+  passive
+  id String key
+  value String
+```
+
+A passive model is rebuilt on demand from the requested event source's events instead of being maintained in a sink. Commands can read it; Screenplay refuses queries and screen data that observe it with `PLAY0859`. Without the directive, the model stays active, even if only commands read it. Unannotated models retain their existing profile and output bytes.
+
+Passivity is not part of portable ESM or its revision. Source-backed planning carries the explicit semantic identities in the hashed `cratis-realization:passive-read-models` profile input. Programmatic callers can use `CratisRendering.WithRealization(profile, compilation)` or `WithPassiveReadModels(profile, compilation)` from the same compilation. A portable-ESM-only caller without this metadata retains active behavior. Malformed, duplicate, noncanonical or unknown identities fail profile admission.
+
+`STAGE-ESM-061` refuses passive projections with payload, constant, composite or context root keys, joins, or child/nested scopes. Chronicle's immediate projection replays only the requested key's event-source stream: other keys risk `CHR0046`, and cross-stream scopes can return incomplete state. Reducer-backed passive models remain supported.
+
+Passive reads are fresher, not safer: they do not capture a read position or provide optimistic-concurrency protection. Passivity does not enable protected reads or change their policy.
+
 ## Generated C# self-reducing read models
 
 Artifact planning can opt a confirmed new application into self-reducing read models.
@@ -167,7 +192,7 @@ represented in closed analysis without allowing query or reactive-service calls 
 pure transitions. `Reduce` as a
 model, property, or query name, the replay-hook query names `BeginReplay`, `EndReplay`,
 `BeginReplayPartition`, `EndReplayPartition`, and collisions with generated
-`Transition_<suffix>` members refuse with `STAGE-ESM-019`. Rename the conflicting
+generated transition helper names (`<Event>Transition`, qualified by the reducer name when two reducers share an event) refuse with `STAGE-ESM-019`. Rename the conflicting
 member; Stage never silently switches a self model back to classic.
 Existing purity and typed-context refusals still apply.
 
@@ -260,6 +285,9 @@ Compiler diagnostics from the generated code are mapped back to the authored bod
 A reaction body declares a local for a triggering event property only when the body references it by simple name, so an unused property no longer produces an unused-variable warning. Each local is `var Name = @event.Name;`.
 A body that only reads another object's member of the same name, such as `other.Title`, does not count as a reference.
 A command handler whose generated Handle method does nothing else with the result returns the handler call directly instead of storing it in a pass-through local.
+When Handle does wrap the result, the handler result is held in one local per production, named after the event in camelCase with a numeric suffix on a clash. Several productions are deconstructed in declared order, for example `var (orderPlaced, orderEchoed) = HandlePlaceOrder(...)`.
+
+The shared policy runtime identifies concept base classes with open-generic `typeof(ConceptAs<>)` and `typeof(EventSourceId<>)` comparisons, not CLR type-name strings. Claim matching and fail-closed behavior are unchanged.
 
 ## Anonymous authorization
 
@@ -402,6 +430,13 @@ recorded warning to an Error, so `Success` becomes false while `Outcome` remains
 `CanPublishArtifacts` remains true. Genuine generation or integrity Errors still prevent
 safe publication. Strict acceptance is not a request to discard safe artifacts or reports;
 planning itself never publishes files.
+
+An unknown validation rule kind or undefined severity on a command records one
+`STAGE-DEGRADE-002` warning and degradation evidence for that command. Its inventory uses
+`DenyEnclosingOperation`: an always-failing Error-severity validator rejects every invocation
+before argument resolution, the handler, or any append. Specifications invoking the denied
+command are skipped with `STAGE-ESM-011`. Strict acceptance promotes the degradation warning
+to an Error. Concept validation rules and fixable authoring errors in known rules still refuse.
 
 `WithAcceptance(plan.Degradations, strict: false)` restores the original warning evidence.
 Release-baseline warnings and source diagnostics retain that evidence across plan
@@ -692,6 +727,33 @@ arithmetic. Generated fractions use C# `decimal`, not the full binary expansion 
 Moving an existing model from v7 to v8 widens stored event schemas from int32 to int64. Chronicle refuses
 that change within the same generation; plan a new event generation before upgrading
 ([Stage #204](https://github.com/Cratis/Stage/issues/204)). TypeScript properties remain `number`.
+
+## Root joins with an explicit key
+
+Root projection joins can correlate a required scalar event property with a read-model property of the same type.
+For example, a variant can retain the latest title for an issue even when the retitle event's source is a different issue:
+
+```play
+projection WorkItem
+  from IssueRetitled key issueId
+    title = title
+  variant Filed
+    enters on IssueFiled
+```
+
+Here `Filed` is a read model with an `id String key` and `title String`; `IssueRetitled` supplies `issueId String`
+and `title String`. Stage renders the root join with `join.On(model => model.Id)` and
+`join.UsingKey(evt => evt.IssueId)`. The specification executor uses the same key, rather than the event source id.
+Omitting the key, or using `$eventSourceId`, retains event-source correlation. Literal, optional, mismatched,
+composite, event-context and child or nested join keys remain unsupported.
+
+The Chronicle server must be **19.112.4 or later**. Chronicle still backfills joins by event source id rather than
+by the explicit key ([Chronicle#5439](https://github.com/Cratis/Chronicle/issues/5439)). Stage refuses a specification
+if a differently keyed join fact is followed by any root `from` event, including a later update to the event-source
+instance rather than the keyed instance. A subsequent command is conservatively refused too. This check applies
+across the given history and the action; it does not prevent the issue at runtime in a rendered application.
+Until Chronicle resolves the issue, append the root facts before differently keyed join events. Backfill with a key
+that equals the event source id remains admitted.
 
 ## Generated C# global usings
 

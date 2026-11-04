@@ -45,9 +45,16 @@ public static class GeneratedApplicationBuilds
     /// Waits for a free slot before a build or test process starts.
     /// </summary>
     /// <returns>The slot, released when disposed.</returns>
-    public static async Task<IDisposable> Enter()
+    public static Task<IDisposable> Enter() => Enter(CancellationToken.None);
+
+    /// <summary>
+    /// Waits for a free slot before a build or test process starts, giving up when cancelled.
+    /// </summary>
+    /// <param name="cancellationToken">Cancels the wait; a cancelled wait never takes a slot.</param>
+    /// <returns>The slot, released when disposed.</returns>
+    public static async Task<IDisposable> Enter(CancellationToken cancellationToken)
     {
-        await _slots.WaitAsync();
+        await _slots.WaitAsync(cancellationToken);
         return new Slot(_slots);
     }
 
@@ -55,12 +62,13 @@ public static class GeneratedApplicationBuilds
     /// Waits for a free slot and optionally records the process's wait and hold times.
     /// </summary>
     /// <param name="process">The process about to start.</param>
+    /// <param name="cancellationToken">Cancels the wait; a cancelled wait never takes a slot.</param>
     /// <returns>The slot, recorded and released when disposed.</returns>
-    public static async Task<IDisposable> Enter(GeneratedApplicationProcess process)
+    public static async Task<IDisposable> Enter(GeneratedApplicationProcess process, CancellationToken cancellationToken = default)
     {
         var started = DateTimeOffset.UtcNow;
         var stopwatch = Stopwatch.StartNew();
-        await _slots.WaitAsync();
+        await _slots.WaitAsync(cancellationToken);
         return new TimedSlot(Environment.GetEnvironmentVariable(TimingsVariable), started, process, stopwatch, stopwatch.Elapsed);
     }
 

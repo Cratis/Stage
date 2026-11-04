@@ -88,10 +88,16 @@ public class with_inexact_projection_shapes : a_command_only_plan
         {
             Values = [.. _original.ThenReadModels.Single().Values.Select(value => value.TargetProperty == name.Id ? value with { Value = source.Value } : value)]
         };
-        var sourceMapped = scoped with { Scope = scoped.Scope with { From = [root with
+        var sourceMapped = scoped with
+        {
+            Scope = scoped.Scope with
+            {
+                From = [root with
         {
             Mappings = [new([name.Id], SemanticProjectionOperation.Set, SemanticProjectionValue.EventSourceIdentity)]
-        }] } };
+        }]
+            }
+        };
         await Check(
             "event source into constrained concept",
             _original with { ThenReadModels = [], ThenQueries = [] },
@@ -166,7 +172,8 @@ public class with_inexact_projection_shapes : a_command_only_plan
                 Queries = numericSource ? [.. slice.Queries.Select(query => query with { Argument = query.Argument with { Type = SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Text) } })] : slice.Queries,
                 Specifications = [.. slice.Specifications.Where(candidate => (!numericSource && !dateTimeSource && !enumeratedName) || candidate.Id == specification.Id).Select(candidate => candidate.Id == specification.Id ? specification : candidate)]
             })] })]
-        })] };
+        })]
+        };
         var compilation = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(_originalModel.LanguageVersion, _originalModel.SemanticVersion, changed));
         if (compilation.Plan is null)
         {

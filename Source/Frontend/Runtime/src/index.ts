@@ -15,7 +15,7 @@ export { fetchModelReferences, modelReferenceFor, modelReferenceMap } from './mo
 export type { StageModelReference, StageModelReferenceKind, StageModelReferences } from './modelReferences';
 export { registeredQuery, performQuery, subscribeQuery, registerQueryRouteResolver } from './queryExecutor';
 export { StageCommandForm } from './StageCommandForm';
-export { StageGuardedAction } from './StageGuardedAction';
+export { StageSceneGuardedAction as StageGuardedAction } from './stageData';
 export { StageDataProvider, useStageData, useStageQuery, dataChanged } from './stageData';
 export { createStageSliceInvoker, sliceFieldsFrom } from './stageSlices';
 export { readStageNotes } from './stageNotes';

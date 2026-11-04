@@ -41,8 +41,9 @@ internal static class SemanticSharedReferences
         SemanticApplicationContext context,
         IReadOnlyList<LocatedSemanticSlice> slices)
     {
-        var concepts = new HashSet<SemanticId>();
-        var types = new HashSet<SemanticId>();
+        var closure = new SemanticTypeClosure(context);
+        var concepts = closure.Concepts;
+        var types = closure.Types;
         foreach (var located in slices)
         {
             var slice = located.Slice;
@@ -52,8 +53,7 @@ internal static class SemanticSharedReferences
             foreach (var query in slice.Queries) Query(query);
             foreach (var projection in slice.Projections)
             {
-                if (projection.Target == SemanticProjectionTargetKind.Event) Event(projection.ReadModel);
-                else ReadModel(projection.ReadModel);
+                Target(projection.Target, projection.ReadModel);
                 foreach (var eventContract in ProjectionReferencedEventNamesAreUnique.Contracts(projection)) Event(eventContract);
             }
             foreach (var capture in slice.Captures)
@@ -70,7 +70,7 @@ internal static class SemanticSharedReferences
             }
             foreach (var reducer in slice.Reducers)
             {
-                ReadModel(reducer.ReadModel);
+                Target(reducer.Target, reducer.ReadModel);
                 foreach (var transition in reducer.Transitions) Event(transition.EventContract);
             }
             foreach (var specification in slice.Specifications)
@@ -131,24 +131,19 @@ internal static class SemanticSharedReferences
         return ([.. context.Application.Concepts.Where(concept => concepts.Contains(concept.Id))],
             [.. context.Application.Types.Where(type => types.Contains(type.Id))]);
 
-        void Properties(IEnumerable<SemanticProperty> properties)
-        {
-            foreach (var property in properties) Reference(property.Type);
-        }
+        void Properties(IEnumerable<SemanticProperty> properties) => closure.Properties(properties);
 
-        void Reference(SemanticTypeReference? reference)
-        {
-            if (reference?.Kind == SemanticTypeReferenceKind.Concept) concepts.Add(reference.Target);
-            if (reference?.Kind == SemanticTypeReferenceKind.CompositeType) Composite(reference.Target);
-        }
+        void Reference(SemanticTypeReference? reference) => closure.Reference(reference);
 
-        void Composite(SemanticId id)
-        {
-            if (types.Add(id)) Properties(context.Types[id].Properties);
-        }
+        void Composite(SemanticId id) => closure.Composite(id);
 
         void Event(SemanticId id) => Properties(context.Events[id].Properties);
         void ReadModel(SemanticId id) => Properties(context.ReadModels[id].Properties);
+        void Target(SemanticProjectionTargetKind kind, SemanticId id)
+        {
+            if (kind == SemanticProjectionTargetKind.Event) Event(id);
+            else ReadModel(id);
+        }
 
         void Query(SemanticKeyedQuery query)
         {

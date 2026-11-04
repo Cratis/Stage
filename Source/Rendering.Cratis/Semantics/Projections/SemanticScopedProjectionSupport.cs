@@ -565,7 +565,7 @@ internal static class SemanticScopedProjectionSupport
 
             if (isNested && scope.JoinRemovals.Length > 0)
             {
-                return "Join removals inside nested are blocked by Chronicle#4125.";
+                return "Join removals inside nested are unsupported: neither Chronicle's engine nor the Screenplay reference wires a remove via join inside a nested object.";
             }
 
             return null;

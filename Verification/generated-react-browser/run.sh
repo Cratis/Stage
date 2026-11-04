@@ -65,9 +65,15 @@ for _ in $(seq 1 90); do
     sleep 2
 done
 if [ "$ready" != 1 ]; then
-    # Print the end of the host's log so the reason is in the job output, not only in the uploaded artifact.
-    echo "--- last 80 lines of $result.host.log ---"
-    tail -n 80 "$result.host.log" 2>/dev/null || echo "(no host log was written)"
+    # Print why, in the job output rather than only in the uploaded artifact: the host's log without the repeated
+    # health-check requests, and the kernel's own log, which shows whether it ever accepted the connection.
+    echo "--- $result.host.log, health-check requests left out ---"
+    grep -v -e '/healthz' -e "Executing endpoint 'Health checks'" -e "Executed endpoint 'Health checks'" \
+        -e 'Health check chronicle with status Unhealthy' -e 'HealthChecks.DefaultHealthCheckService' \
+        -e 'AspNetCore.Hosting.Diagnostics' -e 'AspNetCore.Routing.EndpointMiddleware' \
+        "$result.host.log" 2>/dev/null | tail -n 150 || echo "(no host log was written)"
+    echo "--- last 100 lines of the Chronicle kernel log ($container) ---"
+    docker logs --tail 100 "$container" 2>&1 || echo "(the kernel container has no log)"
     could_not_run "the generated host did not become healthy; see $result.host.log"
 fi
 

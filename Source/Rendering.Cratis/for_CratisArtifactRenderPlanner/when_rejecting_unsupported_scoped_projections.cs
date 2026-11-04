@@ -18,7 +18,8 @@ public class when_rejecting_unsupported_scoped_projections : Specification
 {
     [Theory]
     [InlineData("every-including-children")]
-    [InlineData("nested-join")]
+    [InlineData("nested-join-under-children")]
+    [InlineData("nested-join-on-identifier")]
     [InlineData("root-join-removal")]
     [InlineData("nested-only-from")]
     [InlineData("nested-only-clear")]
@@ -57,6 +58,18 @@ public class when_rejecting_unsupported_scoped_projections : Specification
                 .Replace("readmodel ProjectDetails\n        projectId ProjectId", "readmodel ProjectDetails\n        projectId ProjectKey", StringComparison.Ordinal)
                 .Replace("by projectId ProjectId\n      projection ProjectDetailsProjection", "by projectId ProjectKey\n      projection ProjectDetailsProjection", StringComparison.Ordinal)
                 .Replace("from ProjectRegistered key projectId\n          name = name\n      projection ProjectSummaryProjection", "from ProjectRegistered\n          key ProjectKey\n            projectId = projectId\n          name = name\n        from ProjectRenamed\n          key ProjectKey\n            projectId = projectId\n          name = name\n      projection ProjectSummaryProjection", StringComparison.Ordinal);
+        }
+
+        if (variant == "nested-join-under-children")
+        {
+            source = source.Replace("type ProjectNote\n  noteId ProjectId\n  name ProjectName\n", "type ProjectNote\n  noteId ProjectId\n  name ProjectName\n  inner ProjectInfo optional\n", StringComparison.Ordinal)
+                .Replace("remove with ProjectNoteRemoved key noteId", "nested inner\n            from ProjectNoted key noteId\n              name = name\n          remove with ProjectNoteRemoved key noteId", StringComparison.Ordinal);
+        }
+
+        if (variant == "nested-join-on-identifier")
+        {
+            source = source.Replace("type ProjectInfo\n  name ProjectName\n", "type ProjectInfo\n  id ProjectId\n  name ProjectName\n", StringComparison.Ordinal)
+                .Replace("        nested info\n          from ProjectRegistered key projectId\n            name = name", "        nested info\n          from ProjectRegistered key projectId\n            id = projectId\n            name = name", StringComparison.Ordinal);
         }
 
         if (Variant(variant, "unsafe-text-literal", "every-unsafe-literal"))
@@ -155,11 +168,27 @@ public class when_rejecting_unsupported_scoped_projections : Specification
                     .Single(@event => @event.Name == "ProjectNoteRemovedViaJoin").Id,
                 SemanticProjectionKey.EventSourceIdentity)]
             },
-            "nested-join" => scope with
+            "nested-join-under-children" => scope with
+            {
+                Children = [.. scope.Children.Select(children => children with
+                {
+                    Scope = children.Scope with
+                    {
+                        Nested = [.. children.Scope.Nested.Select(nested => nested with
+                        {
+                            Scope = nested.Scope with { Joins = [new(scope.Joins[0].EventContract, nested.Scope.From[0].Mappings[0].Target[0], [])] }
+                        })]
+                    }
+                })]
+            },
+            "nested-join-on-identifier" => scope with
             {
                 Nested = [.. scope.Nested.Select(nested => nested with
                 {
-                    Scope = nested.Scope with { Joins = [new(scope.Joins[0].EventContract, nested.Scope.From[0].Mappings[0].Target[0], [])] }
+                    Scope = nested.Scope with
+                    {
+                        Joins = [new(scope.Joins[0].EventContract, original.Application.Types.Single(type => type.Name == "ProjectInfo").Properties.Single(property => property.Name == "id").Id, [])]
+                    }
                 })]
             },
             "nested-only-from" => scope with
@@ -265,9 +294,14 @@ public class when_rejecting_unsupported_scoped_projections : Specification
             Assert.Contains("not yet verified by Stage", diagnostic.Message, StringComparison.Ordinal);
         }
 
-        if (variant == "nested-join")
+        if (variant == "nested-join-under-children")
         {
-            Assert.Contains("Screenplay#1078", diagnostic.Message, StringComparison.Ordinal);
+            Assert.Contains("A join inside a nested object under children is not wired by Chronicle's engine.", diagnostic.Message, StringComparison.Ordinal);
+        }
+
+        if (variant == "nested-join-on-identifier")
+        {
+            Assert.Contains("A nested join on the nested object's key cannot render", diagnostic.Message, StringComparison.Ordinal);
         }
 
         if (variant == "root-join-removal")
@@ -338,7 +372,7 @@ public class when_rejecting_unsupported_scoped_projections : Specification
         var context = new SemanticApplicationContext(request, options);
         var diagnostics = SemanticCratisAdmission.Evaluate(context, context.SelectedSlices());
         var diagnostic = Assert.Single(diagnostics, item => item.Code == "STAGE-ESM-017" && item.Artifact == projection);
-        Assert.Contains(child ? "Every literals at child or nested levels with joins" : "Screenplay#1078", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("Every literals at child or nested levels with joins", diagnostic.Message, StringComparison.Ordinal);
         if (child)
         {
             Assert.Contains("not yet verified by Stage", diagnostic.Message, StringComparison.Ordinal);

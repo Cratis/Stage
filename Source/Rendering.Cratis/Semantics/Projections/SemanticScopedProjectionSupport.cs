@@ -33,9 +33,10 @@ internal static class SemanticScopedProjectionSupport
     /// <param name="child">Whether this is a child collection.</param>
     /// <param name="identity">The child identity established by the child key.</param>
     /// <param name="isNested">Whether this scope targets a nested object.</param>
+    /// <param name="underChildren">Whether an ancestor of this scope is a child collection.</param>
     /// <returns>The reason, or null when supported.</returns>
-    public static string? Rejection(SemanticProjectionScope scope, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, bool child = false, SemanticId? identity = null, bool isNested = false) =>
-        new ScopeRejection(scope, context, properties, child, identity, isNested).Find();
+    public static string? Rejection(SemanticProjectionScope scope, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, bool child = false, SemanticId? identity = null, bool isNested = false, bool underChildren = false) =>
+        new ScopeRejection(scope, context, properties, child, identity, isNested, underChildren).Find();
 
     /// <summary>
     /// Whether the every literals of a scope are set by the every block itself (Chronicle#4663)
@@ -449,7 +450,8 @@ internal static class SemanticScopedProjectionSupport
         IReadOnlyList<SemanticProperty> properties,
         bool child,
         SemanticId? identity,
-        bool isNested)
+        bool isNested,
+        bool underChildren)
     {
         SemanticId? _protectedIdentity;
 
@@ -467,8 +469,12 @@ internal static class SemanticScopedProjectionSupport
 
         static bool IsComposite(SemanticProjectionKey? key) => key is SemanticProjectionCompositeKey;
 
-        static bool IsBlockedInNested(SemanticProjectionNested nested) =>
-            nested.Scope.Joins.Length > 0 || nested.Scope.Children.Length > 0 || nested.Scope.JoinRemovals.Length > 0;
+        static bool IsChildrenOrJoinRemovalInNested(SemanticProjectionNested nested) =>
+            nested.Scope.Children.Length > 0 || nested.Scope.JoinRemovals.Length > 0;
+
+        // Chronicle keys a nested join by the nested object's identifier or a property named id and backfills it; the reference does not.
+        static bool IsNestedKey(SemanticProperty property) =>
+            property.IsIdentifier || property.Name.Equals("id", StringComparison.OrdinalIgnoreCase);
 
         static bool IsCollectionOfComposites(SemanticProperty? property) =>
             property?.Type.IsCollection == true && property.Type.Kind == SemanticTypeReferenceKind.CompositeType;
@@ -485,7 +491,7 @@ internal static class SemanticScopedProjectionSupport
             return MappingRejection() ?? BlockRejection();
         }
 
-        string? LimitRejection() => ChronicleLimitRejection() ?? EveryLimitRejection() ?? JoinRemovalRejection();
+        string? LimitRejection() => ChronicleLimitRejection() ?? EveryLimitRejection() ?? JoinRemovalRejection() ?? NestedJoinKeyRejection();
 
         string? MappingRejection() =>
             EventNameRejection() ?? EveryRejection() ?? OptionalTotalRejection() ?? TotalTypeRejection() ?? CompositeKeyRejection() ?? ProtectedIdentityRejection() ?? RoleRejection();
@@ -510,13 +516,23 @@ internal static class SemanticScopedProjectionSupport
                 return "A read-model property name collides with Chronicle's property paths or another generated property.";
             }
 
-            if (scope.Nested.Any(IsBlockedInNested))
+            if (scope.Nested.Any(IsChildrenOrJoinRemovalInNested))
             {
-                return "Joins inside nested remain blocked by the pinned Screenplay reference (Screenplay#1078); children and join removals inside nested are unsupported.";
+                return "Children blocks and remove via join inside nested are unsupported: Chronicle's engine does not wire them.";
+            }
+
+            if ((child || underChildren) && scope.Nested.Any(nested => nested.Scope.Joins.Length > 0))
+            {
+                return "A join inside a nested object under children is not wired by Chronicle's engine.";
             }
 
             return null;
         }
+
+        string? NestedJoinKeyRejection() =>
+            isNested && scope.Joins.Any(join => properties.SingleOrDefault(property => property.Id == join.On) is { } on && IsNestedKey(on))
+                ? "A nested join on the nested object's key cannot render: Chronicle backfills by the nested key, the Screenplay reference does not."
+                : null;
 
         // Chronicle leaves a property it never sets null only where the C# type is a reference type: optional
         // values, text (including text concepts) and single composite objects. Value types, enumerations and
@@ -904,7 +920,7 @@ internal static class SemanticScopedProjectionSupport
                 return "A nested block needs an optional composite property.";
             }
 
-            return Rejection(nested.Scope, context, composite.Properties, isNested: true) is { } reason
+            return Rejection(nested.Scope, context, composite.Properties, isNested: true, underChildren: child || underChildren) is { } reason
                 ? $"A nested block cannot render: {reason}"
                 : null;
         }
@@ -921,7 +937,7 @@ internal static class SemanticScopedProjectionSupport
                 return "A children block has an unsupported collection or identity.";
             }
 
-            return Rejection(children.Scope, context, element.Properties, true, children.IdentifiedBy) is { } reason
+            return Rejection(children.Scope, context, element.Properties, true, children.IdentifiedBy, underChildren: true) is { } reason
                 ? $"A children block cannot render: {reason}"
                 : null;
         }

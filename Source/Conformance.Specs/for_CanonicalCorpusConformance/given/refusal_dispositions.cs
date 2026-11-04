@@ -8,6 +8,9 @@ public static class refusal_dispositions
 {
     public static readonly refusal_fingerprint InvalidGeneration = new("STAGE-ESM-019", null, "sem1:25bdf5d2a8f97601c41d6bc30d4da1d2fd4123e1ebf894d79f96b9103b85caf4");
 
+    const string ImplementationBodyCode = "STAGE-IMPL-003";
+    const int BodyExecutionIssue = 891;
+
     // Each entry allows only the exact vector/surface/fingerprint combinations listed here.
     static readonly (string[] Vectors, conformance_surface Surface, refusal_fingerprint[] Fingerprints)[] _allowedByDesign =
     [
@@ -114,6 +117,18 @@ public static class refusal_dispositions
             if (record.Issue == 500 && fingerprint.Code != "STAGE-ESM-011")
             {
                 Add($"issue-500-only-tracks-STAGE-ESM-011({fingerprint})");
+            }
+
+            // #513 is closed out as a tracking issue: bodies are tracked by #891 (execution) and #316 (rendering).
+            if (record.Issue == 513)
+            {
+                Add($"issue-513-is-not-a-tracking-issue({fingerprint})");
+            }
+
+            // Implementation bodies are refused per artifact until Stage#891 executes them; no other issue tracks that code.
+            if (fingerprint.Code == ImplementationBodyCode && record.Issue is { } issue && issue != BodyExecutionIssue)
+            {
+                Add($"issue-{issue}-tracks-STAGE-IMPL-003({fingerprint})");
             }
         }
 

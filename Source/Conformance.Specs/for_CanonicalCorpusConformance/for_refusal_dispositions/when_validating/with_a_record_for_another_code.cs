@@ -13,7 +13,7 @@ public class with_a_record_for_another_code : Specification
     readonly refusal_fingerprint _fingerprint = new("STAGE-ESM-010", null, "sem1:one");
     IReadOnlyList<string> _problems = null!;
 
-    void Because() => _problems = refusal_dispositions.Problems("GenerationFixturesCorpus.V21", conformance_surface.Renderer, new("refused", [new(_fingerprint with { Code = "STAGE-ESM-020" }, 513, null)]), new("refused", [_fingerprint], new Dictionary<refusal_fingerprint, string>()));
+    void Because() => _problems = refusal_dispositions.Problems("GenerationFixturesCorpus.V21", conformance_surface.Renderer, new("refused", [new(_fingerprint with { Code = "STAGE-ESM-020" }, 316, null)]), new("refused", [_fingerprint], new Dictionary<refusal_fingerprint, string>()));
 
     [Fact] void should_reject_the_refusal_as_unrecorded() => _problems.Any(problem => problem.StartsWith("GenerationFixturesCorpus.V21 / Renderer: unrecorded-refusal(", StringComparison.Ordinal)).ShouldBeTrue();
 }

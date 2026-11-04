@@ -35,7 +35,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     // Recomputed from train 9 execution after combining generated documentation, concepts and shared Common output.
     // Re-frozen for Cratis/Stage#120 merged with train 10: authentication artifacts and host wiring on top of the train 10 output.
     // Re-frozen for Cratis/Stage#937: only Directory.Packages.props pins Pkcs to 10.0.14 and documents Xml runtime servicing.
-    const string Digest = "7aa93601f9841d3189422ba7ffd872737b4e4898e2ed0171ed16dac9db36cdc4";
+    const string Digest = "b18afc2d76aa214b1fa58dcaae71d95018d7afa3e32eee95b49e16cf8ace4bc0";
     // Re-frozen for Cratis/Stage#926: the scaffold hosts an Orleans silo (Program.cs, Directory.Packages.props, the project).
     // Re-frozen for Chronicle 19.114.0 and Cratis.Orleans 1.33.1: Program.cs no longer registers a telemetry callback.
 
@@ -55,7 +55,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Common/WorkStatus.cs 39e8088132ed10030ab679cbd735db36c75cd2dfc5c9650596aa9c285458cce3 282
         Directory.Build.props b074ad4117a0d8e81466865fbb69d5d57a9c9cb7c0d3886d2575c1009322597a 1167
         Directory.Build.targets 17284cb74605517cbec8a8153505da71a685b28694b67b5ef80608cd79b1c0ea 12
-        Directory.Packages.props 81b89e942c8899995bae84cdfcda5a8d8a811f63761ca65759c8ffd6518b46d1 1837
+        Directory.Packages.props a78fe831e5d4f8ae0ae3641352cf175c21a8251210dbb99f46841f735df9f2cd 1904
         GeneratedAuthentication.cs ed09e251946fc352764a02a5b0ba94af3f465c824458b163fc4dc0fd958d7d29 5225
         GeneratedAuthenticationPerimeter.cs 81cd5b2cf77e385a07fcd4ff6d413be8e79436b1226242e9aa9ac461d6b6e960 9693
         GeneratedPolicyRegistration.cs 7962c40dc5f71ab971cf01ae185b06e584594e03161c3db0fed18363ca166100 593
@@ -80,7 +80,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Workspaces/Tracking/WorkItemList/when_listing_created_work_items_is_queried.cs d8b0763763dd34ab7dc7433ffc16d6597e3987ef673c412616ff92c7fcc172da 1521
         appsettings.json 43edcdf830ab948374c5c6ca2a700b2eed65134267d1830119cb803620cfd9cf 442
         docker-compose.yml a92e4b00e441d43ea07066f158322c0d02a7e1cc1f2c5853b3547b21567fba4a 559
-        package.json c29af7f901df2ce120df830dfb41fa4277f2f65540057f68c687440fb27ca11e 1343
+        package.json 6721bf9a25ecc656687e186e6c152d5be23fe554a121ce944777b306c8f7ef2d 1343
         scene.json ebb374ed2550f019cbd51055f7498fdf87e51db7a0d85479f7c65274fce7d55e 3894
         src/bindings.ts 03e22a6c7526dfaeb680dbb58a79f3e49399c615debcfd8e2eafa86e8e6150bb 2325
         src/stage-scene.json f295e8fd70f788d651c363b00357f0a678c2fbabcdd10039994fc1fa9697038b 4435
@@ -104,7 +104,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Common/WorkStatus.cs 94c14a6093b208dfe5065c1320725638b94db7a004b164fef1cc4765e967f36a 431
         Directory.Build.props fb4abdf22956b96063dbf033d57b65bb965ad5679faeccbd0cbcd8947e7c0f99 1115
         Directory.Build.targets 17284cb74605517cbec8a8153505da71a685b28694b67b5ef80608cd79b1c0ea 12
-        Directory.Packages.props 81b89e942c8899995bae84cdfcda5a8d8a811f63761ca65759c8ffd6518b46d1 1837
+        Directory.Packages.props a78fe831e5d4f8ae0ae3641352cf175c21a8251210dbb99f46841f735df9f2cd 1904
         GeneratedAuthentication.cs ff86455b7f123bb85d611a5fabc40fd3e124ea6e6724ba9cca9d0b730e105ac2 5374
         GeneratedAuthenticationPerimeter.cs aef7e8ae1697056711fe37948080bbda478ba5bf26cbccdf8614c6578b96041b 9842
         GeneratedPolicyRegistration.cs 05e8d5a16d52bc9e50828e14aab5d929e5778f7f855b3f8e8ec4c4e7d122ddbf 742
@@ -129,7 +129,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Workspaces/Tracking/WorkItemList/when_listing_created_work_items_is_queried.cs 85c389d9b510cfbb130f4937d6468023e0331db217f6a91b9e6c8980916110c7 2493
         appsettings.json 43edcdf830ab948374c5c6ca2a700b2eed65134267d1830119cb803620cfd9cf 442
         docker-compose.yml a92e4b00e441d43ea07066f158322c0d02a7e1cc1f2c5853b3547b21567fba4a 559
-        package.json c29af7f901df2ce120df830dfb41fa4277f2f65540057f68c687440fb27ca11e 1343
+        package.json 6721bf9a25ecc656687e186e6c152d5be23fe554a121ce944777b306c8f7ef2d 1343
         scene.json ebb374ed2550f019cbd51055f7498fdf87e51db7a0d85479f7c65274fce7d55e 3894
         src/bindings.ts 03e22a6c7526dfaeb680dbb58a79f3e49399c615debcfd8e2eafa86e8e6150bb 2325
         src/stage-scene.json f295e8fd70f788d651c363b00357f0a678c2fbabcdd10039994fc1fa9697038b 4435
@@ -194,7 +194,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("f9465b710d860271c315ab46b874a593d71dd8bca530b0f2d4d497a0a1359157"); // Re-frozen for #741 (.gitignore gains the .yarn/ line), Scene 4.86.0, Cratis/Stage#120 merged with train 10 and #937 (only Directory.Packages.props pins Pkcs and documents Xml runtime servicing).
+            plan.Diagnostics).ShouldEqual("384b7b9f26d92b43ea00283babd47e8bed27b38e73caa2812ba7f78b78f4b301"); // Re-frozen for #741 (.gitignore gains the .yarn/ line), Scene 4.86.0, Cratis/Stage#120 merged with train 10 and #937 (only Directory.Packages.props pins Pkcs and documents Xml runtime servicing).
     }
 
     [Theory]

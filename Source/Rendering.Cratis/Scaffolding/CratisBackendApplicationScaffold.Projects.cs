@@ -45,6 +45,7 @@ public sealed partial class CratisBackendApplicationScaffold
           </PropertyGroup>
           <ItemGroup>
             <PackageVersion Include="Cratis.Screenplay.Matching" Version="{{ScaffoldPackageVersions.ScreenplayMatching}}" />
+            <PackageVersion Include="Cratis.Screenplay" Version="{{ScaffoldPackageVersions.ScreenplayMatching}}" />
             <PackageVersion Include="Cratis" Version="{{profile.CratisPackageVersion}}" />
             <PackageVersion Include="Cratis.Arc.Chronicle.Testing" Version="{{profile.CratisArcChronicleTestingPackageVersion}}" />
             <PackageVersion Include="Cratis.Arc.MongoDB" Version="{{profile.CratisArcMongoDBPackageVersion}}" />

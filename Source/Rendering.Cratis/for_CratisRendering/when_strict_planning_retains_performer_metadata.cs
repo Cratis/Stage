@@ -93,7 +93,7 @@ public class when_strict_planning_retains_performer_metadata : given.a_source_pl
         Assert.Empty(_defaultLegacy.Degradations);
         Assert.False(_defaultLegacy.Strict);
         Assert.Same(_defaultLegacy, _defaultAccepted);
-        Assert.Equal("2282a29ffe2f8f6d7f01db79fc86d95dc8e2ad4958e9f4042a3a2e834465ca37", _defaultLegacy.Digest);
+        Assert.Equal("6196a0bbf2f46a141717f36a3fbc5cb48a363614da618daac4edc76809bf8008", _defaultLegacy.Digest);
         Assert.DoesNotContain(_normal.Plan.Diagnostics, diagnostic => diagnostic.Code.StartsWith("STAGE-DEGRADE-", StringComparison.Ordinal));
         Assert.Equal(ArtifactRenderOutcome.Partial, _normal.Plan.Outcome);
         Assert.Null(_normal.Plan.Inventory);

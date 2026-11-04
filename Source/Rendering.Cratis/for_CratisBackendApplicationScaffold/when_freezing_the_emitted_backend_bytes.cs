@@ -21,30 +21,30 @@ public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
     // Re-frozen when Debug specifications gained the Chronicle.Testing telemetry dependency.
     // Re-frozen for #120: authentication inputs, host wiring, sign-in instructions and Identity.Web references.
     // Re-frozen for #937: Directory.Packages.props pins Pkcs to 10.0.14 and documents Xml runtime servicing.
-    const string FrozenDigest = "8487d91b36cfc7ca90ddcbd3a2a8be773bde9016f0e7c62beaa0c6d899e8b88b";
+    const string FrozenDigest = "17785f39d1db6c1fd9a598ba0d9ebefbb26f1769f29f8ac889c97f3640a63f4d";
 
     // Frozen when the license header became the caller's choice: generated C# carries none by default.
-    const string SeparateSpecificationsDigest = "58d3c7e1159459723101c0770040b9d343fb77b9bb57f164e3467bdbd41ba3d6";
+    const string SeparateSpecificationsDigest = "caad5d604757c283413ddc98600102f4cb75103dfd6531ac7d5b5b4a384fb81c";
 
     // Frozen for #437: only the Matching package pin and host reference are added.
-    const string PreviousFrozenDigest = "d88f5afa8a8e99944a5c41c9e3be764c5d87c2735174058ea95934de426914f6";
+    const string PreviousFrozenDigest = "168111176c4979edb0d0cbd2f07df022bbcd49cfb4c809662d2e7b5c39b469b0";
 
     // Re-frozen for #424: the scaffold places using directives outside the namespace.
     // Re-frozen for #660: only Directory.Build.props gains CratisReadProtection On.
-    const string FrozenRepositoryRootDigest = "ddd8ca48bcf3b0bab98f8d16728a493e7db30b3183bf4a6d89a602266c17bd6c";
     // Re-frozen for Cratis/Stage#926: the application hosts an Orleans silo; every earlier digest re-frozen with it.
-    // Re-frozen for Chronicle 19.114.0 and Cratis.Orleans 1.33.1 with the telemetry callback registration removed; every earlier digest re-frozen with it.
+    // Re-frozen for Choreography 2.2.0 with Chronicle 19.124.0 and Arc 22.165.2; every earlier digest re-frozen with it.
+    const string FrozenRepositoryRootDigest = "06fecdef661c7ec7aecc4c6c1c174cdfff75e7dafab858a093bd7942a1b2d467";
 
     string _digest = null!;
 
     void Because() => _digest = Digest(_first);
 
-    [Fact] void should_change_only_using_placement_from_the_previous_backend() => Digest(SeparateSpecificationsLayout.Restore(_first, "MyApp"), beforePlacement: true).ShouldEqual("b600f1764f3f03740e62e17ebc470da821d730cfdef3e0b4a14a216e1b586ce8");
+    [Fact] void should_change_only_using_placement_from_the_previous_backend() => Digest(SeparateSpecificationsLayout.Restore(_first, "MyApp"), beforePlacement: true).ShouldEqual("e2de673d01deca6d037eaf0403bea6e677ec70b0233901e25c5596e1b2c9154c");
     [Fact] void should_emit_the_frozen_backend_bytes() => _digest.ShouldEqual(FrozenDigest);
     [Fact] void should_change_only_the_specifications_layout_from_the_previous_frozen_backend() => Digest(SeparateSpecificationsLayout.Restore(_first, "MyApp"), legacyPlacement: true).ShouldEqual(SeparateSpecificationsDigest);
     [Fact] void should_change_only_the_license_header_from_the_previous_frozen_backend() => Digest(SeparateSpecificationsLayout.Restore(_first, "MyApp"), legacyHeader: true, legacyPlacement: true).ShouldEqual(PreviousFrozenDigest);
     [Fact] void should_emit_the_frozen_repository_root_bytes() => Digest(new Scaffolding.CratisBackendApplicationScaffold().Create(_request.WithRepositoryRoot())).ShouldEqual(FrozenRepositoryRootDigest);
-    [Fact] void should_change_only_the_runtime_pins_from_the_previous_frozen_backend() => Digest(SeparateSpecificationsLayout.Restore(_first, "MyApp"), previousPins: true).ShouldEqual("e0fae897c07de2ed8e92f46fb02e8299d6a573472c8eec5d8f4334492d0bc98e");
+    [Fact] void should_change_only_the_runtime_pins_from_the_previous_frozen_backend() => Digest(SeparateSpecificationsLayout.Restore(_first, "MyApp"), previousPins: true).ShouldEqual("2b790a4e453a235a425500d70ebf15cf4002ca78b3c54d512130b3c003c20b74");
 
     static string Digest(ImmutableArray<ArtifactRenderInput> inputs, bool previousPins = false, bool beforePlacement = false, bool legacyHeader = false, bool legacyPlacement = false)
     {

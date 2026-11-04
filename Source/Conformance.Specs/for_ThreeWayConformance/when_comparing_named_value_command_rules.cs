@@ -50,6 +50,7 @@ public class when_comparing_named_value_command_rules(when_comparing_named_value
                         var enumType = Nullable.GetUnderlyingType(valueType) ?? valueType;
                         string? member = {{JsonSerializer.Serialize(member)}};
                         var value = member is null ? null : Enum.Parse(enumType, member);
+                        // Untyped scenarios cannot select decision reads automatically: https://github.com/Cratis/Arc/issues/3669
                         #pragma warning disable CS0618
                         using var scenario = new Cratis.Arc.Testing.Commands.CommandScenario<object>().UseDecisionReads();
                         #pragma warning restore CS0618

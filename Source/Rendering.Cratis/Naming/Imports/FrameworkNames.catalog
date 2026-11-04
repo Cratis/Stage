@@ -5,12 +5,15 @@ scaffold	3
 pin	Cratis	22.166.0
 pin	Cratis.Arc.Chronicle.Testing	22.166.0
 pin	Cratis.Arc.MongoDB	22.166.0
+pin	Cratis.Choreography	2.2.0
+pin	Cratis.Choreography.Chronicle	2.2.0
 pin	Cratis.Chronicle	19.125.0
 pin	Cratis.Chronicle.AspNetCore	19.125.0
 pin	Cratis.Chronicle.Testing	19.125.0
-pin	Cratis.Screenplay.Matching	5.3.2
-pin	Cratis.Specifications	5.2.3
-pin	Cratis.Specifications.XUnit	5.2.3
+pin	Cratis.Screenplay	5.3.1
+pin	Cratis.Screenplay.Matching	5.3.1
+pin	Cratis.Specifications	5.1.0
+pin	Cratis.Specifications.XUnit	5.1.0
 pin	Microsoft.NET.Test.Sdk	18.11.0
 pin	NSubstitute	6.2.0
 pin	TargetFramework	net10.0
@@ -34,8 +37,9 @@ package	AS	Cratis.Arc.ProxyGenerator.Build	22.166.0
 package	AS	Cratis.Arc.Screenplay.Embedded	22.166.0
 package	AS	Cratis.Arc.Swagger	22.166.0
 package	AS	Cratis.Arc.Testing	22.166.0
-package	AS	Cratis.Choreography	2.1.2
-package	AS	Cratis.Choreography.Storage	2.1.2
+package	AS	Cratis.Choreography	2.2.0
+package	AS	Cratis.Choreography.Chronicle	2.2.0
+package	AS	Cratis.Choreography.Storage	2.2.0
 package	AS	Cratis.Choreography.Storage.MongoDB	2.1.2
 package	AS	Cratis.Chronicle	19.125.0
 package	AS	Cratis.Chronicle.AspNetCore	19.125.0
@@ -45,14 +49,11 @@ package	AS	Cratis.Chronicle.Testing	19.125.0
 package	AS	Cratis.Fundamentals	7.33.1
 package	AS	Cratis.Metrics.Roslyn	7.33.1
 package	AS	Cratis.Observability.SourceGenerators	7.33.1
-package	AS	Cratis.Orleans	1.33.1
-package	AS	Cratis.Orleans.Chronicle	1.33.1
-package	AS	Cratis.Orleans.Storage	1.33.1
-package	AS	Cratis.Screenplay	5.3.2
-package	AS	Cratis.Screenplay.Contexts	5.3.2
-package	AS	Cratis.Screenplay.Matching	5.3.2
-package	AS	Cratis.Specifications	5.2.3
-package	AS	Cratis.Specifications.XUnit	5.2.3
+package	AS	Cratis.Screenplay	5.3.1
+package	AS	Cratis.Screenplay.Contexts	5.3.1
+package	AS	Cratis.Screenplay.Matching	5.3.1
+package	AS	Cratis.Specifications	5.1.0
+package	AS	Cratis.Specifications.XUnit	5.1.0
 package	AS	DnsClient	1.8.0
 package	AS	FluentValidation	12.2.0
 package	AS	Grpc.Core.Api	2.84.0
@@ -113,8 +114,8 @@ package	AS	Humanizer.Core.zh-CN	3.0.10
 package	AS	Humanizer.Core.zh-Hans	3.0.10
 package	AS	Humanizer.Core.zh-Hant	3.0.10
 package	AS	JsonCons.JmesPath	1.0.0
-package	AS	Microsoft.AspNetCore.Authentication.JwtBearer	10.0.13
-package	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect	10.0.13
+package	AS	Microsoft.AspNetCore.Authentication.JwtBearer	10.0.0
+package	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect	10.0.0
 package	AS	Microsoft.Bcl.AsyncInterfaces	8.0.0
 package	AS	Microsoft.Bcl.Cryptography	10.0.2
 package	AS	Microsoft.Build.Framework	18.9.6
@@ -137,12 +138,12 @@ package	AS	Microsoft.Extensions.Telemetry.Abstractions	10.11.0
 package	AS	Microsoft.Identity.Abstractions	12.7.0
 package	AS	Microsoft.Identity.Client	4.90.1
 package	AS	Microsoft.Identity.Client.Extensions.Msal	4.83.1
-package	AS	Microsoft.Identity.Web	4.17.0
-package	AS	Microsoft.Identity.Web.Certificate	4.17.0
-package	AS	Microsoft.Identity.Web.Certificateless	4.17.0
-package	AS	Microsoft.Identity.Web.Diagnostics	4.17.0
-package	AS	Microsoft.Identity.Web.TokenAcquisition	4.17.0
-package	AS	Microsoft.Identity.Web.TokenCache	4.17.0
+package	AS	Microsoft.Identity.Web	4.16.1
+package	AS	Microsoft.Identity.Web.Certificate	4.16.1
+package	AS	Microsoft.Identity.Web.Certificateless	4.16.1
+package	AS	Microsoft.Identity.Web.Diagnostics	4.16.1
+package	AS	Microsoft.Identity.Web.TokenAcquisition	4.16.1
+package	AS	Microsoft.Identity.Web.TokenCache	4.16.1
 package	AS	Microsoft.IdentityModel.Abstractions	8.23.0
 package	AS	Microsoft.IdentityModel.JsonWebTokens	8.23.0
 package	AS	Microsoft.IdentityModel.Logging	8.23.0
@@ -403,11 +404,17 @@ namespace	AS	Cratis.Arc.Testing.Validation
 namespace	AS	Cratis.Arc.Validation
 namespace	AS	Cratis.Arc.Validation.Generated
 namespace	AS	Cratis.Choreography
+namespace	AS	Cratis.Choreography.Chronicle
+namespace	AS	Cratis.Choreography.Chronicle.Hosting
+namespace	AS	Cratis.Choreography.Chronicle.StateMachines
+namespace	AS	Cratis.Choreography.Chronicle.Workflows
+namespace	AS	Cratis.Choreography.Chronicle.Workflows.Listing
 namespace	AS	Cratis.Choreography.Hosting
 namespace	AS	Cratis.Choreography.Jobs
 namespace	AS	Cratis.Choreography.Jobs.Placement
 namespace	AS	Cratis.Choreography.Jobs.Stages
 namespace	AS	Cratis.Choreography.Json
+namespace	AS	Cratis.Choreography.Operations
 namespace	AS	Cratis.Choreography.Patching
 namespace	AS	Cratis.Choreography.Serialization
 namespace	AS	Cratis.Choreography.Setup
@@ -769,37 +776,6 @@ namespace	AS	Cratis.Metrics
 namespace	AS	Cratis.Metrics.Roslyn
 namespace	AS	Cratis.Metrics.Roslyn.Templates
 namespace	AS	Cratis.Monads
-namespace	AS	Cratis.Orleans
-namespace	AS	Cratis.Orleans.Chronicle
-namespace	AS	Cratis.Orleans.Chronicle.Hosting
-namespace	AS	Cratis.Orleans.Chronicle.StateMachines
-namespace	AS	Cratis.Orleans.Chronicle.Workflows
-namespace	AS	Cratis.Orleans.Chronicle.Workflows.Listing
-namespace	AS	Cratis.Orleans.Hosting
-namespace	AS	Cratis.Orleans.Jobs
-namespace	AS	Cratis.Orleans.Jobs.Placement
-namespace	AS	Cratis.Orleans.Jobs.Stages
-namespace	AS	Cratis.Orleans.Json
-namespace	AS	Cratis.Orleans.Serialization
-namespace	AS	Cratis.Orleans.StateMachines
-namespace	AS	Cratis.Orleans.Storage
-namespace	AS	Cratis.Orleans.Storage.InMemory
-namespace	AS	Cratis.Orleans.Storage.Jobs
-namespace	AS	Cratis.Orleans.Tenancy
-namespace	AS	Cratis.Orleans.Workers
-namespace	AS	Cratis.Orleans.Workflows
-namespace	AS	Cratis.Orleans.Workflows.Adapters
-namespace	AS	Cratis.Orleans.Workflows.Contracts
-namespace	AS	Cratis.Orleans.Workflows.Definitions
-namespace	AS	Cratis.Orleans.Workflows.Execution
-namespace	AS	Cratis.Orleans.Workflows.Graphs
-namespace	AS	Cratis.Orleans.Workflows.Journal
-namespace	AS	Cratis.Orleans.Workflows.Runs
-namespace	AS	Cratis.Orleans.Workflows.Runs.Coordination
-namespace	AS	Cratis.Orleans.Workflows.Scopes
-namespace	AS	Cratis.Orleans.Workflows.Sweeping
-namespace	AS	Cratis.Orleans.Workflows.Triggers
-namespace	AS	Cratis.Orleans.Workflows.Waits
 namespace	AS	Cratis.Reactive
 namespace	AS	Cratis.ReadModels
 namespace	AS	Cratis.Reflection
@@ -1874,6 +1850,8 @@ namespace	AS	Orleans.Versions.Selector
 namespace	AS	OrleansCodeGen
 namespace	AS	OrleansCodeGen.Cratis
 namespace	AS	OrleansCodeGen.Cratis.Choreography
+namespace	AS	OrleansCodeGen.Cratis.Choreography.Chronicle
+namespace	AS	OrleansCodeGen.Cratis.Choreography.Chronicle.StateMachines
 namespace	AS	OrleansCodeGen.Cratis.Choreography.Jobs
 namespace	AS	OrleansCodeGen.Cratis.Choreography.Jobs.Placement
 namespace	AS	OrleansCodeGen.Cratis.Choreography.Patching
@@ -1932,19 +1910,9 @@ namespace	AS	OrleansCodeGen.Cratis.Chronicle.Security
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Seeding
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Servers
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Sys
-namespace	AS	OrleansCodeGen.Cratis.Orleans
-namespace	AS	OrleansCodeGen.Cratis.Orleans.Chronicle
-namespace	AS	OrleansCodeGen.Cratis.Orleans.Chronicle.StateMachines
-namespace	AS	OrleansCodeGen.Cratis.Orleans.Jobs
-namespace	AS	OrleansCodeGen.Cratis.Orleans.Jobs.Placement
-namespace	AS	OrleansCodeGen.Cratis.Orleans.Workers
-namespace	AS	OrleansCodeGen.Cratis.Orleans.Workflows
-namespace	AS	OrleansCodeGen.Cratis.Orleans.Workflows.Execution
-namespace	AS	OrleansCodeGen.Cratis.Orleans.Workflows.Journal
-namespace	AS	OrleansCodeGen.Cratis.Orleans.Workflows.Runs
-namespace	AS	OrleansCodeGen.Cratis.Orleans.Workflows.Sweeping
 namespace	AS	OrleansCodeGen.CratisArcChronicleTesting
 namespace	AS	OrleansCodeGen.CratisChoreography
+namespace	AS	OrleansCodeGen.CratisChoreographyChronicle
 namespace	AS	OrleansCodeGen.CratisChoreographyStorage
 namespace	AS	OrleansCodeGen.CratisChoreographyStorageMongoDB
 namespace	AS	OrleansCodeGen.CratisChronicleConcepts
@@ -1953,9 +1921,6 @@ namespace	AS	OrleansCodeGen.CratisChronicleGrpc
 namespace	AS	OrleansCodeGen.CratisChronicleStorage
 namespace	AS	OrleansCodeGen.CratisChronicleStorageInMemory
 namespace	AS	OrleansCodeGen.CratisChronicleTesting
-namespace	AS	OrleansCodeGen.CratisOrleans
-namespace	AS	OrleansCodeGen.CratisOrleansChronicle
-namespace	AS	OrleansCodeGen.CratisOrleansStorage
 namespace	AS	OrleansCodeGen.Orleans
 namespace	AS	OrleansCodeGen.Orleans.BroadcastChannel
 namespace	AS	OrleansCodeGen.Orleans.ClientObservers
@@ -3272,6 +3237,54 @@ type	AS	Cratis.Arc.Validation	ValidatorInvoker	class
 type	AS	Cratis.Choreography	KeyHelper	static
 type	AS	Cratis.Choreography	SerializationConfigurationExtensions	static
 type	AS	Cratis.Choreography	WellKnownGrainStorageProviders	static
+type	AS	Cratis.Choreography.Chronicle.Hosting	EventSourcedStateMachinesServiceCollectionExtensions	static
+type	AS	Cratis.Choreography.Chronicle.Hosting	EventSourcedWorkflowsServiceCollectionExtensions	static
+type	AS	Cratis.Choreography.Chronicle.StateMachines	EventSourcedStateMachineDefinition	class
+type	AS	Cratis.Choreography.Chronicle.StateMachines	EventSourcedStateMachineDefinitions	class
+type	AS	Cratis.Choreography.Chronicle.StateMachines	EventSourcedStateMachineGrainFactoryExtensions	static
+type	AS	Cratis.Choreography.Chronicle.StateMachines	EventSourcedStateMachine`1	class
+type	AS	Cratis.Choreography.Chronicle.StateMachines	EventSourcedStateMachinesOptions	class
+type	AS	Cratis.Choreography.Chronicle.StateMachines	IEventSourcedStateMachine	interface
+type	AS	Cratis.Choreography.Chronicle.StateMachines	IEventSourcedStateMachineDefinitions	interface
+type	AS	Cratis.Choreography.Chronicle.StateMachines	IStateMachineArtifactRegistrations	interface
+type	AS	Cratis.Choreography.Chronicle.StateMachines	IStateMachineEventStores	interface
+type	AS	Cratis.Choreography.Chronicle.StateMachines	IStateMachineGrainResolver	interface
+type	AS	Cratis.Choreography.Chronicle.StateMachines	IStateMachineTransitionBuilder`1	interface
+type	AS	Cratis.Choreography.Chronicle.StateMachines	IStateMachineTransitions`1	interface
+type	AS	Cratis.Choreography.Chronicle.StateMachines	InvalidStateMachineKey	class
+type	AS	Cratis.Choreography.Chronicle.StateMachines	MissingProjectionForStateMachineModel	class
+type	AS	Cratis.Choreography.Chronicle.StateMachines	ModelDidNotCatchUp	class
+type	AS	Cratis.Choreography.Chronicle.StateMachines	ReadModelStorageIsNotBound	class
+type	AS	Cratis.Choreography.Chronicle.StateMachines	ReadModelStorage`1	class
+type	AS	Cratis.Choreography.Chronicle.StateMachines	SchemasAreNotAvailableWhileInspectingProjections	class
+type	AS	Cratis.Choreography.Chronicle.StateMachines	StateMachineEventStores	class
+type	AS	Cratis.Choreography.Chronicle.StateMachines	StateMachineGrainResolver	class
+type	AS	Cratis.Choreography.Chronicle.StateMachines	StateMachineHasNoEventInterest	class
+type	AS	Cratis.Choreography.Chronicle.StateMachines	StateMachineKey	class
+type	AS	Cratis.Choreography.Chronicle.StateMachines	StateMachineModelAlreadyHasProjection	class
+type	AS	Cratis.Choreography.Chronicle.StateMachines	StateMachineProjectionSource	enum
+type	AS	Cratis.Choreography.Chronicle.StateMachines	StateMachineRefresh	class
+type	AS	Cratis.Choreography.Chronicle.StateMachines	StateMachineTransition`1	class
+type	AS	Cratis.Choreography.Chronicle.StateMachines	StateMachineTransitions`1	class
+type	AS	Cratis.Choreography.Chronicle.StateMachines	TransitionEventIsNotAnEventType	class
+type	AS	Cratis.Choreography.Chronicle.StateMachines	TypeIsNotAnEventSourcedStateMachine	class
+type	AS	Cratis.Choreography.Chronicle.Workflows	ChronicleWorkflowExecutionScopes	class
+type	AS	Cratis.Choreography.Chronicle.Workflows	ChronicleWorkflowRunJournal	class
+type	AS	Cratis.Choreography.Chronicle.Workflows	CronExpression	class
+type	AS	Cratis.Choreography.Chronicle.Workflows	EventSourcedWorkflowsOptions	class
+type	AS	Cratis.Choreography.Chronicle.Workflows	IWorkflowSignals	interface
+type	AS	Cratis.Choreography.Chronicle.Workflows	InvalidCronExpression	class
+type	AS	Cratis.Choreography.Chronicle.Workflows	StateMachineIsNotAGrain	class
+type	AS	Cratis.Choreography.Chronicle.Workflows	WorkflowEventTrigger	class
+type	AS	Cratis.Choreography.Chronicle.Workflows	WorkflowSchedule	class
+type	AS	Cratis.Choreography.Chronicle.Workflows	WorkflowScheduleService	class
+type	AS	Cratis.Choreography.Chronicle.Workflows	WorkflowSignals	class
+type	AS	Cratis.Choreography.Chronicle.Workflows	WorkflowStateExtensions	static
+type	AS	Cratis.Choreography.Chronicle.Workflows.Listing	OpenWorkflowWait	class
+type	AS	Cratis.Choreography.Chronicle.Workflows.Listing	WorkflowRun	class
+type	AS	Cratis.Choreography.Chronicle.Workflows.Listing	WorkflowRunExecution	class
+type	AS	Cratis.Choreography.Chronicle.Workflows.Listing	WorkflowRunReducer	class
+type	AS	Cratis.Choreography.Chronicle.Workflows.Listing	WorkflowRunWait	class
 type	AS	Cratis.Choreography.Hosting	ClusteringMode	enum
 type	AS	Cratis.Choreography.Hosting	CratisChoreographyOptions	class
 type	AS	Cratis.Choreography.Hosting	CratisChoreographySiloBuilderExtensions	static
@@ -3410,6 +3423,35 @@ type	AS	Cratis.Choreography.Jobs.Stages	JobStageProgress	class
 type	AS	Cratis.Choreography.Jobs.Stages	JobStages	static
 type	AS	Cratis.Choreography.Jobs.Stages	JobStepStage	class
 type	AS	Cratis.Choreography.Json	ObjectExtensions	static
+type	AS	Cratis.Choreography.Operations	IOperationDefinition	interface
+type	AS	Cratis.Choreography.Operations	IOperationDefinitions	interface
+type	AS	Cratis.Choreography.Operations	IOperationEngine	interface
+type	AS	Cratis.Choreography.Operations	IOperationExecutor	interface
+type	AS	Cratis.Choreography.Operations	IOperationHistory	interface
+type	AS	Cratis.Choreography.Operations	IOperationHistoryStorage	interface
+type	AS	Cratis.Choreography.Operations	IOperationRecording	interface
+type	AS	Cratis.Choreography.Operations	OperationActor	class
+type	AS	Cratis.Choreography.Operations	OperationAlreadyDefined	class
+type	AS	Cratis.Choreography.Operations	OperationContext`1	class
+type	AS	Cratis.Choreography.Operations	OperationDefinition`1	class
+type	AS	Cratis.Choreography.Operations	OperationDefinitions	class
+type	AS	Cratis.Choreography.Operations	OperationEngine	class
+type	AS	Cratis.Choreography.Operations	OperationEntry	class
+type	AS	Cratis.Choreography.Operations	OperationExecutionContext	class
+type	AS	Cratis.Choreography.Operations	OperationExecutionResult	class
+type	AS	Cratis.Choreography.Operations	OperationHistory	class
+type	AS	Cratis.Choreography.Operations	OperationHistoryItem	class
+type	AS	Cratis.Choreography.Operations	OperationId	class
+type	AS	Cratis.Choreography.Operations	OperationKind	class
+type	AS	Cratis.Choreography.Operations	OperationLocks	class
+type	AS	Cratis.Choreography.Operations	OperationNotFound	class
+type	AS	Cratis.Choreography.Operations	OperationNotStarted	class
+type	AS	Cratis.Choreography.Operations	OperationOutcome	class
+type	AS	Cratis.Choreography.Operations	OperationOutcomeKind	enum
+type	AS	Cratis.Choreography.Operations	OperationRole	enum
+type	AS	Cratis.Choreography.Operations	OperationScope	class
+type	AS	Cratis.Choreography.Operations	OperationStatus	enum
+type	AS	Cratis.Choreography.Operations	OperationsServiceCollectionExtensions	static
 type	AS	Cratis.Choreography.Patching	AppliedPatch	class
 type	AS	Cratis.Choreography.Patching	ICanApplyPatch	interface
 type	AS	Cratis.Choreography.Patching	IPatchManager	interface
@@ -3445,12 +3487,14 @@ type	AS	Cratis.Choreography.StateMachines	UnknownStateTypeInStateMachine	class
 type	AS	Cratis.Choreography.Storage	IJobsStorage	interface
 type	AS	Cratis.Choreography.Storage	InMemoryJobsStorage	class
 type	AS	Cratis.Choreography.Storage	InMemoryJobsStorageServiceCollectionExtensions	static
+type	AS	Cratis.Choreography.Storage	InMemoryOperationHistoryServiceCollectionExtensions	static
 type	AS	Cratis.Choreography.Storage	InMemoryPatchStorage	class
 type	AS	Cratis.Choreography.Storage	InMemoryPatchStorageServiceCollectionExtensions	static
 type	AS	Cratis.Choreography.Storage	JobsStorage	class
 type	AS	Cratis.Choreography.Storage.InMemory	JobStepPlanStorage	class
 type	AS	Cratis.Choreography.Storage.InMemory	JobStepStorage	class
 type	AS	Cratis.Choreography.Storage.InMemory	JobStorage	class
+type	AS	Cratis.Choreography.Storage.InMemory	OperationHistoryStorage	class
 type	AS	Cratis.Choreography.Storage.Jobs	IJobStepPlanStorage	interface
 type	AS	Cratis.Choreography.Storage.Jobs	IJobStepStorage	interface
 type	AS	Cratis.Choreography.Storage.Jobs	IJobStorage	interface
@@ -4919,399 +4963,6 @@ type	AS	Cratis.Monads	Option`1	class
 type	AS	Cratis.Monads	Result	class
 type	AS	Cratis.Monads	Result`1	class
 type	AS	Cratis.Monads	Result`2	class
-type	AS	Cratis.Orleans	KeyHelper	static
-type	AS	Cratis.Orleans	SerializationConfigurationExtensions	static
-type	AS	Cratis.Orleans	WellKnownGrainStorageProviders	static
-type	AS	Cratis.Orleans.Chronicle.Hosting	EventSourcedStateMachinesServiceCollectionExtensions	static
-type	AS	Cratis.Orleans.Chronicle.Hosting	EventSourcedWorkflowsServiceCollectionExtensions	static
-type	AS	Cratis.Orleans.Chronicle.StateMachines	EventSourcedStateMachineDefinition	class
-type	AS	Cratis.Orleans.Chronicle.StateMachines	EventSourcedStateMachineDefinitions	class
-type	AS	Cratis.Orleans.Chronicle.StateMachines	EventSourcedStateMachineGrainFactoryExtensions	static
-type	AS	Cratis.Orleans.Chronicle.StateMachines	EventSourcedStateMachine`1	class
-type	AS	Cratis.Orleans.Chronicle.StateMachines	EventSourcedStateMachinesOptions	class
-type	AS	Cratis.Orleans.Chronicle.StateMachines	IEventSourcedStateMachine	interface
-type	AS	Cratis.Orleans.Chronicle.StateMachines	IEventSourcedStateMachineDefinitions	interface
-type	AS	Cratis.Orleans.Chronicle.StateMachines	IStateMachineArtifactRegistrations	interface
-type	AS	Cratis.Orleans.Chronicle.StateMachines	IStateMachineEventStores	interface
-type	AS	Cratis.Orleans.Chronicle.StateMachines	IStateMachineGrainResolver	interface
-type	AS	Cratis.Orleans.Chronicle.StateMachines	IStateMachineTransitionBuilder`1	interface
-type	AS	Cratis.Orleans.Chronicle.StateMachines	IStateMachineTransitions`1	interface
-type	AS	Cratis.Orleans.Chronicle.StateMachines	InvalidStateMachineKey	class
-type	AS	Cratis.Orleans.Chronicle.StateMachines	MissingProjectionForStateMachineModel	class
-type	AS	Cratis.Orleans.Chronicle.StateMachines	ModelDidNotCatchUp	class
-type	AS	Cratis.Orleans.Chronicle.StateMachines	ReadModelStorageIsNotBound	class
-type	AS	Cratis.Orleans.Chronicle.StateMachines	ReadModelStorage`1	class
-type	AS	Cratis.Orleans.Chronicle.StateMachines	SchemasAreNotAvailableWhileInspectingProjections	class
-type	AS	Cratis.Orleans.Chronicle.StateMachines	StateMachineEventStores	class
-type	AS	Cratis.Orleans.Chronicle.StateMachines	StateMachineGrainResolver	class
-type	AS	Cratis.Orleans.Chronicle.StateMachines	StateMachineHasNoEventInterest	class
-type	AS	Cratis.Orleans.Chronicle.StateMachines	StateMachineKey	class
-type	AS	Cratis.Orleans.Chronicle.StateMachines	StateMachineModelAlreadyHasProjection	class
-type	AS	Cratis.Orleans.Chronicle.StateMachines	StateMachineProjectionSource	enum
-type	AS	Cratis.Orleans.Chronicle.StateMachines	StateMachineRefresh	class
-type	AS	Cratis.Orleans.Chronicle.StateMachines	StateMachineTransition`1	class
-type	AS	Cratis.Orleans.Chronicle.StateMachines	StateMachineTransitions`1	class
-type	AS	Cratis.Orleans.Chronicle.StateMachines	TransitionEventIsNotAnEventType	class
-type	AS	Cratis.Orleans.Chronicle.StateMachines	TypeIsNotAnEventSourcedStateMachine	class
-type	AS	Cratis.Orleans.Chronicle.Workflows	ChronicleWorkflowExecutionScopes	class
-type	AS	Cratis.Orleans.Chronicle.Workflows	ChronicleWorkflowRunJournal	class
-type	AS	Cratis.Orleans.Chronicle.Workflows	CronExpression	class
-type	AS	Cratis.Orleans.Chronicle.Workflows	EventSourcedWorkflowsOptions	class
-type	AS	Cratis.Orleans.Chronicle.Workflows	IWorkflowSignals	interface
-type	AS	Cratis.Orleans.Chronicle.Workflows	InvalidCronExpression	class
-type	AS	Cratis.Orleans.Chronicle.Workflows	StateMachineIsNotAGrain	class
-type	AS	Cratis.Orleans.Chronicle.Workflows	WorkflowEventTrigger	class
-type	AS	Cratis.Orleans.Chronicle.Workflows	WorkflowSchedule	class
-type	AS	Cratis.Orleans.Chronicle.Workflows	WorkflowScheduleService	class
-type	AS	Cratis.Orleans.Chronicle.Workflows	WorkflowSignals	class
-type	AS	Cratis.Orleans.Chronicle.Workflows	WorkflowStateExtensions	static
-type	AS	Cratis.Orleans.Chronicle.Workflows.Listing	OpenWorkflowWait	class
-type	AS	Cratis.Orleans.Chronicle.Workflows.Listing	WorkflowRun	class
-type	AS	Cratis.Orleans.Chronicle.Workflows.Listing	WorkflowRunExecution	class
-type	AS	Cratis.Orleans.Chronicle.Workflows.Listing	WorkflowRunReducer	class
-type	AS	Cratis.Orleans.Chronicle.Workflows.Listing	WorkflowRunWait	class
-type	AS	Cratis.Orleans.Hosting	ClusteringMode	enum
-type	AS	Cratis.Orleans.Hosting	CratisOrleansOptions	class
-type	AS	Cratis.Orleans.Hosting	CratisOrleansSiloBuilderExtensions	static
-type	AS	Cratis.Orleans.Hosting	GrainStorageMode	enum
-type	AS	Cratis.Orleans.Hosting	JobPlacementSiloBuilderExtensions	static
-type	AS	Cratis.Orleans.Hosting	WorkflowsSiloBuilderExtensions	static
-type	AS	Cratis.Orleans.Jobs	ActivationCallbackRejected	enum
-type	AS	Cratis.Orleans.Jobs	CannotResumeJobError	enum
-type	AS	Cratis.Orleans.Jobs	DeleteJobResult	class
-type	AS	Cratis.Orleans.Jobs	DeleteJobResult+Deleted	class
-type	AS	Cratis.Orleans.Jobs	DeleteJobResult+NotFound	class
-type	AS	Cratis.Orleans.Jobs	DeleteJobResult+Refused	class
-type	AS	Cratis.Orleans.Jobs	DeleteJobResult+UnknownJobType	class
-type	AS	Cratis.Orleans.Jobs	DrainJobResult	class
-type	AS	Cratis.Orleans.Jobs	DrainJobResult+Completed	class
-type	AS	Cratis.Orleans.Jobs	DrainJobResult+Drained	class
-type	AS	Cratis.Orleans.Jobs	DrainJobResult+NotFound	class
-type	AS	Cratis.Orleans.Jobs	DrainJobResult+TimedOut	class
-type	AS	Cratis.Orleans.Jobs	DrainJobResult+UnknownJobType	class
-type	AS	Cratis.Orleans.Jobs	FailedResumingJobSteps	class
-type	AS	Cratis.Orleans.Jobs	IJob	interface
-type	AS	Cratis.Orleans.Jobs	IJobAdmission	interface
-type	AS	Cratis.Orleans.Jobs	IJobDrain	interface
-type	AS	Cratis.Orleans.Jobs	IJobObserver	interface
-type	AS	Cratis.Orleans.Jobs	IJobRequest	interface
-type	AS	Cratis.Orleans.Jobs	IJobStep	interface
-type	AS	Cratis.Orleans.Jobs	IJobStepDrain	interface
-type	AS	Cratis.Orleans.Jobs	IJobStepThrottle	interface
-type	AS	Cratis.Orleans.Jobs	IJobStep`3	interface
-type	AS	Cratis.Orleans.Jobs	IJobStopFinalization	interface
-type	AS	Cratis.Orleans.Jobs	IJobTypes	interface
-type	AS	Cratis.Orleans.Jobs	IJobTypes+GetClrTypeForError	enum
-type	AS	Cratis.Orleans.Jobs	IJobTypes+GetForError	enum
-type	AS	Cratis.Orleans.Jobs	IJobTypes+GetRequestClrTypeForError	enum
-type	AS	Cratis.Orleans.Jobs	IJobTypesCatalog	interface
-type	AS	Cratis.Orleans.Jobs	IJob`1	interface
-type	AS	Cratis.Orleans.Jobs	IJobs	interface
-type	AS	Cratis.Orleans.Jobs	IJobsManager	interface
-type	AS	Cratis.Orleans.Jobs	IJobsManagerKeys	interface
-type	AS	Cratis.Orleans.Jobs	JobAdmissionRequest	class
-type	AS	Cratis.Orleans.Jobs	JobDetails	class
-type	AS	Cratis.Orleans.Jobs	JobDrainStatus	enum
-type	AS	Cratis.Orleans.Jobs	JobError	enum
-type	AS	Cratis.Orleans.Jobs	JobGrainStorageProvider	class
-type	AS	Cratis.Orleans.Jobs	JobGrainStorageProviderError	class
-type	AS	Cratis.Orleans.Jobs	JobId	class
-type	AS	Cratis.Orleans.Jobs	JobKey	class
-type	AS	Cratis.Orleans.Jobs	JobLogMessages	static
-type	AS	Cratis.Orleans.Jobs	JobName	class
-type	AS	Cratis.Orleans.Jobs	JobProgress	class
-type	AS	Cratis.Orleans.Jobs	JobProgressMessage	class
-type	AS	Cratis.Orleans.Jobs	JobScopes	static
-type	AS	Cratis.Orleans.Jobs	JobStateConverter	class
-type	AS	Cratis.Orleans.Jobs	JobStatus	enum
-type	AS	Cratis.Orleans.Jobs	JobStatusChanged	class
-type	AS	Cratis.Orleans.Jobs	JobStepAlreadyHasALiveRun	class
-type	AS	Cratis.Orleans.Jobs	JobStepCheckpointDebounce	class
-type	AS	Cratis.Orleans.Jobs	JobStepDetails	class
-type	AS	Cratis.Orleans.Jobs	JobStepDispatchContext	class
-type	AS	Cratis.Orleans.Jobs	JobStepDrainResult	class
-type	AS	Cratis.Orleans.Jobs	JobStepError	enum
-type	AS	Cratis.Orleans.Jobs	JobStepGrainAndRequest	class
-type	AS	Cratis.Orleans.Jobs	JobStepGrainStorageProvider	class
-type	AS	Cratis.Orleans.Jobs	JobStepGrainStorageProviderError	class
-type	AS	Cratis.Orleans.Jobs	JobStepId	class
-type	AS	Cratis.Orleans.Jobs	JobStepIdentifier	class
-type	AS	Cratis.Orleans.Jobs	JobStepKey	class
-type	AS	Cratis.Orleans.Jobs	JobStepLogMessages	static
-type	AS	Cratis.Orleans.Jobs	JobStepName	class
-type	AS	Cratis.Orleans.Jobs	JobStepPercentage	class
-type	AS	Cratis.Orleans.Jobs	JobStepProgress	class
-type	AS	Cratis.Orleans.Jobs	JobStepProgressMessage	class
-type	AS	Cratis.Orleans.Jobs	JobStepRequestCannotRoundTrip	class
-type	AS	Cratis.Orleans.Jobs	JobStepResult	class
-type	AS	Cratis.Orleans.Jobs	JobStepScopes	static
-type	AS	Cratis.Orleans.Jobs	JobStepStatus	enum
-type	AS	Cratis.Orleans.Jobs	JobStepStatusChanged	class
-type	AS	Cratis.Orleans.Jobs	JobStepTestRunExtensions	static
-type	AS	Cratis.Orleans.Jobs	JobStepTestRunWasSuperseded	class
-type	AS	Cratis.Orleans.Jobs	JobStepTestRun`1	class
-type	AS	Cratis.Orleans.Jobs	JobStepThrottle	class
-type	AS	Cratis.Orleans.Jobs	JobStepThrottleLogMessages	static
-type	AS	Cratis.Orleans.Jobs	JobStepType	class
-type	AS	Cratis.Orleans.Jobs	JobStep`3	class
-type	AS	Cratis.Orleans.Jobs	JobType	class
-type	AS	Cratis.Orleans.Jobs	JobTypeAlreadyExists	class
-type	AS	Cratis.Orleans.Jobs	JobTypeAttribute	attribute
-type	AS	Cratis.Orleans.Jobs	JobTypeCanOnlyHaveOneRequestType	class
-type	AS	Cratis.Orleans.Jobs	JobTypeMustHaveARequestType	class
-type	AS	Cratis.Orleans.Jobs	JobTypeNotAssociatedWithType	class
-type	AS	Cratis.Orleans.Jobs	JobTypeReadFailed	class
-type	AS	Cratis.Orleans.Jobs	JobTypes	class
-type	AS	Cratis.Orleans.Jobs	JobTypesExtensions	static
-type	AS	Cratis.Orleans.Jobs	Job`2	class
-type	AS	Cratis.Orleans.Jobs	Jobs	class
-type	AS	Cratis.Orleans.Jobs	JobsManager	class
-type	AS	Cratis.Orleans.Jobs	JobsManagerExtensions	static
-type	AS	Cratis.Orleans.Jobs	JobsManagerKey	class
-type	AS	Cratis.Orleans.Jobs	JobsManagerKeys	class
-type	AS	Cratis.Orleans.Jobs	JobsManagerLogMessages	static
-type	AS	Cratis.Orleans.Jobs	JobsManagerScopes	static
-type	AS	Cratis.Orleans.Jobs	JobsOptions	class
-type	AS	Cratis.Orleans.Jobs	JobsRecovery	class
-type	AS	Cratis.Orleans.Jobs	NullJob	class
-type	AS	Cratis.Orleans.Jobs	PerformJobStepError	class
-type	AS	Cratis.Orleans.Jobs	PrepareJobStepError	enum
-type	AS	Cratis.Orleans.Jobs	RemoveJobError	enum
-type	AS	Cratis.Orleans.Jobs	ResumeJobError	class
-type	AS	Cratis.Orleans.Jobs	ResumeJobSuccess	enum
-type	AS	Cratis.Orleans.Jobs	RetryFailedStepsError	enum
-type	AS	Cratis.Orleans.Jobs	SiloMetadataJobStepParallelism	class
-type	AS	Cratis.Orleans.Jobs	StartJobError	enum
-type	AS	Cratis.Orleans.Jobs	StartJobStepError	enum
-type	AS	Cratis.Orleans.Jobs	StopJobError	enum
-type	AS	Cratis.Orleans.Jobs	StopJobResult	class
-type	AS	Cratis.Orleans.Jobs	StopJobResult+NotFound	class
-type	AS	Cratis.Orleans.Jobs	StopJobResult+Refused	class
-type	AS	Cratis.Orleans.Jobs	StopJobResult+Stopped	class
-type	AS	Cratis.Orleans.Jobs	StopJobResult+UnknownJobType	class
-type	AS	Cratis.Orleans.Jobs	UnknownClrTypeForJobStepType	class
-type	AS	Cratis.Orleans.Jobs	UnknownClrTypeForJobType	class
-type	AS	Cratis.Orleans.Jobs.Placement	DefaultJobStepsPlacementDirector	class
-type	AS	Cratis.Orleans.Jobs.Placement	DefaultJobsPlacementDirector	class
-type	AS	Cratis.Orleans.Jobs.Placement	JobStepPlacementCannotUseItselfAsDefault	class
-type	AS	Cratis.Orleans.Jobs.Placement	JobStepsPlacementProperties	class
-type	AS	Cratis.Orleans.Jobs.Placement	JobStepsPlacementStrategy	class
-type	AS	Cratis.Orleans.Jobs.Placement	JobsPlacementProperties	class
-type	AS	Cratis.Orleans.Jobs.Placement	JobsPlacementStrategy	class
-type	AS	Cratis.Orleans.Jobs.Placement	NoEligibleJobWorker	class
-type	AS	Cratis.Orleans.Jobs.Stages	JobStageFailureBehavior	enum
-type	AS	Cratis.Orleans.Jobs.Stages	JobStageProgress	class
-type	AS	Cratis.Orleans.Jobs.Stages	JobStages	static
-type	AS	Cratis.Orleans.Jobs.Stages	JobStepStage	class
-type	AS	Cratis.Orleans.Json	ObjectExtensions	static
-type	AS	Cratis.Orleans.Serialization	CannotReconstructOneOf	class
-type	AS	Cratis.Orleans.Serialization	ConceptSerializer	class
-type	AS	Cratis.Orleans.Serialization	ConceptsSerializerExtensions	static
-type	AS	Cratis.Orleans.Serialization	CratisJsonSerializer	class
-type	AS	Cratis.Orleans.Serialization	CratisTypesFilter	class
-type	AS	Cratis.Orleans.Serialization	ExpandoObjectSerializer	class
-type	AS	Cratis.Orleans.Serialization	LinqCollectionCopier	class
-type	AS	Cratis.Orleans.Serialization	OneOfSerializer	class
-type	AS	Cratis.Orleans.StateMachines	IStateMachine`1	interface
-type	AS	Cratis.Orleans.StateMachines	IState`1	interface
-type	AS	Cratis.Orleans.StateMachines	InvalidTypeForState	class
-type	AS	Cratis.Orleans.StateMachines	NoOpState`1	class
-type	AS	Cratis.Orleans.StateMachines	StateExtensions	static
-type	AS	Cratis.Orleans.StateMachines	StateMachineState	class
-type	AS	Cratis.Orleans.StateMachines	StateMachine`1	class
-type	AS	Cratis.Orleans.StateMachines	State`1	class
-type	AS	Cratis.Orleans.StateMachines	TransitioningDuringOnLeaveIsNotSupported	class
-type	AS	Cratis.Orleans.StateMachines	UnknownCurrentState	class
-type	AS	Cratis.Orleans.StateMachines	UnknownStateTypeInStateMachine	class
-type	AS	Cratis.Orleans.Storage	IJobsStorage	interface
-type	AS	Cratis.Orleans.Storage	InMemoryJobsStorage	class
-type	AS	Cratis.Orleans.Storage	InMemoryJobsStorageServiceCollectionExtensions	static
-type	AS	Cratis.Orleans.Storage	JobsStorage	class
-type	AS	Cratis.Orleans.Storage.InMemory	JobStepStorage	class
-type	AS	Cratis.Orleans.Storage.InMemory	JobStorage	class
-type	AS	Cratis.Orleans.Storage.Jobs	IJobStepStorage	interface
-type	AS	Cratis.Orleans.Storage.Jobs	IJobStorage	interface
-type	AS	Cratis.Orleans.Storage.Jobs	JobError	enum
-type	AS	Cratis.Orleans.Storage.Jobs	JobQuery	class
-type	AS	Cratis.Orleans.Storage.Jobs	JobState	class
-type	AS	Cratis.Orleans.Storage.Jobs	JobStateType	static
-type	AS	Cratis.Orleans.Storage.Jobs	JobStepError	enum
-type	AS	Cratis.Orleans.Storage.Jobs	JobStepLease	class
-type	AS	Cratis.Orleans.Storage.Jobs	JobStepState	class
-type	AS	Cratis.Orleans.Storage.Jobs	JobStepStateType	static
-type	AS	Cratis.Orleans.Storage.Jobs	PlannedJobStep	class
-type	AS	Cratis.Orleans.Tenancy	ITenancy	interface
-type	AS	Cratis.Orleans.Tenancy	TenancySiloBuilderExtensions	static
-type	AS	Cratis.Orleans.Tenancy	TenantIncomingCallFilter	class
-type	AS	Cratis.Orleans.Tenancy	TenantOutgoingCallFilter	class
-type	AS	Cratis.Orleans.Tenancy	TenantRequestContext	static
-type	AS	Cratis.Orleans.Workers	GrainWithBackgroundTaskStatus	enum
-type	AS	Cratis.Orleans.Workers	GrainWithBackgroundTask`2	class
-type	AS	Cratis.Orleans.Workers	IGrainWithBackgroundTask	interface
-type	AS	Cratis.Orleans.Workers	IGrainWithBackgroundTask`2	interface
-type	AS	Cratis.Orleans.Workers	InvalidMaximumConcurrencyLevel	class
-type	AS	Cratis.Orleans.Workers	PerformWorkError	enum
-type	AS	Cratis.Orleans.Workers	PerformWorkResult`1	class
-type	AS	Cratis.Orleans.Workers	WorkerGetResultError	enum
-type	AS	Cratis.Orleans.Workflows	IWorkflow	interface
-type	AS	Cratis.Orleans.Workflows	IWorkflows	interface
-type	AS	Cratis.Orleans.Workflows	MalformedWorkflowGrainKey	class
-type	AS	Cratis.Orleans.Workflows	WorkflowActor	class
-type	AS	Cratis.Orleans.Workflows	WorkflowAreaKey	class
-type	AS	Cratis.Orleans.Workflows	WorkflowGrain	class
-type	AS	Cratis.Orleans.Workflows	WorkflowId	class
-type	AS	Cratis.Orleans.Workflows	WorkflowKey	class
-type	AS	Cratis.Orleans.Workflows	WorkflowRunId	class
-type	AS	Cratis.Orleans.Workflows	WorkflowRunKey	class
-type	AS	Cratis.Orleans.Workflows	WorkflowScope	class
-type	AS	Cratis.Orleans.Workflows	WorkflowStarter	class
-type	AS	Cratis.Orleans.Workflows	WorkflowVersion	class
-type	AS	Cratis.Orleans.Workflows	WorkflowsOptions	class
-type	AS	Cratis.Orleans.Workflows.Adapters	IStagedWorkflowNodePerformer	interface
-type	AS	Cratis.Orleans.Workflows.Adapters	IWorkflowNodePerformer	interface
-type	AS	Cratis.Orleans.Workflows.Adapters	IWorkflowNodePerformers	interface
-type	AS	Cratis.Orleans.Workflows.Adapters	MoreThanOneWorkflowNodePerformer	class
-type	AS	Cratis.Orleans.Workflows.Adapters	WorkflowIdempotencyKey	class
-type	AS	Cratis.Orleans.Workflows.Adapters	WorkflowNodeInvocation	class
-type	AS	Cratis.Orleans.Workflows.Adapters	WorkflowNodeOutcome	class
-type	AS	Cratis.Orleans.Workflows.Adapters	WorkflowNodeOutcomeStatus	enum
-type	AS	Cratis.Orleans.Workflows.Adapters	WorkflowNodePerformers	class
-type	AS	Cratis.Orleans.Workflows.Adapters	WorkflowOperationName	class
-type	AS	Cratis.Orleans.Workflows.Contracts	EvidenceReference	class
-type	AS	Cratis.Orleans.Workflows.Contracts	WorkflowCausationKey	class
-type	AS	Cratis.Orleans.Workflows.Contracts	WorkflowContractId	class
-type	AS	Cratis.Orleans.Workflows.Contracts	WorkflowContractReference	class
-type	AS	Cratis.Orleans.Workflows.Contracts	WorkflowContractVersion	class
-type	AS	Cratis.Orleans.Workflows.Contracts	WorkflowCorrelationKey	class
-type	AS	Cratis.Orleans.Workflows.Contracts	WorkflowData	class
-type	AS	Cratis.Orleans.Workflows.Contracts	WorkflowDeduplicationKey	class
-type	AS	Cratis.Orleans.Workflows.Contracts	WorkflowSubjectId	class
-type	AS	Cratis.Orleans.Workflows.Contracts	WorkflowSubjectKind	class
-type	AS	Cratis.Orleans.Workflows.Contracts	WorkflowSubjectReference	class
-type	AS	Cratis.Orleans.Workflows.Definitions	CapabilityPin	class
-type	AS	Cratis.Orleans.Workflows.Definitions	CompositeWorkflowDefinitionSource	class
-type	AS	Cratis.Orleans.Workflows.Definitions	IWorkflowAdmissionPolicy	interface
-type	AS	Cratis.Orleans.Workflows.Definitions	IWorkflowDefinitionSource	interface
-type	AS	Cratis.Orleans.Workflows.Definitions	IWorkflowDefinitions	interface
-type	AS	Cratis.Orleans.Workflows.Definitions	MoreThanOneWorkflowDefinitionSource	class
-type	AS	Cratis.Orleans.Workflows.Definitions	ProviderVersion	class
-type	AS	Cratis.Orleans.Workflows.Definitions	StructuralAdmissionPolicy	class
-type	AS	Cratis.Orleans.Workflows.Definitions	WorkflowAdmissionRejection	class
-type	AS	Cratis.Orleans.Workflows.Definitions	WorkflowCatalogVersion	class
-type	AS	Cratis.Orleans.Workflows.Definitions	WorkflowDefinitionSnapshot	class
-type	AS	Cratis.Orleans.Workflows.Execution	IWorkflowNodeStep	interface
-type	AS	Cratis.Orleans.Workflows.Execution	IWorkflowWaveJob	interface
-type	AS	Cratis.Orleans.Workflows.Execution	WorkflowNodePerformance	class
-type	AS	Cratis.Orleans.Workflows.Execution	WorkflowNodeStep	class
-type	AS	Cratis.Orleans.Workflows.Execution	WorkflowNodeStepState	class
-type	AS	Cratis.Orleans.Workflows.Execution	WorkflowWaveItem	class
-type	AS	Cratis.Orleans.Workflows.Execution	WorkflowWaveJob	class
-type	AS	Cratis.Orleans.Workflows.Execution	WorkflowWaveRequest	class
-type	AS	Cratis.Orleans.Workflows.Graphs	CapabilityId	class
-type	AS	Cratis.Orleans.Workflows.Graphs	CapabilityReference	class
-type	AS	Cratis.Orleans.Workflows.Graphs	CapabilityVersion	class
-type	AS	Cratis.Orleans.Workflows.Graphs	ForEachConfiguration	class
-type	AS	Cratis.Orleans.Workflows.Graphs	ForEachScope	class
-type	AS	Cratis.Orleans.Workflows.Graphs	JoinConfiguration	class
-type	AS	Cratis.Orleans.Workflows.Graphs	JoinMode	enum
-type	AS	Cratis.Orleans.Workflows.Graphs	OutletName	class
-type	AS	Cratis.Orleans.Workflows.Graphs	WaitConfiguration	class
-type	AS	Cratis.Orleans.Workflows.Graphs	WellKnownOutlets	static
-type	AS	Cratis.Orleans.Workflows.Graphs	WorkflowEdge	class
-type	AS	Cratis.Orleans.Workflows.Graphs	WorkflowGraph	class
-type	AS	Cratis.Orleans.Workflows.Graphs	WorkflowGraphStructure	static
-type	AS	Cratis.Orleans.Workflows.Graphs	WorkflowNode	class
-type	AS	Cratis.Orleans.Workflows.Graphs	WorkflowNodeConfiguration	class
-type	AS	Cratis.Orleans.Workflows.Graphs	WorkflowNodeId	class
-type	AS	Cratis.Orleans.Workflows.Graphs	WorkflowNodeKind	enum
-type	AS	Cratis.Orleans.Workflows.Graphs	WorkflowNodePolicy	class
-type	AS	Cratis.Orleans.Workflows.Graphs	WorkflowStructureViolation	class
-type	AS	Cratis.Orleans.Workflows.Graphs	WorkflowStructureViolationKind	enum
-type	AS	Cratis.Orleans.Workflows.Journal	GrainStorageWorkflowRunJournal	class
-type	AS	Cratis.Orleans.Workflows.Journal	IWorkflowRunJournal	interface
-type	AS	Cratis.Orleans.Workflows.Journal	UnknownWorkflowFact	class
-type	AS	Cratis.Orleans.Workflows.Journal	WorkflowJournalAppendResult	class
-type	AS	Cratis.Orleans.Workflows.Journal	WorkflowJournalPosition	class
-type	AS	Cratis.Orleans.Workflows.Journal	WorkflowRecordedFact	class
-type	AS	Cratis.Orleans.Workflows.Journal	WorkflowRunJournalSnapshot	class
-type	AS	Cratis.Orleans.Workflows.Journal	WorkflowRunJournalState	class
-type	AS	Cratis.Orleans.Workflows.Journal	WorkflowStoredFact	class
-type	AS	Cratis.Orleans.Workflows.Runs	IWorkflowRun	interface
-type	AS	Cratis.Orleans.Workflows.Runs	MalformedNodeExecutionKey	class
-type	AS	Cratis.Orleans.Workflows.Runs	NodeExecutionKey	class
-type	AS	Cratis.Orleans.Workflows.Runs	NodeExecutionSnapshot	class
-type	AS	Cratis.Orleans.Workflows.Runs	NodeExecutionStatus	enum
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowAdmission	class
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowAttempt	class
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowBranch	class
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowBranchKey	class
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowBranchesFannedOut	class
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowBranchesJoined	class
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowFailureKind	enum
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowFailureReason	class
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowJobReference	class
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowJobStopped	class
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowNodeAttemptFailed	class
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowNodeFailed	class
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowNodeInputPinned	class
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowNodeOperationCompleted	class
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowNodeOutcomeAmbiguous	class
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowNodeScheduled	class
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowNodeSkipped	class
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowNodeSucceeded	class
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowNodesUnreachable	class
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowRunAdmitted	class
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowRunCancelled	class
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowRunCouldNotBeRecorded	class
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowRunFacts	static
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowRunFailed	class
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowRunGrain	class
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowRunNeedsReconciliation	class
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowRunSnapshot	class
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowRunStatus	enum
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowRunSucceeded	class
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowWaitCancelled	class
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowWaitOpened	class
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowWaitResolved	class
-type	AS	Cratis.Orleans.Workflows.Runs	WorkflowWave	class
-type	AS	Cratis.Orleans.Workflows.Runs.Coordination	ActivationAnalysis	class
-type	AS	Cratis.Orleans.Workflows.Runs.Coordination	CoordinatorDecision	class
-type	AS	Cratis.Orleans.Workflows.Runs.Coordination	CoordinatorWork	class
-type	AS	Cratis.Orleans.Workflows.Runs.Coordination	FailureRouting	static
-type	AS	Cratis.Orleans.Workflows.Runs.Coordination	ForEachExpansion	static
-type	AS	Cratis.Orleans.Workflows.Runs.Coordination	JoinEvaluation	static
-type	AS	Cratis.Orleans.Workflows.Runs.Coordination	NodeExecution	class
-type	AS	Cratis.Orleans.Workflows.Runs.Coordination	NodeInputComposer	static
-type	AS	Cratis.Orleans.Workflows.Runs.Coordination	OutcomeRecording	static
-type	AS	Cratis.Orleans.Workflows.Runs.Coordination	ReachabilityAnalysis	static
-type	AS	Cratis.Orleans.Workflows.Runs.Coordination	RetryPolicy	static
-type	AS	Cratis.Orleans.Workflows.Runs.Coordination	WaitHandling	static
-type	AS	Cratis.Orleans.Workflows.Runs.Coordination	WorkflowBranchOrigin	class
-type	AS	Cratis.Orleans.Workflows.Runs.Coordination	WorkflowCoordinator	static
-type	AS	Cratis.Orleans.Workflows.Runs.Coordination	WorkflowFanOut	class
-type	AS	Cratis.Orleans.Workflows.Runs.Coordination	WorkflowOpenWait	class
-type	AS	Cratis.Orleans.Workflows.Runs.Coordination	WorkflowPlanner	static
-type	AS	Cratis.Orleans.Workflows.Runs.Coordination	WorkflowRoute	class
-type	AS	Cratis.Orleans.Workflows.Runs.Coordination	WorkflowRunFold	static
-type	AS	Cratis.Orleans.Workflows.Runs.Coordination	WorkflowRunState	class
-type	AS	Cratis.Orleans.Workflows.Scopes	DefaultWorkflowExecutionScopes	class
-type	AS	Cratis.Orleans.Workflows.Scopes	IWorkflowExecutionScopes	interface
-type	AS	Cratis.Orleans.Workflows.Scopes	IWorkflowNodeExecutionContext	interface
-type	AS	Cratis.Orleans.Workflows.Sweeping	IWorkflowRunIndex	interface
-type	AS	Cratis.Orleans.Workflows.Sweeping	IWorkflowRunSweeper	interface
-type	AS	Cratis.Orleans.Workflows.Sweeping	IWorkflowScopeSource	interface
-type	AS	Cratis.Orleans.Workflows.Sweeping	WorkflowJobsManagerKeys	class
-type	AS	Cratis.Orleans.Workflows.Sweeping	WorkflowRunIndexGrain	class
-type	AS	Cratis.Orleans.Workflows.Sweeping	WorkflowRunIndexState	class
-type	AS	Cratis.Orleans.Workflows.Sweeping	WorkflowRunSweepService	class
-type	AS	Cratis.Orleans.Workflows.Sweeping	WorkflowRunSweeper	class
-type	AS	Cratis.Orleans.Workflows.Sweeping	WorkflowScopes	class
-type	AS	Cratis.Orleans.Workflows.Triggers	TriggerSourceKey	class
-type	AS	Cratis.Orleans.Workflows.Triggers	WorkflowTrigger	class
-type	AS	Cratis.Orleans.Workflows.Triggers	WorkflowTriggerKind	enum
-type	AS	Cratis.Orleans.Workflows.Waits	WaitDeadline	class
-type	AS	Cratis.Orleans.Workflows.Waits	WaitKind	enum
-type	AS	Cratis.Orleans.Workflows.Waits	WorkflowWaitId	class
 type	AS	Cratis.Reactive	ObservableExtensions	static
 type	AS	Cratis.Reactive	TransformingSubject`2	class
 type	AS	Cratis.ReadModels	ReadModelNameAttribute	attribute
@@ -13731,14 +13382,18 @@ extensions	AS	Cratis.Arc.Testing.Commands	AllowGeneration Clock GeneratedValues 
 extensions	AS	Cratis.Arc.Testing.Validation	ShouldAccept ShouldAcceptAsync ShouldReject ShouldRejectAsync
 extensions	AS	Cratis.Arc.Validation	GetCausedBy GetTenant IsCommand IsQuery IsSystem OverridePropertyName SetCommand SetQuery ToValidationResult WhenCommand WhenQuery WithSeverity WithState
 extensions	AS	Cratis.Choreography	AddCompleteSerializer AddCratisChoreographySerializers AddLinqCollectionCopier
+extensions	AS	Cratis.Choreography.Chronicle.Hosting	AddEventSourcedStateMachines AddEventSourcedWorkflows
+extensions	AS	Cratis.Choreography.Chronicle.StateMachines	GetEventSourcedStateMachine
+extensions	AS	Cratis.Choreography.Chronicle.Workflows	StartWorkflow
 extensions	AS	Cratis.Choreography.Hosting	AddCratisChoreography AddCratisChoreographyJobsRecovery AddCratisChoreographyPatching AddCratisChoreographyPatchingServices AddCratisChoreographyWorkflows AddJobAdmission AddJobPlacement AddJobStepPlacement UseJobStepParallelismFromSiloMetadata
 extensions	AS	Cratis.Choreography.Jobs	AcquiringJobStepSlot AllStepsNotCompletedSuccessfully AlreadyStopped BeginJobScope BeginJobStepScope BeginJobsManagerScope BeginTestRun CannotResumeJobBecauseAlreadyRunning CannotResumeJobBecauseCompleted CannotResumeUnpreparedJob ChangingStatus CleaningUpDeadJobs CompletedJobStepIsNoLongerTracked DeletingJob ErrorPreparingJobStep ErrorPreparingJobSteps ErrorResumingJob Failed FailedHandlingCompletedJobStep FailedOnCompleted FailedOnCompletedWhileNoJobSteps FailedPerforming FailedPreparing FailedPreparingJobStep FailedReconcilingProgressFromJobSteps FailedRecordingJobStepAsFailed FailedReportJobStepFailure FailedReportJobStepSuccess FailedReportingJobStepCancelled FailedResumingJob FailedStartingJobStep FailedStartingJobStepsInBackground FailedSubscribingToJobStep FailedToCleanUpOrphanedStepPlans FailedToDeleteJob FailedToGetJobSteps FailedToGetJobsForCleanup FailedToGetStepCountForJob FailedToRemoveForJob FailedToRemoveJob FailedToRemoveStoredStepPlan FailedToRemoveTerminalJob FailedToRemoveTerminalJobSteps FailedToReportFailure FailedToResumeJobSteps FailedToSetTotalSteps FailedToStopJob FailedToWriteState FailedUnexpectedly FailedUpdatingFailedSteps FailedUpdatingStateAfterHandlingCompletion FailedUpdatingStateAfterHandlingJobStepCompletion FailedUpdatingSuccessfulSteps FailedWritingState FailedWritingStatusChange FinalizingJobLeftRunningAfterAllStepsCompleted FinalizingStopAfterItsSiloWentAway FinalizingStoppedJobWithNothingLeftToRun FoundDeadJobs FoundTerminalJobs GetClrTypeForOrThrow GetForOrThrow GetJobsManager GetRequestClrTypeForOrThrow HandleUnexpectedPerformJobStepFailure IgnoringLateStepOutcome JobCannotBeResumed JobCannotBeStoppedIsNotRunning JobCompleted JobCouldNotBeFound JobErrorOccurred JobIsAlreadyBeingRemoved JobIsCompletedAndCannotBeRemovedOrStopped JobIsNotRunning JobNotAdmitted JobStepWasAlreadyStarted NoDeadJobsFound NoJobStepsToStart NotResumingJobBecauseItIsNotRunning NotStartingJobStepsForJobThatIsNoLongerPreparing Pausing PerformingWorkFailedPersistState PrepareJobStepsForRunning PreparingJobSteps Rehydrating ReleasingJobStepSlot Removing ReportFailurePerformingWork RestartingStepsStoppedBeforeLastResume Resuming ResumingJob ResumingJobIfRunning RetryingFailedSteps SkippedTerminalJobRemoval SkippingJobDueToStepCountError StartPrepareFailed Starting StartingJob StepFailed StepStopped StepSuccessfullyCompleted StopIsWaitingForSteps Stopping StoppingJob UnableToGetAllJobs UnableToGetJob UnableToGetJobs UnknownError
 extensions	AS	Cratis.Choreography.Jobs.Stages	Current Plan Reconcile StoppedBy
 extensions	AS	Cratis.Choreography.Json	DeserializeIfNecessary
+extensions	AS	Cratis.Choreography.Operations	AddCratisChoreographyOperations
 extensions	AS	Cratis.Choreography.Serialization	AddConceptSerializer
 extensions	AS	Cratis.Choreography.Setup	AddCratisChoreographyMongoDBJobsStorage AddCratisChoreographyMongoDBPatchStorage
 extensions	AS	Cratis.Choreography.StateMachines	SetStateMachine
-extensions	AS	Cratis.Choreography.Storage	AddCratisChoreographyInMemoryJobsStorage AddCratisChoreographyInMemoryPatchStorage
+extensions	AS	Cratis.Choreography.Storage	AddCratisChoreographyInMemoryJobsStorage AddCratisChoreographyInMemoryOperationHistory AddCratisChoreographyInMemoryPatchStorage
 extensions	AS	Cratis.Choreography.Storage.MongoDB	EnsureIndexesAsync EnsureIndexesOnceAsync GetIndexNamesAsync
 extensions	AS	Cratis.Choreography.Tenancy	AddTenancy
 extensions	AS	Cratis.Chronicle	ConfigureChronicleClientServices GetEventSourceFilter GetEventSourceType GetEventStreamType GetFilterTags GetTags WithArtifactsProvider WithCamelCaseNamingPolicy WithCorrelationIdAccessor WithIdentityProvider WithNamespaceResolver WithTelemetry
@@ -13777,18 +13432,6 @@ extensions	AS	Cratis.Execution	AddCorrelationIdSupport
 extensions	AS	Cratis.Guids	Xor
 extensions	AS	Cratis.Json	AsExpandoObject DeepClone ToJsonValue ToTargetTypeValue TryGetValue
 extensions	AS	Cratis.Metrics	BeginScope
-extensions	AS	Cratis.Orleans	AddCompleteSerializer AddCratisOrleansSerializers AddLinqCollectionCopier
-extensions	AS	Cratis.Orleans.Chronicle.Hosting	AddEventSourcedStateMachines AddEventSourcedWorkflows
-extensions	AS	Cratis.Orleans.Chronicle.StateMachines	GetEventSourcedStateMachine
-extensions	AS	Cratis.Orleans.Chronicle.Workflows	StartWorkflow
-extensions	AS	Cratis.Orleans.Hosting	AddCratisOrleans AddCratisOrleansJobsRecovery AddCratisOrleansWorkflows AddJobAdmission AddJobPlacement AddJobStepPlacement UseJobStepParallelismFromSiloMetadata
-extensions	AS	Cratis.Orleans.Jobs	AcquiringJobStepSlot AllStepsNotCompletedSuccessfully AlreadyStopped BeginJobScope BeginJobStepScope BeginJobsManagerScope BeginTestRun CannotResumeJobBecauseAlreadyRunning CannotResumeJobBecauseCompleted CannotResumeUnpreparedJob ChangingStatus CleaningUpDeadJobs CompletedJobStepIsNoLongerTracked DeletingJob ErrorPreparingJobStep ErrorPreparingJobSteps ErrorResumingJob Failed FailedHandlingCompletedJobStep FailedOnCompleted FailedOnCompletedWhileNoJobSteps FailedPerforming FailedPreparing FailedPreparingJobStep FailedReconcilingProgressFromJobSteps FailedRecordingJobStepAsFailed FailedReportJobStepFailure FailedReportJobStepSuccess FailedReportingJobStepCancelled FailedResumingJob FailedStartingJobStep FailedStartingJobStepsInBackground FailedSubscribingToJobStep FailedToDeleteJob FailedToGetJobSteps FailedToGetJobsForCleanup FailedToGetStepCountForJob FailedToRemoveForJob FailedToRemoveJob FailedToRemoveTerminalJob FailedToRemoveTerminalJobSteps FailedToReportFailure FailedToResumeJobSteps FailedToSetTotalSteps FailedToStopJob FailedToWriteState FailedUnexpectedly FailedUpdatingFailedSteps FailedUpdatingStateAfterHandlingCompletion FailedUpdatingStateAfterHandlingJobStepCompletion FailedUpdatingSuccessfulSteps FailedWritingState FailedWritingStatusChange FinalizingJobLeftRunningAfterAllStepsCompleted FinalizingStopAfterItsSiloWentAway FinalizingStoppedJobWithNothingLeftToRun FoundDeadJobs FoundTerminalJobs GetClrTypeForOrThrow GetForOrThrow GetJobsManager GetRequestClrTypeForOrThrow HandleUnexpectedPerformJobStepFailure IgnoringLateStepOutcome JobCannotBeResumed JobCannotBeStoppedIsNotRunning JobCompleted JobCouldNotBeFound JobErrorOccurred JobIsAlreadyBeingRemoved JobIsCompletedAndCannotBeRemovedOrStopped JobIsNotRunning JobNotAdmitted JobStepWasAlreadyStarted NoDeadJobsFound NoJobStepsToStart NotResumingJobBecauseItIsNotRunning NotStartingJobStepsForJobThatIsNoLongerPreparing Pausing PerformingWorkFailedPersistState PrepareJobStepsForRunning PreparingJobSteps Rehydrating ReleasingJobStepSlot Removing ReportFailurePerformingWork RestartingStepsStoppedBeforeLastResume Resuming ResumingJob ResumingJobIfRunning RetryingFailedSteps SkippedTerminalJobRemoval SkippingJobDueToStepCountError StartPrepareFailed Starting StartingJob StepFailed StepStopped StepSuccessfullyCompleted StopIsWaitingForSteps Stopping StoppingJob UnableToGetAllJobs UnableToGetJob UnableToGetJobs UnknownError
-extensions	AS	Cratis.Orleans.Jobs.Stages	Current Plan Reconcile StoppedBy
-extensions	AS	Cratis.Orleans.Json	DeserializeIfNecessary
-extensions	AS	Cratis.Orleans.Serialization	AddConceptSerializer
-extensions	AS	Cratis.Orleans.StateMachines	SetStateMachine
-extensions	AS	Cratis.Orleans.Storage	AddCratisOrleansInMemoryJobsStorage
-extensions	AS	Cratis.Orleans.Tenancy	AddTenancy
 extensions	AS	Cratis.Reactive	CompletedBy InvokeAndWrapWithSubject InvokeAndWrapWithTransformSubject
 extensions	AS	Cratis.Reflection	AllBaseAndImplementingTypes CallGenericMethod GetActualReturnType GetAsyncEnumerableElementType GetDefaultConstructor GetEnumerableElementType GetFieldInfo GetInstance GetKeyType GetKeyValuePairs GetMemberExpression GetMethodArguments GetMethodInfo GetNonDefaultConstructor GetNonDefaultConstructorWithGreatestNumberOfParameters GetNullableType GetPropertyInfo GetSettableProperties GetTypeInfoDetails GetTypeString GetValueType HasAttribute HasDefaultConstructor HasInterface HasNonDefaultConstructor HasVisibleProperties Implements ImplementsOpenGeneric Is IsAPrimitiveType IsAsync IsBoolean IsComparable IsDate IsDateOnly IsDateTimeOffset IsDelegate IsDerivedFromOpenGeneric IsDictionary IsEnumerable IsGuid IsNullable IsNullableContext IsNullableReferenceType IsNumericType IsRecord IsString IsTimeOnly IsTimeSpan Unwrap
 extensions	AS	Cratis.Screenplay.Semantics	GetAffectedInstances Keyword
@@ -14386,6 +14029,39 @@ base	AS	Cratis.Arc.Validation.ReadModelValidatorRequiresCommandPipeline	System.E
 base	AS	Cratis.Arc.Validation.ValidationResult	System.Object	Deconstruct EqualityContract Equals Error GetHashCode Information Members Message PrintMembers Reason ReasonDetail Severity State ToString Warning	-
 base	AS	Cratis.Arc.Validation.ValidationResultReason	Cratis.Concepts.ConceptAs`1	ConcurrencyViolation ConstraintViolation Deconstruct DependencyUnavailable EqualityContract Equals FrameworkFailure GetHashCode MalformedRequest PrintMembers Rule ValidatorFailed	-
 base	AS	Cratis.Arc.Validation.ValidatorInvoker	System.Object	CouldNotValidateMessage Invoke	-
+base	AS	Cratis.Choreography.Chronicle.StateMachines.EventSourcedStateMachineDefinition	System.Object	Deconstruct EqualityContract Equals EventTypes GetHashCode IsPassive ModelType PrintMembers ProjectionEventTypes ProjectionSource ReactorId StateMachineType ToString TransitionEventTypes	-
+base	AS	Cratis.Choreography.Chronicle.StateMachines.EventSourcedStateMachineDefinitions	System.Object	All	-
+base	AS	Cratis.Choreography.Chronicle.StateMachines.EventSourcedStateMachine`1	Cratis.Choreography.StateMachines.StateMachine`1	DefineProjection DefineTransitions Key Model OnActivateAsync OnModelChanged Refresh ResolveActivationState ResolveState	-
+base	AS	Cratis.Choreography.Chronicle.StateMachines.EventSourcedStateMachinesOptions	System.Object	Discover ModelCatchUpPollInterval ModelCatchUpTimeout StateMachines	-
+base	AS	Cratis.Choreography.Chronicle.StateMachines.InvalidStateMachineKey	System.Exception	-	-
+base	AS	Cratis.Choreography.Chronicle.StateMachines.MissingProjectionForStateMachineModel	System.Exception	-	-
+base	AS	Cratis.Choreography.Chronicle.StateMachines.ModelDidNotCatchUp	System.Exception	-	-
+base	AS	Cratis.Choreography.Chronicle.StateMachines.ReadModelStorageIsNotBound	System.Exception	-	-
+base	AS	Cratis.Choreography.Chronicle.StateMachines.ReadModelStorage`1	System.Object	Bind ClearStateAsync Etag Key ReadStateAsync RecordExists State WriteStateAsync	-
+base	AS	Cratis.Choreography.Chronicle.StateMachines.SchemasAreNotAvailableWhileInspectingProjections	System.Exception	-	-
+base	AS	Cratis.Choreography.Chronicle.StateMachines.StateMachineEventStores	System.Object	Get	-
+base	AS	Cratis.Choreography.Chronicle.StateMachines.StateMachineGrainResolver	System.Object	Get	-
+base	AS	Cratis.Choreography.Chronicle.StateMachines.StateMachineHasNoEventInterest	System.Exception	-	-
+base	AS	Cratis.Choreography.Chronicle.StateMachines.StateMachineKey	System.Object	Deconstruct EqualityContract Equals EventSourceId EventStore From GetHashCode Namespace Parse PrintMembers Separator ToString	-
+base	AS	Cratis.Choreography.Chronicle.StateMachines.StateMachineModelAlreadyHasProjection	System.Exception	-	-
+base	AS	Cratis.Choreography.Chronicle.StateMachines.StateMachineTransition`1	System.Object	AppliesTo Deconstruct EqualityContract Equals EventType GetHashCode Guards IsAllowedFor IsGuarded PrintMembers TargetState ToString	-
+base	AS	Cratis.Choreography.Chronicle.StateMachines.StateMachineTransitions`1	System.Object	EventTypes For On Transitions	-
+base	AS	Cratis.Choreography.Chronicle.StateMachines.TransitionEventIsNotAnEventType	System.Exception	-	-
+base	AS	Cratis.Choreography.Chronicle.StateMachines.TypeIsNotAnEventSourcedStateMachine	System.Exception	-	-
+base	AS	Cratis.Choreography.Chronicle.Workflows.ChronicleWorkflowExecutionScopes	System.Object	Enter JobsManagerFor ScopeOf	-
+base	AS	Cratis.Choreography.Chronicle.Workflows.ChronicleWorkflowRunJournal	System.Object	Append Load	-
+base	AS	Cratis.Choreography.Chronicle.Workflows.EventSourcedWorkflowsOptions	System.Object	EventStore EventTriggers NamespaceFor OnEvent ReadModels Schedule Schedules ScopeFor	-
+base	AS	Cratis.Choreography.Chronicle.Workflows.InvalidCronExpression	System.Exception	-	-
+base	AS	Cratis.Choreography.Chronicle.Workflows.Listing.OpenWorkflowWait	System.Object	Correlation Deadline Deconstruct Define EqualityContract Equals Execution GetHashCode Id Kind PrintMembers Run Signal ToString	-
+base	AS	Cratis.Choreography.Chronicle.Workflows.Listing.WorkflowRun	System.Object	AdmittedAt Area CompletedAt Correlation Deconstruct EqualityContract Equals Executions GetHashCode Id LastActivityAt PendingJobStops PrintMembers Status Subject ToString Version Waits Workflow	-
+base	AS	Cratis.Choreography.Chronicle.Workflows.Listing.WorkflowRunExecution	System.Object	Deconstruct EqualityContract Equals Execution GetHashCode Job PrintMembers Status ToString	-
+base	AS	Cratis.Choreography.Chronicle.Workflows.Listing.WorkflowRunReducer	System.Object	On	-
+base	AS	Cratis.Choreography.Chronicle.Workflows.Listing.WorkflowRunWait	System.Object	Deconstruct EqualityContract Equals Execution GetHashCode PrintMembers ToString Wait	-
+base	AS	Cratis.Choreography.Chronicle.Workflows.StateMachineIsNotAGrain	System.Exception	-	-
+base	AS	Cratis.Choreography.Chronicle.Workflows.WorkflowEventTrigger	System.Object	Deconstruct Define EqualityContract Equals EventType GetHashCode PrintMembers Reactor ToString Workflow	-
+base	AS	Cratis.Choreography.Chronicle.Workflows.WorkflowSchedule	System.Object	Cron Deconstruct EqualityContract Equals GetHashCode Name PrintMembers Scope ToString Workflow	-
+base	AS	Cratis.Choreography.Chronicle.Workflows.WorkflowScheduleService	Microsoft.Extensions.Hosting.BackgroundService	ExecuteAsync Interval MaximumCatchUp StartDue	-
+base	AS	Cratis.Choreography.Chronicle.Workflows.WorkflowSignals	System.Object	Signal	-
 base	AS	Cratis.Choreography.Hosting.CratisChoreographyOptions	System.Object	ClusterId Clustering ConfigurePatching ConfigureWorkflows ConnectionString DatabaseName Enabled Local Patching ServiceId Storage Workflows	-
 base	AS	Cratis.Choreography.Jobs.ClusterManifestJobStepPlanStorageSupport	System.Object	IsSupportedByEverySilo	-
 base	AS	Cratis.Choreography.Jobs.DeleteJobResult	System.Object	EqualityContract Equals GetHashCode IsDeleted PrintMembers ToString	Deleted NotFound Refused UnknownJobType
@@ -14444,6 +14120,24 @@ base	AS	Cratis.Choreography.Jobs.Stages.JobStepStage	Cratis.Concepts.ConceptAs`1
 base	AS	Cratis.Choreography.Jobs.StopJobResult	System.Object	EqualityContract Equals GetHashCode IsStopped PrintMembers ToString	NotFound Refused Stopped UnknownJobType
 base	AS	Cratis.Choreography.Jobs.UnknownClrTypeForJobStepType	System.Exception	-	-
 base	AS	Cratis.Choreography.Jobs.UnknownClrTypeForJobType	System.Exception	-	-
+base	AS	Cratis.Choreography.Operations.OperationActor	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
+base	AS	Cratis.Choreography.Operations.OperationAlreadyDefined	System.Exception	-	-
+base	AS	Cratis.Choreography.Operations.OperationContext`1	System.Object	Command Deconstruct EqualityContract Equals GetHashCode GetMemento Operation PrintMembers Services ToString	-
+base	AS	Cratis.Choreography.Operations.OperationDefinition`1	System.Object	CanBeUndone CanRedoWhen CanRedoWhenAsync CanUndoWhen CanUndoWhenAsync CommandType CreateRedo CreateUndo EvaluateRedo EvaluateUndo Kind RedoWith RedoWithAsync SerializeIntent UndoWith UndoWithAsync	-
+base	AS	Cratis.Choreography.Operations.OperationDefinitions	System.Object	Define Find	-
+base	AS	Cratis.Choreography.Operations.OperationEngine	System.Object	Execute GetHistory Redo Undo	-
+base	AS	Cratis.Choreography.Operations.OperationEntry	System.Object	Actor Deconstruct EqualityContract Equals EventSequenceNumbers Failure GetHashCode Id Intent Kind Memento Position PrintMembers Role Scope Started Status Target ToString	-
+base	AS	Cratis.Choreography.Operations.OperationExecutionContext	System.Object	Actor Deconstruct EqualityContract Equals GetHashCode Kind OperationId PrintMembers Role Scope Target ToString	-
+base	AS	Cratis.Choreography.Operations.OperationExecutionResult	System.Object	Deconstruct EqualityContract Equals Error EventSequenceNumbers Failure GetHashCode Memento PrintMembers Succeeded Success ToString	-
+base	AS	Cratis.Choreography.Operations.OperationHistory	System.Object	AssociateEvents Begin Complete Fail Get GetFor GetLatest Record Transition	-
+base	AS	Cratis.Choreography.Operations.OperationHistoryItem	System.Object	Actor BlockedReason CanRedo CanUndo Deconstruct EqualityContract Equals EventSequenceNumbers GetHashCode Id Kind Position PrintMembers Role Scope Started Status Target ToString	-
+base	AS	Cratis.Choreography.Operations.OperationId	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode New PrintMembers	-
+base	AS	Cratis.Choreography.Operations.OperationKind	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
+base	AS	Cratis.Choreography.Operations.OperationLocks	System.Object	Acquire	-
+base	AS	Cratis.Choreography.Operations.OperationNotFound	System.Exception	-	-
+base	AS	Cratis.Choreography.Operations.OperationNotStarted	System.Exception	-	-
+base	AS	Cratis.Choreography.Operations.OperationOutcome	System.Object	Blocked Deconstruct EqualityContract Equals Failed GetHashCode Kind NothingToRedo NothingToUndo OperationId PrintMembers Reason Succeeded ToString	-
+base	AS	Cratis.Choreography.Operations.OperationScope	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
 base	AS	Cratis.Choreography.Patching.AppliedPatch	System.Object	AppliedAt Deconstruct EqualityContract Equals GetHashCode Name PrintMembers ToString Version	-
 base	AS	Cratis.Choreography.Patching.PatchManager	Orleans.Grain	ApplyPatchesFor	-
 base	AS	Cratis.Choreography.Patching.PatchManagerCouldNotRelocate	System.Exception	-	-
@@ -14465,6 +14159,7 @@ base	AS	Cratis.Choreography.StateMachines.State`1	System.Object	AllowedTransitio
 base	AS	Cratis.Choreography.StateMachines.TransitioningDuringOnLeaveIsNotSupported	System.Exception	-	-
 base	AS	Cratis.Choreography.StateMachines.UnknownCurrentState	System.Exception	-	-
 base	AS	Cratis.Choreography.StateMachines.UnknownStateTypeInStateMachine	System.Exception	-	-
+base	AS	Cratis.Choreography.Storage.InMemory.OperationHistoryStorage	System.Object	Append Get GetFor Update	-
 base	AS	Cratis.Choreography.Storage.InMemoryJobsStorage	System.Object	GetFor Reset	-
 base	AS	Cratis.Choreography.Storage.Jobs.JobState	System.Object	CompletedStepsCounted Created Details DrainPending HasStoredStepPlan Id IsPreparingOrRunning Progress Request Status StatusChanges StepPlan StopFinalized StoppedStepsCounted StoredStepPlanIncarnation Type	-
 base	AS	Cratis.Choreography.Storage.Jobs.JobStepLease	System.Object	ActivationId Attempt LastHeartbeat Owner	-
@@ -15394,240 +15089,6 @@ base	AS	Cratis.Monads.Option`1	OneOf.OneOfBase`2	HasValue None TryGetValue	-
 base	AS	Cratis.Monads.Result	System.Object	Failed IsSuccess Success	-
 base	AS	Cratis.Monads.Result`1	OneOf.OneOfBase`2	Failed IsSuccess Success TryGetError	-
 base	AS	Cratis.Monads.Result`2	OneOf.OneOfBase`2	Failed IsSuccess Success TryGetError TryGetResult	-
-base	AS	Cratis.Orleans.Chronicle.StateMachines.EventSourcedStateMachineDefinition	System.Object	Deconstruct EqualityContract Equals EventTypes GetHashCode IsPassive ModelType PrintMembers ProjectionEventTypes ProjectionSource ReactorId StateMachineType ToString TransitionEventTypes	-
-base	AS	Cratis.Orleans.Chronicle.StateMachines.EventSourcedStateMachineDefinitions	System.Object	All	-
-base	AS	Cratis.Orleans.Chronicle.StateMachines.EventSourcedStateMachine`1	Cratis.Orleans.StateMachines.StateMachine`1	DefineProjection DefineTransitions Key Model OnActivateAsync OnModelChanged Refresh ResolveActivationState ResolveState	-
-base	AS	Cratis.Orleans.Chronicle.StateMachines.EventSourcedStateMachinesOptions	System.Object	Discover ModelCatchUpPollInterval ModelCatchUpTimeout StateMachines	-
-base	AS	Cratis.Orleans.Chronicle.StateMachines.InvalidStateMachineKey	System.Exception	-	-
-base	AS	Cratis.Orleans.Chronicle.StateMachines.MissingProjectionForStateMachineModel	System.Exception	-	-
-base	AS	Cratis.Orleans.Chronicle.StateMachines.ModelDidNotCatchUp	System.Exception	-	-
-base	AS	Cratis.Orleans.Chronicle.StateMachines.ReadModelStorageIsNotBound	System.Exception	-	-
-base	AS	Cratis.Orleans.Chronicle.StateMachines.ReadModelStorage`1	System.Object	Bind ClearStateAsync Etag Key ReadStateAsync RecordExists State WriteStateAsync	-
-base	AS	Cratis.Orleans.Chronicle.StateMachines.SchemasAreNotAvailableWhileInspectingProjections	System.Exception	-	-
-base	AS	Cratis.Orleans.Chronicle.StateMachines.StateMachineEventStores	System.Object	Get	-
-base	AS	Cratis.Orleans.Chronicle.StateMachines.StateMachineGrainResolver	System.Object	Get	-
-base	AS	Cratis.Orleans.Chronicle.StateMachines.StateMachineHasNoEventInterest	System.Exception	-	-
-base	AS	Cratis.Orleans.Chronicle.StateMachines.StateMachineKey	System.Object	Deconstruct EqualityContract Equals EventSourceId EventStore From GetHashCode Namespace Parse PrintMembers Separator ToString	-
-base	AS	Cratis.Orleans.Chronicle.StateMachines.StateMachineModelAlreadyHasProjection	System.Exception	-	-
-base	AS	Cratis.Orleans.Chronicle.StateMachines.StateMachineTransition`1	System.Object	AppliesTo Deconstruct EqualityContract Equals EventType GetHashCode Guards IsAllowedFor IsGuarded PrintMembers TargetState ToString	-
-base	AS	Cratis.Orleans.Chronicle.StateMachines.StateMachineTransitions`1	System.Object	EventTypes For On Transitions	-
-base	AS	Cratis.Orleans.Chronicle.StateMachines.TransitionEventIsNotAnEventType	System.Exception	-	-
-base	AS	Cratis.Orleans.Chronicle.StateMachines.TypeIsNotAnEventSourcedStateMachine	System.Exception	-	-
-base	AS	Cratis.Orleans.Chronicle.Workflows.ChronicleWorkflowExecutionScopes	System.Object	Enter JobsManagerFor ScopeOf	-
-base	AS	Cratis.Orleans.Chronicle.Workflows.ChronicleWorkflowRunJournal	System.Object	Append Load	-
-base	AS	Cratis.Orleans.Chronicle.Workflows.EventSourcedWorkflowsOptions	System.Object	EventStore EventTriggers NamespaceFor OnEvent ReadModels Schedule Schedules ScopeFor	-
-base	AS	Cratis.Orleans.Chronicle.Workflows.InvalidCronExpression	System.Exception	-	-
-base	AS	Cratis.Orleans.Chronicle.Workflows.Listing.OpenWorkflowWait	System.Object	Correlation Deadline Deconstruct Define EqualityContract Equals Execution GetHashCode Id Kind PrintMembers Run Signal ToString	-
-base	AS	Cratis.Orleans.Chronicle.Workflows.Listing.WorkflowRun	System.Object	AdmittedAt Area CompletedAt Correlation Deconstruct EqualityContract Equals Executions GetHashCode Id LastActivityAt PendingJobStops PrintMembers Status Subject ToString Version Waits Workflow	-
-base	AS	Cratis.Orleans.Chronicle.Workflows.Listing.WorkflowRunExecution	System.Object	Deconstruct EqualityContract Equals Execution GetHashCode Job PrintMembers Status ToString	-
-base	AS	Cratis.Orleans.Chronicle.Workflows.Listing.WorkflowRunReducer	System.Object	On	-
-base	AS	Cratis.Orleans.Chronicle.Workflows.Listing.WorkflowRunWait	System.Object	Deconstruct EqualityContract Equals Execution GetHashCode PrintMembers ToString Wait	-
-base	AS	Cratis.Orleans.Chronicle.Workflows.StateMachineIsNotAGrain	System.Exception	-	-
-base	AS	Cratis.Orleans.Chronicle.Workflows.WorkflowEventTrigger	System.Object	Deconstruct Define EqualityContract Equals EventType GetHashCode PrintMembers Reactor ToString Workflow	-
-base	AS	Cratis.Orleans.Chronicle.Workflows.WorkflowSchedule	System.Object	Cron Deconstruct EqualityContract Equals GetHashCode Name PrintMembers Scope ToString Workflow	-
-base	AS	Cratis.Orleans.Chronicle.Workflows.WorkflowScheduleService	Microsoft.Extensions.Hosting.BackgroundService	ExecuteAsync Interval MaximumCatchUp StartDue	-
-base	AS	Cratis.Orleans.Chronicle.Workflows.WorkflowSignals	System.Object	Signal	-
-base	AS	Cratis.Orleans.Hosting.CratisOrleansOptions	System.Object	ClusterId Clustering ConfigureWorkflows ConnectionString DatabaseName Enabled Local ServiceId Storage Workflows	-
-base	AS	Cratis.Orleans.Jobs.DeleteJobResult	System.Object	EqualityContract Equals GetHashCode IsDeleted PrintMembers ToString	Deleted NotFound Refused UnknownJobType
-base	AS	Cratis.Orleans.Jobs.DrainJobResult	System.Object	EqualityContract Equals GetHashCode PrintMembers ToString	Completed Drained NotFound TimedOut UnknownJobType
-base	AS	Cratis.Orleans.Jobs.FailedResumingJobSteps	System.Object	Deconstruct EqualityContract Equals FailedJobSteps GetHashCode PrintMembers ToString	-
-base	AS	Cratis.Orleans.Jobs.JobDetails	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode NotSet PrintMembers	-
-base	AS	Cratis.Orleans.Jobs.JobGrainStorageProvider	System.Object	ClearStateAsync ReadStateAsync WriteStateAsync	-
-base	AS	Cratis.Orleans.Jobs.JobGrainStorageProviderError	System.Exception	-	-
-base	AS	Cratis.Orleans.Jobs.JobId	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode New NotSet PrintMembers	-
-base	AS	Cratis.Orleans.Jobs.JobKey	System.Object	Deconstruct EqualityContract Equals GetHashCode Namespace NotSet Parse PrintMembers Scope ToString	-
-base	AS	Cratis.Orleans.Jobs.JobName	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode NotSet PrintMembers	-
-base	AS	Cratis.Orleans.Jobs.JobProgress	System.Object	EqualityContract Equals FailedSteps GetHashCode HasFailures IsCompleted IsStopped Message PrintMembers Stages StoppedSteps SuccessfulSteps ToString TotalSteps UnreachableSteps	-
-base	AS	Cratis.Orleans.Jobs.JobProgressMessage	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode None PrintMembers	-
-base	AS	Cratis.Orleans.Jobs.JobStatusChanged	System.Object	EqualityContract Equals ExceptionMessages ExceptionStackTrace GetHashCode Occurred PrintMembers Status ToString	-
-base	AS	Cratis.Orleans.Jobs.JobStepAlreadyHasALiveRun	System.Exception	-	-
-base	AS	Cratis.Orleans.Jobs.JobStepCheckpointDebounce	System.Object	BatchInterval HasPendingCheckpoint Persisted Report	-
-base	AS	Cratis.Orleans.Jobs.JobStepDetails	System.Object	Deconstruct EqualityContract Equals GetHashCode Id Key PrintMembers Request ResultType Stage ToString Type	-
-base	AS	Cratis.Orleans.Jobs.JobStepDispatchContext	System.Object	Deconstruct EqualityContract Equals GetHashCode InitializationMayBeIncomplete PrintMembers ToString	-
-base	AS	Cratis.Orleans.Jobs.JobStepGrainAndRequest	System.Object	Deconstruct EqualityContract Equals GetHashCode Grain PrintMembers Request ToString	-
-base	AS	Cratis.Orleans.Jobs.JobStepGrainStorageProvider	System.Object	ClearStateAsync ReadStateAsync WriteStateAsync	-
-base	AS	Cratis.Orleans.Jobs.JobStepGrainStorageProviderError	System.Exception	-	-
-base	AS	Cratis.Orleans.Jobs.JobStepId	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode New PrintMembers Unknown	-
-base	AS	Cratis.Orleans.Jobs.JobStepIdentifier	System.Object	Deconstruct EqualityContract Equals GetHashCode JobId JobStepId NotSet PrintMembers ToString	-
-base	AS	Cratis.Orleans.Jobs.JobStepKey	System.Object	Deconstruct EqualityContract Equals GetHashCode JobId Namespace Parse PrintMembers Scope ToString	-
-base	AS	Cratis.Orleans.Jobs.JobStepName	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode NotSet PrintMembers	-
-base	AS	Cratis.Orleans.Jobs.JobStepPercentage	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
-base	AS	Cratis.Orleans.Jobs.JobStepProgress	System.Object	EqualityContract Equals GetHashCode Message Percentage PrintMembers ToString	-
-base	AS	Cratis.Orleans.Jobs.JobStepProgressMessage	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode None PrintMembers	-
-base	AS	Cratis.Orleans.Jobs.JobStepRequestCannotRoundTrip	System.Exception	-	-
-base	AS	Cratis.Orleans.Jobs.JobStepResult	System.Object	Failed Succeeded TryGetError TryGetFullResult	-
-base	AS	Cratis.Orleans.Jobs.JobStepStatusChanged	System.Object	EqualityContract Equals ExceptionMessages ExceptionStackTrace GetHashCode Occurred PrintMembers Status ToString	-
-base	AS	Cratis.Orleans.Jobs.JobStepTestRunWasSuperseded	System.Exception	-	-
-base	AS	Cratis.Orleans.Jobs.JobStepThrottle	System.Object	AcquireAsync Dispose Release	-
-base	AS	Cratis.Orleans.Jobs.JobStepType	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode NotSet PrintMembers	-
-base	AS	Cratis.Orleans.Jobs.JobStep`3	Cratis.Orleans.Workers.GrainWithBackgroundTask`2	CheckpointAfterEveryBatch CreateCancelledResultFromCurrentState Dispose Drain FlushDebouncedCheckpoint GetJob GetReferenceToSelf GetState Identifier InitializeState JobId JobStepId Name OnActivateAsync OnDeactivateAsync OnJobRemoved OnJobStopped PerformStep PerformWork Prepare PrepareStep ReportFailure ReportStatusChange Retry Start State Stop TryInvokeOnActivation WriteCheckpointDebounced WriteStateAsync	-
-base	AS	Cratis.Orleans.Jobs.JobType	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode NotSet PrintMembers	-
-base	AS	Cratis.Orleans.Jobs.JobTypeAlreadyExists	System.Exception	-	-
-base	AS	Cratis.Orleans.Jobs.JobTypeCanOnlyHaveOneRequestType	System.Exception	-	-
-base	AS	Cratis.Orleans.Jobs.JobTypeMustHaveARequestType	System.Exception	-	-
-base	AS	Cratis.Orleans.Jobs.JobTypeNotAssociatedWithType	System.Exception	-	-
-base	AS	Cratis.Orleans.Jobs.JobTypeReadFailed	System.Exception	-	-
-base	AS	Cratis.Orleans.Jobs.JobTypes	System.Object	All GetClrTypeFor GetFor GetRequestClrTypeFor Instance	-
-base	AS	Cratis.Orleans.Jobs.Job`2	Orleans.Grain`1	AllStepsCompletedSuccessfully CanResume CanRetryFailedSteps CreateStep FinalizeStop GetActiveSilos GetFailureBehaviorFor GetJobDetails GetStepRetryDelay JobId JobKey KeepAfterCompleted KeepAfterCompletedWithFailures MaxActiveSteps OnActivateAsync OnAllStepsCompleted OnBeforeDispatchingJobSteps OnBeforeResumingJobSteps OnBeforeStartingJobSteps OnFailedToPrepare OnStepCompletedOrStopped OnStepFailed OnStepStopped OnStepSucceeded OnStopped PrepareSteps Remove Request Resume ResumeIfRunning RetryFailed ShouldRetryStep Start StartStepsInBackground Stop StopAndDrain Storage ThisJob WriteState	-
-base	AS	Cratis.Orleans.Jobs.Jobs	System.Object	Delete Start Stop StopAndDrain	-
-base	AS	Cratis.Orleans.Jobs.JobsManager	Orleans.Grain	CleanupDeadJobs Delete GetAllJobs GetJobs GetJobsOfType OnActivateAsync OnDeactivateAsync Rehydrate Resume ResumeIfRunning RetryFailedSteps Start Stop	-
-base	AS	Cratis.Orleans.Jobs.JobsManagerKey	System.Object	Deconstruct EqualityContract Equals GetHashCode Namespace NotSet Parse PrintMembers Scope ToString	-
-base	AS	Cratis.Orleans.Jobs.JobsManagerKeys	System.Object	GetKeys	-
-base	AS	Cratis.Orleans.Jobs.JobsOptions	System.Object	CleanupCadence DeadJobThreshold GetEffectiveMaxParallelSteps JobWatchdogInterval MaxActiveStepsPerJob MaxConcurrentCleanup MaxConcurrentRehydration MaxConcurrentStepStarts MaxParallelSteps MaxStepAttempts MaxStepDeliveryRetryDelay MaxStepRetryBackoff MaxTerminalJobsPerCleanup StepCheckpointBatchInterval StepCheckpointFlushInterval StepDeliveryMaxAttempts StepDeliveryRetryDelay StepLeaseTimeout StepRetryBackoff StepStopTimeout TerminalJobRetention	-
-base	AS	Cratis.Orleans.Jobs.NullJob	System.Object	OnStepFailed OnStepStopped OnStepSucceeded Remove Resume ResumeIfRunning RetryFailed Stop	-
-base	AS	Cratis.Orleans.Jobs.PerformJobStepError	System.Object	Cancelled CancelledWithNoResult CancelledWithPartialResult Deconstruct EqualityContract Equals ErrorMessages ExceptionStackTrace Failed FailedWithPartialResult GetHashCode HasPartialResult PartialResult PrintMembers ToString TryGetPartialResult	-
-base	AS	Cratis.Orleans.Jobs.Placement.JobStepPlacementCannotUseItselfAsDefault	System.Exception	-	-
-base	AS	Cratis.Orleans.Jobs.ResumeJobError	OneOf.OneOfBase`2	-	-
-base	AS	Cratis.Orleans.Jobs.SiloMetadataJobStepParallelism	System.Object	DefaultMetadataKey GetMaxParallelSteps	-
-base	AS	Cratis.Orleans.Jobs.Stages.JobStageProgress	System.Object	EqualityContract Equals FailedSteps GetHashCode HasFailures IsCompleted IsStarted PrintMembers RemainingSteps Stage SuccessfulSteps ToString TotalSteps UnreachableSteps	-
-base	AS	Cratis.Orleans.Jobs.Stages.JobStepStage	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals First GetHashCode PrintMembers	-
-base	AS	Cratis.Orleans.Jobs.StopJobResult	System.Object	EqualityContract Equals GetHashCode IsStopped PrintMembers ToString	NotFound Refused Stopped UnknownJobType
-base	AS	Cratis.Orleans.Jobs.UnknownClrTypeForJobStepType	System.Exception	-	-
-base	AS	Cratis.Orleans.Jobs.UnknownClrTypeForJobType	System.Exception	-	-
-base	AS	Cratis.Orleans.Serialization.CannotReconstructOneOf	System.Exception	-	-
-base	AS	Cratis.Orleans.Serialization.ConceptSerializer	System.Object	DeepCopy IsSupportedType IsTypeAllowed ReadValue WriteField	-
-base	AS	Cratis.Orleans.Serialization.CratisJsonSerializer	System.Object	CreateSerializerOptions DeepCopy IsSupportedType IsTypeAllowed ReadValue WriteField	-
-base	AS	Cratis.Orleans.Serialization.CratisTypesFilter	System.Object	IsTypeAllowed	-
-base	AS	Cratis.Orleans.Serialization.ExpandoObjectSerializer	System.Object	DeepCopy IsSupportedType IsTypeAllowed ReadValue WriteField	-
-base	AS	Cratis.Orleans.Serialization.OneOfSerializer	System.Object	DeepCopy IsSupportedType IsTypeAllowed ReadValue WriteField	-
-base	AS	Cratis.Orleans.StateMachines.InvalidTypeForState	System.Exception	ThrowIfInvalid	-
-base	AS	Cratis.Orleans.StateMachines.NoOpState`1	Cratis.Orleans.StateMachines.State`1	CanTransitionTo OnEnter OnLeave	-
-base	AS	Cratis.Orleans.StateMachines.StateMachineState	System.Object	CurrentState	-
-base	AS	Cratis.Orleans.StateMachines.StateMachine`1	Orleans.Grain`1	CanTransitionTo CreateStates GetCurrentState GetStates InitialState IsInActiveState OnActivateAsync OnActivation OnAfterEnteringState OnAfterLeavingState OnBeforeEnteringState OnBeforeLeavingState OnDeactivateAsync ResolveActivationState TransitionTo	-
-base	AS	Cratis.Orleans.StateMachines.State`1	System.Object	AllowedTransitions CanTransitionTo OnEnter OnLeave StateMachine	-
-base	AS	Cratis.Orleans.StateMachines.TransitioningDuringOnLeaveIsNotSupported	System.Exception	-	-
-base	AS	Cratis.Orleans.StateMachines.UnknownCurrentState	System.Exception	-	-
-base	AS	Cratis.Orleans.StateMachines.UnknownStateTypeInStateMachine	System.Exception	-	-
-base	AS	Cratis.Orleans.Storage.InMemoryJobsStorage	System.Object	GetFor Reset	-
-base	AS	Cratis.Orleans.Storage.Jobs.JobState	System.Object	CompletedStepsCounted Created Details DrainPending Id IsPreparingOrRunning Progress Request Status StatusChanges StepPlan StopFinalized StoppedStepsCounted Type	-
-base	AS	Cratis.Orleans.Storage.Jobs.JobStepLease	System.Object	ActivationId Attempt LastHeartbeat Owner	-
-base	AS	Cratis.Orleans.Storage.Jobs.JobStepState	System.Object	Attempt Id IsPrepared Lease Name Progress Stage Status StatusChanges Type	-
-base	AS	Cratis.Orleans.Storage.Jobs.PlannedJobStep	System.Object	Deconstruct EqualityContract Equals GetHashCode Id PrintMembers RequestJson RequestType Stage ToString Type	-
-base	AS	Cratis.Orleans.Storage.JobsStorage	System.Object	Deconstruct EqualityContract Equals GetHashCode JobSteps Jobs PrintMembers ToString	-
-base	AS	Cratis.Orleans.Tenancy.TenantIncomingCallFilter	System.Object	Invoke	-
-base	AS	Cratis.Orleans.Tenancy.TenantOutgoingCallFilter	System.Object	Invoke	-
-base	AS	Cratis.Orleans.Workers.GrainWithBackgroundTask`2	Orleans.Grain	GetException GetResult GetWorkStatus OnActivateAsync OnStopped PerformWork Start	-
-base	AS	Cratis.Orleans.Workers.InvalidMaximumConcurrencyLevel	System.Exception	-	-
-base	AS	Cratis.Orleans.Workers.PerformWorkResult`1	System.Object	EqualityContract Equals Error Exception GetHashCode HasException HasResult IsSuccess PrintMembers Result ToString	-
-base	AS	Cratis.Orleans.Workflows.Adapters.MoreThanOneWorkflowNodePerformer	System.Exception	-	-
-base	AS	Cratis.Orleans.Workflows.Adapters.WorkflowIdempotencyKey	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
-base	AS	Cratis.Orleans.Workflows.Adapters.WorkflowNodeInvocation	System.Object	Attempt Configuration Deconstruct EqualityContract Equals Evidence Execution GetHashCode IdempotencyKey Input PrintMembers Run ToString	-
-base	AS	Cratis.Orleans.Workflows.Adapters.WorkflowNodeOutcome	System.Object	Ambiguous Deconstruct EqualityContract Equals Evidence Failed GetHashCode Outlet Output PrintMembers Reason Skipped Status Succeeded ToString	-
-base	AS	Cratis.Orleans.Workflows.Adapters.WorkflowNodePerformers	System.Object	For	-
-base	AS	Cratis.Orleans.Workflows.Adapters.WorkflowOperationName	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode None PrintMembers	-
-base	AS	Cratis.Orleans.Workflows.Contracts.EvidenceReference	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
-base	AS	Cratis.Orleans.Workflows.Contracts.WorkflowCausationKey	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode None PrintMembers	-
-base	AS	Cratis.Orleans.Workflows.Contracts.WorkflowContractId	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
-base	AS	Cratis.Orleans.Workflows.Contracts.WorkflowContractReference	System.Object	Any Deconstruct EqualityContract Equals GetHashCode Id PrintMembers ToString Version	-
-base	AS	Cratis.Orleans.Workflows.Contracts.WorkflowContractVersion	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
-base	AS	Cratis.Orleans.Workflows.Contracts.WorkflowCorrelationKey	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode None PrintMembers	-
-base	AS	Cratis.Orleans.Workflows.Contracts.WorkflowData	Cratis.Concepts.ConceptAs`1	Deconstruct Empty EqualityContract Equals ExceedsLimit GetHashCode IsEmpty IsValidJson Json MaxBytes PrintMembers	-
-base	AS	Cratis.Orleans.Workflows.Contracts.WorkflowDeduplicationKey	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
-base	AS	Cratis.Orleans.Workflows.Contracts.WorkflowSubjectId	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
-base	AS	Cratis.Orleans.Workflows.Contracts.WorkflowSubjectKind	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
-base	AS	Cratis.Orleans.Workflows.Contracts.WorkflowSubjectReference	System.Object	Deconstruct EqualityContract Equals GetHashCode Id Kind PrintMembers ToString	-
-base	AS	Cratis.Orleans.Workflows.Definitions.CapabilityPin	System.Object	Capability Deconstruct EqualityContract Equals GetHashCode PrintMembers Provider ToString	-
-base	AS	Cratis.Orleans.Workflows.Definitions.CompositeWorkflowDefinitionSource	System.Object	GetActive	-
-base	AS	Cratis.Orleans.Workflows.Definitions.MoreThanOneWorkflowDefinitionSource	System.Exception	-	-
-base	AS	Cratis.Orleans.Workflows.Definitions.ProviderVersion	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
-base	AS	Cratis.Orleans.Workflows.Definitions.StructuralAdmissionPolicy	System.Object	Check	-
-base	AS	Cratis.Orleans.Workflows.Definitions.WorkflowAdmissionRejection	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode NoActiveVersion PrintMembers	-
-base	AS	Cratis.Orleans.Workflows.Definitions.WorkflowCatalogVersion	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
-base	AS	Cratis.Orleans.Workflows.Definitions.WorkflowDefinitionSnapshot	System.Object	Area Capabilities CatalogVersion Deconstruct EqualityContract Equals GetHashCode Graph PrintMembers Subject ToString Version Workflow	-
-base	AS	Cratis.Orleans.Workflows.Execution.WorkflowNodePerformance	System.Object	Perform	-
-base	AS	Cratis.Orleans.Workflows.Execution.WorkflowNodeStep	Cratis.Orleans.Jobs.JobStep`3	CompletedWithoutOutput CreateCancelledResultFromCurrentState InitializeState PerformStep PrepareStep	-
-base	AS	Cratis.Orleans.Workflows.Execution.WorkflowNodeStepState	Cratis.Orleans.Storage.Jobs.JobStepState	Item	-
-base	AS	Cratis.Orleans.Workflows.Execution.WorkflowWaveItem	System.Object	Attempt Capability CapabilityVersion Configuration Deconstruct EqualityContract Equals Evidence Execution GetHashCode IdempotencyKey Input Operation PrintMembers Run TimeoutSeconds ToString	-
-base	AS	Cratis.Orleans.Workflows.Execution.WorkflowWaveJob	Cratis.Orleans.Jobs.Job`2	GetFailureBehaviorFor GetJobDetails KeepAfterCompleted KeepAfterCompletedWithFailures PrepareSteps StageSpacing StartStepsInBackground	-
-base	AS	Cratis.Orleans.Workflows.Execution.WorkflowWaveRequest	System.Object	Deconstruct EqualityContract Equals GetHashCode Items PrintMembers Run ToString Wave	-
-base	AS	Cratis.Orleans.Workflows.Graphs.CapabilityId	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
-base	AS	Cratis.Orleans.Workflows.Graphs.CapabilityReference	System.Object	Deconstruct EqualityContract Equals GetHashCode Id PrintMembers ToString Version	-
-base	AS	Cratis.Orleans.Workflows.Graphs.CapabilityVersion	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
-base	AS	Cratis.Orleans.Workflows.Graphs.ForEachConfiguration	System.Object	Deconstruct EqualityContract Equals From GetHashCode ItemsFrom ItemsProperty MaxParallelism PrintMembers ToString	-
-base	AS	Cratis.Orleans.Workflows.Graphs.ForEachScope	System.Object	Body Deconstruct EqualityContract Equals ForEach GetHashCode In Join Joins PrintMembers ToString	-
-base	AS	Cratis.Orleans.Workflows.Graphs.JoinConfiguration	System.Object	Deconstruct EqualityContract Equals ForEach From GetHashCode Mode PrintMembers Threshold ToString	-
-base	AS	Cratis.Orleans.Workflows.Graphs.OutletName	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode None PrintMembers	-
-base	AS	Cratis.Orleans.Workflows.Graphs.WaitConfiguration	System.Object	After Deconstruct EqualityContract Equals ExpiresAfter From GetHashCode Kind PrintMembers Signal ToString	-
-base	AS	Cratis.Orleans.Workflows.Graphs.WorkflowEdge	System.Object	Deconstruct EqualityContract Equals From GetHashCode Outlet PrintMembers To ToString	-
-base	AS	Cratis.Orleans.Workflows.Graphs.WorkflowGraph	System.Object	Deconstruct Edges EqualityContract Equals GetHashCode IsConnected NodeFor Nodes PrintMembers TargetsOf ToString	-
-base	AS	Cratis.Orleans.Workflows.Graphs.WorkflowNode	System.Object	Capability Configuration Declares Deconstruct EqualityContract Equals GetHashCode Id Kind Outlets Policy PrintMembers ToString	-
-base	AS	Cratis.Orleans.Workflows.Graphs.WorkflowNodeConfiguration	Cratis.Concepts.ConceptAs`1	Deconstruct Empty EqualityContract Equals GetHashCode Json PrintMembers	-
-base	AS	Cratis.Orleans.Workflows.Graphs.WorkflowNodeId	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
-base	AS	Cratis.Orleans.Workflows.Graphs.WorkflowNodePolicy	System.Object	AttemptTimeout Deconstruct Default EqualityContract Equals GetHashCode MaxAttempts MaxVisits PrintMembers RetryDelay ToString	-
-base	AS	Cratis.Orleans.Workflows.Graphs.WorkflowStructureViolation	System.Object	Deconstruct Description EqualityContract Equals GetHashCode Kind Node PrintMembers ToString	-
-base	AS	Cratis.Orleans.Workflows.Journal.GrainStorageWorkflowRunJournal	System.Object	Append Load	-
-base	AS	Cratis.Orleans.Workflows.Journal.UnknownWorkflowFact	System.Exception	-	-
-base	AS	Cratis.Orleans.Workflows.Journal.WorkflowJournalAppendResult	System.Object	Appended Conflict Deconstruct EqualityContract Equals Failed GetHashCode HasConflict IsSuccess PrintMembers Problems Tail ToString	-
-base	AS	Cratis.Orleans.Workflows.Journal.WorkflowJournalPosition	System.Object	BeforeFirst Deconstruct EqualityContract Equals GetHashCode PrintMembers ToString Value	-
-base	AS	Cratis.Orleans.Workflows.Journal.WorkflowRecordedFact	System.Object	Deconstruct EqualityContract Equals Fact GetHashCode Occurred PrintMembers ToString	-
-base	AS	Cratis.Orleans.Workflows.Journal.WorkflowRunJournalSnapshot	System.Object	Deconstruct Empty EqualityContract Equals Facts GetHashCode PrintMembers Tail ToString	-
-base	AS	Cratis.Orleans.Workflows.Journal.WorkflowRunJournalState	System.Object	Facts	-
-base	AS	Cratis.Orleans.Workflows.Journal.WorkflowStoredFact	System.Object	Content OccurredTicks Type	-
-base	AS	Cratis.Orleans.Workflows.MalformedWorkflowGrainKey	System.Exception	-	-
-base	AS	Cratis.Orleans.Workflows.Runs.Coordination.ActivationAnalysis	System.Object	Activations ArrivalOf ForEachOf IsActivated JoinOf Of	-
-base	AS	Cratis.Orleans.Workflows.Runs.Coordination.CoordinatorDecision	System.Object	Deconstruct EqualityContract Equals Events GetHashCode IsEmpty JobFor PrintMembers State ToSchedule ToStop ToString Wave	-
-base	AS	Cratis.Orleans.Workflows.Runs.Coordination.CoordinatorWork	System.Object	Decide Now Record Run Schedule State Stop Wave	-
-base	AS	Cratis.Orleans.Workflows.Runs.Coordination.NodeExecution	System.Object	Attempt Clone Evidence FailureKind IsInFlight Job Key NextAttempt NotBefore Outlet Output Reason Status Wave	-
-base	AS	Cratis.Orleans.Workflows.Runs.Coordination.WorkflowBranchOrigin	System.Object	Deconstruct EqualityContract Equals ForEach GetHashCode Item PrintMembers ToString	-
-base	AS	Cratis.Orleans.Workflows.Runs.Coordination.WorkflowFanOut	System.Object	Branches Deconstruct EqualityContract Equals ForEach GetHashCode IsJoined PrintMembers ToString	-
-base	AS	Cratis.Orleans.Workflows.Runs.Coordination.WorkflowOpenWait	System.Object	Deadline Deconstruct EqualityContract Equals Execution GetHashCode Kind PrintMembers ToString Wait	-
-base	AS	Cratis.Orleans.Workflows.Runs.Coordination.WorkflowRoute	System.Object	ActivatesJoin Deconstruct EqualityContract Equals From GetHashCode Into Outlet PrintMembers ToString	-
-base	AS	Cratis.Orleans.Workflows.Runs.Coordination.WorkflowRunState	System.Object	Admission Branches Clone ExecutionFor Executions FanOuts Graph Inputs IsAdmitted IsCancelled IsOver LastWave NextDueAt OpenWaits Operations Outcome PendingJobStops Routes Run Status UnroutedFailure	-
-base	AS	Cratis.Orleans.Workflows.Runs.MalformedNodeExecutionKey	System.Exception	-	-
-base	AS	Cratis.Orleans.Workflows.Runs.NodeExecutionKey	System.Object	Branch Deconstruct EqualityContract Equals GetHashCode Node Parse PrintMembers RootOf ToString Visit	-
-base	AS	Cratis.Orleans.Workflows.Runs.NodeExecutionSnapshot	System.Object	Attempt Deconstruct EqualityContract Equals Execution GetHashCode Outlet PrintMembers Status ToString	-
-base	AS	Cratis.Orleans.Workflows.Runs.WorkflowAdmission	System.Object	Admitted Deconstruct EqualityContract Equals GetHashCode PrintMembers Rejected Rejections Run To ToString	-
-base	AS	Cratis.Orleans.Workflows.Runs.WorkflowAttempt	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals First GetHashCode Next PrintMembers	-
-base	AS	Cratis.Orleans.Workflows.Runs.WorkflowBranch	System.Object	Deconstruct EqualityContract Equals GetHashCode Item Key PrintMembers ToString	-
-base	AS	Cratis.Orleans.Workflows.Runs.WorkflowBranchKey	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers Root	-
-base	AS	Cratis.Orleans.Workflows.Runs.WorkflowBranchesFannedOut	System.Object	Branches Deconstruct EqualityContract Equals ForEach GetHashCode PrintMembers ToString	-
-base	AS	Cratis.Orleans.Workflows.Runs.WorkflowBranchesJoined	System.Object	Deconstruct EqualityContract Equals GetHashCode Join Outlet PrintMembers Results ToString	-
-base	AS	Cratis.Orleans.Workflows.Runs.WorkflowFailureReason	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode None PrintMembers	-
-base	AS	Cratis.Orleans.Workflows.Runs.WorkflowJobReference	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
-base	AS	Cratis.Orleans.Workflows.Runs.WorkflowJobStopped	System.Object	Deconstruct EqualityContract Equals GetHashCode Job PrintMembers ToString	-
-base	AS	Cratis.Orleans.Workflows.Runs.WorkflowNodeAttemptFailed	System.Object	Attempt Deconstruct EqualityContract Equals Execution GetHashCode Kind PrintMembers Reason ToString	-
-base	AS	Cratis.Orleans.Workflows.Runs.WorkflowNodeFailed	System.Object	Attempt Deconstruct EqualityContract Equals Execution GetHashCode Kind PrintMembers Reason RoutedTo ToString	-
-base	AS	Cratis.Orleans.Workflows.Runs.WorkflowNodeInputPinned	System.Object	Deconstruct EqualityContract Equals Execution GetHashCode Input PrintMembers ToString	-
-base	AS	Cratis.Orleans.Workflows.Runs.WorkflowNodeOperationCompleted	System.Object	Attempt Deconstruct EqualityContract Equals Execution GetHashCode Operation Output PrintMembers ToString	-
-base	AS	Cratis.Orleans.Workflows.Runs.WorkflowNodeOutcomeAmbiguous	System.Object	Attempt Deconstruct EqualityContract Equals Execution GetHashCode PrintMembers Reason ToString	-
-base	AS	Cratis.Orleans.Workflows.Runs.WorkflowNodeScheduled	System.Object	Attempt Deconstruct EqualityContract Equals Execution GetHashCode Job PrintMembers ToString Wave	-
-base	AS	Cratis.Orleans.Workflows.Runs.WorkflowNodeSkipped	System.Object	Deconstruct EqualityContract Equals Execution GetHashCode PrintMembers Reason ToString	-
-base	AS	Cratis.Orleans.Workflows.Runs.WorkflowNodeSucceeded	System.Object	Attempt Deconstruct EqualityContract Equals Evidence Execution GetHashCode Outlet Output PrintMembers ToString	-
-base	AS	Cratis.Orleans.Workflows.Runs.WorkflowNodesUnreachable	System.Object	Deconstruct EqualityContract Equals Executions GetHashCode PrintMembers ToString	-
-base	AS	Cratis.Orleans.Workflows.Runs.WorkflowRunAdmitted	System.Object	Area Capabilities CatalogVersion Deconstruct EqualityContract Equals GetHashCode Graph PrintMembers ToString Trigger Version Workflow	-
-base	AS	Cratis.Orleans.Workflows.Runs.WorkflowRunCancelled	System.Object	Deconstruct EqualityContract Equals GetHashCode PrintMembers Reason ToString	-
-base	AS	Cratis.Orleans.Workflows.Runs.WorkflowRunCouldNotBeRecorded	System.Exception	-	-
-base	AS	Cratis.Orleans.Workflows.Runs.WorkflowRunFailed	System.Object	Deconstruct EqualityContract Equals GetHashCode PrintMembers Reason ToString	-
-base	AS	Cratis.Orleans.Workflows.Runs.WorkflowRunGrain	Orleans.Grain	Admit Cancel CompleteNode CompleteOperation ExpireDueWaits FailAttempt GetOperationOutput GetSnapshot OnActivateAsync OnDeactivateAsync ReceiveReminder ResolveWait Resume StartDueRetries Tend TryStartInvocation	-
-base	AS	Cratis.Orleans.Workflows.Runs.WorkflowRunNeedsReconciliation	System.Object	EqualityContract Equals GetHashCode PrintMembers ToString	-
-base	AS	Cratis.Orleans.Workflows.Runs.WorkflowRunSnapshot	System.Object	Deconstruct EqualityContract Equals Executions GetHashCode IsAdmitted Of OpenWaits PrintMembers Run Status ToString	-
-base	AS	Cratis.Orleans.Workflows.Runs.WorkflowRunSucceeded	System.Object	EqualityContract Equals GetHashCode PrintMembers ToString	-
-base	AS	Cratis.Orleans.Workflows.Runs.WorkflowWaitCancelled	System.Object	Deconstruct EqualityContract Equals GetHashCode PrintMembers ToString Wait	-
-base	AS	Cratis.Orleans.Workflows.Runs.WorkflowWaitOpened	System.Object	Correlation Deadline Deconstruct EqualityContract Equals Execution GetHashCode Kind PrintMembers Signal ToString Wait	-
-base	AS	Cratis.Orleans.Workflows.Runs.WorkflowWaitResolved	System.Object	Actor Deconstruct EqualityContract Equals GetHashCode Outlet Payload PrintMembers ToString Wait	-
-base	AS	Cratis.Orleans.Workflows.Runs.WorkflowWave	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
-base	AS	Cratis.Orleans.Workflows.Scopes.DefaultWorkflowExecutionScopes	System.Object	Enter JobsManagerFor ScopeOf	-
-base	AS	Cratis.Orleans.Workflows.Sweeping.WorkflowJobsManagerKeys	System.Object	GetKeys	-
-base	AS	Cratis.Orleans.Workflows.Sweeping.WorkflowRunIndexGrain	Orleans.Grain	Add GetActive Remove	-
-base	AS	Cratis.Orleans.Workflows.Sweeping.WorkflowRunIndexState	System.Object	Runs	-
-base	AS	Cratis.Orleans.Workflows.Sweeping.WorkflowRunSweepService	Microsoft.Extensions.Hosting.BackgroundService	ExecuteAsync SweepOnce	-
-base	AS	Cratis.Orleans.Workflows.Sweeping.WorkflowRunSweeper	System.Object	SweepScope	-
-base	AS	Cratis.Orleans.Workflows.Sweeping.WorkflowScopes	System.Object	GetAll Remember	-
-base	AS	Cratis.Orleans.Workflows.Triggers.TriggerSourceKey	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
-base	AS	Cratis.Orleans.Workflows.Triggers.WorkflowTrigger	System.Object	Actor Causation Contract Correlation Deconstruct Deduplication EqualityContract Equals Evidence GetHashCode Kind OccurredAt Payload PrintMembers Source Subject ToString	-
-base	AS	Cratis.Orleans.Workflows.Waits.WaitDeadline	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode IsDueAt None PrintMembers	-
-base	AS	Cratis.Orleans.Workflows.Waits.WorkflowWaitId	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
-base	AS	Cratis.Orleans.Workflows.WorkflowActor	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers System	-
-base	AS	Cratis.Orleans.Workflows.WorkflowAreaKey	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
-base	AS	Cratis.Orleans.Workflows.WorkflowGrain	Orleans.Grain	Admit	-
-base	AS	Cratis.Orleans.Workflows.WorkflowId	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode New PrintMembers	-
-base	AS	Cratis.Orleans.Workflows.WorkflowKey	System.Object	Deconstruct EqualityContract Equals GetHashCode Parse PrintMembers Scope ToString Workflow	-
-base	AS	Cratis.Orleans.Workflows.WorkflowRunId	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals For GetHashCode PrintMembers	-
-base	AS	Cratis.Orleans.Workflows.WorkflowRunKey	System.Object	Deconstruct EqualityContract Equals GetHashCode Parse PrintMembers Run Scope ToString	-
-base	AS	Cratis.Orleans.Workflows.WorkflowScope	Cratis.Concepts.ConceptAs`1	Deconstruct Default EqualityContract Equals GetHashCode PrintMembers	-
-base	AS	Cratis.Orleans.Workflows.WorkflowStarter	System.Object	GetRun Start	-
-base	AS	Cratis.Orleans.Workflows.WorkflowVersion	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode None PrintMembers	-
-base	AS	Cratis.Orleans.Workflows.WorkflowsOptions	System.Object	IdleBeforeResume JobsScope Scopes Sweep SweepInterval SweepStartupDelay WakeRunsItself	-
 base	AS	Cratis.Reactive.TransformingSubject`2	System.Object	CreateSubscriberScoped Dispose OnCompleted OnError OnNext Subscribe	-
 base	AS	Cratis.Reflection.TypeInfo`1	System.Object	HasDefaultConstructor Instance	-
 base	AS	Cratis.Screenplay.CompilationResult`1	System.Object	ContextsFor Deconstruct Diagnostics EqualityContract Equals Failed GetHashCode ImplementationRequirements PrintMembers Success ToString TypedContextDescriptors Value	-

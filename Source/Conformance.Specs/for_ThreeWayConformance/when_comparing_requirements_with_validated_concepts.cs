@@ -57,6 +57,7 @@ public class when_comparing_requirements_with_validated_concepts(when_comparing_
                             var valueConstructor = parameter.ParameterType.GetConstructors().Single(candidate => candidate.GetParameters().Length == 1);
                             return valueConstructor.Invoke([Convert.ChangeType(input, valueConstructor.GetParameters()[0].ParameterType, CultureInfo.InvariantCulture)]);
                         }).ToArray();
+                        // Untyped scenarios cannot select decision reads automatically: https://github.com/Cratis/Arc/issues/3669
                         #pragma warning disable CS0618
                         using var scenario = new CommandScenario<object>().UseDecisionReads();
                         #pragma warning restore CS0618

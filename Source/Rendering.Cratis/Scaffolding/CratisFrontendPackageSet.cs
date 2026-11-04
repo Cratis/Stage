@@ -221,9 +221,9 @@ public sealed class CratisFrontendPackageSet
     /// compiles is the runtime the live Stage was verified with. A specification compares the two.
     /// </remarks>
     internal static CratisFrontendPackageSet Current { get; } = new(
-        "22.166.0",
-        "22.166.0",
-        "22.166.0",
+        "22.166.1",
+        "22.166.1",
+        "22.166.1",
         "7.33.1",
         "7.8.2",
         "4.10.0",

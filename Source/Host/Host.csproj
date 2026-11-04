@@ -32,8 +32,8 @@
         <PackageReference Include="Cratis.Chronicle" />
         <PackageReference Include="Cratis.Chronicle.AspNetCore" />
         <PackageReference Include="Cratis.Showrunner.Notes" />
-        <PackageReference Include="Cratis.Orleans" />
-        <PackageReference Include="Cratis.Orleans.Chronicle" />
+        <PackageReference Include="Cratis.Choreography" />
+        <PackageReference Include="Cratis.Choreography.Chronicle" />
         <PackageReference Include="Scalar.AspNetCore" />
         <PackageReference Include="Yarp.ReverseProxy" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" />

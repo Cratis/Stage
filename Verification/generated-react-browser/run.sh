@@ -27,6 +27,8 @@ host_pid=""
 
 cleanup() {
     [ -n "$host_pid" ] && kill "$host_pid" 2>/dev/null && wait "$host_pid" 2>/dev/null
+    # Keep the kernel's own log next to the host log, so a connection failure can be diagnosed from both sides.
+    docker logs "$container" > "$result.kernel.log" 2>&1
     docker rm --force --volumes "$container" >/dev/null 2>&1
 }
 trap cleanup EXIT

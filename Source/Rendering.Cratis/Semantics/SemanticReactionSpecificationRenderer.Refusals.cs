@@ -23,19 +23,8 @@ internal static partial class SemanticReactionSpecificationRenderer
             .Using("Cratis.Arc.Commands").Using("Cratis.Arc.Chronicle.Testing.Commands").Using("Cratis.Arc.Testing.Commands")
             .Using("Cratis.Specifications").Using("Microsoft.Extensions.DependencyInjection").Using("NSubstitute").Using("Xunit")
             .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable");
-        if (typed is null)
-        {
-            builder.Line("#pragma warning disable CS0618 // Arc selects decision reads from a typed command; an untyped scenario runs several commands, so it asks for them.")
-                .Line("readonly global::Cratis.Arc.Testing.Commands.CommandScenario<object> _scenario = new global::Cratis.Arc.Testing.Commands.CommandScenario<object>().UseDecisionReads();")
-                .Line("#pragma warning restore CS0618");
-        }
-        else
-        {
-            builder.Line($"readonly global::Cratis.Arc.Testing.Commands.CommandScenario<{typed}> _scenario = new();");
-        }
-
-        builder
-            .Line(SemanticSpecificationValuesRenderer.Declarations)
+        RenderScenarioField(builder, typed);
+        builder.Line(SemanticSpecificationValuesRenderer.Declarations)
             .Line("global::Cratis.Chronicle.Events.AppendedEvent[] _facts = [];")
             .Line("bool _settled;")
             .BlankLine().OpenBlock("async global::System.Threading.Tasks.Task Because()");
@@ -92,6 +81,21 @@ internal static partial class SemanticReactionSpecificationRenderer
         builder.BlankLine().ExpressionMember("public void Dispose()", "_scenario.Dispose()").EndBlock();
 
         return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), types.SpecificationContent(builder));
+    }
+
+    static void RenderScenarioField(CSharpCodeBuilder builder, string? command)
+    {
+        if (command is null)
+        {
+            builder.Line("// Untyped scenarios cannot select decision reads automatically: https://github.com/Cratis/Arc/issues/3669")
+                .Line("#pragma warning disable CS0618")
+                .Line("readonly global::Cratis.Arc.Testing.Commands.CommandScenario<object> _scenario = new global::Cratis.Arc.Testing.Commands.CommandScenario<object>().UseDecisionReads();")
+                .Line("#pragma warning restore CS0618");
+        }
+        else
+        {
+            builder.Line($"readonly global::Cratis.Arc.Testing.Commands.CommandScenario<{command}> _scenario = new();");
+        }
     }
 
     static void RenderRefusalOutcome(CSharpCodeBuilder builder, SemanticSpecification specification, SemanticApplicationContext context, SemanticTypeSystem types)

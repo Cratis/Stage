@@ -1,10 +1,10 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using Cratis.DependencyInjection;
 using Cratis.Choreography.Workflows;
 using Cratis.Choreography.Workflows.Definitions;
 using Cratis.Choreography.Workflows.Graphs;
+using Cratis.DependencyInjection;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Lifecycles;

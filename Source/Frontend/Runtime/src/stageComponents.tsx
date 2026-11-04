@@ -273,6 +273,8 @@ function autoActionFields(input: ExternalComponent, schema: string | undefined, 
     const ownFields = input.properties.fields;
     if (!Array.isArray(ownFields) || ownFields.length === 0) return toolbarCommandFields(schema, properties, parameters, subject, rows);
     if (rows.length === 0 || subject === 'screen') return {};
+    // Multiple identifiers do not prove a row target: a new comment and its parent must remain declared inputs.
+    if (subject === undefined && input.properties.rowAction !== true && properties.filter(property => property.identifier).length > 1) return {};
     const carried = new Set(properties.filter(property => carriedByRows(property, subject, rows)).map(property => property.name));
     // Manual even when nothing is left to ask, so the form does not regenerate the identifiers the row supplies.
     return { fields: ownFields.filter(field => !carried.has(askedProperty(field))), generationMode: 'manual' };

@@ -41,6 +41,7 @@ public static partial class SemanticModelLoader
             AttachmentDiagnostics = attachmentDiagnostics,
             ReleaseBaseline = baseline,
             Realization = ApplicationRealization.From(compiled.Value!, root),
+            PassiveReadModels = compiled.Value!.PassiveReadModels,
             Diagnostics = diagnostics
         };
 

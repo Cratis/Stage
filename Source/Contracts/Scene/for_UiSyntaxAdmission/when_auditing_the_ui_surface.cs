@@ -16,8 +16,8 @@ public class when_auditing_the_ui_surface : Specification
     // StateMachines and Workflows (Screenplay 5.1.0) have no UI node: they reach Stage through the executable semantic model, where the runtime and the renderer decide.
     // StickyNotes are Studio canvas notes: authoring metadata outside the executable model, so Stage neither renders nor refuses them.
     // TimeZone (Screenplay 4.247.0, decisions 0106/0107) never reaches Stage: the Screenplay binder refuses an application time zone (Cratis/Screenplay#824).
-    [Theory]
     // Context (Screenplay 5.3.1) is refused by the binder with PLAY0268 before Stage consumes it.
+    [Theory]
     [InlineData(typeof(ApplicationSyntax), "Authentication Behaviors CommandReadMode Concepts Context Domain EventSources Examples Exposures FileImports Identity Imports InstanceContributions Layouts Modules Onboarding Personas Policies Purposes ReactionProductionMode SampleDataPacks Seeds SourceOptions StateMachines StickyNotes Systems Templates Themes TimeZone Triggers Types UiProfiles Workflows")]
     [InlineData(typeof(ModuleSyntax), "Authorize Behaviors Contributions DependsOn Description DialogTemplates Documentation Examples Features FileImports Forms IsPlacement Name Navigation Purposes ScreenTemplates Templates Toolbars UsedBehaviors")]
     [InlineData(typeof(FeatureSyntax), "Authorize Behaviors Contributions DependsOn Description Documentation Examples Features FileImports IsPlacement Name Purposes Slices Templates Toolbars UsedBehaviors")]

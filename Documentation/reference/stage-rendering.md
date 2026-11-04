@@ -149,6 +149,25 @@ apply; strict planning rejects unsafe or degraded output. Modeled specifications
 occurrence, correlation, or sequence values without bound event metadata are not rendered.
 This renderer support does not change Screenplay's reference executor.
 
+## Passive read models
+
+An explicit `passive` directive on a Screenplay read model renders Chronicle's `[Passive]` attribute. A fluent projection also receives `builder.Passive()` immediately after `builder.NoAutoMap()`. Model-bound projections and reducers honor the attribute. The EventModel runtime registers a passive projection as inactive with sink `None`; active projections keep their `InMemory` sink.
+
+```play
+readmodel Current
+  passive
+  id String key
+  value String
+```
+
+A passive model is rebuilt on demand from the requested event source's events instead of being maintained in a sink. Commands can read it; Screenplay refuses queries and screen data that observe it with `PLAY0859`. Without the directive, the model stays active, even if only commands read it. Unannotated models retain their existing profile and output bytes.
+
+Passivity is not part of portable ESM or its revision. Source-backed planning carries the explicit semantic identities in the hashed `cratis-realization:passive-read-models` profile input. Programmatic callers can use `CratisRendering.WithRealization(profile, compilation)` or `WithPassiveReadModels(profile, compilation)` from the same compilation. A portable-ESM-only caller without this metadata retains active behavior. Malformed, duplicate, noncanonical or unknown identities fail profile admission.
+
+`STAGE-ESM-061` refuses passive projections with payload, constant, composite or context root keys, joins, or child/nested scopes. Chronicle's immediate projection replays only the requested key's event-source stream: other keys risk `CHR0046`, and cross-stream scopes can return incomplete state. Reducer-backed passive models remain supported.
+
+Passive reads are fresher, not safer: they do not capture a read position or provide optimistic-concurrency protection. Passivity does not enable protected reads or change their policy.
+
 ## Generated C# self-reducing read models
 
 Artifact planning can opt a confirmed new application into self-reducing read models.

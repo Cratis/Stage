@@ -205,6 +205,8 @@ internal static class SemanticSurfaceLedger
         // State view: an optional snapshot lookup by identifier or a snapshot/live collection (keyed by one `by` or unkeyed).
         // Query arguments retain concept types, including nested members and collection elements, for Arc validation.
         // QueryShapes records the cross-product rather than treating an enum value as universally supported.
+        // Passivity is carried by SemanticCompilation.PassiveReadModels through PassiveReadModelsInput,
+        // not portable ESM; the attribute and fluent projection flag are rendered for #208.
         Add(entries, "SemanticReadModel", rendered, "Id Name Properties");
         Add(entries, "SemanticProjection", rendered, "Id Name ReadModel Transitions");
         Add(entries, "SemanticProjection", rendered, "Scope");

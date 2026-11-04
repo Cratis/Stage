@@ -31,6 +31,10 @@ internal static class SemanticScopedProjectionRenderer
             .Line("/// <param name=\"builder\">The projection builder.</param>")
             .OpenBlock($"public void Define(global::Cratis.Chronicle.Projections.IProjectionBuilderFor<{modelName}> builder)")
             .Line("builder.NoAutoMap();");
+        if (context.IsPassive(readModel.Id))
+        {
+            builder.Line("builder.Passive();");
+        }
         var identifiers = readModel.Properties.Where(property => property.IsIdentifier).ToArray();
         CompositeKey? composite = identifiers.Length > 1 ? new(SemanticCompositeKeyAdmission.KeyTypeName(readModel), identifiers) : null;
         RenderScope(builder, scope, context, readModel.Properties, "builder", identifiers.Length == 1 ? identifiers[0] : null, composite);

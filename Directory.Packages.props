@@ -26,9 +26,9 @@
         TypeLoadException for the renamed EnsureEventStore contract. The Host Dockerfile's cratis/chronicle base
         image tag must track this version too, so the bundled kernel and the client never drift apart.
     -->
-    <!-- The Orleans silo hosted by the Stage runtime and by every rendered application. Cratis.Orleans.Chronicle requires the Chronicle client pinned below. -->
-    <PackageVersion Include="Cratis.Orleans" Version="1.33.1" />
-    <PackageVersion Include="Cratis.Orleans.Chronicle" Version="1.33.1" />
+    <!-- The Orleans silo hosted by the Stage runtime and by every rendered application. Cratis.Choreography.Chronicle requires the Chronicle client pinned below. -->
+    <PackageVersion Include="Cratis.Choreography" Version="2.1.1" />
+    <PackageVersion Include="Cratis.Choreography.Chronicle" Version="2.1.1" />
     <PackageVersion Include="Cratis.Chronicle" Version="19.123.1" />
     <!-- Only the multi-service repository scaffold emits this pin (Stage references no Aspire package). It matches the Aspire version of Chronicle and Studio. -->
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.6.4" />

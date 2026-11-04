@@ -92,8 +92,8 @@ public sealed partial class CratisBackendApplicationScaffold
     static string Program(CratisBackendApplicationScaffoldRequest request) =>
         $$"""
         using Cratis.Arc.MongoDB;
-        using Cratis.Orleans.Chronicle.Hosting;
-        using Cratis.Orleans.Hosting;
+        using Cratis.Choreography.Chronicle.Hosting;
+        using Cratis.Choreography.Hosting;
 
         var builder = WebApplication.CreateBuilder(args);
         builder.Services.AddHealthChecks();
@@ -105,7 +105,7 @@ public sealed partial class CratisBackendApplicationScaffold
         // The Orleans silo that runs jobs, event-sourced state machines and workflows. The local configuration is localhost
         // clustering with in-memory grain storage: it starts with the application and needs no extra service, but jobs and
         // workflow runs do not survive a restart. Configure durable storage here when they must.
-        builder.AddCratisOrleans(new CratisOrleansOptions
+        builder.AddCratisChoreography(new CratisChoreographyOptions
         {
             Clustering = ClusteringMode.Localhost,
             Storage = GrainStorageMode.InMemory,

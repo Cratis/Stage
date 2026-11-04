@@ -35,7 +35,7 @@ public class with_the_default_composition : a_register_project_render_request
     // Recomputed for Chronicle 19.117.0: the scaffold emits the matching package and development image pins.
     // Recomputed for Screenplay 5.3.1: the scaffold emits the matching matcher pin.
     const string Before = "8ee291dd093fefd650fb70fc79c0c68b12e7042e4a0e6227f97aefd0314b7a8d";
-    // Recomputed for Cratis/Stage#926: the scaffold now hosts an Orleans silo, pins Cratis.Orleans 1.33.1 and moves to Chronicle 19.114.0.
+    // Recomputed for Cratis/Stage#926: the scaffold now hosts an Orleans silo, pins Cratis.Choreography 1.33.1 and moves to Chronicle 19.114.0.
 
     ArtifactRenderPlan _plan = null!;
 

@@ -492,7 +492,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticOneOfExpression", rejected("STAGE-ESM-006"), "CollectionProperty");
 
         // State machines and workflows (ESM v36, Screenplay 5.1.0). The runtime drives them on the Orleans silo and the renderer emits
-        // Cratis.Orleans state machines and workflow definitions; what neither can express is refused with its STAGE-LIFECYCLE diagnostic.
+        // Cratis.Choreography state machines and workflow definitions; what neither can express is refused with its STAGE-LIFECYCLE diagnostic.
         var lifecycleNotRendered = rejected("STAGE-LIFECYCLE-010");
         var scheduled = rejected("STAGE-LIFECYCLE-007");
         var verifiedByTheReferenceEvaluator = ignored("Lifecycle specifications are verified by the reference lifecycle evaluator in the spec runner; no generated specification is emitted.");

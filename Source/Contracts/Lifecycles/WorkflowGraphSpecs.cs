@@ -9,7 +9,7 @@ using Cratis.Screenplay.Semantics.Execution;
 namespace Cratis.Stage.Contracts.Lifecycles;
 
 /// <summary>
-/// Translates Screenplay workflows to the graph model of the Cratis.Orleans workflow engine.
+/// Translates Screenplay workflows to the graph model of the Cratis.Choreography workflow engine.
 /// </summary>
 /// <remarks>
 /// The runtime builds its definition snapshots from this translation and the renderer emits the same graph as code, so what runs

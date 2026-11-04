@@ -767,15 +767,15 @@ edits to it are overwritten. Put application-specific global usings in a separat
 
 ## Generated application silo
 
-A rendered application hosts an Orleans silo through `Cratis.Orleans`, so durable state machines and workflows have
-grains to run on. `Program.cs` calls `AddCratisOrleans` with the local configuration (localhost clustering and
+A rendered application hosts an Orleans silo through `Cratis.Choreography`, so durable state machines and workflows have
+grains to run on. `Program.cs` calls `AddCratisChoreography` with the local configuration (localhost clustering and
 in-memory grain storage) and the workflow engine turned on, then `AddEventSourcedStateMachines()` and
-`AddEventSourcedWorkflows()`. `Directory.Packages.props` pins `Cratis.Orleans` and `Cratis.Orleans.Chronicle` to the
+`AddEventSourcedWorkflows()`. `Directory.Packages.props` pins `Cratis.Choreography` and `Cratis.Choreography.Chronicle` to the
 versions Stage itself uses, and the project references them.
 
 The local configuration needs nothing beyond what `docker-compose.yml` already starts, but jobs and workflow runs
 live in the application's memory and do not survive a restart. MongoDB-backed grain storage needs the separate
-`Cratis.Orleans.Storage.MongoDB` package and `AddCratisOrleansMongoDBJobsStorage`; add that in `Program.cs` when runs
+`Cratis.Choreography.Storage.MongoDB` package and `AddCratisChoreographyMongoDBJobsStorage`; add that in `Program.cs` when runs
 must be durable. The silo listens on the Orleans default ports on localhost, so two rendered applications cannot run
 on the same machine at once without changing them.
 

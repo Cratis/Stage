@@ -37,7 +37,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     // Re-frozen for Cratis/Stage#937: only Directory.Packages.props pins Pkcs to 10.0.14 and documents Xml runtime servicing.
     const string Digest = "9d3431871c72a4de5bac801d5fbacfc9e41b8520a0de0e087f5a055e5ac5f1ce";
     // Re-frozen for Cratis/Stage#926: the scaffold hosts an Orleans silo (Program.cs, Directory.Packages.props, the project).
-    // Re-frozen for Chronicle 19.114.0 and Cratis.Orleans 1.33.1: Program.cs no longer registers a telemetry callback.
+    // Re-frozen for Chronicle 19.114.0 and Cratis.Choreography 1.33.1: Program.cs no longer registers a telemetry callback.
 
     const string Manifest = """
         .editorconfig 0071ecdc7a762e5966d5f6e6c72cc6b53d96c918c2e32dbe74059ffbc792859f 741

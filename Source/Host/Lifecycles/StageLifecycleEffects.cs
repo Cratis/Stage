@@ -6,12 +6,12 @@ using System.Collections.Immutable;
 using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Cratis.Orleans.Workflows;
-using Cratis.Orleans.Workflows.Contracts;
-using Cratis.Orleans.Workflows.Graphs;
-using Cratis.Orleans.Workflows.Runs;
-using Cratis.Orleans.Workflows.Runs.Coordination;
-using Cratis.Orleans.Workflows.Triggers;
+using Cratis.Choreography.Workflows;
+using Cratis.Choreography.Workflows.Contracts;
+using Cratis.Choreography.Workflows.Graphs;
+using Cratis.Choreography.Workflows.Runs;
+using Cratis.Choreography.Workflows.Runs.Coordination;
+using Cratis.Choreography.Workflows.Triggers;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Lifecycles;
@@ -21,7 +21,7 @@ namespace Cratis.Stage.Host.Lifecycles;
 
 /// <summary>
 /// Performs lifecycle effects on the Orleans silo: commands go through the semantic runtime, workflow runs are admitted to the
-/// Cratis.Orleans workflow engine and resumed when the fact they wait for is committed.
+/// Cratis.Choreography workflow engine and resumed when the fact they wait for is committed.
 /// </summary>
 /// <param name="plan">The execution plan of the loaded model.</param>
 /// <param name="runtime">The semantic runtime commands are sent through.</param>

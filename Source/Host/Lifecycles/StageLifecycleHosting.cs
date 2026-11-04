@@ -1,9 +1,9 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using Cratis.Orleans.Workflows;
-using Cratis.Orleans.Workflows.Adapters;
-using Cratis.Orleans.Workflows.Definitions;
+using Cratis.Choreography.Workflows;
+using Cratis.Choreography.Workflows.Adapters;
+using Cratis.Choreography.Workflows.Definitions;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Lifecycles;

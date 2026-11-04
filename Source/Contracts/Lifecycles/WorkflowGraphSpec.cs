@@ -7,7 +7,7 @@ using Cratis.Screenplay.Semantics;
 namespace Cratis.Stage.Contracts.Lifecycles;
 
 /// <summary>
-/// One node of a Screenplay workflow as the Cratis.Orleans workflow engine models it.
+/// One node of a Screenplay workflow as the Cratis.Choreography workflow engine models it.
 /// </summary>
 /// <param name="Name">The node name, which is the engine node id.</param>
 /// <param name="Kind">The node kind.</param>
@@ -38,7 +38,7 @@ public sealed record WorkflowGraphNodeSpec(
 public sealed record WorkflowGraphEdgeSpec(string From, string Outlet, string To);
 
 /// <summary>
-/// A Screenplay workflow translated to the graph of the Cratis.Orleans workflow engine, or the reasons it cannot be.
+/// A Screenplay workflow translated to the graph of the Cratis.Choreography workflow engine, or the reasons it cannot be.
 /// </summary>
 /// <param name="Workflow">The Screenplay workflow.</param>
 /// <param name="Nodes">The engine nodes.</param>

@@ -34,8 +34,9 @@ public class with_authored_screen_partitions : a_partitioned_screen_plan
     // Recaptured by the owning spec for train 11's merged pins and rendering deliveries.
     // Recomputed for Chronicle 19.117.0: the scaffold emits the matching package and development image pins.
     // Recomputed for Screenplay 5.3.1: the scaffold emits the matching matcher pin.
-    const string Before = "d24f879e153abbbd12b0392f26da2106154f93f549937f962f6dc083008636f1";
-    // Recomputed for Cratis/Stage#926: the scaffold now hosts an Orleans silo, pins Cratis.Orleans 1.33.1 and moves to Chronicle 19.114.0.
+    // Recomputed for Cratis/Stage#967: the scaffold hosts Choreography 2.2.0 with Chronicle 19.124.0 and Arc 22.165.2.
+    // Recomputed for Arc 22.166.0: the scaffold emits the matching backend and frontend pins.
+    const string Before = "e56d2e550d07254e4652c4c7e9e488d6b185255272e4e432d4e3b25829de1477";
 
     void Because() => _application = AppPlan(_profile);
 

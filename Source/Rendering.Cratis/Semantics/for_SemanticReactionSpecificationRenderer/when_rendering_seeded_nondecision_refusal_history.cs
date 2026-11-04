@@ -19,6 +19,8 @@ public class when_rendering_seeded_nondecision_refusal_history : given.a_refusal
 
     [Fact] void should_admit_the_specification() => _diagnostics.ShouldBeEmpty();
     [Fact] void should_keep_the_scenario_typed_by_the_command() => _source.ShouldContain("CommandScenario<Complete> _scenario");
+    [Fact] void should_let_arc_select_decision_reads() => _source.ShouldNotContain("UseDecisionReads");
+    [Fact] void should_not_suppress_obsolescence() => _source.ShouldNotContain("#pragma warning");
     [Fact] void should_append_the_seed_and_assert_its_status() => _source.ShouldContain("(await _scenario.EventLog.Append(_id, new Seeded())).IsSuccess.ShouldBeTrue();");
     [Fact] void should_seed_before_appending_the_trigger() => _source.IndexOf("new Seeded()", StringComparison.Ordinal).ShouldBeLessThan(_source.IndexOf("_scenario.EventLog.Append(_id, @event)", StringComparison.Ordinal));
     [Fact] void should_not_use_decision_given_seeding() => _source.ShouldNotContain("_scenario.Given");

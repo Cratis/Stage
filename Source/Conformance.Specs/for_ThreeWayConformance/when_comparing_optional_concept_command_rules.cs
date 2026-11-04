@@ -58,7 +58,10 @@ public class when_comparing_optional_concept_command_rules(when_comparing_option
                         var valueConstructor = valueType.GetConstructors().Single(constructor => constructor.GetParameters().Length == 1);
                         string? input = {{JsonSerializer.Serialize(text)}};
                         var value = input is null ? null : valueConstructor.Invoke([Convert.ChangeType(input, valueConstructor.GetParameters()[0].ParameterType, System.Globalization.CultureInfo.InvariantCulture)]);
+                        // Untyped scenarios cannot select decision reads automatically: https://github.com/Cratis/Arc/issues/3669
+                        #pragma warning disable CS0618
                         using var scenario = new Cratis.Arc.Testing.Commands.CommandScenario<object>().UseDecisionReads();
+                        #pragma warning restore CS0618
                         var result = await scenario.Execute(constructor.Invoke(["one", value]));
                         Assert.False(result.HasExceptions, string.Join("; ", result.ExceptionMessages));
                         var expected = System.Text.Json.JsonSerializer.Deserialize<string[][]>({{JsonSerializer.Serialize(JsonSerializer.Serialize(failures))}})!;

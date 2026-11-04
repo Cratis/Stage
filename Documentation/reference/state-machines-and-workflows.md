@@ -5,7 +5,7 @@ description: How the Stage runtime executes Screenplay state machines and workfl
 
 A Screenplay `statemachine` says where one thing is in its lifecycle and what entering a state does. A `workflow` is a durable
 process: it sends commands, chooses a path, waits for a fact or a person and gives up after a deadline. Both are top level
-declarations admitted from ESM v36 (Screenplay 5.1.0), and both mean what the Cratis.Orleans `EventSourcedStateMachine` and the
+declarations admitted from ESM v36 (Screenplay 5.1.0), and both mean what the Cratis.Choreography `EventSourcedStateMachine` and the
 durable workflow engine mean. Stage runs them on the Orleans silo it hosts ([ports and clustering](../docker/index.md)) and
 renders them for the applications it generates.
 
@@ -92,7 +92,7 @@ A model that uses something the renderer cannot emit fails the plan with the dia
 | `STAGE-LIFECYCLE-008` | A transition guard compares something other than a text, number or flag member of the followed read model. |
 | `STAGE-LIFECYCLE-010` | A decision, approval, foreach or join; an action whose command has more than its identifier; or a command a state machine sends that has a property the followed read model does not carry with the same name and type. |
 
-The rendered application reports one warning per state machine, `STAGE-LIFECYCLE-009`. Cratis.Orleans resolves the state of an
+The rendered application reports one warning per state machine, `STAGE-LIFECYCLE-009`. Cratis.Choreography resolves the state of an
 event-sourced machine from the followed read model alone when its grain activates again. A model that declares no member recording
 the state therefore resumes in its initial state after a restart. Add a read model member the projection sets on each transition if
 the state must survive.

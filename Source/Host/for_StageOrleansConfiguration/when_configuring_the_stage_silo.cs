@@ -3,7 +3,7 @@
 
 using System.Net;
 using System.Net.Sockets;
-using Cratis.Orleans.Chronicle.StateMachines;
+using Cratis.Choreography.Chronicle.StateMachines;
 using Microsoft.Extensions.Options;
 using Orleans.Configuration;
 using Xunit;

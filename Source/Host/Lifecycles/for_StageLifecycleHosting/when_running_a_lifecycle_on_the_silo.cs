@@ -6,7 +6,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Security.Claims;
 using System.Text.Json;
-using Cratis.Orleans.Hosting;
+using Cratis.Choreography.Hosting;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Lifecycles.for_LifecycleAdmission.given;
@@ -73,7 +73,7 @@ public class when_running_a_lifecycle_on_the_silo
         builder.Services.AddSingleton<ISemanticRuntime>(runtime);
         StageLifecycleHosting.Add(builder.Services, plan);
         var siloPort = FreePort();
-        builder.AddCratisOrleans(new CratisOrleansOptions { Clustering = ClusteringMode.Localhost, Storage = GrainStorageMode.InMemory, ClusterId = "lifecycle-spec", ServiceId = "lifecycle-spec", Workflows = true });
+        builder.AddCratisChoreography(new CratisChoreographyOptions { Clustering = ClusteringMode.Localhost, Storage = GrainStorageMode.InMemory, ClusterId = "lifecycle-spec", ServiceId = "lifecycle-spec", Workflows = true });
         builder.Services.Configure<EndpointOptions>(options =>
         {
             options.SiloPort = siloPort;

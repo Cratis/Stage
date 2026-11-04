@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "5.3.1",
+  "corpusVersion": "5.3.2",
   "minimumVectorCount": 80,
   "excludedTypes": {
     "ClockScheduleVectors": "Raw schedule bytes only; the package carries no model for it.",

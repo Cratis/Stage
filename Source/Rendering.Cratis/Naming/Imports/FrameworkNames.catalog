@@ -2,12 +2,12 @@
 # Regenerate: STAGE_WRITE_FRAMEWORK_NAME_CATALOG=1 dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --filter "FullyQualifiedName~for_FrameworkNameCatalog"
 format	1
 scaffold	3
-pin	Cratis	22.146.0
-pin	Cratis.Arc.Chronicle.Testing	22.146.0
-pin	Cratis.Arc.MongoDB	22.146.0
-pin	Cratis.Chronicle	19.117.0
-pin	Cratis.Chronicle.AspNetCore	19.117.0
-pin	Cratis.Chronicle.Testing	19.117.0
+pin	Cratis	22.165.2
+pin	Cratis.Arc.Chronicle.Testing	22.165.2
+pin	Cratis.Arc.MongoDB	22.165.2
+pin	Cratis.Chronicle	19.123.1
+pin	Cratis.Chronicle.AspNetCore	19.123.1
+pin	Cratis.Chronicle.Testing	19.123.1
 pin	Cratis.Screenplay.Matching	5.3.1
 pin	Cratis.Specifications	5.1.0
 pin	Cratis.Specifications.XUnit	5.1.0
@@ -22,23 +22,23 @@ package	AS	Azure.Identity	1.17.2
 package	AS	Azure.Security.KeyVault.Certificates	4.6.0
 package	AS	Azure.Security.KeyVault.Secrets	4.6.0
 package	AS	Castle.Core	5.2.1
-package	AS	Cratis	22.146.0
-package	AS	Cratis.Arc	22.146.0
-package	AS	Cratis.Arc.Chronicle	22.146.0
-package	AS	Cratis.Arc.Chronicle.CodeAnalysis	22.146.0
-package	AS	Cratis.Arc.Chronicle.Testing	22.146.0
-package	AS	Cratis.Arc.Core	22.146.0
-package	AS	Cratis.Arc.Core.CodeAnalysis	22.146.0
-package	AS	Cratis.Arc.MongoDB	22.146.0
-package	AS	Cratis.Arc.ProxyGenerator.Build	22.146.0
-package	AS	Cratis.Arc.Screenplay.Embedded	22.146.0
-package	AS	Cratis.Arc.Swagger	22.146.0
-package	AS	Cratis.Arc.Testing	22.146.0
-package	AS	Cratis.Chronicle	19.117.0
-package	AS	Cratis.Chronicle.AspNetCore	19.117.0
-package	AS	Cratis.Chronicle.CodeAnalysis	19.117.0
-package	AS	Cratis.Chronicle.Connections	19.117.0
-package	AS	Cratis.Chronicle.Testing	19.117.0
+package	AS	Cratis	22.165.2
+package	AS	Cratis.Arc	22.165.2
+package	AS	Cratis.Arc.Chronicle	22.165.2
+package	AS	Cratis.Arc.Chronicle.CodeAnalysis	22.165.2
+package	AS	Cratis.Arc.Chronicle.Testing	22.165.2
+package	AS	Cratis.Arc.Core	22.165.2
+package	AS	Cratis.Arc.Core.CodeAnalysis	22.165.2
+package	AS	Cratis.Arc.MongoDB	22.165.2
+package	AS	Cratis.Arc.ProxyGenerator.Build	22.165.2
+package	AS	Cratis.Arc.Screenplay.Embedded	22.165.2
+package	AS	Cratis.Arc.Swagger	22.165.2
+package	AS	Cratis.Arc.Testing	22.165.2
+package	AS	Cratis.Chronicle	19.123.1
+package	AS	Cratis.Chronicle.AspNetCore	19.123.1
+package	AS	Cratis.Chronicle.CodeAnalysis	19.123.1
+package	AS	Cratis.Chronicle.Connections	19.123.1
+package	AS	Cratis.Chronicle.Testing	19.123.1
 package	AS	Cratis.Fundamentals	7.30.2
 package	AS	Cratis.Metrics.Roslyn	7.27.0
 package	AS	Cratis.Orleans	1.33.1

@@ -26,8 +26,8 @@
     "test": "vitest run"
   },
   "peerDependencies": {
-    "@cratis/arc": "22.146.0",
-    "@cratis/arc.react": "22.146.0",
+    "@cratis/arc": "22.165.2",
+    "@cratis/arc.react": "22.165.2",
     "@cratis/components": "4.38.1",
     "@cratis/fundamentals": "7.27.1",
     "@cratis/scene.blueprint.default": "4.87.0",

@@ -9,7 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Cratis -->
-    <PackageVersion Include="Cratis" Version="22.146.0" />
+    <PackageVersion Include="Cratis" Version="22.165.2" />
     <PackageVersion Include="Cratis.Fundamentals" Version="7.33.1" />
     <PackageVersion Include="Cratis.Arc" Version="22.165.2" />
     <PackageVersion Include="Cratis.Arc.Chronicle" Version="22.165.2" />

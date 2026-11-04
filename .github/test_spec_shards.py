@@ -174,10 +174,10 @@ class SpecShardsTests(unittest.TestCase):
                 self.assertEqual(0, sum(self.matches_filter(name, shard["filter"]) for shard in shards))
         filters = re.findall(r'--filter "([^"]+)"', lane)
         self.assertEqual(1, sum(self.matches_filter(name, expression) for expression in filters))
-        # Without the opt-in variable both facts skip, so the lane must enable them and count executions.
+        # Without the opt-in variable all four facts skip, so the lane must enable them and count executions.
         self.assertIn('STAGE_EVENT_CONTRACTS_BUILD: "1"', lane)
         self.assertIn("STAGE_EVENT_CONTRACTS_PROOF_ROOT: ${{ runner.temp }}/", lane)
-        self.assertIn("executed != 2 or skipped != 0", lane)
+        self.assertIn("executed != 4 or skipped != 0", lane)
 
     @staticmethod
     def workflow_jobs():

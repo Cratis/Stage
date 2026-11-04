@@ -18,7 +18,6 @@ public class when_rejecting_unsupported_scoped_projections : Specification
 {
     [Theory]
     [InlineData("every-including-children")]
-    [InlineData("nested-join")]
     [InlineData("root-join-removal")]
     [InlineData("nested-only-from")]
     [InlineData("nested-only-clear")]
@@ -155,13 +154,6 @@ public class when_rejecting_unsupported_scoped_projections : Specification
                     .Single(@event => @event.Name == "ProjectNoteRemovedViaJoin").Id,
                 SemanticProjectionKey.EventSourceIdentity)]
             },
-            "nested-join" => scope with
-            {
-                Nested = [.. scope.Nested.Select(nested => nested with
-                {
-                    Scope = nested.Scope with { Joins = [new(scope.Joins[0].EventContract, nested.Scope.From[0].Mappings[0].Target[0], [])] }
-                })]
-            },
             "nested-only-from" => scope with
             {
                 Nested = [.. scope.Nested.Select(nested => nested with { Scope = nested.Scope with
@@ -265,11 +257,6 @@ public class when_rejecting_unsupported_scoped_projections : Specification
             Assert.Contains("not yet verified by Stage", diagnostic.Message, StringComparison.Ordinal);
         }
 
-        if (variant == "nested-join")
-        {
-            Assert.Contains("Screenplay#1078", diagnostic.Message, StringComparison.Ordinal);
-        }
-
         if (variant == "root-join-removal")
         {
             Assert.Contains("https://github.com/Cratis/Chronicle/issues/4263", diagnostic.Message, StringComparison.Ordinal);
@@ -338,7 +325,7 @@ public class when_rejecting_unsupported_scoped_projections : Specification
         var context = new SemanticApplicationContext(request, options);
         var diagnostics = SemanticCratisAdmission.Evaluate(context, context.SelectedSlices());
         var diagnostic = Assert.Single(diagnostics, item => item.Code == "STAGE-ESM-017" && item.Artifact == projection);
-        Assert.Contains(child ? "Every literals at child or nested levels with joins" : "Screenplay#1078", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("Every literals at child or nested levels with joins", diagnostic.Message, StringComparison.Ordinal);
         if (child)
         {
             Assert.Contains("not yet verified by Stage", diagnostic.Message, StringComparison.Ordinal);

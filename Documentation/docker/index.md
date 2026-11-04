@@ -72,7 +72,7 @@ Orleans clustering on `11111` and `30000`, and the Stage's own Orleans silo on `
 
 ### The Stage silo
 
-The Stage hosts its own Orleans silo through [Cratis.Orleans](https://github.com/Cratis/Orleans), next to the
+The Stage hosts its own Orleans silo through [Cratis.Choreography](https://github.com/Cratis/Choreography), next to the
 Chronicle kernel, so durable state machines and workflows have grains to run on. It uses the local configuration:
 localhost clustering and in-memory grain storage, so it starts without MongoDB and nothing it holds survives the
 container. Jobs, Chronicle-backed event-sourced state machines and the workflow engine are registered.

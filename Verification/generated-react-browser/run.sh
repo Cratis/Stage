@@ -47,6 +47,19 @@ mongo_port=$(docker port "$container" 27017/tcp | head -n 1 | sed 's/.*://')
 chronicle_port=$(docker port "$container" 35000/tcp | head -n 1 | sed 's/.*://')
 [ -n "$mongo_port" ] && [ -n "$chronicle_port" ] || could_not_run "the Chronicle container exposed no ports"
 
+# Start the host only once the kernel says it is listening. A client whose first handshakes overlap the kernel's
+# startup can stop retrying, so the host would stay unhealthy for the whole run even after the kernel is up.
+kernel_ready=0
+for _ in $(seq 1 90); do
+    if docker logs "$container" 2>&1 | grep -q 'Chronicle Server started successfully'; then
+        kernel_ready=1
+        break
+    fi
+    [ "$(docker inspect --format '{{.State.Running}}' "$container" 2>/dev/null)" = "true" ] || break
+    sleep 2
+done
+[ "$kernel_ready" = 1 ] || could_not_run "the Chronicle kernel in $container did not report that it started"
+
 (
     cd "$application" || exit 2
     Cratis__Chronicle__ConnectionString="chronicle://chronicle-dev-client:chronicle-dev-secret@127.0.0.1:$chronicle_port" \

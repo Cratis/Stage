@@ -7,9 +7,9 @@ pin	Cratis.Arc.Chronicle.Testing	22.166.0
 pin	Cratis.Arc.MongoDB	22.166.0
 pin	Cratis.Choreography	2.2.0
 pin	Cratis.Choreography.Chronicle	2.2.0
-pin	Cratis.Chronicle	19.124.0
-pin	Cratis.Chronicle.AspNetCore	19.124.0
-pin	Cratis.Chronicle.Testing	19.124.0
+pin	Cratis.Chronicle	19.125.0
+pin	Cratis.Chronicle.AspNetCore	19.125.0
+pin	Cratis.Chronicle.Testing	19.125.0
 pin	Cratis.Screenplay	5.3.1
 pin	Cratis.Screenplay.Matching	5.3.1
 pin	Cratis.Specifications	5.1.0
@@ -41,11 +41,11 @@ package	AS	Cratis.Choreography	2.2.0
 package	AS	Cratis.Choreography.Chronicle	2.2.0
 package	AS	Cratis.Choreography.Storage	2.2.0
 package	AS	Cratis.Choreography.Storage.MongoDB	2.1.2
-package	AS	Cratis.Chronicle	19.124.0
-package	AS	Cratis.Chronicle.AspNetCore	19.124.0
-package	AS	Cratis.Chronicle.CodeAnalysis	19.124.0
-package	AS	Cratis.Chronicle.Connections	19.124.0
-package	AS	Cratis.Chronicle.Testing	19.124.0
+package	AS	Cratis.Chronicle	19.125.0
+package	AS	Cratis.Chronicle.AspNetCore	19.125.0
+package	AS	Cratis.Chronicle.CodeAnalysis	19.125.0
+package	AS	Cratis.Chronicle.Connections	19.125.0
+package	AS	Cratis.Chronicle.Testing	19.125.0
 package	AS	Cratis.Fundamentals	7.33.1
 package	AS	Cratis.Metrics.Roslyn	7.33.1
 package	AS	Cratis.Observability.SourceGenerators	7.33.1
@@ -3964,6 +3964,7 @@ type	AS	Cratis.Chronicle.EventSequences	ClosedStreamDimensions	enum
 type	AS	Cratis.Chronicle.EventSequences	ClosedStreamOrigin	enum
 type	AS	Cratis.Chronicle.EventSequences	ClosedStreamScope	class
 type	AS	Cratis.Chronicle.EventSequences	ClosedStreamScopesNotSupported	class
+type	AS	Cratis.Chronicle.EventSequences	CompensationsNotSupported	class
 type	AS	Cratis.Chronicle.EventSequences	CompleteStreamError	enum
 type	AS	Cratis.Chronicle.EventSequences	ConcurrencyScopeEventSourceIdDoesNotMatchLabel	class
 type	AS	Cratis.Chronicle.EventSequences	ConcurrencyScopeLabelMustBeSpecified	class
@@ -14449,13 +14450,14 @@ base	AS	Cratis.Chronicle.Discovery.ArtifactIdentityDriftDetected	System.Exceptio
 base	AS	Cratis.Chronicle.Discovery.DiscoveredArtifact	System.Object	ClrType Deconstruct EqualityContract Equals GetHashCode Id Kind PrintMembers ToString	-
 base	AS	Cratis.Chronicle.Discovery.DiscoveryReport	System.Object	Artifacts CountOf Deconstruct EqualityContract Equals GetHashCode HasRun NotRun OfKind PrintMembers ToString	-
 base	AS	Cratis.Chronicle.Dynamic.SegmentValueIsNotCollection	System.Exception	-	-
-base	AS	Cratis.Chronicle.EventSequences.AppendError	Cratis.Concepts.ConceptAs`1	AppendOutcomeUnknown Deconstruct EqualityContract Equals GetHashCode PrintMembers Unknown	-
+base	AS	Cratis.Chronicle.EventSequences.AppendError	Cratis.Concepts.ConceptAs`1	AppendOutcomeUnknown CompensatedEventNotFound Deconstruct EqualityContract Equals EventTypeDoesNotCompensateEventType GetHashCode PrintMembers Unknown	-
 base	AS	Cratis.Chronicle.EventSequences.AppendManyResult	System.Object	AllAlreadyAppended ConcurrencyCheckPerformed ConcurrencyViolations ConstraintViolations CorrelationId EqualityContract Equals Errors EventSequenceId EventStore EventStoreNamespace EventTypes Failed GetHashCode HasConcurrencyViolations HasConstraintViolations HasErrors HasIdempotencyConflicts IdempotencyConflicts IsSuccess Outcomes PrintMembers SequenceNumbers Success TailSequenceNumber ToString	-
 base	AS	Cratis.Chronicle.EventSequences.AppendResult	System.Object	ConcurrencyCheckPerformed ConcurrencyViolation ConstraintViolations CorrelationId EqualityContract Equals Errors EventSequenceId EventStore EventStoreNamespace EventTypes Failed GetHashCode HasConcurrencyViolations HasConstraintViolations HasErrors HasIdempotencyConflicts IdempotencyConflicts IsSuccess Outcome PrintMembers SequenceNumber Success TailSequenceNumber ToString WasAlreadyAppended	-
 base	AS	Cratis.Chronicle.EventSequences.AppendedEventWithResult	System.Object	Deconstruct EqualityContract Equals Event GetHashCode PrintMembers Result ToString	-
 base	AS	Cratis.Chronicle.EventSequences.ClosedStream	System.Object	ClosedAt ClosedBy Deconstruct EqualityContract Equals GetHashCode Origin PrintMembers Scope SequenceNumber ToString	-
 base	AS	Cratis.Chronicle.EventSequences.ClosedStreamScope	System.Object	Deconstruct EqualityContract Equals EventSourceId EventSourceType EventStreamId EventStreamType ForEventSource ForStream GetHashCode IsEmpty PrintMembers ToString	-
 base	AS	Cratis.Chronicle.EventSequences.ClosedStreamScopesNotSupported	System.Exception	-	-
+base	AS	Cratis.Chronicle.EventSequences.CompensationsNotSupported	System.Exception	-	-
 base	AS	Cratis.Chronicle.EventSequences.Concurrency.ConcurrencyOptions	System.Object	AllowRouteScopeStreamMismatch CheckFirstAppendIntoAScope CheckFirstAppendIntoAScopeByDefault DefaultStrategy SkipIncompleteExplicitScopes	-
 base	AS	Cratis.Chronicle.EventSequences.Concurrency.ConcurrencyScope	System.Object	Deconstruct EqualityContract Equals EventSourceId EventSourceType EventStreamId EventStreamType EventTypes ExpectsNoMatchingEvent GetHashCode IsIncomplete None NotSet PrintMembers SequenceNumber ToString	-
 base	AS	Cratis.Chronicle.EventSequences.Concurrency.ConcurrencyScopeBuilder	System.Object	Build ExpectingNoMatchingEvent ForEventSource WithEventSourceId WithEventSourceType WithEventStreamId WithEventStreamType WithEventType WithEventTypes WithSequenceNumber	-
@@ -14474,7 +14476,7 @@ base	AS	Cratis.Chronicle.EventSequences.EventForEventSourceId	System.Object	Caus
 base	AS	Cratis.Chronicle.EventSequences.EventLog	Cratis.Chronicle.EventSequences.EventSequence	-	-
 base	AS	Cratis.Chronicle.EventSequences.EventMetadata	System.Object	Causation CausedBy CorrelationId Deconstruct EqualityContract Equals EventSourceId EventSourceName EventSourceType EventStreamId EventStreamType EventTypeId GetHashCode InitiatorType MaxLocators Occurred PrintMembers SequenceNumber Subject Tags ToString	-
 base	AS	Cratis.Chronicle.EventSequences.EventMetadataReadsNotSupported	System.Exception	-	-
-base	AS	Cratis.Chronicle.EventSequences.EventSequence	System.Object	Append AppendMany AppendManyOnce AppendManyOnceWithNamedTags AppendManyThroughEventSource AppendManyWithNamedTags AppendOnce AppendOnceWithNamedTags AppendOperations AppendPrepared AppendPreparedThroughEventSource AppendThroughEventSource AppendWithNamedTags CompleteStream Copy GetClosedStreams GetForEventSourceIdAndEventTypes GetFromSequenceNumber GetFromSequenceNumberWithErasedProperties GetLatest GetMetadataAt GetNextSequenceNumber GetPage GetTailSequenceNumber GetTailSequenceNumberForObserver GetTailSequenceNumberWithCancellation HasEventsFor Id IsStreamCompleted Prepare Redact Revise SupportsIdempotentAppends Transactional VerifyContent _appendedEventsRaised	-
+base	AS	Cratis.Chronicle.EventSequences.EventSequence	System.Object	Append AppendMany AppendManyOnce AppendManyOnceWithNamedTags AppendManyThroughEventSource AppendManyWithNamedTags AppendOnce AppendOnceWithNamedTags AppendOperations AppendPrepared AppendPreparedThroughEventSource AppendThroughEventSource AppendWithNamedTags Compensate CompleteStream Copy GetClosedStreams GetForEventSourceIdAndEventTypes GetFromSequenceNumber GetFromSequenceNumberWithErasedProperties GetLatest GetMetadataAt GetNextSequenceNumber GetPage GetTailSequenceNumber GetTailSequenceNumberForObserver GetTailSequenceNumberWithCancellation HasEventsFor Id IsStreamCompleted Prepare Redact Revise SupportsIdempotentAppends Transactional VerifyContent _appendedEventsRaised	-
 base	AS	Cratis.Chronicle.EventSequences.EventSequenceAttribute	System.Attribute	Sequence	-
 base	AS	Cratis.Chronicle.EventSequences.EventSequenceFilter	System.Object	Deconstruct EqualityContract Equals EventSourceId EventSourceType EventStreamId EventStreamType EventTypes GetHashCode PrintMembers Tags ToString	-
 base	AS	Cratis.Chronicle.EventSequences.EventSequenceId	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode Inbox InboxId InboxPrefix IsEventLog Log LogId Outbox OutboxId PrintMembers System SystemId Unspecified UnspecifiedId	-
@@ -14548,7 +14550,7 @@ base	AS	Cratis.Chronicle.Events.Constraints.UniqueEventTypeConstraintsProvider	S
 base	AS	Cratis.Chronicle.Events.Constraints.UnknownConstraint	System.Exception	ConstraintName	-
 base	AS	Cratis.Chronicle.Events.Constraints.UnknownConstraintType	System.Exception	-	-
 base	AS	Cratis.Chronicle.Events.EventAndContext	System.Object	Context Deconstruct EqualityContract Equals Event GetHashCode PrintMembers ToString	-
-base	AS	Cratis.Chronicle.Events.EventContext	System.Object	AppendedGeneration Causation CausedBy CorrelationId Deconstruct Empty EmptyWithEventSourceId EqualityContract Equals ErasedProperties EventSource EventSourceId EventSourceType EventStore EventStreamId EventStreamType EventType From GetHashCode Hash NamedTags Namespace ObservationState Occurred PrintMembers SequenceNumber Subject SubjectIsEventSourceId Tags ToString WithState	-
+base	AS	Cratis.Chronicle.Events.EventContext	System.Object	AppendedGeneration Causation CausedBy CompensationFor CorrelationId Deconstruct Empty EmptyWithEventSourceId EqualityContract Equals ErasedProperties EventSource EventSourceId EventSourceType EventStore EventStreamId EventStreamType EventType From GetHashCode Hash NamedTags Namespace ObservationState Occurred PrintMembers SequenceNumber Subject SubjectIsEventSourceId Tags ToString WithState	-
 base	AS	Cratis.Chronicle.Events.EventCount	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers Unlimited Zero	-
 base	AS	Cratis.Chronicle.Events.EventHash	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode NotSet PrintMembers	-
 base	AS	Cratis.Chronicle.Events.EventRedacted	System.Object	Causation CausedBy CorrelationId Deconstruct EqualityContract Equals GetHashCode Occurred OriginalEventType PrintMembers Reason ToString	-

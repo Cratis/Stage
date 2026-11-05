@@ -12,8 +12,8 @@ pin	Cratis.Chronicle.AspNetCore	19.129.0
 pin	Cratis.Chronicle.Testing	19.129.0
 pin	Cratis.Screenplay	5.7.0
 pin	Cratis.Screenplay.Matching	5.7.0
-pin	Cratis.Specifications	5.1.0
-pin	Cratis.Specifications.XUnit	5.1.0
+pin	Cratis.Specifications	5.2.3
+pin	Cratis.Specifications.XUnit	5.2.3
 pin	Microsoft.NET.Test.Sdk	18.11.0
 pin	NSubstitute	6.2.0
 pin	TargetFramework	net10.0
@@ -53,8 +53,8 @@ package	AS	Cratis.Observability.SourceGenerators	7.33.1
 package	AS	Cratis.Screenplay	5.7.0
 package	AS	Cratis.Screenplay.Contexts	5.7.0
 package	AS	Cratis.Screenplay.Matching	5.7.0
-package	AS	Cratis.Specifications	5.1.0
-package	AS	Cratis.Specifications.XUnit	5.1.0
+package	AS	Cratis.Specifications	5.2.3
+package	AS	Cratis.Specifications.XUnit	5.2.3
 package	AS	DnsClient	1.8.0
 package	AS	FluentValidation	12.2.0
 package	AS	Grpc.Core.Api	2.84.0
@@ -115,8 +115,8 @@ package	AS	Humanizer.Core.zh-CN	3.0.10
 package	AS	Humanizer.Core.zh-Hans	3.0.10
 package	AS	Humanizer.Core.zh-Hant	3.0.10
 package	AS	JsonCons.JmesPath	1.0.0
-package	AS	Microsoft.AspNetCore.Authentication.JwtBearer	10.0.0
-package	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect	10.0.0
+package	AS	Microsoft.AspNetCore.Authentication.JwtBearer	10.0.13
+package	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect	10.0.13
 package	AS	Microsoft.Bcl.AsyncInterfaces	8.0.0
 package	AS	Microsoft.Bcl.Cryptography	10.0.2
 package	AS	Microsoft.Build.Framework	18.9.6
@@ -139,12 +139,12 @@ package	AS	Microsoft.Extensions.Telemetry.Abstractions	10.11.0
 package	AS	Microsoft.Identity.Abstractions	12.7.0
 package	AS	Microsoft.Identity.Client	4.90.1
 package	AS	Microsoft.Identity.Client.Extensions.Msal	4.83.1
-package	AS	Microsoft.Identity.Web	4.16.1
-package	AS	Microsoft.Identity.Web.Certificate	4.16.1
-package	AS	Microsoft.Identity.Web.Certificateless	4.16.1
-package	AS	Microsoft.Identity.Web.Diagnostics	4.16.1
-package	AS	Microsoft.Identity.Web.TokenAcquisition	4.16.1
-package	AS	Microsoft.Identity.Web.TokenCache	4.16.1
+package	AS	Microsoft.Identity.Web	4.17.0
+package	AS	Microsoft.Identity.Web.Certificate	4.17.0
+package	AS	Microsoft.Identity.Web.Certificateless	4.17.0
+package	AS	Microsoft.Identity.Web.Diagnostics	4.17.0
+package	AS	Microsoft.Identity.Web.TokenAcquisition	4.17.0
+package	AS	Microsoft.Identity.Web.TokenCache	4.17.0
 package	AS	Microsoft.IdentityModel.Abstractions	8.23.0
 package	AS	Microsoft.IdentityModel.JsonWebTokens	8.23.0
 package	AS	Microsoft.IdentityModel.Logging	8.23.0

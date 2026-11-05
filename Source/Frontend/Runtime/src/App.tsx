@@ -1,6 +1,9 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import { useContributeApplicationContext } from '@cratis/arc.react';
+import { NotesProvider } from '@cratis/showrunner.notes.react';
+import '@cratis/showrunner.notes.react/styles';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
     DestinationKind, LogoKind, type ApplicationStructure, type DestinationReference, type DialogTemplate, type Form, type InstanceContribution, type Layout,
@@ -17,6 +20,7 @@ import {
     createBrowserDispatcher,
     createBrowserSceneHistory,
     createHashSceneHistory,
+    useOptionalSceneNavigation,
     useSceneNavigation,
     type ComponentRegistry,
     type SceneNavigationContextValue,
@@ -62,6 +66,8 @@ import { navigateToScreen, screenArguments, useStageRouting, type StageRouting }
 import { registeredCommand, useStageCommandExecutor } from './commandExecutor';
 import { createStageSliceInvoker, sliceFieldsFrom } from './stageSlices';
 import { useStageSource } from './stageSource';
+import { knownSlicesOf, screenContribution, useStageNotes, type StageNotesState } from './stageNotes';
+import { ScreenSlice, StageStructureProvider } from './stageStructure';
 import { withoutSeededSlots } from './withoutSeededSlots';
 import { asDialogScreens } from './stageDialogScreens';
 import { stageIconAdapters } from './stageIcons';
@@ -296,6 +302,7 @@ function StageApplication({ scene, registry, routing, routeState, strings, packa
         return createBrowserSceneHistory(window, '/');
     }, [routing]);
     const [prefersDark, setPrefersDark] = useState(systemPrefersDark);
+    const notes = useStageNotes();
     const initial = scene.screens[0]?.name ?? '';
     const profile = useMemo(() => stageProfile(scene.uiProfiles), [scene]);
     const shell = useMemo(() => initial ? stageShellOf(scene, screenTemplates) : undefined, [scene, screenTemplates, initial]);
@@ -334,7 +341,7 @@ function StageApplication({ scene, registry, routing, routeState, strings, packa
         );
     }
 
-    return (
+    const host = (
         <ApplicationHost
             application={document}
             composition={composition}
@@ -343,16 +350,19 @@ function StageApplication({ scene, registry, routing, routeState, strings, packa
             initialScreen={initial}
             history={history}
             layoutConfigStorage={browserStorage()}
-            scope={(navigation, children) => <StageScope scene={scene} routeState={routeState} strings={strings} navigation={navigation} themes={themes} shellSettings={shellSettings} onSystemSchemeChange={onSystemSchemeChange}>{children}</StageScope>}
+            scope={(navigation, children) => <StageScope scene={scene} notes={notes} routeState={routeState} strings={strings} navigation={navigation} themes={themes} shellSettings={shellSettings} onSystemSchemeChange={onSystemSchemeChange}>{children}</StageScope>}
             renderScreen={(element, configuration) => <StageScreen element={element} configuration={configuration} registry={registry} />}
             renderDialog={() => <StageSliceDialog />}
             renderDialogTemplate={(template, content, navigation) => <StageDialog template={template} content={content} registry={registry} strings={strings} close={() => navigation.closeDialog()} />}
         />
     );
+
+    return notes.enabled ? <NotesProvider enabled knownSlices={knownSlicesOf(scene.structure)}>{host}</NotesProvider> : host;
 }
 
 interface StageScopeProps {
     scene: StageSceneApplication;
+    notes: StageNotesState;
     routeState: ReturnType<typeof useStageRouteState>;
     strings: ReturnType<typeof useStrings>;
     navigation: SceneNavigationContextValue;
@@ -366,7 +376,7 @@ interface StageScopeProps {
  * What the Stage provides around the screen on the page and every dialog over it: the theme, the data and command scope, the
  * status line, and the dispatcher and invoker that point what the document does at the running application.
  */
-function StageScope({ scene, routeState, strings, navigation, themes, shellSettings, onSystemSchemeChange, children }: StageScopeProps) {
+function StageScope({ scene, notes, routeState, strings, navigation, themes, shellSettings, onSystemSchemeChange, children }: StageScopeProps) {
     const [activity, setActivity] = useState('');
     const { navigate } = navigation;
 
@@ -408,9 +418,10 @@ function StageScope({ scene, routeState, strings, navigation, themes, shellSetti
             <LayoutThemeProvider themes={themes}>
                 {shellSettings && <StageShellSettingsApplier settings={shellSettings} onSystemSchemeChange={onSystemSchemeChange} />}
                 <ColorSchemeMirror />
+                <StageApplicationContext scene={scene} screen={navigation.primaryScreen} notes={notes} />
                 <StageDataProvider routes={routeState.routes} routesReady={routeState.ready} parameters={navigation.currentParameters} locale={strings.locale} locales={strings.locales} screen={navigation.primaryScreen ?? scene.screens[0]?.name ?? ''}>
-                    <StageInteractions activity={activity} routesReady={routeState.ready} scene={scene} setActivity={setActivity} strings={strings}>
-                        {children}
+                    <StageInteractions activity={activity} notesEnabled={notes.enabled} routesReady={routeState.ready} scene={scene} setActivity={setActivity} strings={strings}>
+                        <StageStructureProvider structure={scene.structure} screens={scene.screens}>{children}</StageStructureProvider>
                     </StageInteractions>
                 </StageDataProvider>
             </LayoutThemeProvider>
@@ -420,6 +431,7 @@ function StageScope({ scene, routeState, strings, navigation, themes, shellSetti
 
 interface StageInteractionsProps {
     activity: string;
+    notesEnabled: boolean;
     routesReady: boolean;
     scene: StageSceneApplication;
     setActivity: (activity: string) => void;
@@ -427,7 +439,7 @@ interface StageInteractionsProps {
     children: ReactNode;
 }
 
-function StageInteractions({ activity, routesReady, scene, setActivity, strings, children }: StageInteractionsProps) {
+function StageInteractions({ activity, notesEnabled, routesReady, scene, setActivity, strings, children }: StageInteractionsProps) {
     const data = useStageData();
     const navigation = useSceneNavigation();
     const executeCommand = useStageCommandExecutor();
@@ -488,7 +500,7 @@ function StageInteractions({ activity, routesReady, scene, setActivity, strings,
         setActivity(findings.map(finding => finding.detail).join(' '));
 
     return (
-        <StageChromeProvider state={{ locales: strings.locales, locale: strings.locale, setLocale: strings.setLocale, activity }}>
+        <StageChromeProvider state={{ locales: strings.locales, locale: strings.locale, setLocale: strings.setLocale, activity, notesEnabled }}>
             <SliceInvokerProvider invoker={invoker}>
                 <SliceCommandFieldsProvider fieldsFor={fieldsFor}>
                     <InteractionScope dispatcher={dispatcher} context={{ resolve: data.resolveBinding, localize: key => strings.dictionary[key] ?? key, responseContracts: stageResponseContracts(scene.responseContracts) }} attachments={[]} onFindings={reportFindings}>
@@ -500,15 +512,31 @@ function StageInteractions({ activity, routesReady, scene, setActivity, strings,
     );
 }
 
+/**
+ * Tells Arc's application context what is on screen: the screen being shown, and the identifiers the source model gave to its elements.
+ * Feedback given anywhere on the screen carries both.
+ */
+export function StageApplicationContext({ scene, screen, notes }: { scene: StageSceneApplication; screen: string | undefined; notes: StageNotesState }) {
+    useContributeApplicationContext({
+        screen: screenContribution(scene.screens.find(candidate => candidate.name === screen)),
+        values: { modelReferences: notes.modelReferences },
+    });
+
+    return null;
+}
+
 /** The composed screen, drawn against the Stage's own data: the rows, selections and routes its bindings resolve through. */
 function StageScreen({ element, configuration, registry }: { element: SceneElement; configuration: EffectiveConfiguration | undefined; registry: ComponentRegistry }) {
     const data = useStageData();
     const publishOutputs = useComponentOutputsPublisher();
+    const navigation = useOptionalSceneNavigation();
     return (
-        <StageScreenTables element={element} outputScope={publishOutputs.scope}>
-            <StageQueryBindings element={element} />
-            <SceneElementView element={element} registry={registry} resolveBinding={data.resolveBinding} queryResults={data.queryResults} onComponentOutputsChanged={publishOutputs} configuration={configuration} />
-        </StageScreenTables>
+        <ScreenSlice screen={navigation?.primaryScreen}>
+            <StageScreenTables element={element} outputScope={publishOutputs.scope}>
+                <StageQueryBindings element={element} />
+                <SceneElementView element={element} registry={registry} resolveBinding={data.resolveBinding} queryResults={data.queryResults} onComponentOutputsChanged={publishOutputs} configuration={configuration} />
+            </StageScreenTables>
+        </ScreenSlice>
     );
 }
 

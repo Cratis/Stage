@@ -18,6 +18,13 @@ flowchart LR
 
 Stage executes the admitted model directly; you do not need to generate and build an application first.
 
+Screenplay's model is language-neutral. Rendering is a separate, target-specific
+choice: the Cratis renderer produces C#/Arc/Chronicle and React artifacts, while
+other targets, such as [Stage.Axon](https://github.com/Cratis/Stage.Axon), own their
+output and capability limits. A supported sandbox session does not establish
+support in another renderer. See the [target repository model](guides/target-repository-model.md)
+for target boundaries and host admission rules.
+
 <Aside type="caution" title="A sandbox, not a production runtime">
 
 Use Stage for temporary model exploration. Its bundled Chronicle kernel uses in-memory storage with authentication

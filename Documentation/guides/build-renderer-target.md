@@ -22,6 +22,13 @@ Start with one trusted Screenplay fixture and one generated artifact. Compile th
 
 For repository placement and package boundaries, follow [Organize render target and source adapter repositories](target-repository-model.md). If you choose templates for emission, [Author a renderer kit](template-kits.md) explains where the interpreter stops and your language pack takes over. A kit does not replace the target's semantic admission checks.
 
+The planner examples below use C# because Stage's public planning contracts are
+.NET APIs. That is the implementation language of these examples, not a rule
+that generated applications must use C#. A target owns its emitted language and
+framework, as [Stage.Axon](https://github.com/Cratis/Stage.Axon) does for Java.
+Verify artifacts with that target's toolchain and refuse unsupported semantics;
+a recognized Screenplay code tag alone does not establish renderer support.
+
 ## Use the public contracts
 
 Reference:

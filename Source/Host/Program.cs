@@ -8,6 +8,8 @@ using Cratis.Stage;
 using Cratis.Stage.Api;
 using Cratis.Stage.Contracts;
 using Cratis.Stage.Host;
+using Cratis.Stage.Host.Export;
+using Cratis.Stage.Host.Published;
 using Cratis.Stage.Host.Workbench;
 using Cratis.Stage.Runtime;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -18,7 +20,42 @@ CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
 CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 CultureInfo.CurrentUICulture = CultureInfo.InvariantCulture;
 
+if (args.Length > 0 && args[0] == "export")
+{
+    Environment.Exit(await StageExportCommand.Run(args[1..], Console.Out, Console.Error));
+    return;
+}
+
 var engine = StageRuntimeEngineSelection.Read(args);
+var earlyConfiguration = StageHostModeSelection.EarlyConfiguration(args);
+if (StageHostModeSelection.Read(args, earlyConfiguration) == StageHostMode.Published)
+{
+    try
+    {
+        if (args.Contains("--warm", StringComparer.Ordinal) || (bool.TryParse(Environment.GetEnvironmentVariable("STAGE_WARM"), out var warmRequested) && warmRequested))
+        {
+            throw new PublishedModeRefused(["Warm mode is not available in published mode; a published host starts from its package."]);
+        }
+
+        if (engine != StageRuntimeEngine.Semantic)
+        {
+            throw new PublishedModeRefused(["Published mode runs the semantic engine only."]);
+        }
+
+        var publishedOptions = PublishedOptions.From(earlyConfiguration);
+        publishedOptions.EnsureComplete();
+        var package = PublishedPackage.Read(publishedOptions.PackagePath);
+        await SemanticHost.Run(args, package.ModelPath, package, publishedOptions);
+    }
+    catch (PublishedModeRefused refused)
+    {
+        await Console.Error.WriteLineAsync(refused.Message);
+        Environment.Exit(78);
+    }
+
+    return;
+}
+
 var modelPath = args.FirstOrDefault(argument => !argument.StartsWith('-'));
 var warmMode = args.Contains("--warm", StringComparer.Ordinal) ||
                (modelPath is null && bool.TryParse(Environment.GetEnvironmentVariable("STAGE_WARM"), out var warm) && warm);

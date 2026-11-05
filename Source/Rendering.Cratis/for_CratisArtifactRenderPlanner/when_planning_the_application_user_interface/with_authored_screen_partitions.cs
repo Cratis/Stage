@@ -37,8 +37,8 @@ public class with_authored_screen_partitions : a_partitioned_screen_plan
     // Recomputed for Cratis/Stage#967: the scaffold hosts Choreography 2.2.0 with Chronicle 19.124.0 and Arc 22.165.2.
     // Recomputed for Arc 22.166.0: the scaffold emits the matching backend and frontend pins.
     // Recomputed for Chronicle 19.129.0: the scaffold emits the matching package pins and development image tag.
-    // Recomputed for Screenplay 5.7.0 and Arc 22.168.0: the scaffold emits the matching pins, and npm Arc, Components and Scene at the published releases.
-    const string Before = "3b865b31dcf4993db2b66c29664d5cf485398b5f5cea261a4ee28660d2c057c4";
+    // Recomputed for Screenplay 5.7.0, Arc 22.168.0 and the main merge: the scaffold emits the matching pins, and npm Arc, Components and Scene at the published releases.
+    const string Before = "7bacaaf634d8b1f0325e2355f04410ec9009c5f984341549288290101d50910f";
 
     void Because() => _application = AppPlan(_profile);
 

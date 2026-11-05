@@ -6,6 +6,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Syntax;
 using Cratis.Stage.Api;
 using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
+using Cratis.Stage.Semantics;
 using Microsoft.AspNetCore.Routing;
 
 namespace Cratis.Stage.Host;
@@ -63,7 +64,7 @@ internal sealed class SandboxPersonas
 
     static IEnumerable<(string Artifact, SemanticAuthorization Requirement)> Requirements(ExecutableSemanticModel model)
     {
-        var slices = SemanticHostModelWalker.Slices(model).ToArray();
+        var slices = SemanticModelWalker.Slices(model).ToArray();
         var readModels = slices.SelectMany(located => located.Slice.ReadModels)
             .ToDictionary(readModel => readModel.Id, readModel => ModelNaming.ToIdentifier(readModel.Name));
         foreach (var located in slices)

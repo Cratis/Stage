@@ -8,6 +8,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_redelivering_a_captured_event;
 
+[PerFactSpecificationLifecycle]
 public class against_an_older_kernel : given.a_captured_delivery
 {
     void Because() => Render();

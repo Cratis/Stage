@@ -47,6 +47,19 @@ mongo_port=$(docker port "$container" 27017/tcp | head -n 1 | sed 's/.*://')
 chronicle_port=$(docker port "$container" 35000/tcp | head -n 1 | sed 's/.*://')
 [ -n "$mongo_port" ] && [ -n "$chronicle_port" ] || could_not_run "the Chronicle container exposed no ports"
 
+# Start the host only once the kernel says it is listening. A client whose first handshakes overlap the kernel's
+# startup can stop retrying, so the host would stay unhealthy for the whole run even after the kernel is up.
+kernel_ready=0
+for _ in $(seq 1 90); do
+    if docker logs "$container" 2>&1 | grep -q 'Chronicle Server started successfully'; then
+        kernel_ready=1
+        break
+    fi
+    [ "$(docker inspect --format '{{.State.Running}}' "$container" 2>/dev/null)" = "true" ] || break
+    sleep 2
+done
+[ "$kernel_ready" = 1 ] || could_not_run "the Chronicle kernel in $container did not report that it started"
+
 (
     cd "$application" || exit 2
     Cratis__Chronicle__ConnectionString="chronicle://chronicle-dev-client:chronicle-dev-secret@127.0.0.1:$chronicle_port" \
@@ -64,7 +77,18 @@ for _ in $(seq 1 90); do
     kill -0 "$host_pid" 2>/dev/null || break
     sleep 2
 done
-[ "$ready" = 1 ] || could_not_run "the generated host did not become healthy; see $result.host.log"
+if [ "$ready" != 1 ]; then
+    # Print why, in the job output rather than only in the uploaded artifact: the host's log without the repeated
+    # health-check requests, and the kernel's own log, which shows whether it ever accepted the connection.
+    echo "--- $result.host.log, health-check requests left out ---"
+    grep -v -e '/healthz' -e "Executing endpoint 'Health checks'" -e "Executed endpoint 'Health checks'" \
+        -e 'Health check chronicle with status Unhealthy' -e 'HealthChecks.DefaultHealthCheckService' \
+        -e 'AspNetCore.Hosting.Diagnostics' -e 'AspNetCore.Routing.EndpointMiddleware' \
+        "$result.host.log" 2>/dev/null | tail -n 150 || echo "(no host log was written)"
+    echo "--- last 100 lines of the Chronicle kernel log ($container) ---"
+    docker logs --tail 100 "$container" 2>&1 || echo "(the kernel container has no log)"
+    could_not_run "the generated host did not become healthy; see $result.host.log"
+fi
 
 # The fresh screens app must expose actual Arc observable queries before browser fixtures seed it.
 if [ -z "${STAGE_GENERATED_REACT_SCENARIO:-}" ]; then

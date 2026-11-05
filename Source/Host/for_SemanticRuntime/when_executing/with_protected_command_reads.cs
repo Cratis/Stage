@@ -16,6 +16,7 @@ using Xunit;
 
 namespace Cratis.Stage.Host.for_SemanticRuntime.when_executing;
 
+[PerFactSpecificationLifecycle]
 public class with_protected_command_reads : Specification
 {
     SemanticExecutionPlan _plan = null!;

@@ -37,8 +37,8 @@ public class with_the_default_composition : a_register_project_render_request
     // Recomputed for Cratis/Stage#967: the scaffold hosts Choreography 2.2.0 with Chronicle 19.124.0 and Arc 22.165.2.
     // Recomputed for Arc 22.166.0: the scaffold emits the matching backend and frontend pins.
     // Recomputed for Chronicle 19.129.0: the scaffold emits the matching package pins and development image tag.
-    // Recomputed for Screenplay 5.7.0 and Arc 22.168.0: the scaffold emits the matching pins, and npm Arc, Components and Scene at the published releases.
-    const string Before = "eead417e6abcad6dd7f6e6727e40baa280c3a7ef4d0bd1b74699550755519f23";
+    // Recomputed for Screenplay 5.7.0, Arc 22.168.0 and the main merge: the scaffold emits the matching pins, and npm Arc, Components and Scene at the published releases.
+    const string Before = "fffaaab27bebd50cb14ae33ba4a6a4877a60d078d6424613e97ed89d1692f61a";
 
     ArtifactRenderPlan _plan = null!;
 

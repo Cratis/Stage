@@ -13,6 +13,7 @@ using NativeScreenplayCompiler = Cratis.Screenplay.ScreenplayCompiler;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 
+[PerFactSpecificationLifecycle]
 public class when_rendering_authored_composite_projection_keys : a_multi_slice_application
 {
     // The FROM block is the released Screenplay 4.10 compiler fixture (2af8ebd), embedded in an

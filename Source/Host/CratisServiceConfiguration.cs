@@ -8,6 +8,7 @@ using Cratis.Chronicle.Connections;
 using Cratis.Json;
 using Cratis.OpenTelemetry;
 using Cratis.Serialization;
+using Cratis.Stage.Host.Published;
 
 namespace Cratis.Stage.Host;
 
@@ -26,8 +27,14 @@ public static class CratisServiceConfiguration
     public static WebApplicationBuilder AddStageCratis(this WebApplicationBuilder builder, string eventStore, string programIdentifier) =>
         builder.AddStageCratis(eventStore, programIdentifier, StageHttpRouteOptions.FromConfiguration(builder.Configuration));
 
-    internal static WebApplicationBuilder AddStageCratis(this WebApplicationBuilder builder, string eventStore, string programIdentifier, StageHttpRouteOptions routeOptions)
+    internal static WebApplicationBuilder AddStageCratis(this WebApplicationBuilder builder, string eventStore, string programIdentifier, StageHttpRouteOptions routeOptions, PublishedOptions? published = null)
     {
+        if (published is not null)
+        {
+            // The sign-in proxy in front of the host sets the principal headers; Arc reads them only when told to trust them.
+            builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?> { ["Cratis:Arc:TrustForwardedIdentityHeaders"] = "true" });
+        }
+
         builder.AddCratis(
             options =>
             {
@@ -64,8 +71,7 @@ public static class CratisServiceConfiguration
                 // at a different kernel through cratis-stage.json keeps working.
                 // A runtime that mounted the connection string of the kernel to use (it carries a secret, so it is a file) wins, as supplied.
                 options.ConnectionString = SandboxRuntimeConventions.MountedConnectionString(Environment.GetEnvironmentVariable) ??
-                    new ChronicleConnectionStringBuilder(options.ConnectionString.ToString())
-                        .WithoutAuthentication()
+                    ConnectionFor(new ChronicleConnectionStringBuilder(options.ConnectionString.ToString()), published)
                         .ToConnectionString();
 
                 // Give the Chronicle client's initial handshake more headroom than the 5 second default — the
@@ -76,15 +82,48 @@ public static class CratisServiceConfiguration
                 // seed it here so read models containing polymorphic types round-trip.
                 options.JsonSerializerOptions.Converters.Add(new DerivedTypeJsonConverterFactory(DerivedTypes.Instance));
             },
-            configureChronicleBuilder: chronicleBuilder => chronicleBuilder.WithCamelCaseNamingPolicy());
+            configureChronicleBuilder: chronicleBuilder =>
+            {
+                chronicleBuilder.WithCamelCaseNamingPolicy();
+
+                // Nothing discovers on its own here (see AutoDiscoverAndRegister above), but when the published host
+                // registers the Notes artifacts it is this provider the client discovers them from. Scoping it to the
+                // Notes assemblies keeps the rest of the process out of Chronicle.
+                if (published is not null)
+                {
+                    chronicleBuilder.WithArtifactsProvider(NotesChronicleArtifacts.CreateProvider());
+                }
+            });
+
+        if (published is null)
+        {
+            SandboxIdentityOptions.Configure(builder.Services, builder.Configuration);
+        }
+        else
+        {
+            // Personas are a play-session device. A published application only ever sees the real principal.
+            builder.Services.AddSingleton(new SandboxIdentityOptions(false));
+        }
 
         builder.Services.AddSingleton<Action<ChronicleTelemetryOptions>>(_ => { });
-
-        SandboxIdentityOptions.Configure(builder.Services, builder.Configuration);
         StageHttpRouteOptions.AlignIntrospection(builder.Services);
 
         builder.AddCratisOpenTelemetry();
 
         return builder;
+    }
+
+    static ChronicleConnectionStringBuilder ConnectionFor(ChronicleConnectionStringBuilder connection, PublishedOptions? published)
+    {
+        if (published is null)
+        {
+            return connection.WithoutAuthentication();
+        }
+
+        // A published kernel runs with authentication on. Without configured credentials the client presents the kernel's
+        // built-in client, which is only acceptable because the kernel is reachable from this pod alone.
+        return published.HasChronicleCredentials
+            ? connection.WithCredentials(published.ChronicleClientId!, published.ChronicleClientSecret!)
+            : connection.WithDevelopmentCredentials();
     }
 }

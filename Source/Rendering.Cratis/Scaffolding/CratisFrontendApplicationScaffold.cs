@@ -94,6 +94,8 @@ public sealed class CratisFrontendApplicationScaffold
         ("@cratis/scene.model", frontend.ScenePackageVersion),
         ("@cratis/scene.primereact", frontend.ScenePackageVersion),
         ("@cratis/scene.react", frontend.ScenePackageVersion),
+        ("@cratis/showrunner.notes", frontend.ShowrunnerNotesPackageVersion),
+        ("@cratis/showrunner.notes.react", frontend.ShowrunnerNotesPackageVersion),
         ("@cratis/stage.runtime", ScaffoldPackageVersions.StageRuntime),
         ("@primereact/core", frontend.PrimeReactPackageVersion),
         ("@primereact/headless", frontend.PrimeReactPackageVersion),

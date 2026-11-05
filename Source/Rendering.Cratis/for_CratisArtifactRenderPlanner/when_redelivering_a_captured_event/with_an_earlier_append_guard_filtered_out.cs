@@ -10,6 +10,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_redelivering_a_captured_event;
 
+[PerFactSpecificationLifecycle]
 public class with_an_earlier_append_guard_filtered_out : given.a_captured_delivery
 {
     void Establish() => _model = Transform(_model, slice => slice with

@@ -1,6 +1,6 @@
 ---
 name: cratis-screenplay-projections
-description: Build a Cratis Screenplay read model with the Projection Declaration Language (PDL) — keys, `from`/`every`/`all`, property mapping and AutoMap, joins, children and nested objects, removal, arithmetic counters, and the reducer escape hatch. Use when declaring or changing how events become read-model state in a `.play` model, or when a projection does not populate what was expected. Use `cratis-chronicle-projection` instead for hand-written C# Chronicle projections.
+description: Use when declaring Screenplay event-to-state mappings or diagnosing a .play projection's keys, joins, children or lifecycle variants. Not for hand-written C# Chronicle projections or read-model query contracts.
 license: MIT
 ---
 <!-- cratis-ai-managed: skills/cratis-screenplay-projections/SKILL.md -->
@@ -16,11 +16,10 @@ text. This is half of every event model, and the half most easily got wrong.
 ## Locate the model
 
 Look first for the project's existing `.play` files: the folder holding them is the
-model. A new model goes under the repository's `Source/` or `src/` folder, else in a
-`Screenplay/` folder at the repository root; never under `.cratis/`, which holds
-configuration and the shared AI corpus only. This is the
-conventional home for consumer-owned `.play` source; do not invent another
-location or search the whole repository before checking it.
+model. Reuse existing model/workspace roots; code-only `Source/` or `src/` does
+not qualify. Otherwise use repository-root `Screenplay/`, never `.cratis/`
+(configuration/shared corpus only). Read [discovery/version gates](../cratis-screenplay-event-modeling/references/file-layout.md#locate-the-model)
+when locating the model; do not invent another location.
 
 `cratis ai install` manages `.cratis/ai/`, never model files. Never
 hand-copy Screenplay source between repositories. Keep Markdown that explains,
@@ -257,7 +256,10 @@ reducer Balance => AccountBalance
 ````
 
 Inline code uses a tagged fence (` ```csharp `); a `csharp` line above a bare
-fence still parses but warns (`PLAY0397`). Reach for a reducer only when the next
+fence still parses but warns (`PLAY0397`). Built-in inline languages are `csharp`,
+`typescript`, `react`, `html`, `sql` and `java`; the body is opaque and travels unchanged
+to the target, and the Cratis render target refuses `java` bodies.
+Requires Screenplay 4.244.0 (`screenplay --version`) for that refusal. Reach for a reducer only when the next
 state depends on the current one — a running balance, a state machine.
 `context.State` is **null for the first event** and is the only nullable member;
 `Event`, `Key`, `Tenant`, `Occurred`, `SequenceNumber` and `IsFirst` are always

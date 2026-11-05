@@ -34,9 +34,9 @@ public class with_an_authored_scene : a_screen_composition_render
     // Recomputed for Chronicle 19.117.0: the scaffold emits the matching package and development image pins.
     // Recomputed for Screenplay 5.3.1: the scaffold emits the matching matcher pin.
     // Recomputed for Cratis/Stage#967: Choreography hosting and updated backend/frontend pins.
-    // Recomputed for Chronicle 19.125.0: the scaffold emits the matching package pins and development image tag.
+    // Recomputed for Chronicle 19.129.0: the scaffold emits the matching package pins and development image tag.
     // Recomputed for Screenplay 5.7.0 and Arc 22.168.0: the scaffold emits the matching pins, and npm Arc, Components and Scene at the published releases.
-    const string Before = "ac72dce7233d13a78fa979a799c6934d4b31ec410f0b07a461be6e1efd9d8e64";
+    const string Before = "69175234739a9cae7f0829a74b41b89cddfd381761cbc872b7be3579d1af6617";
 
     ArtifactRenderPlan _plan = null!;
 

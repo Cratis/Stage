@@ -8,6 +8,7 @@ using Cratis.Stage.Contracts.Rendering.Model;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Naming.Imports;
+using Cratis.Stage.Rendering.Cratis.Semantics.Graphs;
 using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
@@ -76,6 +77,7 @@ internal sealed partial class SemanticApplicationContext
         [
             new(string.Empty, "Program"),
             .. CaptureSourceTypes(),
+            .. GraphTypes(),
             .. SemanticCratisAdmission.GeneratedDeclarations(this, [.. _slices.Values]).Select(type =>
                 new GeneratedTypeName(type.Namespace.Length == 0 ? RootNamespace : CatalogNames.Qualify(RootNamespace, type.Namespace), type.Name))
         ]);
@@ -550,6 +552,15 @@ internal sealed partial class SemanticApplicationContext
                     .Where(append => append.EventSourceType.Kind == SemanticTypeReferenceKind.Concept)
                     .Select(append => append.EventSourceType.Target)
                 : [])];
+
+    // A graph's node and edge records are generated types that graph specifications refer to by their namespace, which is not a catalog one.
+    IEnumerable<GeneratedTypeName> GraphTypes() =>
+        Application.Graphs.IsDefaultOrEmpty ? [] : Application.Graphs.SelectMany(graph =>
+        {
+            var @namespace = SemanticGraphNaming.Namespace(this, graph);
+            return graph.Nodes.Select(node => new GeneratedTypeName(@namespace, SemanticGraphNaming.NodeRecord(node)))
+                .Concat(graph.Edges.Select(edge => new GeneratedTypeName(@namespace, SemanticGraphNaming.EdgeRecord(edge))));
+        });
 
     IEnumerable<GeneratedTypeName> CaptureSourceTypes()
     {

@@ -104,6 +104,13 @@ internal static class SemanticGraphArtifactRenderer
         return new(Path.Combine(SemanticGraphNaming.Folder(context, graph), $"{name}.cs"), builder.ToString()) { Sources = [context.Application.Id] };
     }
 
+    // Chronicle's graph reader finds a node's key by [Key], and its analyzer (CHR0026) refuses [Key] on an event source identity. A key
+    // that is one is therefore declared as the value it holds, which is also how the graph stores it.
+    static string KeyType(SemanticTypeReference type, SemanticTypeSystem types, SemanticApplicationContext context) =>
+        type.Kind == SemanticTypeReferenceKind.Concept && context.IdentifierConcepts.Contains(type.Target)
+            ? types.Primitive(types.ConceptPrimitive(type))
+            : types.Type(type);
+
     static string Parameter(SemanticGraphProperty property, SemanticGraphHandler[] handlers, SemanticTypeSystem types, SemanticApplicationContext context, bool isIdentity)
     {
         var attributes = new List<string>();
@@ -120,7 +127,8 @@ internal static class SemanticGraphArtifactRenderer
         }
 
         var prefix = string.Concat(attributes.Select(attribute => $"[{attribute}] "));
-        return $"{prefix}{types.Type(property.Type)} {SemanticGraphNaming.Property(property.Name)}";
+        var type = property.IsKey || isIdentity ? KeyType(property.Type, types, context) : types.Type(property.Type);
+        return $"{prefix}{type} {SemanticGraphNaming.Property(property.Name)}";
     }
 
     static string Mapping(SemanticGraphMapping mapping, SemanticGraphProperty property, string eventType, SemanticEventContract @event, SemanticTypeSystem types) => mapping.Operation switch

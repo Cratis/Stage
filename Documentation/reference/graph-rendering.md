@@ -5,8 +5,8 @@ description: Cratis Stage renders Screenplay graph declarations and graph projec
 
 A Screenplay `graph` declares a property graph, and a `projection ... => graph` builds it from events. Stage renders both for the ESM v38 pair as the model-bound graph types of Chronicle's graph projection API, and connects the generated host to Neo4j. This page describes what is rendered, what is refused and why, and the one piece that waits for a Chronicle release.
 
-> [!IMPORTANT]
-> Graph rendering is complete in the renderer but gated on a Chronicle release. The graph API (`[Node]`, `[Edge]`, `GraphScenario`) is in Cratis/Chronicle#5680 and not on NuGet yet, so a model that declares a graph is refused with `STAGE-ESM-063` until Stage pins a Chronicle client that carries it. See [Enabling it when Chronicle ships](#enabling-it-when-chronicle-ships).
+> [!NOTE]
+> Graph rendering needs a Chronicle client that carries the graph API (`[Node]`, `[Edge]`, `GraphScenario`), which ships from Chronicle 19.129.0. Stage pins that release, so a model that declares a graph renders. A Stage pinned to an older Chronicle refuses it with `STAGE-ESM-063`.
 
 ## What is rendered
 
@@ -15,7 +15,7 @@ For the [Organization sample](https://github.com/Cratis/Screenplay/tree/main/Sam
 | Modeled construct | Generated |
 | --- | --- |
 | `node Person` | `Graphs/Organization/Person.cs`: a `record` named after the label, marked `[Graph("Organization")]`, `[Node]` and `[NoAutoMap]` |
-| The `key` property of a node | The `[Key]` parameter of the record |
+| The `key` property of a node | The `[Key]` parameter of the record. When the key is a concept that is an event source identity, the parameter is the value it holds (for example `Guid`), because Chronicle's analyzer refuses `[Key]` on an event source identity while the graph reader requires it |
 | `from E key <value>` on a node | `[FromEvent<E>]`, with the event property name when the key is an event property and `ConstantKey` when it is a literal |
 | `remove with E key <value> [detach]` | `[RemovedWith<E>]`, with `Detach = true` for `detach` |
 | `edge MEMBER_OF source Person target Group` | `Graphs/Organization/MemberOf.cs`: a record marked `[Edge("MEMBER_OF")]` whose `SourceKey` is `[Source<Person>]` and `TargetKey` is `[Target<Group>]` |
@@ -59,9 +59,6 @@ A graph construct that cannot be expressed is refused with a named diagnostic. I
 
 The specification executor runs `given graph` and `then graph` specifications with Screenplay's reference graph runner, which applies the five graph operations (upsert node, set properties, delete node, upsert edge, delete edge) to an in-memory property graph. The results are reported with the slice kind `Graph` and are selected with the slice that owns them, or with any module, feature or application scope that contains it.
 
-## Enabling it when Chronicle ships
+## The Chronicle release gate
 
-1. Bump `Cratis.Chronicle`, `Cratis.Chronicle.AspNetCore`, `Cratis.Chronicle.Contracts` and `Cratis.Chronicle.Testing` in `Directory.Packages.props` to the release that ships Cratis/Chronicle#5680.
-2. Set `ChronicleGraphSupport.FirstRelease` in `Source/Rendering.Cratis/Semantics/Graphs/ChronicleGraphSupport.cs` to that version. This is the only code change; it opens the gate.
-3. Regenerate the framework name catalog so the generated references to the graph types are cataloged: `STAGE_WRITE_FRAMEWORK_NAME_CATALOG=1 dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --filter "FullyQualifiedName~for_FrameworkNameCatalog"`.
-4. Remove the `QualifiedSpelling.Begin()` and `ChronicleGraphSupport.AssumeReleased()` scopes from the graph specifications under `Source/Rendering.Cratis/Semantics/Graphs` that use them as stand-ins, and keep the Organization sample's generated specifications passing in a built application.
+`ChronicleGraphSupport.FirstRelease` in `Source/Rendering.Cratis/Semantics/Graphs/ChronicleGraphSupport.cs` is the first Chronicle release that carries the graph API, 19.129.0. The renderer admits a graph only when the Chronicle version Stage pins is at or past it; otherwise it refuses the whole graph with `STAGE-ESM-063`. Raising the Chronicle pins in `Directory.Packages.props` needs no change here, and the framework name catalog is regenerated with `STAGE_WRITE_FRAMEWORK_NAME_CATALOG=1 dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --filter "FullyQualifiedName~for_FrameworkNameCatalog"`.

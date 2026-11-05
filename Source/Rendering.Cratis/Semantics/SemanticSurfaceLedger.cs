@@ -107,7 +107,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticSpecification", clock, "GivenTimeZone");
 
         // ESM v38 graphs. Each construct renders as Chronicle's model-bound graph records and specifications; the shapes the model-bound API
-        // cannot express are refused by SemanticGraphAdmission with STAGE-ESM-062 and the specifications it cannot express with STAGE-ESM-064,
+        // and the whole of a graph is refused with STAGE-ESM-063 when the pinned Chronicle client predates the graph API (before 19.129.0).
         // and the whole of a graph is refused with STAGE-ESM-063 while the pinned Chronicle client has no graph API.
         Add(entries, "SemanticApplication", rendered, "Graphs GraphProjections GraphSpecifications");
         Add(entries, "SemanticGraph", rendered, "Name Nodes Edges");

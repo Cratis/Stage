@@ -17,9 +17,6 @@ public class when_planning_a_model_with_a_graph_once_chronicle_has_the_graph_api
 
     void Because()
     {
-        // The framework name catalog is generated from the pinned packages, so the oracle spelling stands in for it until a Chronicle with the graph API is pinned.
-        using var released = ChronicleGraphSupport.AssumeReleased();
-        using var qualified = QualifiedSpelling.Begin();
         _plan = new CratisArtifactRenderPlanner().Plan(an_organization_graph_model.Request());
     }
 

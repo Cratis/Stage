@@ -1,6 +1,6 @@
 ---
 title: Concept compliance rendering
-description: Concept protection in ESM v13 generated applications, protected identity refusals, and default-on syntax-renderer compliance details.
+description: Cratis Stage renders concept privacy and secret qualifiers as Chronicle compliance attributes and excludes protected command inputs from audit capture.
 ---
 
 <!-- Copyright (c) Cratis. All rights reserved. -->
@@ -13,7 +13,7 @@ encryption without erasure.
 
 ## Executable semantic models
 
-Stage admits exact ESM v1–v16 language/semantic pairs from Screenplay 4.154.0. The semantic planner maps
+Stage uses Screenplay 5.3.1 and admits exact ESM v1.0–v34.0 and v36.0 language/semantic pairs, not v35 or arbitrary minor versions. The semantic planner maps
 `SemanticConcept.Compliance` to these attributes, written by their short names with the `using` directives they need
 (`Cratis.Chronicle.Compliance.GDPR`, `Cratis.Chronicle.ProtectedValues`, `Cratis.Arc.Chronicle.Commands`):
 
@@ -112,7 +112,7 @@ Personal-data text joins these parts with one space, in order:
 
 Reasons are escaped as C# string literals, including quotes, backslashes, line breaks and Unicode line separators. These notes do not establish lawful processing, retention or a processing purpose.
 
-`ComplianceDetailsAttribute(string details)` lives in `Cratis.Chronicle.Compliance`; `[PII]` remains in `Cratis.Chronicle.Compliance.GDPR`. In the pinned Chronicle client (19.99.1), `EncryptedAttribute` takes optional `EncryptionScope scope` and `string details`. Scope members are `Subject`, `Namespace` and `Global`. With details disabled, namespace/global secrets pass only the scope argument, using the constructor's default empty details string. With details enabled, a reason without a scope emits `EncryptionScope.Subject` explicitly because there is no reason-only positional overload; this preserves Chronicle's default. A scope without a reason emits an empty details string.
+`ComplianceDetailsAttribute(string details)` lives in `Cratis.Chronicle.Compliance`; `[PII]` remains in `Cratis.Chronicle.Compliance.GDPR`. In the pinned Chronicle client (19.117.0), `EncryptedAttribute` takes optional `EncryptionScope scope` and `string details`. Scope members are `Subject`, `Namespace` and `Global`. With details disabled, namespace/global secrets pass only the scope argument, using the constructor's default empty details string. With details enabled, a reason without a scope emits `EncryptionScope.Subject` explicitly because there is no reason-only positional overload; this preserves Chronicle's default. A scope without a reason emits an empty details string.
 
 ## Existing event generations
 

@@ -1,18 +1,18 @@
 ---
-title: Customize a rendered application
-description: Register services, add dependencies, and restyle a rendered Cratis application from unmanaged files that re-rendering does not replace.
+title: 'Cratis Stage: customize a rendered application'
+description: Customize a Cratis Stage application with service hooks, dependencies and CSS, and check which files your publisher preserves when you render again.
 ---
 
-Keep your adapters and styling separate from generated slice code by putting them in
-`Customizations/` at the application root. The scaffold already looks for these files.
+Use `Customizations/` at the application root to add services, external-system adapters and styling to a Cratis Stage-rendered application without editing generated slices. The scaffold loads these files through C# hooks, an MSBuild import and a CSS import. Keeping the files separate makes later renders easier to apply, but their survival still depends on how your publisher writes the plan.
 
-Scaffold files, including `Program.cs`, the project files, `Directory.Packages.props`, and the frontend shell,
-belong to you after first run. Subsequent scoped plans exclude them. An application-scope plan includes them
-again, so check your publisher's overwrite policy before applying one to an existing application.
+Scaffold files are the starting host and project setup: `Program.cs`, the project files,
+`Directory.Packages.props` and the frontend shell. You can edit them after the first render. Module, feature and
+slice plans exclude them; application-scope plans include them again. Before applying an application-scope plan
+to an existing application, check whether your publisher will overwrite those edits.
 
-When the caller plans with `RepositoryRoot = true`, the scaffold also includes `.github/workflows/build.yml` and
-`.github/dependabot.yml`. They are scaffold files like the rest: edit them freely, and exclude the scaffold from later
-plans to keep your edits.
+With `RepositoryRoot = true`, the scaffold also includes `.github/workflows/build.yml` and
+`.github/dependabot.yml`. Excluding the scaffold from later plans keeps those files out of the planned writes;
+it does not prevent a publisher from replacing or deleting them independently.
 
 | File                                | What it is for                                                    | Picked up when                     |
 | ----------------------------------- | ----------------------------------------------------------------- | ---------------------------------- |
@@ -21,17 +21,20 @@ plans to keep your edits.
 | `Customizations/Dependencies.props` | Project references, package references, and MSBuild properties    | MSBuild evaluates the project      |
 | `Customizations/styles.css`         | Font and `--cratis-*` token overrides for the frontend            | Vite builds or serves the frontend |
 
-Every file is optional. Without them, the application builds and runs as rendered. The top-level
-`Customizations/` directory is reserved: a model that would generate files there is rejected with
-`STAGE-CRATIS-005`, including case variants.
+You only need the files for the changes you make. The top-level `Customizations/` directory is reserved:
+a model that would generate files there is rejected with `STAGE-CRATIS-005`, including case variants.
+The example below adds a configured HTTP client and an endpoint; the styling section changes the visible theme.
 
 ## Before you start
 
-- Render the application with an **application-scope** plan from `CratisRendering`. The hooks are part of the
-  application scaffold; module, feature, and slice plans do not include `Program.cs` or the project file.
-- Check that the rendered `Program.cs` calls `ConfigureServices(builder);` and `ConfigureApplication(app);`, and
-  that `.frontend/main.tsx` discovers `Customizations/styles.css` with `import.meta.glob` and awaits its loader
-  before rendering React. An application rendered before these hooks existed has neither; render it again first.
+Start with an application you can already build and run, using the SDK and frontend tooling named in its generated
+README. The hooks come from an application-scope `CratisRendering` plan; module, feature and slice plans do not
+include `Program.cs` or the project file.
+
+Check that `Program.cs` calls `ConfigureServices(builder);` and `ConfigureApplication(app);`, and that
+`.frontend/main.tsx` discovers `Customizations/styles.css` with `import.meta.glob` and awaits its loader before
+rendering React. If those hooks are missing, plan the scaffold again and review the affected files before
+publishing it over your application.
 
 Before starting the backend, start the rendered development services with Docker Compose v2 supporting `--wait`:
 
@@ -101,17 +104,16 @@ switch an existing classic application to self mode by editing the setting or de
 its reducer file. To move an existing read model, migrate it instead: Stage keeps the old
 observer identity and plans the removal of the old class. See
 [Migrating a classic read model](../reference/plan-from-sources.md#migrating-a-classic-read-model).
-CLI and Studio integration for new-application selection and migration is separate;
-untouched callers remain classic.
+A caller that does not supply the new-application profile keeps classic behavior.
 
 ## Register an adapter and its options
 
-The repository also contains a catalog adapter and stylesheet in `Samples/Customization/Customizations/`, ready
-to copy into a rendered application.
+To read from an external exchange-rate service, add a typed `HttpClient`, bind its base address from configuration,
+and expose a read endpoint. The example uses only the ASP.NET Core shared framework, so it needs no extra package.
+You will need a reachable service that accepts `rates/{currency}` and returns the `ExchangeRate` JSON shape below;
+`rates.example.com` later in this guide is a placeholder, not a working service.
 
-This example adds a typed `HttpClient` for an external exchange-rate service, binds its base address from
-configuration, and exposes one read endpoint. It uses only the ASP.NET Core shared framework, so it needs no extra
-package.
+For another adapter and stylesheet to copy, see `Samples/Customization/Customizations/` in this repository.
 
 Create the options type:
 
@@ -187,22 +189,27 @@ Keep `Customizations/Program.cs` in the global namespace, with no `namespace` de
 declarations exactly. A namespace or a changed signature fails the build with `CS0759`.
 
 The endpoint sits under `/api` because the generated Vite development server proxies `/api` to the backend. Pick a
-path that cannot collide with a route Arc generates from your model.
+path that cannot collide with a route Arc generates from your model. If you already implement either hook, add the
+new registration or route to that method instead of declaring a second implementation.
 
 ## Keep custom types out of generated namespaces
 
 Put adapter types in your own namespace, such as `Customizations`, not in the global namespace or a namespace Stage generates (including `<RootNamespace>`, `<RootNamespace>.Common` and slice namespaces). The global partial `Program` hook above is the supported exception. Remove obsolete generated declarations through your publisher's managed-file cleanup rather than leaving stale siblings in those namespaces.
 
-Generated C# files read like hand-written code: types are written by their short names, with ordinary `using` directives above the file-scoped namespace, sorted ordinally. A namespace the project's global usings already import gets no directive. A name that would be ambiguous above the namespace, such as a concept named like a framework type, is imported with a directive inside the file-scoped namespace instead. Stage keeps a fully qualified `global::` name only where it cannot prove that the short name binds to the same type, for example when two imported namespaces declare the same name. Stage decides this from the whole application's generated declarations and its framework catalog. It does not scan `Customizations/` or packages added through `Dependencies.props`.
+Generated C# uses short type names where Stage can resolve them from the application's generated declarations and
+its framework catalog. Stage does not scan `Customizations/` or packages added through `Dependencies.props`.
+A custom type in a generated or enclosing namespace can therefore shadow a reference that Stage intended to bind
+to a framework type. Keeping adapter types in `Customizations` avoids that enclosing-namespace collision.
 
-Short names are why custom types must stay out of generated namespaces. C# looks up a short name in the file's own namespace and every enclosing namespace, out to the global namespace, before it looks at any `using` directive, and a `global using` alias wins over the directives too. A hand-written type named like a framework type in the global namespace, in `<RootNamespace>` or in `<RootNamespace>.Common`, or an alias such as `global using Checksum = ...`, would silently take over the generated reference. A type in your own namespace, such as `Customizations`, encloses no generated file and cannot do that. A package that adds a colliding type to an imported namespace, or a `global using` of a namespace you add, instead causes an ambiguity error when you build; resolve the dependency conflict rather than editing managed code.
-
-Also review extension methods when adding dependencies. A new extension method in an imported namespace can change overload resolution in generated code, even without a type-name collision. Build and run the application's specifications after changing custom dependencies.
+Also check new `global using` directives, aliases and imported packages. They can introduce ambiguities or change
+what a generated reference means. Extension methods can change overload resolution without a type-name collision.
+After changing dependencies, build the application and run its specifications; resolve conflicts in your custom
+code or dependency choices rather than editing generated references.
 
 ## Supply configuration without editing `appsettings.json`
 
-`appsettings.json` is managed. Supply adapter settings through any other ASP.NET Core configuration source, such as
-environment variables:
+`appsettings.json` is included in the application scaffold and can be overwritten when that scaffold is published
+again. Supply adapter settings through another ASP.NET Core configuration source, such as environment variables:
 
 ```bash
 export ExchangeRates__BaseAddress=https://rates.example.com/v1/
@@ -213,10 +220,20 @@ End the base address with `/` so the relative `rates/...` request keeps the `/v1
 above, the host refuses to start when the setting is missing instead of failing on the first request. Keep secrets
 in a secret store or environment variables, not in files under `Customizations/`.
 
+With your service running, request `/api/customizations/exchange-rates/USD` from the application. A returned rate
+produces a JSON response; an upstream 404 produces a 404 from this endpoint. Other unsuccessful HTTP responses
+throw rather than appearing as missing rates. The base-address check does not test service connectivity.
+
 The host's own sign-in settings use the same mechanism. See
 [Sign in with Microsoft Entra ID](sign-in-with-entra-id.md) for the `Cratis:Authentication` keys.
 
 ## Behind an authenticating proxy
+
+:::danger
+These are ordinary request headers: anyone can forge them. Enable this option only when every request passes
+through a trusted authenticating proxy that strips incoming identity headers and sets its own, and the backend
+cannot be reached directly. Examples include Azure App Service authentication and Cratis AuthProxy.
+:::
 
 Generated applications register Arc's Microsoft Identity Platform header authentication scheme. Forwarded
 `x-ms-client-principal*` headers are ignored by default. To accept identity from an authenticating proxy, opt in
@@ -235,14 +252,9 @@ public partial class Program
 }
 ```
 
-Keep this hook in the global namespace and do not edit the managed `appsettings.json`. Without a trusted
+Merge this registration into your existing global `ConfigureServices` hook and keep the setting out of scaffolded
+`appsettings.json`. Without a trusted
 identity, `/.cratis/me` returns 401 and protected commands and queries reject anonymous callers.
-
-:::danger
-These are ordinary request headers: anyone can forge them. Enable this option only when every request passes
-through a trusted authenticating proxy that strips incoming identity headers and sets its own, and the backend
-cannot be reached directly. Examples include Azure App Service authentication and Cratis AuthProxy.
-:::
 
 Outside the Development environment, Arc's discovery endpoints (`/.cratis/commands`, `/.cratis/queries`,
 `/.cratis/users`, `/.cratis/tenants` and `/.cratis/identity-details/schema`) also require an authenticated caller.
@@ -287,7 +299,7 @@ so they see these dependencies too.
 
 ## Restyle the frontend
 
-The managed `.frontend/index.css` imports `@cratis/components/tokens`, then `@cratis/components/styles`, then sets
+The scaffolded `.frontend/index.css` imports `@cratis/components/tokens`, then `@cratis/components/styles`, then sets
 the default font. It does not import `@cratis/components/theme`. `.frontend/main.tsx` then loads
 `Customizations/styles.css` through an awaited lazy import when the file exists. React does not render until that
 import completes, so your declarations load after the defaults.
@@ -314,10 +326,11 @@ To map a larger design system, follow [Build a product theme](/components/stylin
 in the [Cratis token reference](/components/styling/cratis-tokens/). The pinned Components version defines the
 token names; a name it does not use has no effect.
 
-The file is plain CSS processed by Vite. It can `@import` other CSS files beside it with a relative path. It cannot
-add npm dependencies: `package.json` is managed, so a design-system package that is not already installed is not
-available. After you create or delete `Customizations/styles.css`, restart `npm run dev` so Vite re-evaluates the
-import.
+The file is plain CSS processed by Vite and can `@import` other CSS files beside it with a relative path.
+CSS does not install npm dependencies. Add any required package to `package.json` separately and protect that
+scaffold edit when publishing later application-scope plans. After creating or deleting `Customizations/styles.css`,
+restart `npm run dev` so Vite re-evaluates the import. Reload the application and check the primary controls and
+focus ring to see the token changes.
 
 ## Re-render without losing your files
 
@@ -326,29 +339,33 @@ broken customization, and it produces the same managed bytes whether or not the 
 when you build or run the application.
 
 `CratisRendering` does not write files. Whether `Customizations/` survives a render depends on the caller that publishes
-the plan, such as the Cratis CLI or Studio. A publisher that writes only the planned paths leaves your files alone.
+the plan. A publisher that writes only the planned paths leaves your files alone.
 A publisher that deletes files it did not plan, or that replaces the whole output folder, removes them. Keep
 `Customizations/` under version control and check your publisher's behavior before rendering over an application
 that has one.
 
 ## What the hooks do not do
 
-- **Hooks do not bypass model admission.** Event-triggered Automation slices render their reactions and own artifacts;
+- Hooks do not bypass model admission. Event-triggered Automation slices render their reactions and own artifacts;
   captures, non-event triggers, opaque reaction bodies and Translate slices still fail `STAGE-ESM-024`.
   Registering a service does not bind it to a modeled `file` realization or make an unsupported construct renderable.
   See [Event reaction rendering](../reference/reaction-rendering.md) for the supported shape.
-- **No authorization is applied to your code by default.** Endpoints you map are anonymous unless you secure them with
+- Endpoints you map are anonymous unless you secure them with
   ASP.NET Core authorization yourself. Modeled authorization covers only the artifacts Stage renders. When you turn on
   [Entra ID sign-in](sign-in-with-entra-id.md), the perimeter covers your endpoints too: every route except `GET` and
   `HEAD` on `/healthz` requires sign-in, whatever your endpoint declares. It decides who is signed in; it does not add
   authorization policies to your code. For forwarded identity, see
   [Behind an authenticating proxy](#behind-an-authenticating-proxy).
-- **Middleware order is fixed.** `ConfigureApplication` runs last, so middleware you add there runs after the
+- `ConfigureApplication` runs last, so middleware you add there runs after the
   generated middleware. You cannot place middleware before static files or Cratis through this hook. With Entra ID
   sign-in enabled, the authentication perimeter runs right after `Build`, before static files, `UseCratis` and your
   middleware.
-- **Registrations can replace Cratis services.** `ConfigureServices` runs after `AddCratis`, and the last
+- `ConfigureServices` runs after `AddCratis`, and the last
   registration of a service wins. Register your own abstractions; do not re-register Cratis types unless you intend
   to replace them.
-- **The frontend shell and screens stay managed.** `Customizations/styles.css` changes styling only. Screens come
-  from `scene.json` and the generated bindings.
+- `Customizations/styles.css` changes styling only. Screens come from `scene.json` and the generated bindings;
+  CSS does not change those bindings.
+
+For application-wide sign-in, continue with [Sign in with Microsoft Entra ID](sign-in-with-entra-id.md).
+If you publish plans yourself, [Build a renderer target](build-renderer-target.md) explains the write and ownership
+checks needed to preserve custom files.

@@ -1,9 +1,14 @@
+---
+title: Cratis Stage
+description: Cratis Stage runs supported Cratis Screenplay models as application sandboxes, plans reviewable application source, and checks modeled specifications.
+---
+
 <!-- markdownlint-disable MD033 MD041 -->
 <div align="center">
 
 # ▶️ Cratis Stage
 
-**Compiles Screenplay source, verifies modeled specifications, and renders or partially performs Cratis applications.**
+**Write a Screenplay model, run one command, and use the commands and queries it describes.**
 
 [![Discord](https://img.shields.io/discord/1182595891576717413?label=Discord&logo=discord&logoColor=white)](https://discord.gg/kt4AMpV8WV)
 [![Docker](https://img.shields.io/docker/v/cratis/stage?label=Docker&logo=docker&sort=semver)](https://hub.docker.com/r/cratis/stage)
@@ -15,25 +20,60 @@
 
 ---
 
-Stage has three responsibilities around a Screenplay application:
+Cratis Stage performs a Cratis Screenplay `.play` model as an application sandbox, so you can try its commands
+and queries before implementing the application. Send a command, read the resulting state through a query or screen,
+and inspect the recorded events in Cratis Chronicle. Stage executes a supported subset of Screenplay directly,
+without generating and building an application first. It is not a production host.
 
-1. **Runtime** — provide a disposable host that directly performs the subset of modeled backend behavior Stage
-   currently understands.
-2. **Specification runner** — verify the specifications declared in the model and write structured results.
-3. **Renderer** — turn compiled Screenplay syntax into a reviewable [Cratis Arc](https://github.com/Cratis/Arc) + [Chronicle](https://github.com/Cratis/Chronicle) application on disk.
+The sandbox uses authored Scene screens when present, or composes default screens from admitted commands and
+read models, the views built from events. Runtime admission checks identify behavior Stage cannot execute;
+compiling a model does not mean every operation can run.
 
-The renderer is the project's highest-priority path. Direct runtime execution and specification verification are
-useful, but partial; they must not be read as proof that every Screenplay construct has executable semantics.
-The sandbox now serves a first web frontend by translating the same compiled Screenplay application to Scene and
-rendering its screen elements with Scene.React. Layout/template composition, query-backed data, and command forms
-remain incremental runtime work rather than being silently simulated.
+When you want source to develop further, Stage can plan reviewable
+[Cratis Arc](https://github.com/Cratis/Arc) + [Chronicle](https://github.com/Cratis/Chronicle) application artifacts
+from the same model. Its separate specification runner checks the expectations declared in the model and writes
+structured results. Starting the sandbox does not run those specifications, and an unsupported outcome is not a pass.
 
-Stage is part of the experimental Cratis model-first layer: [Screenplay](https://github.com/Cratis/Screenplay) is
-the modeling language, [Studio](https://github.com/Cratis/Studio) the collaborative modeling environment,
+Stage is part of the Cratis model-first layer: [Screenplay](https://github.com/Cratis/Screenplay) is
+the modeling language, [Studio](https://github.com/Cratis/Studio) the paid collaborative modeling product,
 [Scene](https://github.com/Cratis/Scene) the platform-neutral UI model, and
 [Prologue](https://github.com/Cratis/Prologue) captures existing system behavior into event models. What Stage
-renders is an event-sourced CQRS application built on Cratis Arc and Chronicle, the Cratis event-sourcing
+renders is an event-sourced application using command query responsibility segregation (CQRS), built on Cratis Arc and Chronicle, the Cratis event-sourcing
 database and runtime.
+
+## Start here
+
+With the [Cratis CLI installed](https://www.cratis.io/cli/getting-started/), Docker running, and a complete model in
+`./screenplays`, start a session:
+
+```bash
+cratis run ./screenplays
+```
+
+For a model without declared authentication, open the application at `http://localhost:9090/` and its interactive
+API reference, Scalar, at `http://localhost:9090/scalar/v1`. Check `/stage/status` and `/stage/semantic/admission`
+for refusals first. Then submit a supported command using its exposed schema and query or view the resulting state. Follow the
+[disposable-session walkthrough](Documentation/docker/index.md#start-a-disposable-session) for prerequisites,
+private loopback bindings, the Docker alternative, and event inspection. Models declaring authentication use the
+[CLI's authenticated stack](https://www.cratis.io/cli/reference/run/).
+
+Keep the sandbox private: the standalone CLI binds to loopback by default; `--allow-remote` adds no authentication.
+The bundled Chronicle kernel has authentication disabled and uses in-memory storage. Replacing the container loses
+session state; it is not durable application hosting.
+
+For source you can review and develop further, follow
+[Plan artifacts from Screenplay sources](Documentation/reference/plan-from-sources.md). The
+`Cratis.Stage.Rendering.Cratis` package owns target versions and scaffolding; your caller chooses names and scope,
+then reviews the planned bytes and diagnostics before publication.
+
+- [Explore the Stage overview](Documentation/index.mdx) for the three paths and their limits.
+- [Check modeled behavior](Documentation/docker/spec-runner.md#run-semantic-specifications) with `--engine semantic`.
+  Read the report outcomes: exit `0` means the report was written, not that every specification passed.
+- [Start a disposable session](Documentation/docker/index.md#start-a-disposable-session) to call a supported model API.
+  You need an existing model; an empty mounted folder exits before startup.
+
+Review generated output and test the resulting application separately; neither a
+model specification run nor a disposable session establishes application correctness.
 
 ## Authoritative input
 
@@ -164,7 +204,11 @@ has events is left alone, so a restart never doubles the data. The seeded events
 model cannot hold (an event it does not declare, a property the event lacks, a value that is not a literal, a required value left out) is not
 appended, and `/stage/status` reports it as a `STAGE-SEED-nnn` note instead of refusing the application.
 
-Runtime projection definitions follow Chronicle's `ProjectionDefinitionSyntaxVisitor`. `nested` becomes a scalar
+The projection registration and unenforced authorization described in the next three paragraphs belong to the
+deprecated `eventmodel` engine. For the default semantic engine's admission, command execution, and in-process
+read models, see [semantic execution](Documentation/docker/index.md#opt-in-to-semantic-execution).
+
+Legacy runtime projection definitions follow Chronicle's `ProjectionDefinitionSyntaxVisitor`. `nested` becomes a scalar
 nested definition, including `nested` inside `nested`; `all` subscribes the projection to all events; `every` inside a
 child merges into that child's existing mappings and keeps their auto-map setting unless it sets its own; and other
 inherited auto-map settings resolve from the root projection. Before registration, visitor expressions that the
@@ -174,17 +218,19 @@ engine's forms. Ambiguous compatibility translations fail registration rather th
 Definition conformance does not establish execution support for literal or template mappings in the pinned sandbox;
 those remain runtime limitations.
 
-Runtime commands evaluate their modeled `produces` mappings, append the resulting facts to Chronicle, and echo
-the payload as the response. Modeled command validation and authorization are not yet enforced by this runtime
-path.
+Legacy runtime commands evaluate their modeled `produces` mappings, append the resulting facts to Chronicle,
+and echo the payload as the response. Before appending, they check required properties and a supported subset
+of declarative validation: `not empty`, numeric bounds and comparisons, exact text length, and literal regular
+expressions. See [Legacy-engine command validation](Documentation/docker/index.md#legacy-engine-command-validation)
+for rule behavior and exclusions. Modeled command authorization is not enforced by this legacy path.
 
 Stage does not yet evaluate modeled query authorization. The disposable sandbox permits queries against its own
 in-memory Chronicle data; this is not production authorization. Keep the sandbox behind an authenticated host or
 bind its published ports to loopback, as in the examples below. Generated applications use the renderer's admitted
 Arc authorization contracts instead. Query-pipeline rejections still prevent reading or returning data.
 
-The host serves a browser bundle at `/`. It obtains `/stage/scene`, the Scene translation produced from the exact
-same compile as the runtime event model, and renders modeled screen content through `@cratis/scene.react`. Screen
+The host serves a browser bundle at `/`. It obtains `/stage/scene` and renders modeled screen content through
+`@cratis/scene.react`. The semantic host combines syntax-authored presentation with its admitted semantic model. Screen
 navigation works for translated navigation intents. For canvas models without explicit screens, the sandbox
 synthesizes query views and command forms using the routes registered by Arc. Default scenes with
 String/Guid scalar commands declare exact proxy-named inputs (including required Guid identifiers) and a submit
@@ -259,7 +305,7 @@ Implementation `file` references remain symbolic: the loader does not open or ex
 their parent folder. Input errors exit with code `1` without writing results; any existing output is left intact.
 
 Full container, URL, specification-result, and render-plan documentation lives in
-[Documentation](Documentation/index.md). Framework maintainers can use the
+[Documentation](Documentation/index.mdx). Framework maintainers can use the
 [renderer target guide](Documentation/guides/build-renderer-target.md) to implement another deterministic Screenplay-to-code target.
 Application developers can [customize a rendered application](Documentation/guides/customize-rendered-application.md)
 without editing managed files.
@@ -347,18 +393,19 @@ Release treats warnings as errors. Both Dockerfiles consume prebuilt, framework-
 
 ## The Cratis ecosystem
 
-This project is part of [Cratis](https://www.cratis.io) — free, MIT-licensed tools for building event-sourced and CQRS applications.
+This project is part of [Cratis](https://www.cratis.io) — a platform for building event-sourced and CQRS applications.
+Stage is MIT licensed. Studio is a separate paid product, open for sign-up with a 14-day free trial and per-seat pricing.
 
-- **[Chronicle](https://github.com/Cratis/Chronicle)** — event-sourcing database and runtime. Orleans-based kernel, pluggable storage (MongoDB default; PostgreSQL, SQL Server, SQLite, in-memory), language-agnostic gRPC contracts. [Docs](https://www.cratis.io/chronicle/)
-- **Chronicle clients** — first-class [.NET SDK](https://github.com/Cratis/Chronicle), plus [TypeScript](https://github.com/Cratis/Chronicle.TypeScript), [Kotlin/Java](https://github.com/Cratis/Chronicle.Kotlin), and [Elixir](https://github.com/Cratis/Chronicle.Elixir); [Python](https://github.com/Cratis/Chronicle.Python) coming soon (pre-alpha). AI agents connect through the [Chronicle MCP server](https://github.com/Cratis/Chronicle.Mcp).
+- **[Chronicle](https://github.com/Cratis/Chronicle)** — event-sourcing database and runtime. Microsoft Orleans-based kernel, pluggable storage (MongoDB default; PostgreSQL, SQL Server, SQLite, in-memory), language-agnostic gRPC contracts. [Docs](https://www.cratis.io/chronicle/)
+- **Chronicle clients** — first-class [.NET SDK](https://github.com/Cratis/Chronicle), plus [TypeScript](https://github.com/Cratis/Chronicle.TypeScript), [Kotlin/Java](https://github.com/Cratis/Chronicle.Kotlin), and [Elixir](https://github.com/Cratis/Chronicle.Elixir); [Python](https://github.com/Cratis/Chronicle.Python) coming soon. AI agents connect through the [Chronicle MCP server](https://github.com/Cratis/Chronicle.Mcp).
 - **[Arc](https://github.com/Cratis/Arc)** — opinionated CQRS framework for ASP.NET Core with commands, queries, validation, authorization, and TypeScript proxy generation. Works without event sourcing. [Docs](https://www.cratis.io/arc/)
 - **[Components](https://github.com/Cratis/Components)** — React components aligned with Arc patterns. [Docs](https://www.cratis.io/components/)
 - **[CLI](https://github.com/Cratis/cli) + Workbench** — inspect and diagnose Chronicle from the terminal or the browser. [Docs](https://www.cratis.io/cli/)
-- **Model-first layer (experimental)** — [Studio](https://github.com/Cratis/Studio), [Screenplay](https://github.com/Cratis/Screenplay), Stage (this repository), [Scene](https://github.com/Cratis/Scene), [Prologue](https://github.com/Cratis/Prologue)
-- **Supporting** — [Fundamentals](https://github.com/Cratis/Fundamentals), [Specifications](https://github.com/Cratis/Specifications), [Synopsis](https://github.com/Cratis/Synopsis), [Lens](https://github.com/Cratis/Lens), [Narrator](https://github.com/Cratis/Narrator), and free [AI tooling](https://github.com/Cratis/AI) (preview); [Ensemble](https://github.com/Cratis/Ensemble) coming soon (pre-release)
+- **Model-first layer** — [Screenplay](https://github.com/Cratis/Screenplay), Stage (this repository), [Scene](https://github.com/Cratis/Scene), and [Prologue](https://github.com/Cratis/Prologue); [Studio](https://github.com/Cratis/Studio) is an optional paid workspace built on Chronicle. Studio's Play uses Stage.
+- **Supporting** — [Fundamentals](https://github.com/Cratis/Fundamentals), [Specifications](https://github.com/Cratis/Specifications), [Synopsis](https://github.com/Cratis/Synopsis), [Lens](https://github.com/Cratis/Lens), [Narrator](https://github.com/Cratis/Narrator), and free [AI tooling](https://github.com/Cratis/AI); [Ensemble](https://github.com/Cratis/Ensemble) coming soon
 - **[Samples](https://github.com/Cratis/Samples)** — runnable event sourcing and CQRS samples for the whole stack
 
-Everything Cratis publishes today is MIT licensed and free to use.
+Stage's MIT license does not imply that every Cratis product is free; Studio is paid.
 
 ---
 

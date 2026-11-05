@@ -1,6 +1,6 @@
 ---
 title: Event reaction rendering
-description: How Stage renders event-triggered Automation slices, their side effects and their remaining limits.
+description: Cratis Stage renders event reactions as Chronicle reactors, with defined mappings, retry behavior, execution-path differences and refusal diagnostics.
 ---
 
 Stage renders event-triggered reactions in Automation slices as Chronicle reactors. It also renders a narrow application-trigger subset as Chronicle occurrence handlers. The semantic Stage Host and the independent in-memory specification executor also run event reactions.

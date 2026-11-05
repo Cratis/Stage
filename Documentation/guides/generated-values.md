@@ -1,11 +1,11 @@
 ---
-title: Generate identifiers and values from a model
-description: Follow a small shop from a Screenplay model to rendered C#, then see when values are generated, how fresh they are, and when not to generate at all.
+title: 'Cratis Stage: generate identifiers and values'
+description: Declare generated values in Screenplay, render them with Cratis Stage, and check how Arc creates identifiers and Chronicle guards new event sources.
 ---
 
-A create command wants to hand back the identifier of the thing it just made. If the caller invents that identifier, you inherit its collisions, its guessable shapes and its typos. If you invent it in the handler, you reach for `Guid.NewGuid()` and lose the shape, the ordering and the testability you wanted.
+Use Cratis Stage generated values when a command should create an identifier or code rather than accept it from the caller. Declare the generation strategy in Screenplay, then let Stage render the C# that Arc uses to create the value before the command handler runs.
 
-Screenplay splits the decision in two. A **concept** owns the strategy: `generate ulid`, `generate typeid "order"`, `generate nanoid`. A **command property** only says `generated`. Stage renders that into Arc and Chronicle code, and this guide follows one small shop through the whole path:
+A concept is a named domain type, such as `CustomerId`. It owns the strategy: `generate ulid`, `generate typeid "order"` or `generate nanoid`. The command property says `generated` to use that strategy. The shop examples below distinguish identifiers for event sources from values stored inside events. An event source is the identity whose events Chronicle groups together.
 
 | Value | Concept | What it is | Strategy |
 | --- | --- | --- | --- |
@@ -15,11 +15,11 @@ Screenplay splits the decision in two. A **concept** owns the strategy: `generat
 | `ApiKeyId` | A UUID | Event source of an API key | Implicit `uuid` |
 | `ApiKey` | A secret | A protected value inside an event | None. A caller supplies it |
 
-By the end you have rendered the shop with Stage, read the C# it produced, and seen its 21 generated specifications pass. The last two sections tell you which strategy to pick and when to skip generation.
+Start with a model you can already compile and a .NET SDK compatible with the rendered project. The listings are excerpts, not a complete shop application; use your own complete model when following the rendering steps. [Plan artifacts from Screenplay sources](../reference/plan-from-sources.md) covers the planning API and setup. You will check the generated request shape, pin values in specifications, and choose whether generation fits each value.
 
 ## Declare the strategy on the concept
 
-Start with the convention path: a concept that says how its values are made, and a command whose generated property is the identifier. This is an excerpt of the shop model; the other slices appear where they matter.
+Put the strategy on `CustomerId`, then mark the command property as a generated identifier. This keeps the identifier's format consistent wherever a command generates that concept.
 
 ```screenplay title="shop.play (excerpt)"
 concept CustomerId : String
@@ -43,19 +43,17 @@ module Storefront
         returns customerId
 ```
 
-Three things carry the design:
+The caller sends a name, not a `customerId`. Arc creates the identifier using `CustomerId`'s strategy, and `returns customerId` sends it back as the command response. There is no identifier-generation code to add to the handler.
 
-- `generate ulid prefix "cus_" case lower` lives on `CustomerId`, not on the command. Every command that generates a `CustomerId` shares the strategy.
-- `customerId CustomerId generated identifier` removes the property from the request. The caller sends a name and receives an identifier.
-- `returns customerId` carries the generated value back as the command's response.
-
-`registeredAt DateTime = $context.occurred` maps the command's receipt time into the event. It matters later, when time enters the picture.
+`registeredAt DateTime = $context.occurred` records the command's receipt time in the event. Time-dependent strategies use that same captured time, as shown below.
 
 Screenplay checks the strategy while compiling. A generated identifier needs at least 64 random bits, an unsupported strategy is refused, and the model's semantic version rises to ESM v15 as soon as one concept serializes a strategy. The [Screenplay generated values page](/screenplay/generated-values/) owns the syntax and the compiler's rules.
 
 ## Render it with Stage
 
-Stage plans artifacts from `.play` files without writing anything. The console below is the program that produced every output on this page. It references the `Rendering.Cratis` project from this repository's `Source/` folder and calls `CratisRendering.PlanFrom`, described in [Plan artifacts from Screenplay sources](../reference/plan-from-sources.md).
+Stage returns a plan of artifact paths and bytes; your caller writes them. The console example below references the `Rendering.Cratis` project under this repository's `Source/` folder and calls `CratisRendering.PlanFrom`, described in [Plan artifacts from Screenplay sources](../reference/plan-from-sources.md).
+
+Use a new, empty output folder for this example. Its write loop overwrites every planned path, including scaffold paths. `CheckPublication` checks event identities, policy layout and required removals; it does not protect hand-edited files or provide a complete publication transaction.
 
 ```csharp title="Program.cs"
 using System.Collections.Immutable;
@@ -104,18 +102,22 @@ foreach (var artifact in scaffold.Artifacts.Concat(result.Artifacts))
 return 0;
 ```
 
-Run it with the folder that holds `shop.play` and a folder to write into:
+After building the helper, pass the folder holding your complete model and the empty destination. This command assumes the helper assembly is named `DocsGvRender.dll` and was built at the path shown:
 
 ```bash
 dotnet render/bin/Debug/net10.0/DocsGvRender.dll shop out
 ```
+
+The console prints planning and publication results. This is an illustrative result for a complete shop model; artifact counts depend on the model and Stage version.
 
 ```text title="Output"
 Success=True artifacts=17 scaffold=40
 Publication check: Compatible { }
 ```
 
-`Success=True` means no diagnostic has error severity. The publication check compares the plan with the files already in the output folder and refuses changes that would break them, such as an event type id change (`STAGE-EVENT-002`). The program writes nothing unless the result is `Compatible`, which it is for an empty folder. A real publisher also has to protect hand-edited files; see [Build a renderer target](build-renderer-target.md). The rendered project takes its exact NuGet pins from Stage's `Directory.Packages.props` at build time, including the Chronicle client and matching kernel image. Its Cratis npm pins follow `Source/Frontend/package.json`; npm Arc and NuGet Arc use the same release. Stage's package-update workflow synchronizes these frontend pins and regenerates the framework-name catalog, so newly rendered applications move with the verified Stage packages. The slice artifacts land in these files, next to the 40 scaffold files:
+`Success=True` means planning produced no error diagnostics. A compatible publication result means the plan passed Stage's destination checks, not that every overwrite is safe. For example, an event type id change can be refused with `STAGE-EVENT-002`. [Build a renderer target](build-renderer-target.md) explains the ownership and write safeguards a publisher must add.
+
+Inspect your plan for the concept, command and specification files. A complete version of the shop can produce paths like these alongside the scaffold:
 
 ```text title="Planned slice artifacts"
 Common/ApiKey.cs
@@ -138,12 +140,12 @@ Storefront/Orders/Place/when_placing_at_the_receipt_time.cs
 ```
 
 :::note[Rendering is not compiling]
-A plan proves that Stage admitted the model. This guide also built the rendered application in Debug and ran its specifications: `dotnet build` succeeded and `dotnet test` reported 21 passed, 0 failed. Do the same for your own model before you trust it.
+A successful plan means Stage admitted the model; it does not mean the generated application compiles or its specifications pass. Build your rendered application with `dotnet build`, then run `dotnet test`. Check the generated request, response and pinned-value assertions before using the application.
 :::
 
 ## Read the rendered concepts
 
-Each concept becomes a record that knows how to make itself. `CustomerId` is used as an `identifier`, so it derives from Chronicle's `EventSourceId<string>`. It is time-ordered, so it implements `IGeneratableInContext<T>`:
+Inspect `Common/CustomerId.cs` first. Because `CustomerId` is an `identifier`, its record derives from Chronicle's `EventSourceId<string>`. Its ULID strategy needs the captured command time, so the record implements `IGeneratableInContext<T>` and exposes `New(context)`:
 
 ```csharp title="Common/CustomerId.cs"
 namespace Acme.Shop.Common;
@@ -230,10 +232,9 @@ public record CustomerRegistered(CustomerName Name, DateTimeOffset RegisteredAt)
 
 ```
 
-- `RegisterCustomer(CustomerName Name)` is the whole request. `customerId` is a `Handle` parameter marked `[GeneratedValue("customerId")]`, and the modeled name is the case-sensitive key.
-- The return value is a tuple. The first element is the response Arc hands to the caller; the second is the events together with their concurrency scopes.
-- Each generated event source gets one `ConcurrencyScope(EventSequenceNumber.BeforeFirst, EventSourceId: source)`. That is the freshness guard, covered below.
-- `Occurred = occurred` comes from the `$context.occurred` mapping, which reads the receipt time Arc captured.
+`RegisterCustomer(CustomerName Name)` is the whole request. Arc supplies the `Handle` parameter marked `[GeneratedValue("customerId")]`; `customerId` is the case-sensitive key from the model. The tuple separates what the caller receives from what Chronicle appends: its first element is the response, and its second contains the events and concurrency scopes.
+
+Each generated destination gets a `ConcurrencyScope(EventSequenceNumber.BeforeFirst, EventSourceId: source)`, requiring an empty event source at append time. `Freshness = GeneratedValueFreshness.Unguarded` disables Arc's separate freshness check because this handler supplies that append-time guard. `Occurred = occurred` uses the receipt time captured by Arc for the `$context.occurred` mapping.
 
 The generated TypeScript proxy carries the same contract to the browser. It sends `name` only and types the response as the identifier's string:
 
@@ -249,14 +250,14 @@ The proxy comes from the build, not from the plan: Arc's proxy generator writes 
 
 ## Follow one command through the runtime
 
-When a client sends `RegisterCustomer`, this is what the rendered application does, in order. Each step names the code that decides it. Arc draws a fresh value on every execution of the command. Screenplay's contract is that generation follows authorization and validation, so a generated value cannot appear in either.
+Follow `RegisterCustomer` from dispatch to append to see where each guarantee comes from. Generation follows authorization and input validation, so those checks cannot use a value that has not been created yet. A dispatch that reaches unpinned generation draws a new value.
 
-1. **Arc captures the receipt time.** At the dispatch boundary Arc reads the configured `TimeProvider` (UTC now) and keeps it for that dispatch.
-2. **Arc resolves and validates the generated parameter.** For a time-ordered concept it builds a `GenerationContext` from the receipt time and the current tenant and calls `New(context)`. For other concepts it calls `New()`. It validates the result or pin through the concept's validator before calling `Handle`. With no receipt time, generation fails with `MissingGenerationTime`; there is no wall-clock fallback in the rendered application.
-3. **`Handle` runs** and returns the response with the events and scopes.
-4. **Chronicle checks the scopes, then appends.** A `BeforeFirst` scope on a source means the source must hold no events. Chronicle checks every scope in a batch once, against the state before the batch, so a command may append several first facts to one fresh source. One violated scope rejects the whole batch and appends nothing.
-5. **A renumbered retry is checked again.** When a storage append loses a sequence-number race, Chronicle renumbers the batch and validates the scopes again before retrying. This requires Chronicle 19.40.1 or later; the rendered client pin comes from Stage's `Directory.Packages.props`.
-6. **Arc returns the result.** Arc uses the tuple's first element as `CommandResult<T>.Response`, so an accepted command carries the generated identifier and the TypeScript proxy resolves to the identifier string. A `returns` block would give a named response record instead; see [Responses](../reference/generated-values-rendering.md#responses). A reused source becomes a validation failure with the reason `ConcurrencyViolation`.
+1. Arc captures the receipt time at dispatch using the configured `TimeProvider` and keeps it for that dispatch.
+2. Arc resolves the generated parameter. For a time-dependent concept it builds a `GenerationContext` from the receipt time and current tenant, then calls `New(context)`. Context-free concepts use `New()`. It validates the generated result or pin through the concept's validator before calling `Handle`. Unpinned context-dependent generation without a receipt time fails with `MissingGenerationTime`; it does not fall back to the wall clock.
+3. `Handle` returns the response with the events and scopes.
+4. Chronicle checks the scopes against the state before the batch and appends atomically. A `BeforeFirst` scope requires an empty event source. Several first facts may be appended to that source together; one violated scope rejects the whole batch.
+5. If a storage append loses a sequence-number race, Chronicle renumbers the batch and checks the scopes again before retrying. This requires Chronicle 19.40.1 or later; the rendered client pin comes from Stage's `Directory.Packages.props`.
+6. Arc puts the tuple's first element in `CommandResult<T>.Response`. A successful command returns the generated identifier, typed as a string in the TypeScript proxy. A `returns` block instead gives a named response record; see [Responses](../reference/generated-values-rendering.md#responses). A reused source produces a validation failure with reason `ConcurrencyViolation`.
 
 The generated rejection specification asserts exactly that reason and that no events were appended:
 
@@ -279,7 +280,7 @@ async Task Because() => _result = await _scenario.Execute(new RegisterCustomer(n
 The Chronicle [concurrency page](/chronicle/events/concurrency/) explains scopes and `ConcurrencyViolation` in general.
 
 :::caution[Freshness is not idempotency]
-A rejected command is not retried with the same value. The next attempt draws a new identifier and succeeds, so a client that resends after a timeout can register two customers. When retries must be safe, let the client supply the identifier as an input and enforce uniqueness instead. See [When not to generate](#when-not-to-generate).
+A new unpinned execution generates another identifier, so resending after a timeout can register a second customer if the first request succeeded. Generation does not deduplicate requests. For retries, let the client supply a stable identifier and define how the command handles reuse, with a constraint where needed. See [When not to generate](#when-not-to-generate).
 :::
 
 ### A generated value that is not an identity
@@ -305,7 +306,9 @@ public (InviteCode, EventsWithConcurrencyScopes) Handle([GeneratedValue("inviteC
 }
 ```
 
-The scope list contains the customer id only when its text equals the generated code, a comparison that never holds for different concepts. The customer's stream keeps its existing facts, and the command makes no freshness claim about it. Nothing checks a generated non-identifier for uniqueness. A 21-character NanoID has 126 random bits, which makes a collision negligible, but a shorter code would not.
+The scope list contains the customer id only when its text equals the generated code. Here the prefixed ULID and default NanoID differ in length, so this command adds no freshness scope for the customer's existing stream. Stage compares values, not concept types; do not rely on different concept names to prevent a match if you change the strategies.
+
+Generating `InviteCode` does not establish its uniqueness. The default 21-character NanoID has 126 random bits, but randomness is not a uniqueness guarantee. Add a constraint on the event property if duplicate codes must be rejected.
 
 ## Understand the receipt time
 
@@ -332,11 +335,9 @@ internal static class CommandReceiptTime
 }
 ```
 
-Three consequences follow:
+The helper truncates the receipt to whole milliseconds, matching the time precision of ULID, UUIDv7 and TypeID. A `registeredAt` mapped from `$context.occurred` therefore agrees with the time prefix of `CustomerId` to the millisecond.
 
-- The helper truncates the receipt to a whole millisecond, which is also all a ULID, a UUIDv7 or a TypeID stores. A `registeredAt` mapped from `$context.occurred` and the time prefix of `CustomerId` agree to the millisecond.
-- Only a model that maps `$context.occurred` sets `Occurred` on the event. Without it, the generated `Handle` supplies no occurrence time, Arc passes none, and Chronicle stamps the time of the append, which is later than the receipt.
-- Time-ordered values reveal when they were made and are not monotonic within a millisecond. Do not sort by them when you need a strict order.
+Without an occurrence-time mapping, this generated handler supplies no `Occurred` value and Chronicle assigns append time. Do not assume the identifier's timestamp and an unmapped event timestamp are identical. Time-ordered identifiers also reveal their creation time and are not monotonic within a millisecond; use event ordering when you need a strict sequence.
 
 The shop's order slice uses a TypeID. Only the time follows the operation: `GenerationContext` carries a tenant, but `TypeId`, `Ulid` and `UuidV7` read only its `Now`. A TypeID has no tenant slot.
 
@@ -359,7 +360,7 @@ feature Orders
 
 ## Pin values in specifications
 
-Random values make poor fixtures, so Screenplay never draws one. A specification either pins the value or lets Stage assert its shape. `RegisteringWithPinnedIdentity` pins the identifier with `for` and a clock with `given clock`:
+Pin a value when a specification needs to assert the exact identifier, or let Stage assert the generated shape when the particular value does not matter. `RegisteringWithPinnedIdentity` uses `for` to pin the identifier and `given clock` to fix the receipt time:
 
 ```screenplay title="shop.play (excerpt)"
 specification RegisteringWithPinnedIdentity
@@ -550,15 +551,11 @@ The reference page lists every strategy with its factory and encoding: [Generate
 
 ## When not to generate
 
-Generation is the right default for identities your system owns. It is the wrong tool in four situations.
+Keep the identifier as an input when the client already owns it. Offline-first applications and importers often need to name an entity before the server sees it. Retrying clients need a stable request identity and defined duplicate handling; generation supplies neither idempotency nor deduplication. Use a Chronicle [constraint](/chronicle/constraints/) or unique event contract where uniqueness is required.
 
-**The client already has the identifier.** An offline-first app, an importer and a client that retries safely all need to name the thing before the server sees it. That identifier is an input, not a `generated` property. Generation supplies neither idempotency nor deduplication; enforce uniqueness with a Chronicle [constraint](/chronicle/constraints/) or a unique event contract.
+A natural key, such as an email address or an existing SKU, is also an ordinary input. Give the entity a separate surrogate identity if that key can change. For a gapless sequence, use an allocator designed for that requirement. Random generation cannot supply it, and `generate sequence` is reserved and refused by Screenplay.
 
-**The value is a natural key.** An email address, a SKU or an invoice number already exists in the domain. Keep it as an ordinary property with a constraint and give the entity a surrogate identity if the key can change.
-
-**The value must be guessable or gapless.** A number a customer reads over the phone, or a sequence with no holes, needs an allocator, not randomness. `generate sequence` is reserved and refused until Screenplay admits it. Short random codes also look friendly while carrying few bits, and Screenplay warns below 64.
-
-**The value is a secret and an identity.** Never use an API key, token or password as an event-source id. Event-source ids are plaintext metadata that cannot be encrypted, and every event on the stream repeats it. Use a separate identity such as `ApiKeyId` and keep the secret in a protected property, as the shop does.
+Never use an API key, token or password as an event-source id. That id is plaintext metadata repeated on every event and cannot be encrypted. Use a separate identity such as `ApiKeyId` and keep the secret in a protected property, as the shop does.
 
 ## Where to go next
 

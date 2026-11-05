@@ -3,6 +3,11 @@ title: Cratis renderer compatibility
 description: Look up legacy Cratis renderer admission rules, diagnostics, key restrictions, and partial-output boundaries before choosing a rendering path.
 ---
 
+This page describes the C#-based Cratis target, not a language restriction on
+Screenplay or a compatibility promise for every Stage renderer. Other targets,
+such as [Stage.Axon](https://github.com/Cratis/Stage.Axon), own their generated
+languages and admission rules; see the [target repository model](../guides/target-repository-model.md).
+
 Cratis Stage has a semantic artifact planner and a syntax-based compatibility renderer. Use
 `CratisRendering.Plan` for a package-owned semantic plan; the legacy `IRenderer` writes directly to a target
 directory and has the separate admission and failure behavior below. For current semantic capabilities, see

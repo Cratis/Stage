@@ -11,6 +11,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 
+[PerFactSpecificationLifecycle]
 public class when_refusing_protected_event_source_identities : a_multi_slice_application
 {
     static readonly SourceLocation _identityLocation = SourceLocation.Start with { Path = "Protected.play", Line = 12, Column = 9 };

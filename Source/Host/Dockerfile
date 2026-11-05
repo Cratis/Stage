@@ -37,7 +37,7 @@ RUN npm run build
 # Stage is built against have to be the same version, or the two drift apart silently between releases.
 # Keep the DEVELOPMENT kernel flavor and its shell/apt/tini runtime; the bare-version image is chiseled.
 # Verification/verify-runtime-compatibility.py enforces the release version and required development flavor.
-FROM cratis/chronicle:19.125.0-development
+FROM cratis/chronicle:19.125.1-development
 
 # The Chronicle base image bundles MongoDB (its default storage backend, an ~800MB install). The Stage runs
 # fully in-memory, so purge it to keep the image database-free. The purge is guarded so it is a no-op on
@@ -60,13 +60,16 @@ RUN mkdir -p /eventmodel
 
 # Copy Stage-specific configuration
 COPY Source/Host/appsettings.Docker.json /stage/appsettings.Docker.json
+COPY Source/Host/appsettings.Published.json /stage/appsettings.Published.json
 COPY Source/Host/entrypoint-stage.sh /stage/entrypoint-stage.sh
-RUN chmod +x /stage/entrypoint-stage.sh
+COPY Source/Host/entrypoint-published.sh /stage/entrypoint-published.sh
+RUN chmod +x /stage/entrypoint-stage.sh /stage/entrypoint-published.sh
 
 # 9090 is the Stage API. 35000 is the Chronicle kernel's single HTTP endpoint — gRPC (HTTP/2) plus the Chronicle
 # Workbench, its API and OAuth (HTTP/1.1, TLS) — so a play session can be inspected in the Workbench. Those two are
 # all a caller needs; the kernel's remaining ports (Orleans clustering) stay internal.
 EXPOSE 9090 35000
 
-# Override the entrypoint to run both Chronicle and Stage
+# Override the entrypoint to run both Chronicle and Stage. A container started with Stage__Mode=Published (the
+# application images built by `export` do) is handed on to entrypoint-published.sh by the same entrypoint.
 ENTRYPOINT ["/usr/bin/tini", "--", "/bin/bash", "/stage/entrypoint-stage.sh"]

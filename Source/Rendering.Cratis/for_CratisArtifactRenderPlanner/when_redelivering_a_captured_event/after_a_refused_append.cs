@@ -12,6 +12,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_redelivering_a_captured_event;
 
+[PerFactSpecificationLifecycle]
 public class after_a_refused_append : given.a_captured_delivery
 {
     void Because() => Render();

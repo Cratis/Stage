@@ -35,7 +35,7 @@ public class with_an_authored_scene : a_screen_composition_render
     // Recomputed for Screenplay 5.3.1: the scaffold emits the matching matcher pin.
     // Recomputed for Cratis/Stage#967: Choreography hosting and updated backend/frontend pins.
     // Recomputed for Chronicle 19.125.0: the scaffold emits the matching package pins and development image tag.
-    const string Before = "befee71cd047a2c6b0fdfdf87b93fd98033f43ae75dd566fb3bad06e66f70757";
+    const string Before = "cdf0822545026ec5d5080ff6e1d8f389c98a735d125cf77370f216567244962d";
 
     ArtifactRenderPlan _plan = null!;
 

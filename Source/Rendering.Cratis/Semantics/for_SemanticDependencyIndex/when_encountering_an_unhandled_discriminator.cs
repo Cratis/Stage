@@ -7,6 +7,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticDependencyIndex;
 
+[PerFactSpecificationLifecycle]
 public class when_encountering_an_unhandled_discriminator : given.a_dependency_index
 {
     [Theory]

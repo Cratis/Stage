@@ -4,6 +4,7 @@
 using System.Text.Json;
 using Cratis.Specifications;
 using Cratis.Stage.Host.for_SemanticReadModelBrowser.given;
+using Cratis.Stage.Semantics;
 using Xunit;
 
 namespace Cratis.Stage.Host.for_SemanticReadModelBrowser.when_inspecting;

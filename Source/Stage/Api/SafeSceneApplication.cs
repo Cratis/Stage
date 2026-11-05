@@ -6,7 +6,7 @@ using SceneContribution = Cratis.Scene.Model.ContributionPoints.Contribution;
 using SceneElements = Cratis.Scene.Model.Elements;
 using SceneScreens = Cratis.Scene.Model.Screens;
 
-namespace Cratis.Stage.Host;
+namespace Cratis.Stage.Api;
 
 /// <summary>
 /// Produces the runnable subset of an authored Scene while preserving unsupported constructs as reported issues.

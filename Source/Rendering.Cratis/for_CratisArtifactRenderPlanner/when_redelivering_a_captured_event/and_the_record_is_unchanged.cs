@@ -7,6 +7,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_redelivering_a_captured_event;
 
+[PerFactSpecificationLifecycle]
 public class and_the_record_is_unchanged : given.a_captured_delivery
 {
     async Task Because()

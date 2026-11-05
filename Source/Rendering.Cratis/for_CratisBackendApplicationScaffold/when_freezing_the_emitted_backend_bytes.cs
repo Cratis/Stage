@@ -21,7 +21,7 @@ public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
     // Re-frozen when Debug specifications gained the Chronicle.Testing telemetry dependency.
     // Re-frozen for #120: authentication inputs, host wiring, sign-in instructions and Identity.Web references.
     // Re-frozen for #937: Directory.Packages.props pins Pkcs to 10.0.14 and documents Xml runtime servicing.
-    const string FrozenDigest = "17785f39d1db6c1fd9a598ba0d9ebefbb26f1769f29f8ac889c97f3640a63f4d";
+    const string FrozenDigest = "f27b91299a08727ada55579a150b6f04b528222e52a9791d0dea34145bd67271";
 
     // Frozen when the license header became the caller's choice: generated C# carries none by default.
     const string SeparateSpecificationsDigest = "caad5d604757c283413ddc98600102f4cb75103dfd6531ac7d5b5b4a384fb81c";
@@ -33,7 +33,7 @@ public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
     // Re-frozen for #660: only Directory.Build.props gains CratisReadProtection On.
     // Re-frozen for Cratis/Stage#926: the application hosts an Orleans silo; every earlier digest re-frozen with it.
     // Re-frozen for Choreography 2.2.0 with Chronicle 19.124.0 and Arc 22.165.2; every earlier digest re-frozen with it.
-    const string FrozenRepositoryRootDigest = "06fecdef661c7ec7aecc4c6c1c174cdfff75e7dafab858a093bd7942a1b2d467";
+    const string FrozenRepositoryRootDigest = "b9697ce0835dd0d262870bb78c437627360b8a6f39233cd47de18f73c798692a";
 
     string _digest = null!;
 

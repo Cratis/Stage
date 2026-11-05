@@ -12,6 +12,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
+[PerFactSpecificationLifecycle]
 public class when_rendering_v32_whole_number_concept_capture_identities : given.a_translation_application
 {
     void Establish()

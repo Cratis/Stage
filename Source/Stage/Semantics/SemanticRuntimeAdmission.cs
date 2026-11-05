@@ -6,9 +6,8 @@ using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Execution;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.Semantics;
-using Cratis.Stage.Semantics;
 
-namespace Cratis.Stage.Host;
+namespace Cratis.Stage.Semantics;
 
 internal sealed record SemanticAdmissionEntry(string Artifact, string Kind, string Status, string? Capability, string? Details);
 

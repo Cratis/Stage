@@ -146,6 +146,8 @@ If startup refuses the model, read the diagnostics and compare the construct wit
 changes; runtime refusals identify behavior the selected engine cannot perform. Do not switch to the deprecated
 `eventmodel` engine just to hide semantic refusals.
 
+> **Published applications.** The sandbox above is for trying out a model. To run an application for real users, export a versioned package and start the image in published mode: persistent storage, sign-in by a trusted proxy, and none of the tooling surfaces. See [Published applications and export](../reference/published-applications.md).
+
 ## What is inside
 
 The image is built **on top of the Chronicle kernel image** (`cratis/chronicle`), so the event store and the

@@ -97,6 +97,9 @@ public sealed partial class CratisBackendApplicationScaffold
           </PropertyGroup>
           <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
             <IsTestProject>true</IsTestProject>
+            <!-- Stage reads specification outcomes by their fully qualified test names, so the runner must keep them
+                 rather than the readable display names. -->
+            <CratisSpecificationsReadableNames>false</CratisSpecificationsReadableNames>
           </PropertyGroup>
           <ItemGroup>
             <Content Remove="package.json" />

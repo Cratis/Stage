@@ -13,6 +13,7 @@ using NativeScreenplayCompiler = Cratis.Screenplay.ScreenplayCompiler;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 
+[PerFactSpecificationLifecycle]
 public class when_rendering_authored_query_intent : a_multi_slice_application
 {
     [Fact]

@@ -13,7 +13,7 @@ encryption without erasure.
 
 ## Executable semantic models
 
-Stage uses Screenplay 5.3.1 and admits exact ESM v1.0–v34.0 and v36.0 language/semantic pairs, not v35 or arbitrary minor versions. The semantic planner maps
+Stage uses Screenplay 5.7.0 and admits exact ESM v1.0–v34.0, v36.0 and v38.0 language/semantic pairs, not v35, v37 or arbitrary minor versions. The semantic planner maps
 `SemanticConcept.Compliance` to these attributes, written by their short names with the `using` directives they need
 (`Cratis.Chronicle.Compliance.GDPR`, `Cratis.Chronicle.ProtectedValues`, `Cratis.Arc.Chronicle.Commands`):
 

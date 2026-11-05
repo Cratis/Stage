@@ -101,8 +101,8 @@ unsupported capability. Rendered Chronicle reactors run eventually and retry fai
 Structural refusals exit `1` without writing results; semantic runs record `Unsupported`, never a passing
 specification.
 
-The semantic executor uses Screenplay 5.3.1. That package version is separate from the compiled model's ESM version. The executor accepts the renderer's audited language/semantic version pairs,
-including v31–v34 and v36, plus matching newer pairs within the declared range (`>=32.0 <33`). Mixed or
+The semantic executor uses Screenplay 5.7.0. That package version is separate from the compiled model's ESM version. The executor accepts the renderer's audited language/semantic version pairs,
+including v31–v34, v36 and v38, plus matching newer pairs within the declared range (`>=32.0 <33`). Mixed or
 noncanonical pairs are not admitted. A pair that is neither audited nor within the accepted range is refused
 with `STAGE-ESM-016`, naming the range.
 
@@ -145,7 +145,7 @@ exactly `*`, containing `#`, and leading- or trailing-whitespace keys reject bef
 instance is stored at that key. These refused keys and absent views reject validation before all requirements and
 generation, with `<View> '<key>' does not exist.`, preserving the supplied key text. This refused-key check is specific
 to protected reads; command identifiers keep their existing behavior. The Host delegates to the pinned
-Screenplay 5.3.1 evaluator with the same refused-key checks. Read-backed requirements and
+Screenplay 5.7.0 evaluator with the same refused-key checks. Read-backed requirements and
 produced-event mappings use that projected state. Non-Error requirements on protected commands remain
 `Unsupported` with `STAGE-ESM-045` until Screenplay defines their severity semantics. This admission check includes
 commands reachable through reaction invocations, even in specifications expecting rejection, and runs before any facts are appended.

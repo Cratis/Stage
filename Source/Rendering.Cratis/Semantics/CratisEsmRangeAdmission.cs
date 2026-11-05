@@ -12,7 +12,7 @@ internal static class CratisEsmRangeAdmission
     internal static CratisEsmRangeVerdict Evaluate(ArtifactRenderRequest request, SemanticApplicationContext context)
     {
         var version = CratisEsmSupport.Descriptor.Classify(request.Model.LanguageVersion, request.Model.SemanticVersion);
-        if (version != EsmVersionStanding.NewerWithinRange) return FromFindings(request, new(version, []));
+        if (version != EsmVersionStanding.NewerWithinRange && !(version == EsmVersionStanding.Audited && CratisEsmSupport.Descriptor.ScansMembers(request.Model.LanguageVersion, request.Model.SemanticVersion))) return FromFindings(request, new(version, []));
         var owners = CratisSelectedSemanticOwners.Enumerate(context).Select(owner => owner.Id).Append(context.Application.Id).ToImmutableHashSet();
         var selected = context.SelectedSlices().Select(located => located.Slice.Id).ToImmutableHashSet();
         var excluded = context.AllSlices.Select(located => located.Slice.Id).Where(id => !selected.Contains(id)).ToImmutableHashSet();

@@ -10,7 +10,10 @@ internal static class SemanticDependencyReferences
     {
         [SemanticDependencyKind.Declaration] = """
         ExecutableSemanticModel:Application
-        SemanticApplication:Concepts Modules Types Policies EventSources Triggers
+        SemanticApplication:Concepts Modules Types Policies EventSources Triggers Graphs GraphProjections GraphSpecifications
+        SemanticGraph:Nodes Edges
+        SemanticGraphNode:Properties
+        SemanticGraphEdge:Properties
         SemanticModule:Features
         SemanticFeature:Features Slices
         SemanticSlice:Commands Constraints Events Projections Queries ReadModels Specifications Reducers Reactions Captures
@@ -20,10 +23,11 @@ internal static class SemanticDependencyReferences
         SemanticProperty:Type
         SemanticTypeReference:Target
         SemanticEventContract:Properties
-        SemanticReadModel:Properties
+        SemanticReadModel:Properties PropertyOrder
         SemanticCommand:Properties
         SemanticReadModelQueryArgument:Type
         SemanticApplicationTrigger:Properties
+        SemanticGraphProperty:Type
         """,
         [SemanticDependencyKind.Expression] = """
         SemanticConcept:Validations
@@ -80,6 +84,10 @@ internal static class SemanticDependencyReferences
         SemanticProjectionJoinRemoval:EventContract Key
         SemanticProjectionValueKey:Value
         SemanticProjectionMapping:Source Target Factor
+        SemanticGraphProjection:Nodes Edges
+        SemanticGraphElementHandlers:Handlers
+        SemanticGraphHandler:Event Mappings Key Source Target Identity
+        SemanticGraphMapping:Source Factor
         SemanticProjectionLiteral:Value
         SemanticProjectionNested:Property Scope
         SemanticProjectionRemoval:EventContract Key ParentKey
@@ -94,6 +102,10 @@ internal static class SemanticDependencyReferences
         [SemanticDependencyKind.Specification] = """
         SemanticSpecification:GivenEvents GivenReadModels ThenEvents ThenReadModels ThenQueries When ThenAbsentReadModels WhenAppended WhenRedelivered GivenCaptures WhenCapture WhenTrigger GivenGenerated ThenReturns ThenInvocations
         SemanticSpecificationAbsentReadModel:Key ReadModel
+        SemanticGraphSpecification:Given GivenGraphs WhenAppended ThenGraphs
+        SemanticGraphStep:Elements
+        SemanticGraphElementStep:Key Values Target Identity
+        SemanticGraphPropertyValue:Value
         SemanticSpecificationRedelivery:Reaction Given
         SemanticSpecificationCommand:Command Values EventSource GeneratedValues
         SemanticSpecificationInvocation:Command Values

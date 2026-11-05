@@ -11,6 +11,10 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 internal static class CratisEsmSupport
 {
     internal static EsmSupport Descriptor { get; } = new(
-        [.. EsmSchemaV30Support.LanguageVersions.Zip(EsmSchemaV30Support.SemanticVersions), (LanguageVersion.V31, SemanticVersion.V31), (LanguageVersion.V32, SemanticVersion.V32), (LanguageVersion.V33, SemanticVersion.V33), (LanguageVersion.V34, SemanticVersion.V34), (LanguageVersion.V36, SemanticVersion.V36)],
-        new(SemanticVersion.V32, 33));
+        [.. EsmSchemaV30Support.LanguageVersions.Zip(EsmSchemaV30Support.SemanticVersions), (LanguageVersion.V31, SemanticVersion.V31), (LanguageVersion.V32, SemanticVersion.V32), (LanguageVersion.V33, SemanticVersion.V33), (LanguageVersion.V34, SemanticVersion.V34), (LanguageVersion.V36, SemanticVersion.V36), (LanguageVersion.V38, SemanticVersion.V38)],
+        new(SemanticVersion.V32, 33))
+    {
+        // ESM v38 is audited for graphs. It also carries the v37 clock constructs, which stay refused by the ledger (STAGE-ESM-016).
+        MemberScanned = [(LanguageVersion.V38, SemanticVersion.V38)]
+    };
 }

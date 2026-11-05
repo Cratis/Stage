@@ -92,7 +92,10 @@ internal static class SemanticSurfaceLedger
         // Those pairs remain outside the audited set and the >=32.0 <33 prospective range;
         // STAGE-ESM-016 refuses them before rendering. This pin update does not implement clock behavior.
         var clock = rejected("STAGE-ESM-016");
-        Add(entries, "SemanticApplication", clock, "TimeZone");
+        Add(entries, "SemanticApplication", clock, "TimeZone ContextMembers");
+
+        // ESM v37.1 lets a read model declare the order of its properties. Stage orders them canonically and does not audit the declared order yet.
+        Add(entries, "SemanticReadModel", clock, "PropertyOrder");
         Add(entries, "SemanticTimeZone", clock, "Configurable Id");
         Add(entries, "SemanticCommand", clock, "Calendar");
         Add(entries, "SemanticCommandCalendar", clock, "ContextMember TimeZone");
@@ -102,6 +105,23 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticConditionOperand", clock, "Clock DateOf");
         Add(entries, "SemanticValidationRule", clock, "ClockOperand");
         Add(entries, "SemanticSpecification", clock, "GivenTimeZone");
+
+        // ESM v38 graphs. Each construct renders as Chronicle's model-bound graph records and specifications; the shapes the model-bound API
+        // cannot express are refused by SemanticGraphAdmission with STAGE-ESM-062 and the specifications it cannot express with STAGE-ESM-064,
+        // and the whole of a graph is refused with STAGE-ESM-063 while the pinned Chronicle client has no graph API.
+        Add(entries, "SemanticApplication", rendered, "Graphs GraphProjections GraphSpecifications");
+        Add(entries, "SemanticGraph", rendered, "Name Nodes Edges");
+        Add(entries, "SemanticGraphNode", rendered, "Label Properties");
+        Add(entries, "SemanticGraphEdge", rendered, "Type Source Target Properties IdentifiedBy");
+        Add(entries, "SemanticGraphProperty", rendered, "Name Type IsKey");
+        Add(entries, "SemanticGraphProjection", rendered, "Name Graph Nodes Edges");
+        Add(entries, "SemanticGraphElementHandlers", rendered, "Name Handlers");
+        Add(entries, "SemanticGraphHandler", rendered, "Event Mappings Key Source Target Identity Removes Detach");
+        Add(entries, "SemanticGraphMapping", rendered, "Property Operation Source Factor");
+        Add(entries, "SemanticGraphSpecification", rendered, "Owner Name Given GivenGraphs WhenAppended ThenGraphs");
+        Add(entries, "SemanticGraphStep", rendered, "Graph Elements");
+        Add(entries, "SemanticGraphElementStep", rendered, "IsNode Absent Name Key Values Target Identity");
+        Add(entries, "SemanticGraphPropertyValue", rendered, "Property Value");
 
         // Atomic batches use the existing event collection return. Multiple same-event production triggers
         // and routed productions retain STAGE-ESM-043 because their batch boundaries cannot be preserved: a Chronicle reactor

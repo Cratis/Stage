@@ -21,6 +21,7 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
     {
         new ActionSubjectSyntaxAdmission().VisitApplication(syntax);
         new OperationSyntaxAdmission().VisitApplication(syntax);
+        new GraphSyntaxAdmission().VisitApplication(syntax);
         if (syntax.ReactionProductionMode is not null)
         {
             throw new InvalidEventModel(

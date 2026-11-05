@@ -8,6 +8,13 @@ its own: it renders the scene the model describes through the default blueprint
 (`@cratis/scene.blueprint.default`), the same application shell, chrome, themes and components a Scene
 application gets.
 
+The rendering details on this page describe the Stage sandbox and the Cratis
+renderer, whose application artifacts use C#, Arc, Chronicle, and React. They are
+not a restriction on Screenplay's modeling language or a support matrix for other
+targets. [Stage.Axon](https://github.com/Cratis/Stage.Axon), for example, owns its
+Java-target admission and verification separately. See [target repository boundaries](../guides/target-repository-model.md)
+before carrying a capability from one renderer to another.
+
 ## What is drawn
 
 | Part of the model | Rendered as |

@@ -2,22 +2,23 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageVersionOverrideEnabled>false</CentralPackageVersionOverrideEnabled>
-    <CratisScreenplayVersion Condition="'$(CratisScreenplayVersion)' == ''">5.3.1</CratisScreenplayVersion>
+    <CratisScreenplayVersion Condition="'$(CratisScreenplayVersion)' == ''">5.7.0</CratisScreenplayVersion>
     <PureTransitionReferencePackVersion>10.0.12</PureTransitionReferencePackVersion>
     <!-- Cratis.Ante.Contracts requires this Chronicle client or later. Only an application rendered with onboarding pins it; every other render stays on the Chronicle pin below. -->
     <AnteContractsChronicleVersion>19.125.0</AnteContractsChronicleVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- Cratis -->
-    <PackageVersion Include="Cratis" Version="22.166.0" />
+    <PackageVersion Include="Cratis" Version="22.168.0" />
     <PackageVersion Include="Cratis.Fundamentals" Version="7.33.1" />
-    <PackageVersion Include="Cratis.Arc" Version="22.166.0" />
-    <PackageVersion Include="Cratis.Arc.Chronicle" Version="22.166.0" />
-    <PackageVersion Include="Cratis.Arc.Chronicle.Testing" Version="22.166.0" />
-    <PackageVersion Include="Cratis.Arc.MongoDB" Version="22.166.0" />
-    <PackageVersion Include="Cratis.Arc.Screenplay" Version="22.166.0" />
-    <PackageVersion Include="Cratis.Arc.Swagger" Version="22.166.0" />
-    <PackageVersion Include="Cratis.Arc.Testing" Version="22.166.0" />
+    <PackageVersion Include="Cratis.Arc" Version="22.168.0" />
+    <PackageVersion Include="Cratis.Arc.Chronicle" Version="22.168.0" />
+    <PackageVersion Include="Cratis.Arc.Chronicle.Testing" Version="22.168.0" />
+    <PackageVersion Include="Cratis.Arc.MongoDB" Version="22.168.0" />
+    <PackageVersion Include="Cratis.Arc.Neo4j" Version="22.168.0" />
+    <PackageVersion Include="Cratis.Arc.Screenplay" Version="22.168.0" />
+    <PackageVersion Include="Cratis.Arc.Swagger" Version="22.168.0" />
+    <PackageVersion Include="Cratis.Arc.Testing" Version="22.168.0" />
     <!--
         The Chronicle client packages are pinned here AND referenced directly from Stage and Host - central package
         management only pins what a project references directly, so a version that arrives transitively through the

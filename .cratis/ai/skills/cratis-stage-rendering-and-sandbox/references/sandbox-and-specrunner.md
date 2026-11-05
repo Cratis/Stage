@@ -50,6 +50,13 @@ ports or an authenticated proxy). Rendered applications use the renderer's admit
 authorization instead, which is the thing to test for production behavior (Debug tests
 of a render, [render-example.md](render-example.md)).
 
+`Stage__Sandbox__ForwardedIdentity=true` (`Stage:Sandbox:ForwardedIdentity`) is the exception:
+the sandbox runs behind AuthProxy, trusts the identity it forwards and plays no persona, so the
+signed-in caller is the caller authorization runs for. It overrides `Stage:Sandbox:Identity`.
+`cratis run` sets it when the model declares `authentication`; set it yourself only behind an
+AuthProxy, because the headers are unsigned and anything that can reach the sandbox directly
+can forge them. Requires Stage 4.211.0; an older sandbox ignores the setting.
+
 The semantic Host encrypts personal-data and secret concepts at rest through Chronicle and
 releases values on read; erasure deletes event-source keys. Encryption applies to new
 writes only: events already stored in plaintext in an existing Play store are not
@@ -161,9 +168,10 @@ which never counts as a pass.
 
 ## Implementation bodies and authored occurrence
 
-Requires Stage 4.145.0 for reach-scoped reducer and validation refusals; older semantic
-engines refuse unrelated behavior when any such body exists. Neither Host nor executor
-runs these bodies. `STAGE-IMPL-003` names the reached owner and RequirementId:
+Requires Stage 4.145.0 for reach-scoped reducer and validation refusals; older
+semantic engines refuse unrelated behavior when any such body exists. Neither
+Host nor executor runs these opaque bodies. `STAGE-IMPL-003` names the reached
+owner and RequirementId. Reachability includes:
 
 - command under test and commands invoked by reactions reach command validation;
 - command input and query argument types reach concept rules through composites,
@@ -174,8 +182,10 @@ runs these bodies. `STAGE-IMPL-003` names the reached owner and RequirementId:
   of an action expected to be refused.
 
 Unrelated commands, queries and specifications remain admitted. Reducer refusals use
-Projection capability; validation refusals use Command. This does not relax live-world
-history rebuilding or renderer admission, nor described-handler `STAGE-IMPL-002`.
+Projection capability; validation refusals use Command. This does not relax
+live-world history rebuilding or renderer admission. Described handlers remain
+refused in rendering even in Stub mode; semantic execution reports
+`ImplementationBody` only when reached after their gates. See [current boundaries](current-boundaries.md).
 
 Requires Stage 4.141.1 for authored occurrence in event-reaction specifications; older
 executors refuse clocks beside reactions. Independent command, append and named-redelivery
@@ -191,19 +201,23 @@ A false `where` skips evaluation; the executor never invents wall time. The fixt
 supplies time, not audit identity: `$eventSourceId`/`$eventContext.eventSourceId` and
 `$context.causedBy.*` remain `STAGE-ESM-013`, even under `runs as system`.
 
-Clock/application/startup/shutdown triggers and `when clock`/trigger/capture actions
-remain `STAGE-ESM-024`. **A clock fixture is not a scheduler.** Generated backend
+Clock/application/startup/shutdown triggers and `when clock`/trigger actions
+remain `STAGE-ESM-024`. Admitted `source events` capture specifications now run;
+this does not execute polling or an external integration.
+**A clock fixture is not a scheduler.** Generated backend
 occurrence mappings use `EventContext.Occurred`, but context-dependent generated
 reaction specs retain `-011`; generated append/redelivery clock fixtures retain `-024`.
 Rendered clock fixtures remain command-only.
 
 ## Refusals shared by both engines
 
-Both engines refuse public events (`STAGE-ESM-032`), foreign or source-event captures
-(`-033`), directed Translate slices (`-024`) and reducer observer filters (`-035`). The
-legacy engine also refuses reaction identity and reaction observer filters (`-034`,
-`-035`); per-production route overrides fail `-036` on the semantic engine. Clock,
-application, startup and shutdown triggers and opaque reaction bodies fail `-024`.
+Semantic capture/publication support is target-specific: supported capture
+specifications run and the live Host can run around public/foreign constructs
+using local appends and seeded inbound facts, never real external publication or
+polling. Unsupported Translate reactive/read-side shapes still refuse. Legacy
+syntax admission retains broader refusals, including reaction identity, observer
+filters and routing (`-034`, `-035`, `-036`). Clock, application, startup and shutdown reaction triggers and opaque
+reaction bodies fail `-024`. See [current boundaries](current-boundaries.md).
 
 ## The specification runner
 

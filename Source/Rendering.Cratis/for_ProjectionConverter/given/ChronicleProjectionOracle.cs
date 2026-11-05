@@ -44,7 +44,22 @@ internal static class ChronicleProjectionOracle
         "Concepts/EventSequences/EventSequenceId.cs",
         "Concepts/EventSequences/WellKnownEventSequences.cs",
         "Concepts/ReadModels/ReadModelIdentifier.cs",
-        "Concepts/Observation/ObserverId.cs"
+        "Concepts/Observation/ObserverId.cs",
+        "Core/Projections/Engine/DefinitionLanguage/ProjectionDefinitionSyntaxVisitor.Graph.cs",
+        "Core/Projections/Engine/DefinitionLanguage/ProjectionEventTypeReference.cs",
+        "Concepts/Observation/EventGenerationDelivery.cs",
+        "Concepts/EventTypes/EventTypeSchema.cs",
+        "Concepts/Events/EventTypeOwner.cs",
+        "Concepts/Events/EventTypeSource.cs",
+        "Concepts/Events/EventTypeVisibility.cs",
+        "Concepts/Targets/IHaveTargetSchema.cs",
+        "Concepts/Projections/Graphs/GraphEdgeFromDefinition.cs",
+        "Concepts/Projections/Graphs/GraphEdgeProjectionDefinition.cs",
+        "Concepts/Projections/Graphs/GraphEdgeRemovedWithDefinition.cs",
+        "Concepts/Projections/Graphs/GraphNodeFromDefinition.cs",
+        "Concepts/Projections/Graphs/GraphNodeProjectionDefinition.cs",
+        "Concepts/Projections/Graphs/GraphNodeRemovedWithDefinition.cs",
+        "Concepts/Projections/Graphs/GraphProjectionDefinition.cs"
     ];
 
     public static object Visit(ProjectionSyntax syntax) => _convert.Value.Invoke(null, [syntax])!;
@@ -61,7 +76,7 @@ internal static class ChronicleProjectionOracle
         var kernel = Path.Combine(root, "Source/Kernel");
         Assert.True(Directory.Exists(kernel), $"Chronicle source checkout missing: {kernel}");
         var files = _sources.Select(path => Path.Combine(kernel, path)).ToArray();
-        Assert.True(files.Length >= 23 && files.All(File.Exists),
+        Assert.True(files.Length >= 39 && files.All(File.Exists),
             $"Chronicle visitor closure is missing: {string.Join(", ", files.Where(path => !File.Exists(path)))}");
         var platform = (string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES");
         Assert.False(string.IsNullOrWhiteSpace(platform), "The .NET platform reference list is required for the Chronicle visitor oracle.");

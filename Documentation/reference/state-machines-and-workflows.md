@@ -96,7 +96,7 @@ before trying the same behavior in a session.
 ## What the renderer emits
 
 Rendering produces application code rather than exporting the sandbox's active runs. The generated application uses
-Cratis Choreography through the `Cratis.Orleans` APIs pinned by Stage. It gets the following in its `Lifecycles` namespace:
+Cratis Choreography through the `Cratis.Choreography` APIs pinned by Stage. It gets the following in its `Lifecycles` namespace:
 
 | Model | Generated code |
 | --- | --- |

@@ -1,6 +1,6 @@
 ---
 title: Protected reads rendering
-description: Look up how the Cratis renderer turns Screenplay protected command reads into Arc read protection, where the result differs from the reference, and how to test it.
+description: Cratis Stage renders Screenplay protected command reads as Arc read protection, with explicit admission limits, validation differences, and race checks.
 ---
 
 A command that decides against a view states it with `reads`. In a model that declares `command reads protected` (ESM v25), the read guards the decision: the command may commit only while the facts it read are still the facts the store holds. The Cratis renderer turns each such command into an Arc command with read protection, so Chronicle checks that guard when the command commits.

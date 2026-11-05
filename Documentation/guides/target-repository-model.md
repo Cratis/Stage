@@ -1,11 +1,11 @@
 ---
-title: Organize render target and source adapter repositories
-description: Where Cratis keeps renderers and source adapters, the dependency rule each direction follows, where round trips run, and the naming rules for target packages, ids and diagnostics.
+title: Cratis Stage target and adapter repositories
+description: Organize Cratis render targets and source adapters by translation direction, with separate SDK dependencies and renderer-owned round-trip checks.
 ---
 
-Translation runs in two directions. A **render target** turns a Screenplay model into code for a framework. A **source adapter** recovers a Screenplay model from code written for that framework. Cratis keeps the two directions in separate repository families, each depending only on its own SDK.
+When adding support for a framework, choose the repository by the direction of translation. A render target turns a Cratis Screenplay model into code for that framework. A source adapter recovers a Screenplay model from its code. Cratis keeps these in separate repository families so users of one direction do not take on the other's dependencies.
 
-This page explains where each direction lives, which packages each may depend on, where round trips run, and how targets are named. To build the pieces themselves, see [Build a renderer target](build-renderer-target.md) and [Build a .NET source adapter](https://github.com/Cratis/Screenplay.Generation/blob/main/Documentation/guides/build-source-adapter.md).
+Use the dependency and naming rules below when setting up a repository. For the implementation itself, follow [Build a renderer target](build-renderer-target.md) or [Build a .NET source adapter](/screenplay/generation/guides/build-source-adapter/).
 
 ## Two repository families
 
@@ -31,10 +31,9 @@ flowchart LR
 
 A repository holds one direction. A render package never references a `Cratis.Screenplay.Generation` package, and a source adapter never references `Cratis.Stage.Contracts`.
 
-The split keeps each package's users from paying for the other direction:
+`Cratis.Stage.Contracts` brings Scene with it. Referencing it from a source adapter would load Scene into every `cratis screenplay generate` run, even though recovering a model does not need the rendering dependency.
 
-- `Cratis.Stage.Contracts` brings Scene with it, so a source adapter that referenced it would load Scene into every `cratis screenplay generate` run.
-- The two directions also use different toolchains and trust models. An adapter runs over a user's source code and build logic, while a renderer works from a compiled Screenplay model.
+The separation also reflects what each package executes. An adapter runs over a user's source code and build logic, while a renderer works from a compiled Screenplay model. They need different toolchains and trust models.
 
 Stage and Screenplay.Generation never reference a target or adapter repository. Hosts such as the [Cratis CLI](https://github.com/Cratis/cli) and Studio bundle the renderers and adapters they offer.
 
@@ -42,9 +41,9 @@ Stage and Screenplay.Generation never reference a target or adapter repository. 
 
 A round trip renders a Screenplay model, recovers it with the ecosystem's source adapter, and compares the two models. It lives in the **renderer** repository, in a spec project that is never packed:
 
-- It consumes the source adapter's **published** package, referenced with `PrivateAssets`, so the adapter never becomes a dependency of the render package.
+- It consumes the source adapter's published package, referenced with `PrivateAssets`, so the adapter never becomes a dependency of the render package.
 - It renders the pinned `Cratis.Screenplay.CanonicalCorpus` models.
-- It runs in CI. A round trip that only compiles locally, or that compares zero models, proves nothing.
+- It runs in CI and must actually compare models; compiling the spec project or comparing zero models does not check recovery.
 
 When the adapter releases, the renderer repository's package updates bump it and run the round trip again. Stage's own Arc round trip already references the published `Cratis.Arc.Screenplay` this way.
 
@@ -75,7 +74,7 @@ Hosts load renderers and adapters they bundle and have reviewed, and nothing els
 - An untrusted target is refused. The host fails closed and never falls back to another target.
 - The same rule applies to source adapters, which run over a user's source code, and to evaluating an untrusted workspace, because MSBuild and Roslyn evaluation runs the workspace's build logic.
 
-Installing your own targets will need an isolated, out-of-process sandbox, which does not exist yet. Until then, a target reaches users by being bundled into a host.
+Installing a target independently of the host requires an isolated, out-of-process sandbox, which does not exist yet. A target therefore reaches users by being bundled into a host.
 
 ## Check a renderer repository
 

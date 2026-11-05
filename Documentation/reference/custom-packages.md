@@ -1,13 +1,17 @@
 ---
-title: Custom runtime packages
-description: Approve component packages beyond the ones Stage ships, so a rendered Cratis application renders a ui profile that names them - the approved package set, what planning and admission check, what the generated frontend installs and loads, and what a live Stage does not do.
+title: Cratis Stage custom runtime packages
+description: Approve custom components and blueprints for Cratis Stage, then load them through generated frontend dependencies or a live Stage package folder.
 ---
 
-A `ui profile` lists the packages its component names resolve against. Stage ships three: `core`, `scene.web` and
-`Cratis.Components` (`CratisRendering.ShippedPackages`). Any other package is not renderable until the application
-**approves** it. Approval is one document, the Scene [approved package set](https://github.com/Cratis/Scene/blob/main/Documentation/package-hosting.md#approved-package-sets-for-custom-runtime-packages),
-that `Cratis.Scene.Engine.Packages.ApprovedPackageSetJson` reads and writes. The `cratis` CLI passes it with
-`cratis render --package-set <file>`; a host calls the planner directly.
+An approved package set tells Cratis Stage which custom components and blueprints an application may use.
+A `ui profile` lists the packages its component names resolve against. Stage's built-in catalog,
+`CratisRendering.ShippedPackages`, contains `core`, `scene.web`, `Cratis.Components`, `PrimeReact` and
+`Cratis.Blueprint.Default`. Approve any package outside that catalog before rendering a profile that names it.
+
+Put the manifest and browser module declaration in a Scene [approved package set](https://github.com/Cratis/Scene/blob/main/Documentation/package-hosting.md#approved-package-sets-for-custom-runtime-packages),
+which `Cratis.Scene.Engine.Packages.ApprovedPackageSetJson` reads and writes. Pass the document with
+`cratis render --package-set <file>`, or supply it directly to the planner from a host. For example, this set
+approves the `chart` component from `Acme.Charts` and identifies the npm module that provides it:
 
 ```json
 {
@@ -23,15 +27,17 @@ that `Cratis.Scene.Engine.Packages.ApprovedPackageSetJson` reads and writes. The
 
 ## What planning does
 
-- `CratisRendering.CatalogWith(set)` is the catalog a `ui profile` is resolved against: the shipped packages followed by the approved
-  manifests. A profile naming an approved package resolves like a shipped one - its layouts, themes, dependencies and
-  version ranges are checked by the same `RenderPlanner`. A package in neither list is still `PackageNotInCatalog`.
-- `CratisRendering.CreateProfile(applicationName, options, scene, stringsFiles, defaultLocale, approvedPackages)` carries the set in
-  the render profile as the scaffold input `approved-packages.json`, and generates the frontend that installs and loads it.
-  An application with no approved packages plans byte-for-byte what it planned before.
-- The set is refused, with the typed profile diagnostic `STAGE-CRATIS-001`, when it is malformed, reuses the name of a
-  shipped package, or is not exactly what the scaffold was generated from: admission regenerates the whole frontend from the
-  document and compares every byte, so a profile cannot smuggle in a different `package.json` or loader.
+`CratisRendering.CatalogWith(set)` combines the shipped packages with the approved manifests. The same
+`RenderPlanner` checks layouts, themes, dependencies and version ranges for both. A package in neither list
+produces `PackageNotInCatalog`.
+
+`CratisRendering.CreateProfile(applicationName, options, scene, stringsFiles, defaultLocale, approvedPackages)`
+carries the set as the scaffold input `approved-packages.json` and generates the frontend that installs and
+loads it. Without approved packages, the plan's bytes are unchanged.
+
+Stage refuses a malformed set, a set that reuses a shipped package name, or a set that differs from the one used
+to generate the scaffold, with the typed profile diagnostic `STAGE-CRATIS-001`. During admission, Stage regenerates
+the whole frontend from the document and compares every byte, including `package.json` and the loader.
 
 ## What the rendered application contains
 
@@ -51,9 +57,9 @@ what the authored `component Acme.Charts.chart` resolves to.
 
 ## A live Stage loads the packages at runtime
 
-A generated application builds its approved packages in. The `cratis/stage` image is a built frontend that cannot install npm
-packages, so a **live** Stage (and `cratis run`) loads them at runtime instead: it is handed the same approved package set and the
-browser build of each package, and serves them to its own page.
+A generated application installs approved packages as frontend dependencies and includes them in its build.
+The `cratis/stage` image cannot install npm packages. For a live Stage, including `cratis run`, supply the same
+approved package set together with each package's browser build. Stage serves those modules to its own page.
 
 The Stage reads a folder (`Stage:Packages:Path`, `/packages` in the image) laid out like `node_modules`:
 
@@ -65,7 +71,7 @@ The Stage reads a folder (`Stage:Packages:Path`, `/packages` in the image) laid 
 ```
 
 `cratis run --package-set <file> [--packages <folder>]` mounts the set and each approved package's folder read-only at those
-paths ([run reference](https://github.com/Cratis/cli/blob/main/Documentation/reference/run.md)). The Stage:
+paths ([run reference](/cli/reference/run/)). The Stage:
 
 - reads the set with `ApprovedPackageSetJson` (so a malformed set, or one that reuses a shipped package name, is refused) and serves it, with
   where each module is served from, at `GET /stage/packages`;
@@ -82,9 +88,9 @@ package imports must be bundled into its module. A Stage handed no set renders t
 
 ## Domain blueprints
 
-The Stage ships `core`, `scene.web`, `Cratis.Components`, `PrimeReact` and `Cratis.Blueprint.Default`; their declarations are generated
-from the real package manifests by `Source/Frontend/src/shippedPackages.spec.ts` (which fails when the checked-in
-`Rendering.Cratis/Shipped/ShippedPackages.json` is stale), so the catalog a `ui profile` is resolved against is the one the frontend renders with.
+The shipped package declarations come from the real package manifests. `Source/Frontend/src/shippedPackages.spec.ts`
+checks them against `Rendering.Cratis/Shipped/ShippedPackages.json`, so the catalog used to resolve a `ui profile`
+matches the frontend's packages.
 A domain blueprint - `@cratis/scene.blueprint.crm`, `.ticketing`, `.approvals`, `.inventory`, `.hr`, `.project-tracker`, `.administration`, `.orders`, `.catalog`, `.vendors`, `.invoicing`, `.customer-portal`, `.contracts`, `.work-orders`, `.bookings` - therefore
 only needs approving itself: its dependency on `Cratis.Blueprint.Default` is already satisfied.
 
@@ -93,3 +99,6 @@ canonical document, so sample data never reaches a generated application or `GET
 of an approved blueprint are what an authored `template blueprint <Package> <Template>` reference fills, in a live Stage and in a generated
 application. A blueprint bundle imports `@cratis/scene.blueprint.default`, `@cratis/scene.engine`, `@cratis/scene.model` and `@cratis/scene.react`; a live Stage
 maps them to its own instances, like React.
+
+For how Stage chooses forms and lookups when you have not authored a screen, see
+[Default generated Scene](default-scene-composition.md).

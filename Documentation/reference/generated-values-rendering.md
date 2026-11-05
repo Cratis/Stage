@@ -1,6 +1,6 @@
 ---
 title: Generated values and command responses
-description: Generation strategies, freshness guards, deterministic fixtures and command responses in rendered applications.
+description: Cratis Stage maps generated values and command responses to C# factories, Arc Handle parameters, freshness scopes and deterministic fixtures.
 ---
 
 A create command can return its new identifier without accepting that identifier from the caller. Stage renders generated concepts as Arc Handle parameters and carries scalar or named responses back to the caller. ESM v15 adds strategy-specific factories and atomic freshness guards; v20 admits rules on generated concepts. The generated backend takes its exact Arc pin from Stage's `Directory.Packages.props`.
@@ -68,7 +68,7 @@ A generated concept that is not an identifier derives from `ConceptAs<T>`. It im
 
 ## Version admission
 
-Stage admits exact ESM v1–v30 and v32 language/semantic pairs. Version admission does not imply support for every strategy:
+Stage admits exact ESM v1.0–v34.0 and v36.0 language/semantic pairs, not v35 or arbitrary minor versions. Version admission does not imply support for every strategy:
 
 | Version | Generation support |
 | --- | --- |

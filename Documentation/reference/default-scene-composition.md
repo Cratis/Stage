@@ -1,33 +1,58 @@
 ---
-title: Default generated Scene
-description: Eligibility, input formats, result selection and proxy registration for the default Cratis application screen.
+title: Cratis Stage default Scene composition
+description: Cratis Stage generates command forms and eligible keyed lookups when no Scene is authored, selecting supported inputs and binding query proxies.
 ---
 
-The Cratis application artifact planner uses an authored Scene unchanged when the profile carries one.
-Otherwise it emits `scene.json` with command forms and eligible editable keyed lookups, plus `src/bindings.ts`.
-It does not mutate the profile or generate per-screen TypeScript components.
+Cratis Stage generates a default Scene, the application's declarative UI document, when a render profile
+has no authored Scene. It emits `scene.json` with command forms and eligible editable keyed lookups, plus
+`src/bindings.ts` to bind them to the generated proxies. Use this default for model-derived forms and lookups;
+a profile that carries an authored Scene uses it unchanged. The planner does not mutate the profile or
+generate per-screen TypeScript components.
 
-Authored profiles can carry [slice-owned screen partitions](render-plans.md#slice-owned-screen-fragments) from the same compilation. Stage assembles the canonical app Scene from those records and emits each declaring slice's `Screens.scene.json`, including in scoped plans. Shared Scene aggregates are application-scope only. The synthetic default screen remains application-owned: it is not copied into every slice as that slice's UI.
+Authored profiles can carry [slice-owned screen partitions](render-plans.md#slice-owned-screen-fragments)
+from the same compilation. Stage assembles the canonical app Scene from those records and emits each declaring
+slice's `Screens.scene.json`, including in scoped plans. Shared Scene aggregates are application-scope only.
+The default screen belongs to the application and is not copied into each slice as that slice's UI.
 
 ## Navigation, toolbar buttons and template references
 
-Three Screenplay constructs reach the Scene model through `ScreenplaySceneVisitor`. None of them is dropped, and the rules that judge them are Scene's, not Stage's.
+`ScreenplaySceneVisitor` carries authored navigation, toolbar buttons and template references into the Scene
+model. Scene validates these constructs; Stage reports the findings described below.
 
-**Navigation regions.** `navigation topbar|sidebar` in the first declared `layout` becomes the application's `NavigationRegion`s and its `ApplicationLogo`; a `module` block becomes a `ModuleNavigation` whose region carries the `NavigationRegionMode` (`inherits`, `extends`, `overrides`). A module without a block has no entry - Scene treats a missing region as inheriting, and its `EffectiveNavigation` computes the items, so Stage does not. An item keeps its id, title (a `$strings.<key>` token as written), icon, `slot`, nested items, and a `target` as a `DestinationReference` naming the module and the dotted feature path. `contribute to` is a separate mechanism and converts as before. An application that declares no region serializes without a `navigation` member, so its plan digest does not move.
+`navigation topbar|sidebar` in the first declared `layout` becomes the application's `NavigationRegion`s and
+its `ApplicationLogo`. A `module` block becomes a `ModuleNavigation` with a `NavigationRegionMode` of `inherits`,
+`extends` or `overrides`. Without a block, the module has no entry. Scene treats that missing region as inheriting
+and computes its items through `EffectiveNavigation`; Stage does not compute them.
 
-**Toolbar buttons.** `button <id> title "..." slice <Slice> emphasis <e> icon <i>` becomes a `core:toolbarItem` of kind `Action` carrying `slice`, `emphasis` and `icon`, the shape Scene's `ToolbarButtons.FromItem` reads. The slice is written as the qualified id (`Module.Feature.Slice`) the structure knows, so a suffix such as `Orders.PlaceOrder` resolves the same way in the engine as in the compiler.
+Each item keeps its id, title (a `$strings.<key>` token as written), icon, `slot` and nested items. Its `target`
+becomes a `DestinationReference` naming the module and dotted feature path. `contribute to` remains a separate
+mechanism and converts as before. An application with no declared region serializes without a `navigation`
+member, leaving its plan digest unchanged.
 
-**Template references.** `template <Name>` and `template blueprint <Blueprint> <Name> [version "<range>"]` become `SceneApplication.TemplateReferences`, each a Scene `TemplateReference` (source, id, blueprint, version range) with the scope it was assigned at. The template's category and the slice kinds of a `scopes slice` template travel in its `TemplateMetadata`. An application with no assignment serializes without a `templateReferences` member.
+A toolbar declaration, `button <id> title "..." slice <Slice> emphasis <e> icon <i>`, becomes a `core:toolbarItem` of kind `Action` carrying `slice`, `emphasis` and `icon`, the shape Scene's `ToolbarButtons.FromItem` reads. The slice is written as the qualified id (`Module.Feature.Slice`) the structure knows, so a suffix such as `Orders.PlaceOrder` resolves the same way in the engine as in the compiler.
 
-**Sample data.** A top level `sample data <Name>` pack becomes a Scene `SampleDataPack` owned by `user`: its id is the lower-case, hyphenated form of the name (`NordicDemo` becomes `nordic-demo`), its title defaults to the name and its locale to Scene's default. Row fields keep their authored literal - text, whole number, decimal, Boolean or null - in authored order. The `sample data` block of a `ui profile` becomes the profile's `SampleDataSelection`: the active pack chosen once, shape mappings and read model bindings, every pack reference using the same derived id. `active blueprint <id>` keeps the blueprint's id as written and is resolved by the build against the packages the profile activates. Sample data is design and preview time only: it is never part of a production build and never reaches the semantic model. Whether the rows fit the read model is the Screenplay compiler's check; whether the pack and selection are well formed as Scene models them is Scene's, and a problem is reported as a `SampleDataInvalid` finding.
+`template <Name>` and `template blueprint <Blueprint> <Name> [version "<range>"]` become `SceneApplication.TemplateReferences`, each a Scene `TemplateReference` (source, id, blueprint, version range) with the scope it was assigned at. The template's category and the slice kinds of a `scopes slice` template travel in its `TemplateMetadata`. An application with no assignment serializes without a `templateReferences` member.
 
-**Structure and findings.** The planner builds Scene's `ApplicationStructure` - modules, features and slices, each slice with its kind (a Translate slice is an automation: it has no user input) - from the compiled model and runs Scene's structure, navigation and toolbar validation over it. What they find is reported as `StructureInvalid`, `NavigationInvalid` and `ToolbarButtonInvalid` [findings](render-plans.md#findings), never thrown. The structure is a reference input; it is never written into the Scene document.
+A top-level `sample data <Name>` pack becomes a Scene `SampleDataPack` owned by `user`. Its id is the lower-case,
+hyphenated form of the name (`NordicDemo` becomes `nordic-demo`), its title defaults to the name and its locale
+to Scene's default. Row fields keep their authored literals and order, whether text, whole number, decimal,
+Boolean or null. Sample data is for design and preview time only. It is never part of a production build and
+never reaches the semantic model.
+
+The `sample data` block of a `ui profile` becomes its `SampleDataSelection`: one active pack, shape mappings and
+read model bindings, with every pack reference using the same derived id. `active blueprint <id>` keeps the
+blueprint's id as written; the build resolves it against the packages the profile activates. The Screenplay
+compiler checks whether the rows fit the read model. Scene checks whether the pack and selection are well
+formed and reports a problem as a `SampleDataInvalid` finding.
+
+To validate the assembled UI, the planner builds Scene's `ApplicationStructure` - modules, features and slices, each slice with its kind (a Translate slice is an automation: it has no user input) - from the compiled model and runs Scene's structure, navigation and toolbar validation over it. What they find is reported as `StructureInvalid`, `NavigationInvalid` and `ToolbarButtonInvalid` [findings](render-plans.md#findings), never thrown. The structure is a reference input; it is never written into the Scene document.
 
 ## Lookup eligibility
 
-Backend semantic admission runs before composition. A default lookup requires all of the following:
+Stage checks whether it can render the backend model before composing the screen. After this semantic
+admission, a default lookup requires all of the following:
 
-- A modeled keyed query with optional-single (`ZeroOrOne`) snapshot semantics, not a collection.
+- A modeled keyed query that returns a snapshot of zero or one result (`ZeroOrOne`), not a collection.
 - A unique exact semantic query name across the application.
 - A scalar text or UUID argument, either primitive or a non-enumerated concept over that primitive.
   These generate native Arc `String` or `Guid` parameter descriptors.
@@ -46,7 +71,8 @@ composed. Malformed, optional or collection identifiers are rejected by the sema
 
 ## Emitted component properties
 
-The canonical external component uses `Cratis.Components:queryInputForm` with these properties:
+For the `ProjectById` lookup, the emitted `Cratis.Components:queryInputForm` accepts a project UUID and displays
+the result's `name` field:
 
 ```json
 {
@@ -83,7 +109,7 @@ query and command elements cannot collide even when their display names match.
 
 Scene's identity registry resolves a unique identity for existing authored tables and `singleResult` elements.
 The legacy host registration fallback remains Scene-owned. Different sources with the same query name remain
-ambiguous: both are registered, but neither gets a default lookup form. The current textual ESM v1 binder also
+ambiguous: both are registered, but neither gets a default lookup form. The current textual binder for v1 of the executable semantic model (ESM) also
 rejects duplicate query names; registration still preserves distinct identities in supplied semantic models.
 Command registration and command form behavior are unchanged. Bindings and Scene JSON contain no HTTP route.
 
@@ -121,3 +147,6 @@ Stage tests parse the emitted JSON and build the generated Guid/text backends wi
 generator. Changes to this profile also require installing the exact published frontend packages, typechecking
 and bundling the generated application, and verifying the native consumer contract. C# rendering tests alone
 do not establish those integration gates or browser acceptance.
+
+When you need UI or behavior beyond the generated default, continue with
+[Customize a rendered application](../guides/customize-rendered-application.md).

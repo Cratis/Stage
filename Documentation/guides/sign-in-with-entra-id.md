@@ -1,29 +1,25 @@
 ---
-title: Sign in with Microsoft Entra ID
-description: Turn on Microsoft Entra ID sign-in for a rendered Cratis application with configuration only, so browsers get a cookie session, services send bearer tokens, and every route except the health probe requires authentication.
+title: Cratis Stage sign-in with Microsoft Entra ID
+description: Configure Microsoft Entra ID in a rendered Cratis host to require browser sessions or bearer tokens, with only GET and HEAD health probes exempt.
 ---
 
-A rendered application starts open: anyone who can reach the host can call its commands and queries. When the
-application goes to users, you want everything behind your organization's sign-in, and you do not want to edit
-managed files or change the model to get there.
+Use Microsoft Entra ID when a Cratis Stage-rendered application needs your organization's sign-in. Without
+sign-in configuration, anyone who can reach the host can call its commands and queries. The rendered host already
+contains the authentication code; you enable it through `Cratis:Authentication`, without changing the model or
+editing managed files such as `appsettings.json`. Older renders need the host calls listed under
+[Before you start](#before-you-start).
 
-The rendered host already contains the sign-in code. It does nothing until you supply configuration under
-`Cratis:Authentication`, so there is nothing to render again and `appsettings.json` stays as generated. With the
-configuration in place, the host gives you:
+Browser page loads redirect to Entra ID and return to the requested page with a cookie session. Service callers
+send bearer tokens: any request with an `Authorization` header uses bearer authentication and never falls back
+to the cookie session.
 
-- A **cookie session** for the browser application. Unauthenticated page loads are redirected to Microsoft Entra ID,
-  then back to the page they asked for.
-- **Bearer tokens** for service callers. Any request that carries an `Authorization` header is authenticated as a bearer
-  request and never falls back to the cookie session.
-- **Everything behind sign-in.** This includes the Arc routes under `/.cratis/`, your own endpoints, the static files
-  and the SPA fallback, and endpoints that allow anonymous access. The one exception is the health probe, described
-  [below](#what-stays-reachable-without-signing-in).
-- An **Origin check** on cookie requests that change state and on WebSocket upgrades, so another site cannot make a
-  signed-in browser act for it.
+Sign-in covers the Arc routes under `/.cratis/`, your own endpoints, static files and the single-page application
+(SPA) fallback, even endpoints that allow anonymous access. Only the [health probe](#what-stays-reachable-without-signing-in)
+is exempt. Cookie requests that change state and WebSocket upgrades also need a matching `Origin` header, which
+identifies the browser page's origin. The host rejects a missing or different origin.
 
-This is a how-to for the rendered host. It assumes you already render and run the application; see
-[Customize a rendered application](customize-rendered-application.md) for where configuration and your own code
-belong.
+Start with an application you already render and run. [Customize a rendered application](customize-rendered-application.md)
+explains where configuration and your own code belong.
 
 ## Before you start
 
@@ -145,12 +141,12 @@ instance.
 
 ## What this is not
 
-- It is **not** Arc's Microsoft Identity Platform (Easy Auth) header integration, and the host does not read the
-  platform's identity headers.
-- It does **not** map Entra ID users or groups to Screenplay personas. It decides who is signed in, not which persona
-  they act as.
-- It does **not** add a model or a render option. Nothing in the Screenplay model changes, and the managed
-  `GeneratedAuthentication.cs` and `GeneratedAuthenticationPerimeter.cs` stay as rendered.
+This sign-in flow is separate from Arc's Microsoft Identity Platform (Easy Auth) header integration. The host
+does not read the platform's identity headers or map Entra ID users and groups to Screenplay personas. Authentication
+establishes who is signed in; it does not choose their persona or change Arc's authorization policies.
+
+There is no additional model or render option. The Screenplay model and the managed `GeneratedAuthentication.cs`
+and `GeneratedAuthenticationPerimeter.cs` stay as rendered.
 
 ## Next steps
 

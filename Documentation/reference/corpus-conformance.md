@@ -1,6 +1,6 @@
 ---
 title: Canonical corpus conformance gate
-description: Look up what the corpus conformance spec compares, how to read conformance-matrix.json, and how to update it when a refusal appears or goes away.
+description: The Cratis Stage corpus conformance gate compares loader, executor, host and renderer outcomes against a matrix with tracked refusal fingerprints.
 ---
 
 `Source/Conformance.Specs/for_CanonicalCorpusConformance` runs every vector of the pinned `Cratis.Screenplay.CanonicalCorpus` package through the strict model loader and three surfaces, and compares each result with a checked-in table, `conformance-matrix.json`. The table is the conformance matrix: a vector without a row fails, a row missing a column fails, and a cell that changes fails until you update the table.

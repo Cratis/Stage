@@ -1,40 +1,55 @@
 ---
-title: Author a renderer kit
-description: Use the stage-templates/v1 profile to prepare declarative templates, keep symbols structured, and handle safety refusals.
+title: Author a Cratis Stage renderer kit
+description: Author a Cratis Stage renderer kit with the stage-templates/v1 interpreter, language-owned syntax, structured symbols, and plan-wide safety limits.
 ---
 
 # Author a renderer kit
 
-A renderer kit turns normalized model JSON into artifact parts. Use the `stage-templates/v1` profile when
-several target packs need the same deterministic interpreter without sharing target-language spelling.
-The profile is an interpreter building block; it does not itself install kits, resolve imports or write artifacts.
+A Cratis Stage renderer kit uses templates to turn normalized model JSON into artifact parts. Choose the
+`stage-templates/v1` profile when you want a shared interpreter while keeping target-language syntax in your
+language pack. The interpreter evaluates templates and returns structured parts; it does not install kits,
+resolve imports or write files.
+
+Start by preparing a loaded kit with your language implementation. Then create a session for each plan,
+supply its JSON scope and type directory, and collect the output parts. The caller resolves symbols and
+imports before assembling artifacts. If you use `DeclarativeArtifactRenderPlanner`, that planner coordinates
+these steps with its registered `IDeclarativeLanguage` implementation. For the surrounding profile, semantic
+admission and publication boundaries, follow [Build a renderer target](build-renderer-target.md).
 
 ## Prepare once, evaluate in a plan
 
-A loaded kit must require the `templates` contract at major version 1. Preparation scans, parses and lints
-every declared output template, partial, path, condition and fan-out expression, even if its output is inactive.
-It also validates declared operator tables and section overrides. All preparation diagnostics are returned
-in deterministic code/path/line/message order. Any diagnostic means there is no usable `PreparedTemplates`.
+A loaded kit must require the `templates` contract at major version 1. Call `TemplateProfile.Prepare` with
+that kit and an `ITemplateLanguage` implementation. Its `Pack` identifies the target pack, and its literal,
+type and placeholder methods supply target syntax. `Primitive`, `Collection` and `Optional` return
+`TypeSpelling` containing text and symbols, so later import resolution can still distinguish them. Throw
+`TemplateLanguageRefusal` when the pack cannot safely express an input; the profile converts it into input
+refusal 024.
 
-Supply an `ITemplateLanguage` implementation when calling `TemplateProfile.Prepare`. Its `Pack` identifies
-the target pack; its literal, type and placeholder methods own the target syntax. Throw `TemplateLanguageRefusal`
-when the pack cannot safely express an input. The profile converts that exception into input refusal 024.
-`Primitive`, `Collection` and `Optional` return `TypeSpelling` containing text and symbols, not flattened names.
+Preparation scans, parses and lints every declared output template, partial, path, condition and fan-out
+expression, including inactive outputs. It also validates operator tables and section overrides. Diagnostics
+are returned in deterministic code/path/line/message order. Stop if any are returned: there is no usable
+`PreparedTemplates` to evaluate.
 
-Each `PreparedTemplates.BeginPlan(budget, types)` creates a disposable, non-thread-safe session with independent
+For each plan, call `PreparedTemplates.BeginPlan(budget, types)` to create a disposable session with independent
 state. `ITypeDirectory.TryGet` resolves semantic concept/composite identities to `TemplateSymbol` values.
-Prepared templates may be shared between sessions; never share a session between concurrent evaluations.
-Use `Render`, `RenderPath`, `EvaluateWhen` and `EvaluateForEach` for the declared sources. Path and expression
-methods take an output ID; `Render` takes a declared template path. Missing conditions mean `true`; missing
-fan-out means a single item containing the supplied scope. Present conditions must be Boolean and fan-out must
-be an array of objects. Paths must remain text-only: a symbol or gap causes input refusal 024.
+Prepared templates may be shared between sessions; a session is not thread-safe and must never be shared
+between concurrent evaluations.
+
+Use `Render` with a declared template path. `RenderPath`, `EvaluateWhen` and `EvaluateForEach` instead take
+an output ID. A missing condition means `true`; a present condition must return a Boolean. Fan-out means
+repeating an output for each returned item: without it, evaluation returns one item containing the supplied
+scope. A fan-out expression must return a JSON array. The declarative planner additionally requires each
+item to be an object with a string semantic `id`, then orders items by that identity. Paths must remain
+text-only: a symbol or gap causes input refusal 024.
 
 ## Supply JSON scope
 
-The scope has only `model`, `scope`, `item` and `args` roots. JSON objects and arrays are frozen recursively;
-objects cannot introduce CLR values, delegates, type objects or ambient host members. Numbers are signed
-64-bit integers or decimals. Duplicate object keys, private-use code points and excessive depth are refused.
-Templates may declare locals and local functions, but cannot assign into the supplied scope or reserved helpers.
+Pass a JSON object with a `model` root and, when needed, an `item` root. The session accepts only those two
+roots; extra scope roots are refused. JSON objects and arrays are frozen recursively, so templates can read
+them without changing the input for later outputs. Objects cannot introduce CLR values, delegates, type
+objects or ambient host members. Numbers are signed 64-bit integers or decimals. Duplicate object keys,
+private-use code points and excessive depth are refused. Templates may declare locals and local functions,
+but cannot assign into the supplied scope or reserved helpers.
 
 Naming helpers consume nonempty arrays of nonempty words, never raw strings:
 
@@ -50,14 +65,17 @@ Use `lit['null']` for the zero-argument null literal: Scriban reserves `null` in
 
 ## Keep symbols structured
 
+Keep declarations and references as symbol handles until the caller can choose qualification and imports.
+This template declares one `Customer`, references another and marks where imports belong:
+
 ```scriban
 {{ sym.decl 'Domain' 'Customer' }}
 {{ sym.ref 'Other' 'Customer' }}
 {{ sym.imports }}
 ```
 
-These emit declaration, reference and imports insertion-point segments. The caller resolves qualification
-and import policy after collecting parts. A handle may be assigned to a local, tested for truth or compared
+Each helper emits a structured segment, not a prequalified name. After collecting the parts, the caller
+resolves qualification and import policy. A handle may be assigned to a local, tested for truth or compared
 to null, then emitted in the body. Capturing, stringifying, comparing with other values, slicing, placing it
 in a container or reading its members causes symbol refusal 022. No placeholder sentinel text is used.
 
@@ -69,7 +87,8 @@ up through `ITypeDirectory`. Collection wrapping precedes optional wrapping. Unk
 
 ## Delegate expression leaves
 
-`expr.supported expression 'operators'` checks the normalized `$kind` expression tree.
+Use expression helpers when a template needs to render a modeled condition without duplicating the whole
+expression walker. `expr.supported expression 'operators'` checks the normalized `$kind` expression tree.
 `expr.lower expression 'operators' 'leaf' 'throwing_operation_body'` lowers comparisons and logicals and delegates
 resolved values, event context, read paths, refusals, arrays and composites to the declared `leaf` partial.
 The partial receives the original leaf as `item` and may emit structured symbols. Scalar literal values use
@@ -83,6 +102,9 @@ All operators associate left. Lower-precedence children and equal-precedence rig
 An unsupported semantic node/operator produces a `STAGE-DEGRADE-001` gap and a pack-owned safe placeholder.
 
 ## Use partials and inline sections
+
+Use a partial for shared template content and a section for a replaceable part of one template. Here,
+`header` must be a declared partial; `body` supplies default text that a prepared override can replace:
 
 ```scriban
 {{ render 'header' model }}
@@ -124,6 +146,9 @@ on a worker timeout, kill it, refuse the whole plan and discard its artifacts. A
 is not a security boundary. The profile exposes no file loader, clock, environment, regex, dynamic evaluation
 or unrestricted CLR access, but does not provide process isolation.
 
-See the generated [v1 helper reference](../reference/template-helpers.md) for exact signatures and the
-closed standard-library allowlist. Changing a frozen signature, default, allowlist or vector requires an
-explicit compatible contract/profile version decision; do not silently regenerate a released v1 freeze.
+When you are ready to write the templates, use the generated [v1 helper reference](../reference/template-helpers.md)
+for exact signatures and the closed standard-library allowlist. Changing a frozen signature, default,
+allowlist or vector requires an explicit compatible contract/profile version decision; do not silently
+regenerate a released v1 freeze. Return to [Build a renderer target](build-renderer-target.md#verify-the-generated-code)
+to verify the assembled artifacts against the target toolchain: successful template evaluation alone does
+not prove that the generated program compiles or preserves the modeled behavior.

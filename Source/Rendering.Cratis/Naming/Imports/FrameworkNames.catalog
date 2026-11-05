@@ -2,15 +2,15 @@
 # Regenerate: STAGE_WRITE_FRAMEWORK_NAME_CATALOG=1 dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --filter "FullyQualifiedName~for_FrameworkNameCatalog"
 format	1
 scaffold	3
-pin	Cratis	22.166.1
-pin	Cratis.Arc.Chronicle.Testing	22.166.1
-pin	Cratis.Arc.MongoDB	22.166.1
-pin	Cratis.Choreography	2.2.0
-pin	Cratis.Choreography.Chronicle	2.2.0
-pin	Cratis.Chronicle	19.125.1
-pin	Cratis.Chronicle.AspNetCore	19.125.1
-pin	Cratis.Chronicle.Testing	19.125.1
-pin	Cratis.Screenplay	5.3.2
+pin	Cratis	22.168.0
+pin	Cratis.Arc.Chronicle.Testing	22.168.0
+pin	Cratis.Arc.MongoDB	22.168.0
+pin	Cratis.Choreography	2.2.1
+pin	Cratis.Choreography.Chronicle	2.2.1
+pin	Cratis.Chronicle	19.128.0
+pin	Cratis.Chronicle.AspNetCore	19.128.0
+pin	Cratis.Chronicle.Testing	19.128.0
+pin	Cratis.Screenplay	5.6.0
 pin	Cratis.Screenplay.Matching	5.3.2
 pin	Cratis.Specifications	5.2.3
 pin	Cratis.Specifications.XUnit	5.2.3
@@ -24,33 +24,34 @@ package	AS	Azure.Core	1.50.0
 package	AS	Azure.Identity	1.17.2
 package	AS	Azure.Security.KeyVault.Certificates	4.6.0
 package	AS	Azure.Security.KeyVault.Secrets	4.6.0
+package	AS	BouncyCastle.Cryptography	2.7.0
 package	AS	Castle.Core	5.2.1
-package	AS	Cratis	22.166.1
-package	AS	Cratis.Arc	22.166.1
-package	AS	Cratis.Arc.Chronicle	22.166.1
-package	AS	Cratis.Arc.Chronicle.CodeAnalysis	22.166.1
-package	AS	Cratis.Arc.Chronicle.Testing	22.166.1
-package	AS	Cratis.Arc.Core	22.166.1
-package	AS	Cratis.Arc.Core.CodeAnalysis	22.166.1
-package	AS	Cratis.Arc.MongoDB	22.166.1
-package	AS	Cratis.Arc.ProxyGenerator.Build	22.166.1
-package	AS	Cratis.Arc.Screenplay.Embedded	22.166.1
-package	AS	Cratis.Arc.Swagger	22.166.1
-package	AS	Cratis.Arc.Testing	22.166.1
-package	AS	Cratis.Choreography	2.2.0
-package	AS	Cratis.Choreography.Chronicle	2.2.0
-package	AS	Cratis.Choreography.Storage	2.2.0
+package	AS	Cratis	22.168.0
+package	AS	Cratis.Arc	22.168.0
+package	AS	Cratis.Arc.Chronicle	22.168.0
+package	AS	Cratis.Arc.Chronicle.CodeAnalysis	22.168.0
+package	AS	Cratis.Arc.Chronicle.Testing	22.168.0
+package	AS	Cratis.Arc.Core	22.168.0
+package	AS	Cratis.Arc.Core.CodeAnalysis	22.168.0
+package	AS	Cratis.Arc.MongoDB	22.168.0
+package	AS	Cratis.Arc.ProxyGenerator.Build	22.168.0
+package	AS	Cratis.Arc.Screenplay.Embedded	22.168.0
+package	AS	Cratis.Arc.Swagger	22.168.0
+package	AS	Cratis.Arc.Testing	22.168.0
+package	AS	Cratis.Choreography	2.2.1
+package	AS	Cratis.Choreography.Chronicle	2.2.1
+package	AS	Cratis.Choreography.Storage	2.2.1
 package	AS	Cratis.Choreography.Storage.MongoDB	2.1.2
-package	AS	Cratis.Chronicle	19.125.1
-package	AS	Cratis.Chronicle.AspNetCore	19.125.1
-package	AS	Cratis.Chronicle.CodeAnalysis	19.125.1
-package	AS	Cratis.Chronicle.Connections	19.125.1
-package	AS	Cratis.Chronicle.Testing	19.125.1
+package	AS	Cratis.Chronicle	19.128.0
+package	AS	Cratis.Chronicle.AspNetCore	19.128.0
+package	AS	Cratis.Chronicle.CodeAnalysis	19.128.0
+package	AS	Cratis.Chronicle.Connections	19.128.0
+package	AS	Cratis.Chronicle.Testing	19.128.0
 package	AS	Cratis.Fundamentals	7.33.1
 package	AS	Cratis.Metrics.Roslyn	7.33.1
 package	AS	Cratis.Observability.SourceGenerators	7.33.1
-package	AS	Cratis.Screenplay	5.3.2
-package	AS	Cratis.Screenplay.Contexts	5.3.2
+package	AS	Cratis.Screenplay	5.6.0
+package	AS	Cratis.Screenplay.Contexts	5.6.0
 package	AS	Cratis.Screenplay.Matching	5.3.2
 package	AS	Cratis.Specifications	5.2.3
 package	AS	Cratis.Specifications.XUnit	5.2.3
@@ -189,7 +190,7 @@ package	AS	Polly	8.6.4
 package	AS	Polly.Core	8.6.5
 package	AS	Polly.Extensions	8.6.5
 package	AS	Polly.RateLimiting	8.4.2
-package	AS	SharpCompress	0.50.7
+package	AS	SharpCompress	0.50.8
 package	AS	Snappier	1.3.1
 package	AS	Swashbuckle.AspNetCore	10.2.3
 package	AS	Swashbuckle.AspNetCore.Swagger	10.2.3
@@ -569,6 +570,7 @@ namespace	AS	Cratis.Chronicle.EventStores
 namespace	AS	Cratis.Chronicle.EventTypes
 namespace	AS	Cratis.Chronicle.Events
 namespace	AS	Cratis.Chronicle.Events.Constraints
+namespace	AS	Cratis.Chronicle.Events.Constraints.V2
 namespace	AS	Cratis.Chronicle.Events.EventSequences
 namespace	AS	Cratis.Chronicle.Events.EventSequences.Migrations
 namespace	AS	Cratis.Chronicle.Events.Migrations
@@ -693,6 +695,7 @@ namespace	AS	Cratis.Chronicle.Storage.Alerts
 namespace	AS	Cratis.Chronicle.Storage.Captures
 namespace	AS	Cratis.Chronicle.Storage.Changes
 namespace	AS	Cratis.Chronicle.Storage.Compliance
+namespace	AS	Cratis.Chronicle.Storage.Diagnostics
 namespace	AS	Cratis.Chronicle.Storage.EventSequences
 namespace	AS	Cratis.Chronicle.Storage.EventSources
 namespace	AS	Cratis.Chronicle.Storage.EventTypes
@@ -1733,6 +1736,154 @@ namespace	AS	OpenTelemetry.PersistentStorage.FileSystem
 namespace	AS	OpenTelemetry.Resources
 namespace	AS	OpenTelemetry.SelfDiagnostics
 namespace	AS	OpenTelemetry.Trace
+namespace	AS	Org
+namespace	AS	Org.BouncyCastle
+namespace	AS	Org.BouncyCastle.Asn1
+namespace	AS	Org.BouncyCastle.Asn1.Anssi
+namespace	AS	Org.BouncyCastle.Asn1.BC
+namespace	AS	Org.BouncyCastle.Asn1.Bsi
+namespace	AS	Org.BouncyCastle.Asn1.Cmp
+namespace	AS	Org.BouncyCastle.Asn1.Cms
+namespace	AS	Org.BouncyCastle.Asn1.Cms.Ecc
+namespace	AS	Org.BouncyCastle.Asn1.Crmf
+namespace	AS	Org.BouncyCastle.Asn1.Cryptlib
+namespace	AS	Org.BouncyCastle.Asn1.CryptoPro
+namespace	AS	Org.BouncyCastle.Asn1.Eac
+namespace	AS	Org.BouncyCastle.Asn1.EdEC
+namespace	AS	Org.BouncyCastle.Asn1.Esf
+namespace	AS	Org.BouncyCastle.Asn1.Ess
+namespace	AS	Org.BouncyCastle.Asn1.GM
+namespace	AS	Org.BouncyCastle.Asn1.Gnu
+namespace	AS	Org.BouncyCastle.Asn1.Gsma
+namespace	AS	Org.BouncyCastle.Asn1.Iana
+namespace	AS	Org.BouncyCastle.Asn1.Icao
+namespace	AS	Org.BouncyCastle.Asn1.Isara
+namespace	AS	Org.BouncyCastle.Asn1.IsisMtt
+namespace	AS	Org.BouncyCastle.Asn1.IsisMtt.Ocsp
+namespace	AS	Org.BouncyCastle.Asn1.IsisMtt.X509
+namespace	AS	Org.BouncyCastle.Asn1.Kisa
+namespace	AS	Org.BouncyCastle.Asn1.Microsoft
+namespace	AS	Org.BouncyCastle.Asn1.Misc
+namespace	AS	Org.BouncyCastle.Asn1.Mozilla
+namespace	AS	Org.BouncyCastle.Asn1.Nist
+namespace	AS	Org.BouncyCastle.Asn1.Nsri
+namespace	AS	Org.BouncyCastle.Asn1.Ntt
+namespace	AS	Org.BouncyCastle.Asn1.Ocsp
+namespace	AS	Org.BouncyCastle.Asn1.Oiw
+namespace	AS	Org.BouncyCastle.Asn1.Pkcs
+namespace	AS	Org.BouncyCastle.Asn1.Rosstandart
+namespace	AS	Org.BouncyCastle.Asn1.Sec
+namespace	AS	Org.BouncyCastle.Asn1.Smime
+namespace	AS	Org.BouncyCastle.Asn1.TeleTrust
+namespace	AS	Org.BouncyCastle.Asn1.Tsp
+namespace	AS	Org.BouncyCastle.Asn1.UA
+namespace	AS	Org.BouncyCastle.Asn1.Utilities
+namespace	AS	Org.BouncyCastle.Asn1.X500
+namespace	AS	Org.BouncyCastle.Asn1.X500.Style
+namespace	AS	Org.BouncyCastle.Asn1.X509
+namespace	AS	Org.BouncyCastle.Asn1.X509.Qualified
+namespace	AS	Org.BouncyCastle.Asn1.X509.SigI
+namespace	AS	Org.BouncyCastle.Asn1.X9
+namespace	AS	Org.BouncyCastle.Bcpg
+namespace	AS	Org.BouncyCastle.Bcpg.Attr
+namespace	AS	Org.BouncyCastle.Bcpg.OpenPgp
+namespace	AS	Org.BouncyCastle.Bcpg.Sig
+namespace	AS	Org.BouncyCastle.Cmp
+namespace	AS	Org.BouncyCastle.Cms
+namespace	AS	Org.BouncyCastle.Crmf
+namespace	AS	Org.BouncyCastle.Crypto
+namespace	AS	Org.BouncyCastle.Crypto.Agreement
+namespace	AS	Org.BouncyCastle.Crypto.Agreement.JPake
+namespace	AS	Org.BouncyCastle.Crypto.Agreement.Kdf
+namespace	AS	Org.BouncyCastle.Crypto.Agreement.Srp
+namespace	AS	Org.BouncyCastle.Crypto.Digests
+namespace	AS	Org.BouncyCastle.Crypto.EC
+namespace	AS	Org.BouncyCastle.Crypto.Encodings
+namespace	AS	Org.BouncyCastle.Crypto.Engines
+namespace	AS	Org.BouncyCastle.Crypto.Fpe
+namespace	AS	Org.BouncyCastle.Crypto.Generators
+namespace	AS	Org.BouncyCastle.Crypto.IO
+namespace	AS	Org.BouncyCastle.Crypto.Kems
+namespace	AS	Org.BouncyCastle.Crypto.Kems.MLKem
+namespace	AS	Org.BouncyCastle.Crypto.Macs
+namespace	AS	Org.BouncyCastle.Crypto.Modes
+namespace	AS	Org.BouncyCastle.Crypto.Modes.Gcm
+namespace	AS	Org.BouncyCastle.Crypto.Operators
+namespace	AS	Org.BouncyCastle.Crypto.Paddings
+namespace	AS	Org.BouncyCastle.Crypto.Parameters
+namespace	AS	Org.BouncyCastle.Crypto.Prng
+namespace	AS	Org.BouncyCastle.Crypto.Prng.Drbg
+namespace	AS	Org.BouncyCastle.Crypto.Signers
+namespace	AS	Org.BouncyCastle.Crypto.Signers.MLDsa
+namespace	AS	Org.BouncyCastle.Crypto.Signers.SlhDsa
+namespace	AS	Org.BouncyCastle.Crypto.Tls
+namespace	AS	Org.BouncyCastle.Crypto.Utilities
+namespace	AS	Org.BouncyCastle.Math
+namespace	AS	Org.BouncyCastle.Math.BinPoly
+namespace	AS	Org.BouncyCastle.Math.BinPoly.Scalar
+namespace	AS	Org.BouncyCastle.Math.BinPoly.X86
+namespace	AS	Org.BouncyCastle.Math.BinPoly.X86.V128
+namespace	AS	Org.BouncyCastle.Math.EC
+namespace	AS	Org.BouncyCastle.Math.EC.Abc
+namespace	AS	Org.BouncyCastle.Math.EC.Custom
+namespace	AS	Org.BouncyCastle.Math.EC.Custom.GM
+namespace	AS	Org.BouncyCastle.Math.EC.Custom.Sec
+namespace	AS	Org.BouncyCastle.Math.EC.Endo
+namespace	AS	Org.BouncyCastle.Math.EC.Multiplier
+namespace	AS	Org.BouncyCastle.Math.EC.Rfc7748
+namespace	AS	Org.BouncyCastle.Math.EC.Rfc8032
+namespace	AS	Org.BouncyCastle.Math.Field
+namespace	AS	Org.BouncyCastle.Math.Raw
+namespace	AS	Org.BouncyCastle.Mozilla
+namespace	AS	Org.BouncyCastle.Ocsp
+namespace	AS	Org.BouncyCastle.OpenSsl
+namespace	AS	Org.BouncyCastle.Operators
+namespace	AS	Org.BouncyCastle.Operators.Utilities
+namespace	AS	Org.BouncyCastle.Pkcs
+namespace	AS	Org.BouncyCastle.Pkix
+namespace	AS	Org.BouncyCastle.Pqc
+namespace	AS	Org.BouncyCastle.Pqc.Asn1
+namespace	AS	Org.BouncyCastle.Pqc.Crypto
+namespace	AS	Org.BouncyCastle.Pqc.Crypto.Bike
+namespace	AS	Org.BouncyCastle.Pqc.Crypto.Cmce
+namespace	AS	Org.BouncyCastle.Pqc.Crypto.Crystals
+namespace	AS	Org.BouncyCastle.Pqc.Crypto.Crystals.Dilithium
+namespace	AS	Org.BouncyCastle.Pqc.Crypto.Falcon
+namespace	AS	Org.BouncyCastle.Pqc.Crypto.Frodo
+namespace	AS	Org.BouncyCastle.Pqc.Crypto.Hqc
+namespace	AS	Org.BouncyCastle.Pqc.Crypto.Lms
+namespace	AS	Org.BouncyCastle.Pqc.Crypto.Ntru
+namespace	AS	Org.BouncyCastle.Pqc.Crypto.Ntru.Owcpa
+namespace	AS	Org.BouncyCastle.Pqc.Crypto.Ntru.ParameterSets
+namespace	AS	Org.BouncyCastle.Pqc.Crypto.Ntru.Polynomials
+namespace	AS	Org.BouncyCastle.Pqc.Crypto.NtruPrime
+namespace	AS	Org.BouncyCastle.Pqc.Crypto.Picnic
+namespace	AS	Org.BouncyCastle.Pqc.Crypto.Saber
+namespace	AS	Org.BouncyCastle.Pqc.Crypto.SphincsPlus
+namespace	AS	Org.BouncyCastle.Pqc.Crypto.Utilities
+namespace	AS	Org.BouncyCastle.Runtime
+namespace	AS	Org.BouncyCastle.Runtime.Intrinsics
+namespace	AS	Org.BouncyCastle.Runtime.Intrinsics.X86
+namespace	AS	Org.BouncyCastle.Security
+namespace	AS	Org.BouncyCastle.Security.Certificates
+namespace	AS	Org.BouncyCastle.Tls
+namespace	AS	Org.BouncyCastle.Tls.Crypto
+namespace	AS	Org.BouncyCastle.Tls.Crypto.Impl
+namespace	AS	Org.BouncyCastle.Tls.Crypto.Impl.BC
+namespace	AS	Org.BouncyCastle.Tsp
+namespace	AS	Org.BouncyCastle.Utilities
+namespace	AS	Org.BouncyCastle.Utilities.Bzip2
+namespace	AS	Org.BouncyCastle.Utilities.Collections
+namespace	AS	Org.BouncyCastle.Utilities.Date
+namespace	AS	Org.BouncyCastle.Utilities.Encoders
+namespace	AS	Org.BouncyCastle.Utilities.IO
+namespace	AS	Org.BouncyCastle.Utilities.IO.Compression
+namespace	AS	Org.BouncyCastle.Utilities.IO.Pem
+namespace	AS	Org.BouncyCastle.Utilities.Net
+namespace	AS	Org.BouncyCastle.Utilities.Zlib
+namespace	AS	Org.BouncyCastle.X509
+namespace	AS	Org.BouncyCastle.X509.Extension
+namespace	AS	Org.BouncyCastle.X509.Store
 namespace	AS	Orleans
 namespace	AS	Orleans.BroadcastChannel
 namespace	AS	Orleans.BroadcastChannel.Diagnostics
@@ -1897,6 +2048,7 @@ namespace	AS	OrleansCodeGen.Cratis.Chronicle.Observation.Reducers
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Observation.Reducers.Clients
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Observation.States
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Observation.Webhooks
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Observation.Webhooks.Signing
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Occurrences
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Patching
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Patterns
@@ -3719,6 +3871,7 @@ type	AS	Cratis.Chronicle	ClientArtifactIsDisposable	class
 type	AS	Cratis.Chronicle	ClientArtifactsActivator	class
 type	AS	Cratis.Chronicle	ClientCredentialsRequiredForExternalTokenAuthority	class
 type	AS	Cratis.Chronicle	ClientObserversRequireKeepAlive	class
+type	AS	Cratis.Chronicle	ClientSpanNames	enum
 type	AS	Cratis.Chronicle	ConceptTypeConvertersRegistrar	static
 type	AS	Cratis.Chronicle	DefaultClientArtifactsProvider	class
 type	AS	Cratis.Chronicle	DefaultEventStoreNamespaceResolver	class
@@ -3927,6 +4080,7 @@ type	AS	Cratis.Chronicle.Connections	IncompatibleServerException	class
 type	AS	Cratis.Chronicle.Connections	InsecureTokenEndpoint	class
 type	AS	Cratis.Chronicle.Connections	InvalidCertificateOrPassword	class
 type	AS	Cratis.Chronicle.Connections	InvalidServerAddress	class
+type	AS	Cratis.Chronicle.Connections	InvalidUserInfo	class
 type	AS	Cratis.Chronicle.Connections	LeastConnectionsLoadBalancerStrategy	class
 type	AS	Cratis.Chronicle.Connections	LoadBalancerStrategies	static
 type	AS	Cratis.Chronicle.Connections	MissingAuthentication	class
@@ -3943,6 +4097,11 @@ type	AS	Cratis.Chronicle.Connections	UnknownLoadBalancerStrategy	class
 type	AS	Cratis.Chronicle.Diagnostics	EventSourceIdTracing	enum
 type	AS	Cratis.Chronicle.Diagnostics	IdentifierHasher	class
 type	AS	Cratis.Chronicle.Diagnostics	InvalidIdentifierHashKey	class
+type	AS	Cratis.Chronicle.Diagnostics	MetricNames	enum
+type	AS	Cratis.Chronicle.Diagnostics	WellKnownClientSpanNames	static
+type	AS	Cratis.Chronicle.Diagnostics	WellKnownMetricNames	static
+type	AS	Cratis.Chronicle.Diagnostics	WellKnownSpanNames	static
+type	AS	Cratis.Chronicle.Diagnostics	WellKnownTelemetryAttributes	static
 type	AS	Cratis.Chronicle.Diagnostics.OpenTelemetry.Tracing	ClientActivity	static
 type	AS	Cratis.Chronicle.Discovery	ArtifactIdentityDrift	class
 type	AS	Cratis.Chronicle.Discovery	ArtifactIdentityDriftDetected	class
@@ -4311,6 +4470,7 @@ type	AS	Cratis.Chronicle.Projections	AddChildBuilder`3	class
 type	AS	Cratis.Chronicle.Projections	AllSetBuilder`2	class
 type	AS	Cratis.Chronicle.Projections	AutoMap	enum
 type	AS	Cratis.Chronicle.Projections	ChildrenBuilder`2	class
+type	AS	Cratis.Chronicle.Projections	ChildrenJoinBuilder`3	class
 type	AS	Cratis.Chronicle.Projections	ClearBuilder`3	class
 type	AS	Cratis.Chronicle.Projections	ClearNotSupported	class
 type	AS	Cratis.Chronicle.Projections	CompositeKeyBuilder`2	class
@@ -4327,6 +4487,7 @@ type	AS	Cratis.Chronicle.Projections	IAddChildBuilder`2	interface
 type	AS	Cratis.Chronicle.Projections	IAllSetBuilder`2	interface
 type	AS	Cratis.Chronicle.Projections	IChildrenBuilder	interface
 type	AS	Cratis.Chronicle.Projections	IChildrenBuilder`2	interface
+type	AS	Cratis.Chronicle.Projections	IChildrenJoinBuilder`2	interface
 type	AS	Cratis.Chronicle.Projections	ICompositeKeyBuilder`2	interface
 type	AS	Cratis.Chronicle.Projections	IFromAllBuilder`1	interface
 type	AS	Cratis.Chronicle.Projections	IFromBuilder`2	interface
@@ -5141,7 +5302,9 @@ type	AS	Cratis.Screenplay.Semantics	EsmSchemaV31Support	static
 type	AS	Cratis.Screenplay.Semantics	EsmSchemaV32Support	static
 type	AS	Cratis.Screenplay.Semantics	EsmSchemaV33Support	static
 type	AS	Cratis.Screenplay.Semantics	EsmSchemaV34Support	static
+type	AS	Cratis.Screenplay.Semantics	EsmSchemaV35Support	static
 type	AS	Cratis.Screenplay.Semantics	EsmSchemaV36Support	static
+type	AS	Cratis.Screenplay.Semantics	EsmSchemaV37Support	static
 type	AS	Cratis.Screenplay.Semantics	EsmSchemaV3Support	static
 type	AS	Cratis.Screenplay.Semantics	EsmSchemaV4Support	static
 type	AS	Cratis.Screenplay.Semantics	EsmSchemaV5Support	static
@@ -5175,6 +5338,7 @@ type	AS	Cratis.Screenplay.Semantics	PortableMatchCheck	class
 type	AS	Cratis.Screenplay.Semantics	PortableMatchPattern	static
 type	AS	Cratis.Screenplay.Semantics	PortableMatchReplacement	class
 type	AS	Cratis.Screenplay.Semantics	PortableMatchStatus	enum
+type	AS	Cratis.Screenplay.Semantics	PropertyOrderMetadataRefusal	class
 type	AS	Cratis.Screenplay.Semantics	SemanticAddress	class
 type	AS	Cratis.Screenplay.Semantics	SemanticAddressPart	struct
 type	AS	Cratis.Screenplay.Semantics	SemanticAddressPartKind	enum
@@ -5191,6 +5355,8 @@ type	AS	Cratis.Screenplay.Semantics	SemanticArrayValue	class
 type	AS	Cratis.Screenplay.Semantics	SemanticAttachmentResolution	enum
 type	AS	Cratis.Screenplay.Semantics	SemanticAuthenticatedCondition	class
 type	AS	Cratis.Screenplay.Semantics	SemanticAuthorization	class
+type	AS	Cratis.Screenplay.Semantics	SemanticBindingOptions	class
+type	AS	Cratis.Screenplay.Semantics	SemanticBindingOptionsResult	class
 type	AS	Cratis.Screenplay.Semantics	SemanticBooleanValue	class
 type	AS	Cratis.Screenplay.Semantics	SemanticCaller	class
 type	AS	Cratis.Screenplay.Semantics	SemanticCallerClaim	class
@@ -14348,7 +14514,7 @@ base	AS	Cratis.Chronicle.ChronicleBuilder	System.Object	ClientArtifactsProvider 
 base	AS	Cratis.Chronicle.ChronicleClient	System.Object	CausationManager Dispose EvictEventStores GetEventStore GetEventStores Options	-
 base	AS	Cratis.Chronicle.ChronicleClientOptions	Cratis.Chronicle.ChronicleOptions	EventStore EventStoreNamespaceResolverType	-
 base	AS	Cratis.Chronicle.ChronicleOptions	System.Object	ActivationId ActivationScope ArtifactIdentityDrift Authentication AutoDiscoverAndRegister ClaimsBasedNamespaceResolverClaimType ConcurrencyOptions ConnectTimeout ConnectionString DefaultSinkTypeId EnableEventTypeGenerationValidation EventGenerationDelivery ExplicitArtifacts ForShortLivedProcess FromConnectionString FromDevelopmentConnectionString JsonSerializerOptions LifecycleScope LoadBalancerStrategy MaxReceiveMessageSize MaxSendMessageSize ProgramIdentifier Reactors Reducers RegistrationMode RegistrationRetry SkipCompatibilityCheck SkipKeepAlive SoftwareCommit SoftwareVersion Telemetry Tls UnitOfWorkLifecyclePolicy UseShortLivedProcess Validate	-
-base	AS	Cratis.Chronicle.ChronicleTelemetryOptions	System.Object	EventSourceIdHashKey EventSourceIdTracing	-
+base	AS	Cratis.Chronicle.ChronicleTelemetryOptions	System.Object	EventSourceIdHashKey EventSourceIdTracing SpanNames	-
 base	AS	Cratis.Chronicle.ClaimsBasedNamespaceResolver	System.Object	Resolve	-
 base	AS	Cratis.Chronicle.ClientArtifactActivationFailed	System.Exception	-	-
 base	AS	Cratis.Chronicle.ClientArtifactIsDisposable	System.Exception	-	-
@@ -14408,7 +14574,7 @@ base	AS	Cratis.Chronicle.Confidentiality.SecurityMetadataType	Cratis.Concepts.Co
 base	AS	Cratis.Chronicle.Connections.AmbiguousAuthenticationMode	System.Exception	-	-
 base	AS	Cratis.Chronicle.Connections.AuthenticationClientInterceptor	Grpc.Core.Interceptors.Interceptor	AsyncClientStreamingCall AsyncDuplexStreamingCall AsyncServerStreamingCall AsyncUnaryCall AuthorizationMetadataKey BlockingUnaryCall	-
 base	AS	Cratis.Chronicle.Connections.CertificateDoesNotExist	System.Exception	-	-
-base	AS	Cratis.Chronicle.Connections.ChronicleConnectionString	System.Object	ApiKey AuthenticationMode CertificatePassword CertificatePath Default Development DevelopmentClient DevelopmentClientSecret DisableTls IsSrv LoadBalancer Password Redacted ServerAddress ServerAddresses SkipCompatibilityCheck SkipKeepAlive SkipTlsValidation SrvNameServer ToString Username WithApiKey WithCredentials	-
+base	AS	Cratis.Chronicle.Connections.ChronicleConnectionString	System.Object	ApiKey AuthenticationMode CertificatePassword CertificatePath Default Development DevelopmentClient DevelopmentClientSecret DisableTls HiddenConnectionString IsSrv LoadBalancer Password Redact Redacted ServerAddress ServerAddresses SkipCompatibilityCheck SkipKeepAlive SkipTlsValidation SrvNameServer ToString Username WithApiKey WithCredentials	-
 base	AS	Cratis.Chronicle.Connections.ChronicleConnectionStringBuilder	System.Data.Common.DbConnectionStringBuilder	ApiKey AuthenticationMode Build BuildRedacted CertificatePassword CertificatePath DisableTls Host IsSrv LoadBalancer NoAuthentication Password Port Scheme ServerAddresses SkipCompatibilityCheck SkipKeepAlive SkipTlsValidation SrvNameServer Username	-
 base	AS	Cratis.Chronicle.Connections.ChronicleConnectionStringConverter	System.ComponentModel.TypeConverter	CanConvertFrom CanConvertTo ConvertFrom ConvertTo	-
 base	AS	Cratis.Chronicle.Connections.ChronicleServerAddress	System.Object	Deconstruct EqualityContract Equals GetHashCode Host Port PrintMembers ToString	-
@@ -14429,6 +14595,7 @@ base	AS	Cratis.Chronicle.Connections.IncompatibleServerException	System.Exceptio
 base	AS	Cratis.Chronicle.Connections.InsecureTokenEndpoint	System.Exception	-	-
 base	AS	Cratis.Chronicle.Connections.InvalidCertificateOrPassword	System.Exception	-	-
 base	AS	Cratis.Chronicle.Connections.InvalidServerAddress	System.Exception	-	-
+base	AS	Cratis.Chronicle.Connections.InvalidUserInfo	System.Exception	-	-
 base	AS	Cratis.Chronicle.Connections.LeastConnectionsLoadBalancerStrategy	System.Object	Dispose Next StrategyName	-
 base	AS	Cratis.Chronicle.Connections.MissingAuthentication	System.Exception	-	-
 base	AS	Cratis.Chronicle.Connections.MissingServerAddress	System.Exception	-	-
@@ -14682,7 +14849,8 @@ base	AS	Cratis.Chronicle.Patterns.PatternsNotSupported	System.Exception	-	-
 base	AS	Cratis.Chronicle.Projections.AddBuilder`4	System.Object	Build TargetProperty With	-
 base	AS	Cratis.Chronicle.Projections.AddChildBuilder`3	System.Object	FromObject IdentifiedBy UsingKey UsingKeyFromContext UsingParentCompositeKey UsingParentKey UsingParentKeyFromContext	-
 base	AS	Cratis.Chronicle.Projections.AllSetBuilder`2	System.Object	Build TargetProperty ToEventContextProperty ToEventSourceId ToValue	-
-base	AS	Cratis.Chronicle.Projections.ChildrenBuilder`2	Cratis.Chronicle.Projections.ProjectionBuilder`2	FromEventProperty GetIdentifiedBy HasIdentifiedBy IdentifiedBy	-
+base	AS	Cratis.Chronicle.Projections.ChildrenBuilder`2	Cratis.Chronicle.Projections.ProjectionBuilder`2	FromEventProperty GetIdentifiedBy HasIdentifiedBy IdentifiedBy Join	-
+base	AS	Cratis.Chronicle.Projections.ChildrenJoinBuilder`3	Cratis.Chronicle.Projections.ReadModelPropertiesBuilder`4	On	-
 base	AS	Cratis.Chronicle.Projections.ClearBuilder`3	System.Object	Build TargetProperty	-
 base	AS	Cratis.Chronicle.Projections.ClearNotSupported	System.Exception	-	-
 base	AS	Cratis.Chronicle.Projections.CompositeKeyBuilder`2	System.Object	Build Set	-
@@ -15361,7 +15529,7 @@ base	AS	Cratis.Screenplay.Syntax.ResponseFieldSyntax	Cratis.Screenplay.Syntax.Sy
 base	AS	Cratis.Screenplay.Syntax.RoleConditionSyntax	Cratis.Screenplay.Syntax.PolicyConditionSyntax	Deconstruct EqualityContract Equals GetHashCode PrintMembers Role ToString	-
 base	AS	Cratis.Screenplay.Syntax.RootTemplateSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Blueprint Deconstruct EqualityContract Equals GetHashCode Name Options PrintMembers ToString Version	-
 base	AS	Cratis.Screenplay.Syntax.SampleDataBindingSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct EqualityContract Equals GetHashCode Pack PrintMembers ReadModel ToString	-
-base	AS	Cratis.Screenplay.Syntax.SampleDataFieldSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct EqualityContract Equals GetHashCode Kind Name PrintMembers ToString Value	-
+base	AS	Cratis.Screenplay.Syntax.SampleDataFieldSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct EqualityContract Equals GetHashCode Kind Name PrintMembers Rows ToString Value	-
 base	AS	Cratis.Screenplay.Syntax.SampleDataMappingSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct EqualityContract Equals GetHashCode PrintMembers ReadModel Shape ToString	-
 base	AS	Cratis.Screenplay.Syntax.SampleDataPackReferenceSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct EqualityContract Equals GetHashCode IsBlueprint Name PrintMembers ToString	-
 base	AS	Cratis.Screenplay.Syntax.SampleDataPackSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct EqualityContract Equals GetHashCode Locale Name PrintMembers Sets Title ToString	-

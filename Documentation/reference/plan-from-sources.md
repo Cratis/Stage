@@ -1,9 +1,9 @@
 ---
 title: Plan artifacts from Screenplay sources
-description: Compile Screenplay files and plan named scopes or an application-root scaffold without publishing.
+description: Use Cratis Stage to plan artifacts from Screenplay files by module, feature or slice, with scaffold options and publication safety checks.
 ---
 
-Use the experimental `CratisRendering.PlanFrom` facade to turn files and authored
+Use the `CratisRendering.PlanFrom` facade to turn files and authored
 names into a deterministic Cratis artifact plan. It compiles every supplied source,
 then renders only the selected scopes. It does not publish files or run the application.
 If you already hold semantic identities, the existing `CratisRendering.Plan` API
@@ -515,7 +515,7 @@ A scaffold profile carrying a Scene emits no Scene artifacts and reports the
 `STAGE-PLAN-031` information diagnostic. This mode does not compose a default Scene.
 
 Plan the scaffold once per application. Every subsequent source or loaded-model scoped
-plan excludes it, regardless of selection size. Studio can scaffold in one session,
+plan excludes it, regardless of selection size. A host can scaffold in one session,
 then request feature plans in later sessions using the same application names and
 Screenplay root. Scaffold files belong to the user after first run; an application-scope
 plan includes them again, so publishers must preserve that ownership before overwriting.
@@ -603,10 +603,13 @@ planned content (after newline normalization) is compatible. Otherwise the check
 recognizes the split registry and shared C# declarations, rejecting aggregate
 `StagePolicy_*` classes, per-site bodies, `TypedContext_*` wrappers and unrecognized
 content. Application-scope plans skip this policy-layout check, but still read event destinations.
-`STAGE-EVENT-002` is enforced only by publishers that refuse every non-`Compatible`
-result before writing any artifacts. Existing `cratis render` versions check only scoped
-plans and refuse only `RequiresApplicationScope`; they do not enforce `STAGE-EVENT-002`.
-The CLI integration is tracked in [Cratis/cli#354](https://github.com/Cratis/cli/issues/354).
+Publishers must refuse every non-`Compatible` result before writing any artifacts.
+The `cratis render` publisher runs this gate at every scope: it refuses incompatible policy
+layouts with `CLI-RENDER-013`, unsafe reducer migration removals with `CLI-RENDER-025`, and
+changed or indeterminate stored event type IDs with `CLI-RENDER-016`, including the
+`STAGE-EVENT-002` diagnostics. An unrecognized compatibility result also refuses publication;
+these results are not informational. The CLI integration is tracked in
+[Cratis/cli#354](https://github.com/Cratis/cli/issues/354).
 
 A scaffold-only plan never contains event or policy files, so there is nothing to check.
 `PlanScaffold` has no underlying `ArtifactRenderPlan`. Publication checks do not

@@ -1,6 +1,6 @@
 ---
 title: Onboarding rendering
-description: Look up how the Cratis renderer provisions an application from the outcomes of its own Ante, sends the onboarding emails through Herald, and what it leaves out.
+description: Cratis Stage renders onboarding with Ante, tenant provisioning, member persona grants, and optional Box Office offerings behind AuthProxy.
 ---
 
 A model's `onboarding` block says how people get into the application. An application rendered with it runs beside its own Ante, which presents sign-up and invitations, issues invitation tokens and publishes what happened. Ante sends no mail and creates nothing in the application, so the rendered application acts on its outcomes. This is provisioning for the application's own model only.

@@ -1,15 +1,150 @@
 ---
-title: The Stage container
-description: What is inside the cratis/stage image, how it boots a Screenplay model, and the ports, mount points and configuration it exposes.
+title: Run a Cratis Stage sandbox with Docker
+description: The Cratis Stage Docker container runs a Cratis Screenplay model as a private sandbox with HTTP commands, queries, screens, and in-memory event storage.
 ---
 
-`cratis/stage` is a **play sandbox**: one container holding everything needed to perform an event model. There
-is no database to provision, no Chronicle server to point at, and nothing left behind when it stops. That is
-deliberate — a play session is meant to be started, poked at, and thrown away.
+Cratis Stage runs a Cratis Screenplay `.play` model as an application sandbox. Write the model, start a session
+with one command, and use the HTTP commands and queries it describes before implementing the application.
+You can use authored or default Scene screens, inspect read state, and follow recorded events in Cratis Chronicle.
+The `cratis/stage` container starts Cratis Arc and an in-memory Chronicle kernel beside the application, so you
+do not need a separate database or Chronicle server. Replacing the container loses session state. This executes
+the model; it does not render code or test a generated application.
+
+:::caution[Supported subset, not a production host]
+The default semantic engine executes supported model behavior directly. It does not execute every Screenplay
+construct, even when the model compiles. Admission checks identify what Stage can run; read the
+[semantic execution limits](#opt-in-to-semantic-execution) before relying on an operation. Use this container
+for temporary model exploration, not durable application hosting.
+:::
+
+## Start a disposable session
+
+You need Docker and a complete `.play` application, either one file or a folder of files. If you do not have a model,
+[create a Screenplay model](/screenplay/getting-started/) first. Include its referenced
+concepts and policies, commands with event productions, and read models with projections and queries. A read model
+is a view built from events; a projection describes how each event updates that view. A getting-started excerpt
+alone may lack the declarations needed to run. Screens are optional: Stage can compose default screens from admitted
+commands and read models. An empty folder exits before either process starts.
+
+### Prepare a small model
+
+For a first session, save this standalone example as `screenplays/application.play`. It keeps the `Home` feature
+and its `CustomerId` concept from the CLI's shell model: one command produces a fact, a projection builds a row,
+and a screen reads the query. After sending `GreetCustomer`, you will look for its text in `AllWelcomes`.
+The example declares no authentication or custom UI packages.
+
+```screenplay title="screenplays/application.play"
+concept CustomerId : Uuid
+
+module Home
+  feature Welcome
+    slice StateView WelcomeList
+      readmodel WelcomeRow
+        welcomeId CustomerId
+        text String
+      query AllWelcomes => observable WelcomeRow[]
+      projection WelcomeList => WelcomeRow
+        from CustomerGreeted
+          welcomeId = $eventSourceId
+          text = text
+      screen Welcome
+        title "Welcome"
+        data WelcomeRow[] via query AllWelcomes
+        table WelcomeRow
+          column text label "Text"
+    slice StateChange GreetCustomer
+      command GreetCustomer
+        id CustomerId identifier
+        text String
+        produces CustomerGreeted
+          for id
+          text = text
+      event CustomerGreeted
+        text String
+```
+
+`id` selects the command's event source. The projection takes that identity from `$eventSourceId`, so the row's
+`welcomeId` connects the command to the read result; `text` comes from `CustomerGreeted`. The authored Welcome
+screen uses `AllWelcomes`. Once the session starts, send `GreetCustomer` through the interactive API reference,
+[Scalar](http://localhost:9090/scalar/v1). This model has an authored screen, so Stage does not compose default
+command screens; use Scalar for the command.
+
+### Start with the CLI
+
+With the [Cratis CLI installed](/cli/getting-started/) and your complete model in `./screenplays`, run:
 
 ```bash
-docker run --rm -p 9090:9090 -p 35000:35000 -v "$PWD":/eventmodel:ro cratis/stage:latest
+cratis run ./screenplays
 ```
+
+The CLI mounts only the selected folder, read-only, chooses its compatible Stage image, and reports readiness or
+model refusals. First use may pull the image. For a model without declared authentication, it publishes the application
+on loopback port `9090` and Workbench on loopback port `35000`. Keep these defaults: `--allow-remote` exposes the
+unauthenticated standalone sandbox without adding authentication. If your model declares authentication, follow the
+[authenticated CLI flow](/cli/reference/run/) instead; its entry address and configuration differ.
+
+When the CLI reports readiness, continue with [Use the application](#use-the-application) to submit
+`GreetCustomer` and find the resulting row. If you prefer to manage the container yourself, use the Docker command
+below instead of `cratis run`.
+
+### Start directly with Docker
+
+:::caution[Keep the session private]
+Docker enables [sandbox identity](#sandbox-identity): modeled API requests use the selected persona without login.
+The command below binds both published ports to `127.0.0.1`. Keep model operations and session data off public networks.
+:::
+
+1. Open a terminal in the folder containing your model. The mount below is read-only and searched recursively.
+2. Start the container:
+
+   ```bash title="Terminal — start a model session"
+   docker run --rm -p 127.0.0.1:9090:9090 -p 127.0.0.1:35000:35000 -v "$PWD":/eventmodel:ro cratis/stage:latest
+   ```
+
+3. After startup, open [Scalar](http://localhost:9090/scalar/v1) and check the model's mapped commands and queries.
+   The [OpenAPI document](http://localhost:9090/openapi/v1.json) lists the session's model API. Check the
+   [session status](http://localhost:9090/stage/status) for admission issues before
+   treating a responding HTTP endpoint as a usable session. These checks show what the host exposes, not whether
+   every modeled behavior is implemented.
+
+The direct Docker command uses the moving `latest` tag. The CLI selects the Stage version it renders with;
+do not assume a published image has every capability described by current source.
+
+### Use the application
+
+1. Open [session status](http://localhost:9090/stage/status) and
+   [semantic admission](http://localhost:9090/stage/semantic/admission). Resolve refusals before treating the session
+   as ready. A reachable host alone does not establish that your model can execute.
+2. Open the [application UI](http://localhost:9090/). Stage serves authored screens or default per-slice Scene
+   screens derived from admitted commands and read models. Use a supported command form, or open
+   [Scalar](http://localhost:9090/scalar/v1) and submit the command there using its model-specific schema.
+   Do not guess endpoint routes or payloads: the [OpenAPI document](http://localhost:9090/openapi/v1.json)
+   describes the mapped operations. HTTP 501 or an unsupported result means that behavior did not execute.
+   For the example above, use Scalar to select `GreetCustomer` and send `id` as
+   `11111111-1111-4111-8111-111111111111` and `text` as `Hello from Stage`.
+3. Run the corresponding query in Scalar, or open its screen, to inspect the changed read state. For the example,
+   call `AllWelcomes` or open Welcome: after the accepted command, look for a row with that `welcomeId` and text.
+   For an admitted command with event production, Stage evaluates the decision, records its accepted facts through Chronicle,
+   and makes supported projected state available to queries. The
+   [semantic read-model browser](http://localhost:9090/read-models) inspects the in-process views.
+4. Open [Workbench through Stage](http://localhost:9090/workbench) to inspect the session's event history.
+   For the example, look for `CustomerGreeted` on the event source you supplied.
+   Workbench shows Chronicle events; use the semantic browser for Stage's in-process read models. Those are not
+   Chronicle projection views. Storage is disposable, so this exploration does not establish persistence for a
+   deployed application.
+5. Check declared expectations separately with the
+   [semantic specification runner](spec-runner.md#run-semantic-specifications). Read every reported outcome:
+   failed and unsupported specifications are not passes. The small example above declares no specifications;
+   add modeled expectations before expecting behavioral coverage. A ready host does not mean specifications have run,
+   and model results do not establish correctness of a rendered application.
+
+You have now exercised the model's supported command-to-state path without generating and building an application.
+To develop source you own, continue with [Plan artifacts from Screenplay sources](../reference/plan-from-sources.md).
+
+If startup refuses the model, read the diagnostics and compare the construct with the
+[supported semantic subset](#opt-in-to-semantic-execution). Missing references and compile diagnostics need model
+changes; runtime refusals identify behavior the selected engine cannot perform. Do not switch to the deprecated
+`eventmodel` engine just to hide semantic refusals.
 
 > **Published applications.** The sandbox below is for playing with a model. To run an application for real users, export a versioned package and start the image in published mode: persistent storage, sign-in by a trusted proxy, and none of the tooling surfaces. See [Published applications and export](../reference/published-applications.md).
 
@@ -57,7 +192,9 @@ Three things about that base image are worth knowing:
    never races ahead of the event store it needs.
 4. **Start the Stage host** with the selected path. It compiles just that file, or compiles every `.play` file
    beneath the folder as one application using Screenplay's folder compiler. The host materializes the runtime
-   constructs it currently supports; projections are registered with Chronicle once the host has started.
+   constructs it currently supports. After the host starts, the default semantic path registers event contracts
+   with Chronicle, seeds event sources that have no events yet, and reconstructs its in-process world from those
+   facts. Its read models are held in Stage's process, not registered as Chronicle projections.
 
 Each session gets a generated, Docker-style event store name (`brave-mendel`, `nifty-turing`, …), which is what
 you will see in the log line the host prints and in the Workbench.
@@ -99,7 +236,7 @@ warns the first time you open the Workbench, and command-line clients need `curl
 The model is read from `/eventmodel` inside the container:
 
 ```bash
-docker run --rm -p 9090:9090 -p 35000:35000 \
+docker run --rm -p 127.0.0.1:9090:9090 -p 127.0.0.1:35000:35000 \
     -v /path/to/screenplays:/eventmodel:ro \
     cratis/stage:latest
 ```
@@ -112,7 +249,7 @@ through the container archive API instead of a bind mount — that is how toolin
 To load a single file, mount only that file read-only and pass its container path after the image name:
 
 ```bash
-docker run --rm -p 9090:9090 -p 35000:35000 \
+docker run --rm -p 127.0.0.1:9090:9090 -p 127.0.0.1:35000:35000 \
     -v /path/to/invoicing.play:/eventmodel/input.play:ro \
     cratis/stage:latest /eventmodel/input.play
 ```
@@ -201,8 +338,11 @@ naming the trigger kind; unsupported context mappings such as `$context.causedBy
 The independent specification executor also settles event reactions, including identity, filters and mixed effects,
 but runs only the slice that declares each specification: other slices' reactions and publications do not run, and an
 invoked command another slice owns is decided without keeping its events. See [The spec runner](spec-runner.md#a-specification-runs-its-own-slice-only) for this and its scenario limits.
-The semantic engine uses Screenplay 4.247.3 and admits exact ESM v1–v30 and v32 version pairs; unaudited
-language/semantic versions (v29 and later, mixed or noncanonical pairs) refuse the whole model with `STAGE-ESM-016` before registration or execution.
+The semantic engine checks each language/semantic version pair against Stage's declared ESM support. Audited
+pairs and newer pairs within its declared range proceed to member and capability checks; a version alone does
+not establish support for every construct. Pairs outside that policy and unknown ESM members refuse the model
+with `STAGE-ESM-016` before registration or execution. Check `/stage/semantic/admission` for the loaded model's
+capability refusals.
 A v22 model that uses `reaction batches atomic` executes atomic production units while retaining the Host's whole-command rollback boundary.
 At v28 the semantic engine runs Uuid `==` and `!=` in command `require` conditions and `produces when` guards, including
 through concepts and protected read paths such as `require Grant.memberId == requestedBy`. Uuids compare ordinally in their
@@ -278,7 +418,7 @@ The default engine uses the Screenplay executable semantic model (ESM) for comma
 snapshot queries. `Stage__Runtime__Engine=semantic` selects it explicitly:
 
 ```bash
-docker run --rm -p 9090:9090 -p 35000:35000 \
+docker run --rm -p 127.0.0.1:9090:9090 -p 127.0.0.1:35000:35000 \
     -e Stage__Runtime__Engine=semantic \
     -v /path/to/screenplays:/eventmodel:ro \
     cratis/stage:latest
@@ -293,10 +433,11 @@ executable plan, the host returns `state: "unsupported"` with issues; `/api/**` 
 instead of performing a partial model. Only Error-severity compiler diagnostics become blocking
 `Plan` issues. Information and Warning diagnostics are returned separately in the optional `notes`
 array on `GET /stage/status`, for both successful and refused loads. Each note preserves its `code`,
-`message`, root-relative `source` location and `severity`; these notes do not prevent execution. The shipped sandbox cannot rebuild across restarts: when the
-semantic host exits the container stops, and an exit-42 warm handoff resets its in-memory kernel.
-Rebuild applies only to a host running against an external or persistent Chronicle store; that storage
-path is not verified by the sandbox. With a nonempty log, Stage reads the complete event history,
+`message`, root-relative `source` location and `severity`; these notes do not prevent execution. An exit-42 warm
+handoff restarts only Stage, retaining the Chronicle kernel and its in-memory event log. Other host exits stop
+the container; replacing the container loses that log. An external or persistent Chronicle store can retain
+history across container replacement, but that storage path is not verified by the sandbox.
+With a nonempty log, Stage reads the complete event history,
 checks its continuity, event schemas, origins and modeled constraints, then reconstructs the in-process
 world using Screenplay semantics. It refuses incomplete or inconsistent history rather than starting
 with partial state. `/stage/status` reports `loading` during rebuild; `/api/**` is unavailable then.

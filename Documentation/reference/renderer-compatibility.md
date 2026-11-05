@@ -1,77 +1,50 @@
 ---
-title: Stage
-description: Compile Screenplay source, run modeled specifications, render reviewable Cratis code, or explore the supported runtime behavior in a disposable host.
+title: Cratis renderer compatibility
+description: Look up legacy Cratis renderer admission rules, diagnostics, key restrictions, and partial-output boundaries before choosing a rendering path.
 ---
 
-Stage compiles folders of Screenplay (`.play`) files and provides three related but deliberately different paths:
+Cratis Stage has a semantic artifact planner and a syntax-based compatibility renderer. Use
+`CratisRendering.Plan` for a package-owned semantic plan; the legacy `IRenderer` writes directly to a target
+directory and has the separate admission and failure behavior below. For current semantic capabilities, see
+[How the Stage renders a model](stage-rendering.md).
 
-1. **Renderer** — writes reviewable Cratis Arc + Chronicle backend code to disk.
-2. **Runtime host** — performs the subset of modeled behavior Stage currently supports in a disposable sandbox.
-3. **Specification runner** — checks modeled specifications and writes `results.json`.
+## Semantic planning
 
-These paths share the same compiled Screenplay syntax, but none should be mistaken for complete language coverage.
-The renderer is the highest-priority path; the runtime and specification runner remain intentionally partial.
+`Cratis.Stage.Rendering.Cratis` exposes a pure `CratisArtifactRenderPlanner` for the executable semantic model
+(ESM). It accepts an immutable `ArtifactRenderRequest` and returns the in-memory `ArtifactRenderPlan` before
+anything is written. The plan carries an explicit artifact-schema version, and every artifact has a normalized
+relative path, exact bytes, and SHA-256 hash. Typed error diagnostics make the plan non-publishable.
 
-## What works today
-
-### Renderer
-
-`Cratis.Stage.Rendering.Cratis` now exposes a pure `CratisArtifactRenderPlanner` for the executable semantic model
-(ESM). It accepts an immutable `ArtifactRenderRequest` and returns the complete in-memory `ArtifactRenderPlan`
-before anything is written. The plan carries an explicit artifact-schema version, and every artifact has a
-normalized relative path, exact bytes, and SHA-256 hash; errors are typed diagnostics and make the plan
-non-publishable.
-
-The first direct ESM capability is deliberately narrow and complete: concepts and composite types, one
-`RegisterProject`-shaped command with `not empty` validation, its event destination and mappings, a one-instance
-projection, an optional snapshot by-key query, and generated success/rejection specifications. The planner uses
-stable semantic identities and materialized ESM mappings directly. It never converts the ESM back into
-`ApplicationSyntax`, guesses a mapping, emits a `TODO`, or performs filesystem, process, network, clock, or ambient
-environment access.
-
-A caller supplies exact scaffold/template bytes as profile inputs:
-
-```csharp
-var scaffold = CratisArtifactRenderInput.CreateText(
-    "Projects.csproj",
-    "1.1.1",
-    projectFileContent);
-var profile = ArtifactRenderProfile.Create(
-    CratisArtifactRenderPlanner.Target,
-    "22.1.0",
-    CratisArtifactRenderPlanner.Renderer,
-    "1",
-    [scaffold]);
-var request = new ArtifactRenderRequest(
-    semanticModel,
-    executionPlan,
-    profile,
-    new(ArtifactRenderScopeKind.Application, semanticModel.Application.Id));
-
-var plan = new CratisArtifactRenderPlanner().Plan(request);
-if (!plan.Success)
-{
-    foreach (var diagnostic in plan.Diagnostics)
-    {
-        Console.Error.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
-    }
-}
-```
+Use `CratisRendering.CreateProfile(...)` when constructing a lower-level request; do not reconstruct the profile
+or choose target versions yourself. The planner requires the package-owned identities, versions, scaffold roster,
+bytes, and hashes. A mismatch produces `STAGE-CRATIS-001`. The simpler `CratisRendering.Plan(...)` facade creates
+that profile for you. See [Plan artifacts from Screenplay sources](plan-from-sources.md) for source loading,
+selection, and publication checks.
 
 Application, module, feature, and slice scopes produce the same paths and bytes for the artifacts they share.
 Application scope also includes the fully resolved scaffold inputs. Unsupported reachable semantics block
-publication rather than producing a thinner application.
+publication by default rather than producing a thinner application; see
+[Render around refused specifications](stage-rendering.md#render-around-refused-specifications) for the explicit
+alternative and its limits.
+
+Portable ESM collection queries render as Chronicle `Observe` subjects for observable lists and
+`Task<IEnumerable<T>>` for snapshot lists, preserving `by` keys and equality filters. Generated React
+routes wait for the first result; the Host still serves one-shot arrays. See
+[Observable list queries](stage-rendering.md#generated-c-observable-list-queries) for SSE,
+consistency and specification limits.
+
+## Legacy event and projection boundaries
 
 The published syntax-based `IRenderer` remains available through an explicit compatibility adapter. That legacy
 path still renders its existing broader `ApplicationSyntax` surface and writes directly to a target directory.
-Screenplay 4.35.0 supports event generation markers in syntax, but not executable lineage (binding reports
-`PLAY0449`). Stage's syntax-based model conversion and legacy Cratis rendering reject any marked or multiply
-declared event with `STAGE-EVENT-001` naming the event rather than selecting an older shape. The semantic
-planner accepts only executable models; it does not infer generations from syntax. Reaction trigger `reads`
-(Screenplay decision 0006) carry no runtime meaning yet and add no behavior to legacy rendered reactors.
-Stage does not evaluate child joins itself: semantic planning rejects them (`STAGE-ESM-017`), while legacy
-projection output delegates matching to Chronicle. Screenplay's reference evaluator now matches children by
-identity, not the join's `on` property (4.33.0); Stage does not duplicate that matching logic.
+Stage's syntax-based model conversion and legacy Cratis rendering reject marked or multiply declared events
+with `STAGE-EVENT-001` naming the event rather than selecting an older shape. The semantic planner accepts only
+executable models; it does not infer generations from syntax. For semantic projection capabilities and their
+limits, consult the [rendering reference](stage-rendering.md) rather than assuming that legacy admission rules
+also describe semantic planning.
+
+## Legacy inline command handlers
+
 Legacy inline command handlers support only C# (`csharp`) bodies proven not to bind to the generated `context`
 parameter. Context-independent bodies such as `return Array.Empty<object>();` remain supported and are emitted
 as authored, with the renderer's normal indentation. Screenplay and Arc have different command contexts; no
@@ -93,6 +66,8 @@ The existing legacy failure flow skips that slice's artifact and specifications,
 attempts an advisory failure marker, and ends with `RenderingFailed` rather than a success summary. Unselected
 unsafe slices do not block a valid scoped render. The syntax compiler and ESM binder policies are unchanged.
 
+## Legacy file-backed command implementations
+
 Legacy file-backed command implementations are not supported. Every command in a selected state-change slice
 is checked for `Handler.File` before inline admission or emission, including commands after the first. Rejection
 throws `UnsupportedFileBackedCommandHandler` with code `STAGE-CRATIS-FILE-001`, the command name, full slice path,
@@ -108,11 +83,7 @@ existing partial-output failure flow described above. No supported external bind
 is supplied; migrate to declarative behavior only when it is equivalent. This narrow correction does not close
 the broader Stage #13 file-backed implementation work or change other file implementation families.
 
-Portable ESM collection queries render as Chronicle `Observe` subjects for observable lists and
-`Task<IEnumerable<T>>` for snapshot lists, preserving `by` keys and equality filters. Generated React
-routes wait for the first result; the Host still serves one-shot arrays. See
-[Observable list queries](reference/stage-rendering.md#generated-c-observable-list-queries) for SSE,
-consistency and specification limits.
+## Legacy state-view query intent
 
 Legacy state-view query rendering supports conventional unfiltered collections, identifying `by` lookups,
 observable variants, and per-method authorization. It rejects declared filter parameter contracts and file or
@@ -127,6 +98,8 @@ the diagnostic, and file references are not opened. The affected slice and its s
 independent output continues, an advisory failure marker is attempted, and the operation ends with
 `RenderingFailed`, not a success summary. The synthesized all/by-id pair still applies only when no declared
 query returns the read model. Portable ESM query planning is unchanged.
+
+## Legacy composite projection keys
 
 Legacy state-view rendering also rejects **effective root `from` composite keys** in the first projection it
 actually emits. After query admission and before slice emission, it checks the same subscriptions emission uses:
@@ -146,6 +119,8 @@ block a safe scoped render. This guard neither implements composite keys nor cha
 children, join, parent, or unrendered-projection behavior. Root string literals have the separate bounded profile
 below. The broader Stage #13 work remains open.
 
+## Legacy root string keys
+
 Legacy root string keys render as `[FromEvent<OrderCreated>(ConstantKey = "global")]`, using the public named
 property, not a constructor argument or `[Key]`. This profile activates only when an **effective** root subscription
 in the first rendered projection has a string literal key. It uses the same first-event winner and inline-key
@@ -163,9 +138,10 @@ introduced by nested/children or other mappings. Generated properties have no se
 general detection of custom serializers or arbitrary identifying attributes. The record's constructor, properties,
 and schema remain unchanged: no synthetic `Id`, identity property, or `[Key]` is introduced.
 The active profile also requires **at least one inferred root property** (`PropertylessRecord` rejection otherwise).
-The pinned Chronicle 16.38.2 target applies class-level `ConstantKey` during constructor-parameter/property
-processing; on a propertyless record it instead retains the default event-source key. This bounded requirement
-does not establish full materialization. Propertyless records in inactive/default profiles are unchanged.
+The guard records Chronicle 16.38.2's class-level `ConstantKey` behavior: it is applied during
+constructor-parameter/property processing; a propertyless record retains the default event-source key.
+That historical version is not a statement of Stage's current dependency pin. This bounded requirement does
+not establish full materialization. Propertyless records in inactive/default profiles are unchanged.
 
 Generated fixed by-id, declared single-instance, compatible `by`, and live by-id lookups use **`string` rather than
 `Guid`**. This changes the generated public lookup signature and callers must adapt. Existing parameter names,
@@ -188,51 +164,7 @@ and separate native Stage fixtures showing public attribute discovery/registrati
 These checks do not establish registration from the generated assembly, downstream resolver execution, persisted
 materialization, or live-kernel behavior.
 
+## Legacy partial output
+
 Direct writes do not provide managed staging or safe stale-file removal: after a legacy rendering failure, treat
 the target as **unsafe and incomplete** and use a fresh target. Safe staged publication remains owned by CLI #101.
-
-Screens, layouts, forms, and other frontend/UI artifacts remain outside this backend milestone.
-
-### Runtime host
-
-The `cratis/stage` container starts Arc, an in-memory Chronicle kernel, OpenAPI/Scalar, and the modeled API surface.
-The semantic engine is the default: it evaluates admitted validation, authorization and production mappings,
-appends accepted facts to Chronicle, and serves keyed snapshot queries from its in-process world. Unsupported
-constructs refuse execution rather than silently dropping behavior. See [Semantic execution](docker/index.md#opt-in-to-semantic-execution)
-for the admitted subset and limitations. Set `Stage__Runtime__Engine=eventmodel` to retain the deprecated legacy
-runtime. It logs one warning at startup and will be removed in Stage v6.
-
-### Specification runner
-
-`cratis/stage-specrunner` compiles the model, checks its declared specifications against the modeled facts and
-expectations, writes `results.json`, and exits. This is model-level verification, not behavioral execution of every
-slice through a live generated or runtime application.
-
-## Curtain up
-
-```bash
-docker run --rm -p 9090:9090 -p 35000:35000 -v "$PWD":/eventmodel cratis/stage:latest
-```
-
-That mounts the current folder, compiles every `.play` file beneath it, and starts the sandbox. The model's API is
-on `9090`; the Chronicle kernel and its direct Workbench endpoint are on `35000`.
-
-The [Cratis CLI](/cli/reference/run) wraps this in `cratis run`, so you rarely type the `docker run` yourself.
-
-## Packages and containers
-
-| What                     | Image / package                 | Purpose                                                                                                          |
-| ------------------------ | ------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| The Stage host           | `cratis/stage`                  | Disposable semantic runtime with Arc, Chronicle, OpenAPI, command fact appending, and keyed snapshot queries.        |
-| The specification runner | `cratis/stage-specrunner`       | Run-to-completion model-level specification verification.                                                        |
-| The renderer             | `Cratis.Stage.Rendering.Cratis` | Pure ESM artifact planning for the first complete backend vertical, plus the syntax-based compatibility renderer. |
-| The contracts            | `Cratis.Stage.Contracts`        | Internal/tooling seams and specification results produced from compiled Screenplay syntax.                       |
-
-## Where to go next
-
-- [Build a renderer target](guides/build-renderer-target.md) — implement a deterministic Screenplay-to-code target with the Stage planning contracts.
-- [Customize a rendered application](guides/customize-rendered-application.md) — register services, add dependencies, and restyle the frontend from unmanaged files.
-- [The Stage container](docker/index.md) — what is inside the image, how it boots, its ports, mount points, and configuration.
-- [The specification runner](docker/spec-runner.md) — running a model's specifications as a container job.
-- [URLs of a running Stage](reference/urls.md) — the runtime endpoints and their current behavior.
-- [Scene UI render plans](reference/render-plans.md) — what Stage resolves for each `ui profile` a model ships, and what it reports when a target does not fully resolve.

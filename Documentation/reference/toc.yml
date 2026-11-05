@@ -14,6 +14,8 @@
   href: custom-packages.md
 - name: How the Stage renders a model
   href: stage-rendering.md
+- name: Cratis renderer compatibility
+  href: renderer-compatibility.md
 - name: Generated values and command responses
   href: generated-values-rendering.md
 - name: Event reaction rendering

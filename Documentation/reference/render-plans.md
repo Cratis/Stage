@@ -1,6 +1,6 @@
 ---
 title: Render plans
-description: What Stage resolves for each deployment target a Screenplay application ships — what a render plan contains, every finding it reports and what each one means, and how one build invocation covers every target.
+description: Cratis Stage render plans resolve Scene UI profiles and record artifact ownership, diagnostics and required removals before publication.
 ---
 
 A Screenplay application is deliberately target-agnostic. A `screen` names components and slots; it never names
@@ -268,7 +268,7 @@ Admission refuses unsupported-version, stale, malformed, duplicate or unresolved
 
 ## Authored code documentation
 
-Render hosts that hold a `SemanticCompilation` can preserve authored descriptions and command, event, and read-model documentation by passing their resolved profile and the same compilation to `CratisRendering.WithAuthoringMetadata` before creating the `ArtifactRenderRequest` for `CratisArtifactRenderPlanner.Plan`. This preserves any Scene or strings inputs already in the profile. The model-only `CratisRendering.Plan` overloads cannot recover syntax-only metadata. The `cratis` CLI does not yet call `WithAuthoringMetadata`, so this API does not currently enable authored documentation through CLI rendering.
+Render hosts that hold a `SemanticCompilation` can preserve authored descriptions and command, event, and read-model documentation by passing their resolved profile and the same compilation to `CratisRendering.WithAuthoringMetadata` before creating the `ArtifactRenderRequest` for `CratisArtifactRenderPlanner.Plan`. This preserves any Scene or strings inputs already in the profile. The model-only `CratisRendering.Plan` overloads cannot recover syntax-only metadata. The `cratis` CLI calls its metadata adapter when constructing the render profile, preserving authored documentation through `WithAuthoringMetadata`. If the compilation's paths or workspace documents do not meet the metadata reader's requirements, the CLI renders without those comments and reports warning `CLI-RENDER-006`.
 
 Descriptions become XML-escaped `<summary>` comments on generated commands, events, read models, query methods, composite types, reactions, and specification classes. A specification description is repeated on each generated scenario class realizing that specification. Command, event, and read-model Markdown documentation becomes escaped text in `<remarks>`; it is not converted to HTML. Reaction descriptions and documentation become the generated reactor class's summary and remarks. The retained syntax renderers also preserve trigger descriptions; those have no separate generated symbol in the semantic path. Line endings, including Unicode next-line, line-separator and paragraph-separator characters, and trailing whitespace are normalized. With no authored metadata, existing generated summaries and artifact bytes are unchanged.
 

@@ -1,6 +1,6 @@
 {
-  "corpusVersion": "5.3.1",
-  "minimumVectorCount": 80,
+  "corpusVersion": "5.7.0",
+  "minimumVectorCount": 85,
   "excludedTypes": {
     "ClockScheduleVectors": "Raw schedule bytes only; the package carries no model for it.",
     "EsmConformanceVectors": "Unknown-preserving reader fixtures under the reserved conformance version; not executable semantic models.",
@@ -74,6 +74,21 @@
         { "code": "STAGE-ESM-024", "artifact": "sem1:b6a229f20738786e4154fa451202279221e3c259d225de123775af24e980949b", "issue": 343 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:fcacc27dd0adffa7b11120bfaf244609f6fde5ac325f9a5f5f75ed5241aa182f", "issue": 343 },
         { "code": "STAGE-ESM-037", "artifact": "sem1:27558afdcf416a5d5f37d50d4f550f45a81d0ab49f6bbf35e231622ef1a9275e", "issue": 342 } ] }
+    },
+    "ClockOperandsCorpus.V37": {
+      "loader": { "outcome": "supported" },
+      "executor": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-ESM-016", "artifact": "sem1:751388c6337659fd3c9b30a57200e0e5217d49d03e708d2e4e389b9daf0bd99a", "issue": 957 } ] },
+      "host": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-ESM-016", "kind": "application", "artifact": "sem1:751388c6337659fd3c9b30a57200e0e5217d49d03e708d2e4e389b9daf0bd99a", "issue": 957 },
+        { "code": "STAGE-ESM-016", "kind": "specification", "artifact": "sem1:4568425087385d4693c846eb9db7a1e8ff88bc24b5f296fabb39b42f91b1c3c1", "issue": 957 },
+        { "code": "STAGE-ESM-016", "kind": "specification", "artifact": "sem1:542155c74cbca22260536df9729451fe07bd01479775c1c9755443fe02d9d4a1", "issue": 957 },
+        { "code": "STAGE-ESM-016", "kind": "specification", "artifact": "sem1:6a00c319016c2be748bf382fc750eb31fb7a048ea0542876061e225b0df2ffd7", "issue": 957 },
+        { "code": "STAGE-ESM-016", "kind": "specification", "artifact": "sem1:b20fd6665c216496f62692d04030fe8bbdf484992a61b4afde4a33096f445857", "issue": 957 },
+        { "code": "STAGE-ESM-016", "kind": "specification", "artifact": "sem1:c9424232694c56d2569f8c4a8e27e9047c2fc855999a5e2d3ca39a84e4e81d86", "issue": 957 },
+        { "code": "STAGE-ESM-016", "kind": "specification", "artifact": "sem1:ec7210d62eeab10d187ca782c024dfaaf0f861056f809d4389e315c4a9659328", "issue": 957 } ] },
+      "renderer": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-ESM-016", "artifact": "sem1:751388c6337659fd3c9b30a57200e0e5217d49d03e708d2e4e389b9daf0bd99a", "issue": 957 } ] }
     },
     "CompositeReadModelKeysCorpus.V27": {
       "loader": { "outcome": "supported" },
@@ -2144,6 +2159,15 @@
       "host": { "outcome": "supported" },
       "renderer": { "outcome": "supported" }
     },
+    "EsmGoldenVectors.V35": {
+      "loader": { "outcome": "supported" },
+      "executor": { "outcome": "n/a:no-specifications" },
+      "host": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-ESM-016", "kind": "application", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 809 },
+        { "code": "STAGE-IMPL-002", "kind": "command", "artifact": "sem1:527378411b6a7e3cb406f7aed18b22cbd4aa3db6284ad19f06de84833ce2c6de", "issue": 316 } ] },
+      "renderer": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 809 } ] }
+    },
     "EsmGoldenVectors.V36": {
       "loader": { "outcome": "supported" },
       "executor": { "outcome": "supported" },
@@ -2155,6 +2179,25 @@
         { "code": "STAGE-LIFECYCLE-005", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "byDesign": "Stage runs a state machine or workflow only for the single-trigger, paired-join, event-triggered shapes it renders; this golden vector exercises the shapes it refuses by design" },
         { "code": "STAGE-LIFECYCLE-007", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "byDesign": "Stage runs a state machine or workflow only for the single-trigger, paired-join, event-triggered shapes it renders; this golden vector exercises the shapes it refuses by design" },
         { "code": "STAGE-LIFECYCLE-010", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "byDesign": "Stage runs a state machine or workflow only for the single-trigger, paired-join, event-triggered shapes it renders; this golden vector exercises the shapes it refuses by design" } ] }
+    },
+    "EsmGoldenVectors.V37": {
+      "loader": { "outcome": "supported" },
+      "executor": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 957 } ] },
+      "host": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-ESM-016", "kind": "application", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 957 },
+        { "code": "STAGE-ESM-016", "kind": "specification", "artifact": "sem1:2f01b6a51219f1ed82e16c0e9fe6e3f6c434ab35e4e4a6673593e68d2dc95b55", "issue": 957 } ] },
+      "renderer": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 957 } ] }
+    },
+    "EsmGoldenVectors.V38": {
+      "loader": { "outcome": "supported" },
+      "executor": { "outcome": "supported" },
+      "host": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-ESM-016", "kind": "application", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 957 },
+        { "code": "STAGE-ESM-065", "kind": "graph", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 } ] },
+      "renderer": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 957 } ] }
     },
     "EsmGoldenVectors.V4": {
       "loader": { "outcome": "supported" },
@@ -2706,6 +2749,15 @@
         { "code": "capability:Authorization[an-unauthenticated-caller-cannot-carry]", "kind": "specification", "artifact": "sem1:5d6a9003c97f69e5d6eaa6b6a5bc74111b2b08dcdc58ebdf5c2eeea5e1c2e5b3", "issue": 209 } ] },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-011", "artifact": "sem1:5d6a9003c97f69e5d6eaa6b6a5bc74111b2b08dcdc58ebdf5c2eeea5e1c2e5b3", "issue": 209 } ] }
+    },
+    "PossibleEventsCorpus.V35": {
+      "loader": { "outcome": "supported" },
+      "executor": { "outcome": "n/a:no-specifications" },
+      "host": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-ESM-016", "kind": "application", "artifact": "sem1:ea2b8bcc1903a82adf02299d8fabadd309e9599c6194f9963e839b3aa25ff80f", "issue": 809 },
+        { "code": "STAGE-IMPL-002", "kind": "command", "artifact": "sem1:a04100cf1e148a8f25f0afe912df2778e13cc32564548b8452468e5295eee023", "issue": 316 } ] },
+      "renderer": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-ESM-016", "artifact": "sem1:ea2b8bcc1903a82adf02299d8fabadd309e9599c6194f9963e839b3aa25ff80f", "issue": 809 } ] }
     },
     "ProtectedCommandReadRaceVectors.Model": {
       "loader": { "outcome": "supported" },

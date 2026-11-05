@@ -26,8 +26,8 @@
     "test": "vitest run"
   },
   "peerDependencies": {
-    "@cratis/arc": "22.166.1",
-    "@cratis/arc.react": "22.166.1",
+    "@cratis/arc": "22.168.0",
+    "@cratis/arc.react": "22.168.0",
     "@cratis/components": "4.40.0",
     "@cratis/fundamentals": "7.33.1",
     "@cratis/scene.blueprint.default": "4.88.0",
@@ -36,8 +36,8 @@
     "@cratis/scene.model": "4.88.0",
     "@cratis/scene.primereact": "4.88.0",
     "@cratis/scene.react": "4.88.0",
-    "@cratis/showrunner.notes": "1.0.0",
-    "@cratis/showrunner.notes.react": "1.0.0",
+    "@cratis/showrunner.notes": "1.15.0",
+    "@cratis/showrunner.notes.react": "1.15.0",
     "@primereact/ui": "11.2.2",
     "@primeuix/themes": "3.1.0",
     "lucide-react": "1.68.0",

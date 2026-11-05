@@ -3,8 +3,6 @@ title: Author a Cratis Stage renderer kit
 description: Author a Cratis Stage renderer kit with the stage-templates/v1 interpreter, language-owned syntax, structured symbols, and plan-wide safety limits.
 ---
 
-# Author a renderer kit
-
 A Cratis Stage renderer kit uses templates to turn normalized model JSON into artifact parts. Choose the
 `stage-templates/v1` profile when you want a shared interpreter while keeping target-language syntax in your
 language pack. The interpreter evaluates templates and returns structured parts; it does not install kits,

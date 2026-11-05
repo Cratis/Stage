@@ -23,9 +23,9 @@ public class when_building_state_machines_and_workflows(when_building_state_mach
         {
             AddGeneratedSpecification("when_loading_the_generated_lifecycles.cs", """
                 #if DEBUG
-                using Cratis.Orleans.Workflows;
-                using Cratis.Orleans.Workflows.Definitions;
-                using Cratis.Orleans.Workflows.Graphs;
+                using Cratis.Choreography.Workflows;
+                using Cratis.Choreography.Workflows.Definitions;
+                using Cratis.Choreography.Workflows.Graphs;
                 using Cratis.Specifications;
                 using Invoices.Lifecycles;
                 using Xunit;

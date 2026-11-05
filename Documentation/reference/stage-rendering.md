@@ -767,11 +767,13 @@ edits to it are overwritten. Put application-specific global usings in a separat
 
 ## Generated application silo
 
-A rendered application hosts an Orleans silo through `Cratis.Orleans`, so jobs, event-sourced state machines and workflows have
-grains to run on. `Program.cs` calls `AddCratisOrleans` with `CratisOrleansOptions`: `Clustering = ClusteringMode.Localhost`,
-`Storage = GrainStorageMode.InMemory` and `Workflows = true`, then registers `AddEventSourcedStateMachines()` and
-`AddEventSourcedWorkflows()`. `Directory.Packages.props` pins `Cratis.Orleans` and `Cratis.Orleans.Chronicle` to the
+A rendered application hosts an Orleans silo through `Cratis.Choreography`, so jobs, event-sourced state machines and workflows have
+grains to run on. `Program.cs` calls `AddCratisChoreography` with the local configuration (localhost clustering and
+in-memory grain storage) and the workflow engine turned on, then registers `AddEventSourcedStateMachines()` and
+`AddEventSourcedWorkflows()`. `Directory.Packages.props` pins `Cratis.Choreography` and `Cratis.Choreography.Chronicle` to the
 versions Stage itself uses, and the project references them.
+
+Choreography 2.x is wire-incompatible with 1.x silos: upgrade the entire cluster together; do not run a mixed cluster.
 
 The local configuration starts with the application and needs no extra service, but jobs and workflow runs
 live in the application's memory and do not survive a restart. Configure durable storage in `Program.cs` when runs

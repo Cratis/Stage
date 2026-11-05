@@ -239,8 +239,9 @@ internal static class SemanticSurfaceLedger
         // IncludeChildren remain unverified by Stage and refused; Screenplay rejects synthetic null Sets.
         // Child join removal across parents and nested clear/recreation render on Chronicle 19.32.0;
         // differential and MongoDB probes cover both sequences. Root join removal remains blocked by
-        // Chronicle#4263 and Screenplay#563; joins inside nested remain blocked by the pinned Screenplay
-        // reference (Screenplay#1078). Children inside nested remain unsupported. Nested clear requires
+        // Chronicle#4263 and Screenplay#563. Joins inside root-level nested objects render as nested joins, except on the
+        // nested key (id), which Chronicle backfills and the reference does not. Joins inside nested under children, children
+        // inside nested and join removals inside nested remain unsupported. Nested clear requires
         // a matching root from and identical key. Root joins also admit required, type-matched event-property keys;
         // later root events after a differently keyed join are refused (https://github.com/Cratis/Chronicle/issues/5439).
         Add(entries, "SemanticProjectionScope", rendered, "Children From Joins Every JoinRemovals Nested Removals");
@@ -491,7 +492,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticOneOfExpression", rejected("STAGE-ESM-006"), "CollectionProperty");
 
         // State machines and workflows (ESM v36, Screenplay 5.1.0). The runtime drives them on the Orleans silo and the renderer emits
-        // Cratis.Orleans state machines and workflow definitions; what neither can express is refused with its STAGE-LIFECYCLE diagnostic.
+        // Cratis.Choreography state machines and workflow definitions; what neither can express is refused with its STAGE-LIFECYCLE diagnostic.
         var lifecycleNotRendered = rejected("STAGE-LIFECYCLE-010");
         var scheduled = rejected("STAGE-LIFECYCLE-007");
         var verifiedByTheReferenceEvaluator = ignored("Lifecycle specifications are verified by the reference lifecycle evaluator in the spec runner; no generated specification is emitted.");

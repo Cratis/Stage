@@ -28,6 +28,7 @@ internal static class ApplicationTriggerProbeSource
                     ["Cratis:Chronicle:EventStore"] = storeName,
                     ["Cratis:Chronicle:ConnectionString"] = connection
                 });
+                builder.Services.AddSingleton<Action<ChronicleTelemetryOptions>>(_ => { });
                 builder.AddCratis(configureChronicleBuilder: chronicle => chronicle.WithCamelCaseNamingPolicy());
                 Reactions.GeneratedPolicies.Registration.Register(builder.Services);
                 var app = builder.Build();

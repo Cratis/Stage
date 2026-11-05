@@ -56,7 +56,7 @@ The executor collapses repeated refusals across specifications only when they sh
 
 Matching is ordinal and exact on `(vector, surface, code, kind, artifact)`. A record on another vector or surface grants no coverage. Changing a code, kind, or artifact reports both `unrecorded-refusal` and `stale-record`; duplicates report `duplicate-record`. Empty or wildcard record artifacts report `code-only-record`. Missing observed artifacts report `refusal-without-artifact`.
 
-Every record needs exactly one disposition. A null or non-positive issue without a reason reports `missing-disposition`; supplying both fields reports `conflicting-disposition`. Issue 500 may track only `STAGE-ESM-011`. Records on supported, n/a, gap, or expected-refusal cells fail as `records-on-unrefused-cell`.
+Every record needs exactly one disposition. A null or non-positive issue without a reason reports `missing-disposition`; supplying both fields reports `conflicting-disposition`. Issue 500 may track only `STAGE-ESM-011`, `STAGE-IMPL-003` records are tracked only by Stage#891, and no record may point at issue 513. Records on supported, n/a, gap, or expected-refusal cells fail as `records-on-unrefused-cell`.
 
 The loader rejects legacy cell-level `issue`, `issueRefusals`, and `byDesign` fields, unknown fields, duplicate fields, and non-integer issue values with schema diagnostics. There is no compatibility fallback to cell-level ownership.
 

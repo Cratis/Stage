@@ -79,8 +79,8 @@ public class when_verifying_routed_appends_against_mongo : a_generated_applicati
         // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
         using Cratis.Arc.MongoDB;
-        using Cratis.Orleans.Chronicle.Hosting;
-        using Cratis.Orleans.Hosting;
+        using Cratis.Choreography.Chronicle.Hosting;
+        using Cratis.Choreography.Hosting;
 
         public partial class Program
         {

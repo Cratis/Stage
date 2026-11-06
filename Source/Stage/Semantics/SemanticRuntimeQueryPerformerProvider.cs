@@ -7,6 +7,7 @@ using Cratis.Arc.Queries;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Api;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Cratis.Stage.Semantics;
 
@@ -23,12 +24,27 @@ public sealed class SemanticRuntimeQueryPerformerProvider : IQueryPerformerProvi
     /// <param name="runtimes">The optional semantic runtime.</param>
     /// <param name="factories">The optional type factory.</param>
     /// <param name="contexts">The optional HTTP accessor.</param>
+    public SemanticRuntimeQueryPerformerProvider(
+        IEnumerable<ISemanticRuntime> runtimes,
+        IEnumerable<DynamicTypeFactory> factories,
+        IEnumerable<IHttpContextAccessor> contexts)
+        : this(runtimes, factories, contexts, null)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SemanticRuntimeQueryPerformerProvider"/> class that also serves queries that read a graph.
+    /// </summary>
+    /// <param name="runtimes">The optional semantic runtime.</param>
+    /// <param name="factories">The optional type factory.</param>
+    /// <param name="contexts">The optional HTTP accessor.</param>
     /// <param name="graphSessions">The optional graph session factory; without it a graph query is not served.</param>
+    [ActivatorUtilitiesConstructor]
     public SemanticRuntimeQueryPerformerProvider(
         IEnumerable<ISemanticRuntime> runtimes,
         IEnumerable<DynamicTypeFactory> factories,
         IEnumerable<IHttpContextAccessor> contexts,
-        IEnumerable<IGraphSessionFactory>? graphSessions = null)
+        IEnumerable<IGraphSessionFactory>? graphSessions)
     {
         var runtime = runtimes.FirstOrDefault();
         var factory = factories.FirstOrDefault();

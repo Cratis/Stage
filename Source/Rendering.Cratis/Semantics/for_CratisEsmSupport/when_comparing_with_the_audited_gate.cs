@@ -49,7 +49,8 @@ public class when_comparing_with_the_audited_gate : Specification
         (new(33, 0), new(33, 0)),
         (new(34, 0), new(34, 0)),
         (new(36, 0), new(36, 0)),
-        (new(38, 0), new(38, 0))
+        (new(38, 0), new(38, 0)),
+        (new(40, 0), new(40, 0))
     ];
 
     readonly List<string> _descriptorMismatches = [];
@@ -90,6 +91,8 @@ public class when_comparing_with_the_audited_gate : Specification
         CratisEsmSupport.Descriptor.Classify(new(version.Major, version.Minor), version) == EsmVersionStanding.FutureMajor);
     [Fact] void should_audit_the_exact_v36_pair() => CratisEsmSupport.Descriptor.Classify(LanguageVersion.V36, SemanticVersion.V36).ShouldEqual(EsmVersionStanding.Audited);
     [Fact] void should_audit_the_exact_v38_pair() => CratisEsmSupport.Descriptor.Classify(LanguageVersion.V38, SemanticVersion.V38).ShouldEqual(EsmVersionStanding.Audited);
+    [Fact] void should_audit_the_exact_v40_pair() => CratisEsmSupport.Descriptor.Classify(LanguageVersion.V40, SemanticVersion.V40).ShouldEqual(EsmVersionStanding.Audited);
+    [Fact] void should_check_the_members_of_a_v40_model_against_the_ledger() => CratisEsmSupport.Descriptor.ScansMembers(LanguageVersion.V40, SemanticVersion.V40).ShouldBeTrue();
     [Fact] void should_check_the_members_of_a_v38_model_against_the_ledger() => CratisEsmSupport.Descriptor.ScansMembers(LanguageVersion.V38, SemanticVersion.V38).ShouldBeTrue();
     [Fact] void should_not_scan_the_members_of_the_pairs_it_audited_whole() => CratisEsmSupport.Descriptor.ScansMembers(LanguageVersion.V36, SemanticVersion.V36).ShouldBeFalse();
     [Fact]

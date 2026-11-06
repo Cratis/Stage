@@ -12,7 +12,7 @@ internal static class HelperReference
     internal static string Generate() => """
         ---
         title: Template helpers
-        description: Frozen stage-templates/v1 helpers, examples, safety codes and budgets.
+        description: Reference the frozen stage-templates/v1 renderer helpers, including naming, literals, symbols, safety refusals, supported libraries and budget limits.
         ---
 
         <!-- Generated, do not edit. Source: HelperCatalogue.GenerateReference(). -->

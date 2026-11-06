@@ -38,13 +38,16 @@ public sealed class SemanticRuntimeQueryPerformerProvider : IQueryPerformerProvi
     /// <param name="runtimes">The optional semantic runtime.</param>
     /// <param name="factories">The optional type factory.</param>
     /// <param name="contexts">The optional HTTP accessor.</param>
-    /// <param name="graphSessions">The optional graph session factory; without it a graph query is not served.</param>
+    /// <param name="services">
+    /// The service provider the graph session factory is taken from, and only for a model that declares a graph query. Taking the factory as a
+    /// constructor dependency would make every host resolve it, and the factory cannot be built unless Neo4j is configured.
+    /// </param>
     [ActivatorUtilitiesConstructor]
     public SemanticRuntimeQueryPerformerProvider(
         IEnumerable<ISemanticRuntime> runtimes,
         IEnumerable<DynamicTypeFactory> factories,
         IEnumerable<IHttpContextAccessor> contexts,
-        IEnumerable<IGraphSessionFactory>? graphSessions)
+        IServiceProvider? services)
     {
         var runtime = runtimes.FirstOrDefault();
         var factory = factories.FirstOrDefault();
@@ -83,7 +86,7 @@ public sealed class SemanticRuntimeQueryPerformerProvider : IQueryPerformerProvi
                 }
             }
 
-            if (graphSessions?.FirstOrDefault() is { } sessions)
+            if (GraphSessions(services, runtime) is { } sessions)
             {
                 foreach (var graphQuery in runtime.Plan.Model.Application.GraphQueries.Where(candidate => located.Slice.Queries.All(query => query.Name != candidate.Name) && OwnedBy(located, candidate)))
                 {
@@ -117,4 +120,23 @@ public sealed class SemanticRuntimeQueryPerformerProvider : IQueryPerformerProvi
     // The model does not record which slice declares a graph query; it lives in the one that declares the read model it returns.
     static bool OwnedBy(LocatedSemanticSlice located, SemanticGraphQuery query) =>
         located.Slice.ReadModels.Any(readModel => readModel.Id == query.ReadModel);
+
+    // A model without a graph query never asks for the factory, so a host without Neo4j never builds one. A model that has one but no
+    // configured Neo4j is not served: its endpoints are simply absent, and admission still reports the model as running.
+    static IGraphSessionFactory? GraphSessions(IServiceProvider? services, ISemanticRuntime runtime)
+    {
+        if (services is null || runtime.Plan.Model.Application.GraphQueries.IsDefaultOrEmpty)
+        {
+            return null;
+        }
+
+        try
+        {
+            return services.GetService<IGraphSessionFactory>();
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+    }
 }

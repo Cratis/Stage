@@ -110,6 +110,21 @@ internal static class SemanticSurfaceLedger
         // and the whole of a graph is refused with STAGE-ESM-063 when the pinned Chronicle client predates the graph API (before 19.129.0).
         // and the whole of a graph is refused with STAGE-ESM-063 while the pinned Chronicle client has no graph API.
         Add(entries, "SemanticApplication", rendered, "Graphs GraphProjections GraphSpecifications");
+
+        // ESM v40: queries that read a graph, and the event-time clock and query expectations of graph specifications. The sandbox runs
+        // them against Neo4j; the renderer does not render a graph query yet and refuses it with STAGE-ESM-068.
+        var graphQuery = rejected("STAGE-ESM-068");
+        Add(entries, "SemanticApplication", graphQuery, "GraphQueries");
+        Add(entries, "SemanticGraphQuery", graphQuery, "Name Graph ReadModel Cardinality Delivery Arguments Matches Conditions Returns Authorization");
+        Add(entries, "SemanticGraphQueryArgument", graphQuery, "Name Type IsKey");
+        Add(entries, "SemanticGraphMatch", graphQuery, "IsOptional Start Hops");
+        Add(entries, "SemanticGraphPatternNode", graphQuery, "Alias Label");
+        Add(entries, "SemanticGraphHop", graphQuery, "Alias Type Outgoing Node");
+        Add(entries, "SemanticGraphCondition", graphQuery, "Alias Property Argument Literal");
+        Add(entries, "SemanticGraphReturn", graphQuery, "Property Alias Source");
+        Add(entries, "SemanticGraphSpecification", graphQuery, "ThenQueries Clock");
+        Add(entries, "SemanticGraphQueryExpectation", graphQuery, "Query Exactly Arguments Rows");
+        Add(entries, "SemanticGraphRow", graphQuery, "Values");
         Add(entries, "SemanticGraph", rendered, "Name Nodes Edges");
         Add(entries, "SemanticGraphNode", rendered, "Label Properties");
         Add(entries, "SemanticGraphEdge", rendered, "Type Source Target Properties IdentifiedBy");

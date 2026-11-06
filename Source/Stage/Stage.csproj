@@ -21,6 +21,7 @@
         <PackageReference Include="Cratis" />
         <PackageReference Include="Cratis.Fundamentals" />
         <PackageReference Include="Cratis.Arc.MongoDB" />
+        <PackageReference Include="Cratis.Arc.Neo4j" />
         <!--
             The Chronicle client packages are referenced directly, not left to arrive transitively through the Cratis
             meta-package: central package management only pins direct references, so without these the client ships at

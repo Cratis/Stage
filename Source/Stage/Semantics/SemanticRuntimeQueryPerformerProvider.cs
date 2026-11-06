@@ -2,9 +2,12 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Diagnostics.CodeAnalysis;
+using Cratis.Arc.Neo4j;
 using Cratis.Arc.Queries;
+using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Api;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Cratis.Stage.Semantics;
 
@@ -25,6 +28,26 @@ public sealed class SemanticRuntimeQueryPerformerProvider : IQueryPerformerProvi
         IEnumerable<ISemanticRuntime> runtimes,
         IEnumerable<DynamicTypeFactory> factories,
         IEnumerable<IHttpContextAccessor> contexts)
+        : this(runtimes, factories, contexts, null)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SemanticRuntimeQueryPerformerProvider"/> class that also serves queries that read a graph.
+    /// </summary>
+    /// <param name="runtimes">The optional semantic runtime.</param>
+    /// <param name="factories">The optional type factory.</param>
+    /// <param name="contexts">The optional HTTP accessor.</param>
+    /// <param name="services">
+    /// The service provider the graph session factory is taken from, and only for a model that declares a graph query. Taking the factory as a
+    /// constructor dependency would make every host resolve it, and the factory cannot be built unless Neo4j is configured.
+    /// </param>
+    [ActivatorUtilitiesConstructor]
+    public SemanticRuntimeQueryPerformerProvider(
+        IEnumerable<ISemanticRuntime> runtimes,
+        IEnumerable<DynamicTypeFactory> factories,
+        IEnumerable<IHttpContextAccessor> contexts,
+        IServiceProvider? services)
     {
         var runtime = runtimes.FirstOrDefault();
         var factory = factories.FirstOrDefault();
@@ -63,6 +86,17 @@ public sealed class SemanticRuntimeQueryPerformerProvider : IQueryPerformerProvi
                 }
             }
 
+            if (GraphSessions(services, runtime) is { } sessions)
+            {
+                foreach (var graphQuery in runtime.Plan.Model.Application.GraphQueries.Where(candidate => located.Slice.Queries.All(query => query.Name != candidate.Name) && OwnedBy(located, candidate)))
+                {
+                    var model = runtime.Plan.ReadModels[graphQuery.ReadModel];
+                    var graph = runtime.Plan.Model.Application.Graphs.Single(candidate => candidate.Name == graphQuery.Graph);
+                    var type = factory.CreateReadModelType(located.TypeNamespace, ModelNaming.ToIdentifier(model.Name));
+                    _performers.Add(new SemanticGraphQueryPerformer(type, ModelNaming.ToIdentifier(graphQuery.Name), located.CanonicalLocation, runtime, graphQuery, graph, model, sessions, context));
+                }
+            }
+
             foreach (var query in located.Slice.Queries)
             {
                 var model = runtime.Plan.ReadModels[query.ReadModel];
@@ -81,5 +115,28 @@ public sealed class SemanticRuntimeQueryPerformerProvider : IQueryPerformerProvi
     {
         performer = _performers.Find(candidate => candidate.FullyQualifiedName == query);
         return performer is not null;
+    }
+
+    // The model does not record which slice declares a graph query; it lives in the one that declares the read model it returns.
+    static bool OwnedBy(LocatedSemanticSlice located, SemanticGraphQuery query) =>
+        located.Slice.ReadModels.Any(readModel => readModel.Id == query.ReadModel);
+
+    // A model without a graph query never asks for the factory, so a host without Neo4j never builds one. A model that has one but no
+    // configured Neo4j is not served: its endpoints are simply absent, and admission still reports the model as running.
+    static IGraphSessionFactory? GraphSessions(IServiceProvider? services, ISemanticRuntime runtime)
+    {
+        if (services is null || runtime.Plan.Model.Application.GraphQueries.IsDefaultOrEmpty)
+        {
+            return null;
+        }
+
+        try
+        {
+            return services.GetService<IGraphSessionFactory>();
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
     }
 }

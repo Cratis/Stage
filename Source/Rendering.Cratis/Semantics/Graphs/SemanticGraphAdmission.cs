@@ -29,12 +29,17 @@ internal static class SemanticGraphAdmission
     internal const string ScopedOut = "STAGE-ESM-066";
 
     /// <summary>
+    /// The code for a query that reads a graph: the sandbox runs it against Neo4j, the renderer does not render one yet.
+    /// </summary>
+    internal const string QueryNotRendered = "STAGE-ESM-068";
+
+    /// <summary>
     /// Gets whether the application declares a graph, a graph projection or a graph specification.
     /// </summary>
     /// <param name="application">The application.</param>
     /// <returns>True when any graph construct is declared.</returns>
     internal static bool Declares(SemanticApplication application) =>
-        !application.Graphs.IsDefaultOrEmpty || !application.GraphProjections.IsDefaultOrEmpty || !application.GraphSpecifications.IsDefaultOrEmpty;
+        !application.Graphs.IsDefaultOrEmpty || !application.GraphProjections.IsDefaultOrEmpty || !application.GraphSpecifications.IsDefaultOrEmpty || !application.GraphQueries.IsDefaultOrEmpty;
 
     /// <summary>
     /// Checks what the application declares about graphs.
@@ -55,6 +60,7 @@ internal static class SemanticGraphAdmission
         var diagnostics = new List<ArtifactRenderDiagnostic>();
         var checker = new Checker(context, diagnostics);
         checker.Graphs();
+        checker.Queries();
         checker.Projections();
         checker.Specifications();
         return [.. diagnostics];
@@ -174,6 +180,14 @@ internal static class SemanticGraphAdmission
             }
 
             CheckSharedElements();
+        }
+
+        public void Queries()
+        {
+            foreach (var query in context.Application.GraphQueries.IsDefaultOrEmpty ? [] : context.Application.GraphQueries)
+            {
+                Diagnostic(QueryNotRendered, $"Graph query '{query.Name}' reads graph '{query.Graph}'. Stage's sandbox runs it against Neo4j; the renderer does not render a graph query yet, so a rendered application would have no endpoint for it.");
+            }
         }
 
         public void Specifications()

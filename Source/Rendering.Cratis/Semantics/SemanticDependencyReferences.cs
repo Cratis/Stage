@@ -10,7 +10,7 @@ internal static class SemanticDependencyReferences
     {
         [SemanticDependencyKind.Declaration] = """
         ExecutableSemanticModel:Application
-        SemanticApplication:Concepts Modules Types Policies EventSources Triggers Graphs GraphProjections GraphSpecifications
+        SemanticApplication:Concepts Modules Types Policies EventSources Triggers Graphs GraphProjections GraphSpecifications GraphQueries
         SemanticGraph:Nodes Edges
         SemanticGraphNode:Properties
         SemanticGraphEdge:Properties
@@ -95,6 +95,10 @@ internal static class SemanticDependencyReferences
         """,
         [SemanticDependencyKind.Query] = """
         SemanticKeyedQuery:Argument ReadModel KeyProperty Authorization Filters KeyParts
+        SemanticGraphQuery:ReadModel Arguments Conditions Returns Authorization
+        SemanticGraphQueryArgument:Type
+        SemanticGraphCondition:Literal
+        SemanticGraphReturn:Property
         SemanticQueryKeyPart:Type KeyProperty
         SemanticQueryFilter:Type Property
         SemanticQueryFilterValue:Filter Value
@@ -102,7 +106,9 @@ internal static class SemanticDependencyReferences
         [SemanticDependencyKind.Specification] = """
         SemanticSpecification:GivenEvents GivenReadModels ThenEvents ThenReadModels ThenQueries When ThenAbsentReadModels WhenAppended WhenRedelivered GivenCaptures WhenCapture WhenTrigger GivenGenerated ThenReturns ThenInvocations
         SemanticSpecificationAbsentReadModel:Key ReadModel
-        SemanticGraphSpecification:Given GivenGraphs WhenAppended ThenGraphs
+        SemanticGraphSpecification:Given GivenGraphs WhenAppended ThenGraphs ThenQueries
+        SemanticGraphQueryExpectation:Arguments Rows
+        SemanticGraphRow:Values
         SemanticGraphStep:Elements
         SemanticGraphElementStep:Key Values Target Identity
         SemanticGraphPropertyValue:Value

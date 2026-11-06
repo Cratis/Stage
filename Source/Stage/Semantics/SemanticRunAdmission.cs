@@ -21,7 +21,7 @@ namespace Cratis.Stage.Semantics;
 public static class SemanticRunAdmission
 {
     /// <summary>
-    /// The code for graph declarations and graph projections, which the live runtime does not project.
+    /// The code for graph declarations and graph projections, which the live runtime registers with the kernel for its graph sink to project, and decides specifications for with the reference graph runner.
     /// </summary>
     public const string GraphsNotProjected = "STAGE-ESM-065";
 
@@ -107,7 +107,7 @@ public static class SemanticRunAdmission
 
         if (feature.Details.StartsWith($"{GraphsNotProjected}:", StringComparison.Ordinal) && IsKind(feature, "graph"))
         {
-            return $"{GraphsNotProjected}: Graphs are declared but not projected in the sandbox: graph projections write to a graph sink, which the sandbox does not run, and nothing in the language reads a graph back. Graph specifications are decided by Screenplay's reference graph runner instead.";
+            return $"{GraphsNotProjected}: Graphs are projected by the kernel's graph sink: the sandbox registers each graph and its projection with the kernel it runs against, embedded or external, and the kernel writes the nodes and edges. The sandbox itself does not read a graph back, and graph specifications are decided by Screenplay's reference graph runner.";
         }
 
         return null;
@@ -125,7 +125,7 @@ public static class SemanticRunAdmission
             application.Id.ToString(),
             "graph",
             nameof(StageExecutionCapability.Projection),
-            $"{GraphsNotProjected}: The application declares {application.Graphs.Length} graph(s) and {application.GraphProjections.Length} graph projection(s), which this runtime does not project.");
+            $"{GraphsNotProjected}: The application declares {application.Graphs.Length} graph(s) and {application.GraphProjections.Length} graph projection(s), which this runtime registers with the kernel's graph sink and does not read back.");
     }
 
     /// <summary>

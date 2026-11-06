@@ -25,7 +25,7 @@ public class when_admitting_graphs : Specification
     }
 
     [Fact] void should_run_the_v38_pair() => SemanticRunAdmission.SupportsRun(_graphs).ShouldBeTrue();
-    [Fact] void should_say_that_the_runtime_does_not_project_the_graph() => SemanticRunAdmission.ModelFeatures(_graphs).Single().Details.ShouldContain($"{SemanticRunAdmission.GraphsNotProjected}:");
+    [Fact] void should_say_that_the_kernel_projects_the_graph() => SemanticRunAdmission.ModelFeatures(_graphs).Single().Details.ShouldContain($"{SemanticRunAdmission.GraphsNotProjected}:");
     [Fact] void should_attribute_it_to_the_application() => SemanticRunAdmission.ModelFeatures(_graphs).Single().Artifact.ShouldEqual(_graphs.Application.Id.ToString());
     [Fact] void should_not_let_it_block_the_model() => SemanticRunAdmission.RunsAround(_graphs.Application, SemanticRunAdmission.ModelFeatures(_graphs).Single()).ShouldNotBeNull();
     [Fact] void should_not_block_the_model_with_it() => SemanticRunAdmission.BlockingModelFeatures(_graphs.Application).ShouldBeEmpty();

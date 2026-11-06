@@ -9,17 +9,17 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Cratis -->
-    <PackageVersion Include="Cratis" Version="22.168.0" />
+    <PackageVersion Include="Cratis" Version="22.170.0" />
     <PackageVersion Include="Cratis.Fundamentals" Version="7.33.1" />
-    <PackageVersion Include="Cratis.Arc" Version="22.168.0" />
-    <PackageVersion Include="Cratis.Arc.Chronicle" Version="22.168.0" />
-    <PackageVersion Include="Cratis.Arc.Chronicle.Testing" Version="22.168.0" />
-    <PackageVersion Include="Cratis.Arc.MongoDB" Version="22.168.0" />
+    <PackageVersion Include="Cratis.Arc" Version="22.170.0" />
+    <PackageVersion Include="Cratis.Arc.Chronicle" Version="22.170.0" />
+    <PackageVersion Include="Cratis.Arc.Chronicle.Testing" Version="22.170.0" />
+    <PackageVersion Include="Cratis.Arc.MongoDB" Version="22.170.0" />
     <PackageVersion Include="Cratis.Arc.Neo4j" Version="22.168.0" />
-    <PackageVersion Include="Cratis.Arc.Screenplay" Version="22.168.0" />
-    <PackageVersion Include="Cratis.Arc.Swagger" Version="22.168.0" />
-    <PackageVersion Include="Cratis.Arc.Testing" Version="22.168.0" />
-    <PackageVersion Include="Cratis.Showrunner.Notes" Version="1.14.0" />
+    <PackageVersion Include="Cratis.Arc.Screenplay" Version="22.170.0" />
+    <PackageVersion Include="Cratis.Arc.Swagger" Version="22.170.0" />
+    <PackageVersion Include="Cratis.Arc.Testing" Version="22.170.0" />
+    <PackageVersion Include="Cratis.Showrunner.Notes" Version="1.16.0" />
     <!--
         The Chronicle client packages are pinned here AND referenced directly from Stage and Host - central package
         management only pins what a project references directly, so a version that arrives transitively through the
@@ -29,14 +29,14 @@
         image tag must track this version too, so the bundled kernel and the client never drift apart.
     -->
     <!-- The Orleans silo hosted by the Stage runtime and by every rendered application. Cratis.Choreography.Chronicle requires the Chronicle client pinned below. -->
-    <PackageVersion Include="Cratis.Choreography" Version="2.2.0" />
-    <PackageVersion Include="Cratis.Choreography.Chronicle" Version="2.2.0" />
-    <PackageVersion Include="Cratis.Chronicle" Version="19.129.0" />
+    <PackageVersion Include="Cratis.Choreography" Version="2.3.0" />
+    <PackageVersion Include="Cratis.Choreography.Chronicle" Version="2.3.0" />
+    <PackageVersion Include="Cratis.Chronicle" Version="19.132.1" />
     <!-- Only the multi-service repository scaffold emits this pin (Stage references no Aspire package). It matches the Aspire version of Chronicle and Studio. -->
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.6.4" />
-    <PackageVersion Include="Cratis.Chronicle.AspNetCore" Version="19.129.0" />
-    <PackageVersion Include="Cratis.Chronicle.Contracts" Version="19.129.0" />
-    <PackageVersion Include="Cratis.Chronicle.Testing" Version="19.129.0" />
+    <PackageVersion Include="Cratis.Chronicle.AspNetCore" Version="19.132.1" />
+    <PackageVersion Include="Cratis.Chronicle.Contracts" Version="19.132.1" />
+    <PackageVersion Include="Cratis.Chronicle.Testing" Version="19.132.1" />
     <!--
         Cratis.Chronicle.Testing 19.114.0 bundles Cratis.Chronicle.Core and Cratis.Chronicle.Grpc, which are built against
         Microsoft.Extensions.Telemetry.Abstractions 10.11.0, but the package does not declare that dependency. Without this
@@ -74,12 +74,12 @@
     <PackageVersion Include="Microsoft.TemplateEngine.Edge" Version="10.0.403" />
     <PackageVersion Include="Microsoft.TemplateEngine.Orchestrator.RunnableProjects" Version="10.0.403" />
     <!-- OpenAPI -->
-    <PackageVersion Include="Scalar.AspNetCore" Version="2.18.7" />
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.19.0" />
     <!-- Reverse proxy for the Chronicle Workbench, which the bundled kernel serves on its own unpublished port. -->
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.14" />
     <!-- Sign-in for the rendered application host; the emitted host pins the same version. -->
-    <PackageVersion Include="Microsoft.Identity.Web" Version="4.17.0" />
+    <PackageVersion Include="Microsoft.Identity.Web" Version="4.18.0" />
     <!-- Direct references activate these patched versions above the vulnerable Identity.Web transitive minimums. -->
     <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
     <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.14" />
@@ -96,7 +96,7 @@
     <!-- Analysis -->
     <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.556" NoWarn="NU5104" />
     <PackageVersion Include="Roslynator.Analyzers" Version="5.0.1" />
-    <PackageVersion Include="Meziantou.Analyzer" Version="3.0.320" />
+    <PackageVersion Include="Meziantou.Analyzer" Version="3.0.321" />
     <!-- Testing & Specifications -->
     <PackageVersion Include="Cratis.Specifications" Version="5.2.3" />
     <PackageVersion Include="Cratis.Specifications.XUnit" Version="5.2.3" />

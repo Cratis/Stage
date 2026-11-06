@@ -35,7 +35,7 @@ as a whole; Stage does not emit only its top-level appends.
 
 ### Typed capture keys (ESM v32)
 
-Stage uses Screenplay 5.3.1 and admits exact ESM v1.0–v34.0 and v36.0 language/semantic pairs, including v31 and v32, not v35 or arbitrary minor versions.
+Stage uses Screenplay 5.7.0 and admits exact ESM v1.0–v34.0, v36.0 and v38.0 language/semantic pairs, including v31 and v32, not v35, v37 or arbitrary minor versions.
 A v32 capture preserves the key's declared event-source type rather than treating it as text.
 Required scalar `Text`, `Uuid` and `WholeNumber` keys, and non-enumerated concepts over those
 primitives, render when every source contract has the same key type and every append declares that

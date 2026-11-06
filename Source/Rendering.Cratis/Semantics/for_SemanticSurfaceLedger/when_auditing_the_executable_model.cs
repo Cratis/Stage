@@ -65,6 +65,24 @@ public class when_auditing_the_executable_model : given.the_executable_surface
         _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-016"));
 
     [Theory]
+    [InlineData("SemanticApplication.ContextMembers")]
+    [InlineData("SemanticReadModel.PropertyOrder")]
+    public void should_keep_the_v37_members_outside_the_audited_v38_pair(string member) =>
+        _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-016"));
+
+    [Theory]
+    [InlineData("SemanticApplication.Graphs")]
+    [InlineData("SemanticApplication.GraphProjections")]
+    [InlineData("SemanticApplication.GraphSpecifications")]
+    [InlineData("SemanticGraphNode.Label")]
+    [InlineData("SemanticGraphEdge.IdentifiedBy")]
+    [InlineData("SemanticGraphHandler.Detach")]
+    [InlineData("SemanticGraphMapping.Operation")]
+    [InlineData("SemanticGraphSpecification.GivenGraphs")]
+    [InlineData("SemanticGraphElementStep.Absent")]
+    public void should_classify_graph_members_as_rendered(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
+
+    [Theory]
     [InlineData("SemanticEventContract.Visibility")]
     [InlineData("SemanticEventContract.Origin")]
     [InlineData("SemanticEventVisibility.Public")]

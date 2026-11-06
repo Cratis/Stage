@@ -710,7 +710,7 @@ Evolution waits for migration modeling and rendering (Screenplay #71 and a Stage
 
 ### ESM version support and construct limits
 
-Stage's default Screenplay dependency is 5.3.1. The Cratis target's `CratisEsmSupport` descriptor audits exact matching language/semantic pairs from `1.0/1.0` through `34.0/34.0`, plus `36.0/36.0`; it does not audit `35.0/35.0`. Package versions and ESM versions are different contracts, so a dependency upgrade alone does not admit a new ESM pair.
+Stage's default Screenplay dependency is 5.7.0. The Cratis target's `CratisEsmSupport` descriptor audits exact matching language/semantic pairs from `1.0/1.0` through `34.0/34.0`, plus `36.0/36.0` and `38.0/38.0`; it does not audit `35.0/35.0` or `37.0/37.0`. Package versions and ESM versions are different contracts, so a dependency upgrade alone does not admit a new ESM pair.
 
 The descriptor also declares a compatibility range of `>=32.0 <33`. Matching, unaudited pairs inside that range are considered separately: the renderer inspects the selected semantic surface and records degradation evidence for an unaudited pair or unknown non-security member. An unknown security-relevant member is an error. Mixed pairs and pairs outside both the audited set and the declared range fail with `STAGE-ESM-016` before rendering. Use `CratisEsmSupport` and the admission code as the source of truth when changing version support; do not infer support from the highest version number.
 

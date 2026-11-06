@@ -12,6 +12,7 @@ using Cratis.Stage.Rendering.Cratis.Scaffolding;
 using Cratis.Stage.Rendering.Cratis.Scene;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Rendering.Cratis.Semantics.Constraints;
+using Cratis.Stage.Rendering.Cratis.Semantics.Graphs;
 using Cratis.Stage.Rendering.Cratis.Semantics.Lifecycles;
 using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
 using Cratis.Stage.Rendering.Cratis.Semantics.Validation;
@@ -139,6 +140,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         SemanticCratisAdmission.Evaluate(context, slices, diagnostics);
         var lifecycleRefusals = SemanticLifecycleAdmission.Check(context);
         diagnostics.AddRange(lifecycleRefusals.Select(refusal => Error(refusal.Code, refusal.Message, context.Application.Id)));
+        diagnostics.AddRange(GraphDiagnostics(request, context));
         var removals = SemanticCratisAdmission.AdmitReducerMigration(context, diagnostics);
         var selectedReducers = omission.Apply(SemanticReducerTypedContexts.Selected(context, slices))
             .Select(descriptor => (descriptor.RequirementId, descriptor.OperationId!.Value)).ToHashSet();
@@ -261,6 +263,16 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
                 context.Application.Id)));
         }
 
+        if (request.Scope.Kind == ArtifactRenderScopeKind.Application && SemanticGraphAdmission.Declares(context.Application) && SemanticGraphAdmission.Check(context, ChronicleGraphSupport.PinnedClientAdmits).IsEmpty)
+        {
+            artifacts.AddRange(SemanticGraphArtifactRenderer.Render(context)
+                .Concat(context.Application.GraphSpecifications.Where(specification => !SemanticGraphAdmission.IsSeeded(specification)).Select(specification => SemanticGraphSpecificationRenderer.Render(specification, context)))
+                .Select(Artifact));
+            var omitted = SemanticGraphAdmission.Omitted(context);
+            diagnostics.AddRange(omitted.Select(degradation => degradation.Diagnostic));
+            context.Degradations.AddRange(omitted);
+        }
+
         artifacts.AddRange(SemanticCratisAdmission.SelectedConstraints(context, slices)
             .Select(_ => Artifact(SemanticConstraintArtifactRenderer.Render(_.Slice, _.Constraint, context))));
         diagnostics.AddRange(context.InlineDiagnostics);
@@ -278,7 +290,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         var standing = SemanticVersionFeatures.Supports(request.Model)
             ? EsmVersionStanding.Audited
             : CratisEsmSupport.Descriptor.Classify(request.Model.LanguageVersion, request.Model.SemanticVersion);
-        return standing == EsmVersionStanding.NewerWithinRange
+        return standing == EsmVersionStanding.NewerWithinRange || CratisEsmSupport.Descriptor.ScansMembers(request.Model.LanguageVersion, request.Model.SemanticVersion)
             ? CratisEsmRangeAdmission.Evaluate(request, new SemanticApplicationContext(request, options))
             : CratisEsmRangeAdmission.FromFindings(request, new(standing, []));
     }
@@ -346,6 +358,15 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         return [.. gaps.OrderBy(gap => gap.RequirementId, StringComparer.Ordinal)];
     }
 
+    // Graphs belong to the application: a scoped plan names the construct it leaves out instead of dropping it silently.
+    static ImmutableArray<ArtifactRenderDiagnostic> GraphDiagnostics(ArtifactRenderRequest request, SemanticApplicationContext context)
+    {
+        if (!SemanticGraphAdmission.Declares(context.Application)) return [];
+        return request.Scope.Kind == ArtifactRenderScopeKind.Application
+            ? SemanticGraphAdmission.Check(context, ChronicleGraphSupport.PinnedClientAdmits)
+            : [new(SemanticGraphAdmission.ScopedOut, ArtifactRenderDiagnosticSeverity.Information, "The application declares graphs, graph projections or graph specifications, which render with the application scope only; this scoped plan renders none of them.", context.Application.Id)];
+    }
+
     static void AddScaffold(
         ArtifactRenderRequest request,
         SemanticApplicationContext context,
@@ -356,7 +377,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             return;
         }
 
-        artifacts.AddRange(CratisScaffoldArtifacts.Render(request.Profile, context.RootNamespace, [context.Application.Id], request.Model.Application.Name, SemanticLifecycleArtifactRenderer.HasEventTriggers(context), context.EventContracts.Any && !context.EventContracts.Blockers(context).Any() ? context.ContractsFolder : null));
+        artifacts.AddRange(CratisScaffoldArtifacts.Render(request.Profile, context.RootNamespace, [context.Application.Id], request.Model.Application.Name, SemanticLifecycleArtifactRenderer.HasEventTriggers(context), context.EventContracts.Any && !context.EventContracts.Blockers(context).Any() ? context.ContractsFolder : null, SemanticGraphAdmission.Declares(context.Application)));
     }
 
     // The application's shared UI: the Scene composition, the module binding it to the generated Arc proxies, and the

@@ -18,6 +18,9 @@ internal static partial class SemanticCratisAdmission
         SemanticSlice slice,
         List<ArtifactRenderDiagnostic> diagnostics)
     {
+        // A state view that only hosts a graph has no read model: the graph is application-level and rendered with the application.
+        if (Graphs.SemanticGraphAdmission.HostsOnlyGraphs(context.Application, slice)) return;
+
         if ((slice.ReadModels.Length == 0 && slice.Reducers.IsEmpty) ||
             slice.Projections.Any(projection => !slice.ReadModels.Any(model => model.Id == projection.ReadModel)) ||
             slice.Reducers.Any(reducer => !slice.ReadModels.Any(model => model.Id == reducer.ReadModel)) ||

@@ -17,11 +17,13 @@ public class when_auditing_the_ui_surface : Specification
     // StickyNotes are Studio canvas notes: authoring metadata outside the executable model, so Stage neither renders nor refuses them.
     // TimeZone (Screenplay 4.247.0, decisions 0106/0107) never reaches Stage: the Screenplay binder refuses an application time zone (Cratis/Screenplay#824).
     // Context (Screenplay 5.3.1) is refused by the binder with PLAY0268 before Stage consumes it.
+    // Graphs and GraphProjections (Screenplay 5.7.0) render from the executable semantic model; the legacy syntax path refuses them with STAGE-ESM-067 (GraphSyntaxAdmission).
+    // Nested sample-data rows (SampleDataFieldSyntax.Rows, SampleDataValueKind.Rows) are sample data for the Scene preview, which Stage does not render.
     [Theory]
     [InlineData(typeof(ApplicationSyntax), "Authentication Behaviors CommandReadMode Concepts Context Domain EventSources Examples Exposures FileImports Identity Imports InstanceContributions Layouts Modules Onboarding Personas Policies Purposes ReactionProductionMode SampleDataPacks Seeds SourceOptions StateMachines StickyNotes Systems Templates Themes TimeZone Triggers Types UiProfiles Workflows")]
     [InlineData(typeof(ModuleSyntax), "Authorize Behaviors Contributions DependsOn Description DialogTemplates Documentation Examples Features FileImports Forms IsPlacement Name Navigation Purposes ScreenTemplates Templates Toolbars UsedBehaviors")]
     [InlineData(typeof(FeatureSyntax), "Authorize Behaviors Contributions DependsOn Description Documentation Examples Features FileImports IsPlacement Name Purposes Slices Templates Toolbars UsedBehaviors")]
-    [InlineData(typeof(SliceSyntax), "Captures Commands Constraints Description DescriptionLocation DescriptionRawLength Direction Documentation EffectiveDirection Events Examples File Name Operations Projections Purposes Queries Reactions ReadModels Reducers Screens Specifications Templates Type")]
+    [InlineData(typeof(SliceSyntax), "Captures Commands Constraints Description DescriptionLocation DescriptionRawLength Direction Documentation EffectiveDirection Events Examples File GraphProjections Graphs Name Operations Projections Purposes Queries Reactions ReadModels Reducers Screens Specifications Templates Type")]
     [InlineData(typeof(InteractionBindingSyntax), "Actions Alternatives Condition Otherwise Trigger")]
     [InlineData(typeof(InteractionAlternativeSyntax), "Actions Condition")]
     [InlineData(typeof(InteractionOtherwiseSyntax), "Actions")]
@@ -73,7 +75,7 @@ public class when_auditing_the_ui_surface : Specification
     [InlineData(typeof(SampleDataPackSyntax), "Locale Name Sets Title")]
     [InlineData(typeof(SampleDataSetSyntax), "Rows Shape")]
     [InlineData(typeof(SampleDataRowSyntax), "Fields")]
-    [InlineData(typeof(SampleDataFieldSyntax), "Kind Name Value")]
+    [InlineData(typeof(SampleDataFieldSyntax), "Kind Name Rows Value")]
     [InlineData(typeof(SampleDataSelectionSyntax), "Active Bindings Mappings")]
     [InlineData(typeof(SampleDataPackReferenceSyntax), "IsBlueprint Name")]
     [InlineData(typeof(SampleDataMappingSyntax), "ReadModel Shape")]
@@ -88,7 +90,7 @@ public class when_auditing_the_ui_surface : Specification
     [Theory]
     [InlineData(typeof(FormColumnMode), "Unspecified Auto Manual")]
     [InlineData(typeof(ToolbarItemKind), "Unknown Action Navigate Dialog")]
-    [InlineData(typeof(SampleDataValueKind), "Text Number Flag Null")]
+    [InlineData(typeof(SampleDataValueKind), "Text Number Flag Null Rows")]
     [InlineData(typeof(ShellOptionValueKind), "Word Text Number Flag")]
     [InlineData(typeof(ToolbarEmphasis), "Primary Secondary Quiet")]
     [InlineData(typeof(NavigationRegionKind), "Topbar Sidebar")]

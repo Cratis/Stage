@@ -13,7 +13,7 @@ namespace Cratis.Stage.Rendering.Cratis.Scaffolding;
 
 internal static class CratisScaffoldArtifacts
 {
-    internal static IEnumerable<PlannedArtifact> Render(ArtifactRenderProfile profile, string rootNamespace, ImmutableArray<SemanticId> sources, string? applicationName = null, bool generatedWorkflows = false, string? contractsFolder = null)
+    internal static IEnumerable<PlannedArtifact> Render(ArtifactRenderProfile profile, string rootNamespace, ImmutableArray<SemanticId> sources, string? applicationName = null, bool generatedWorkflows = false, string? contractsFolder = null, bool usesGraphs = false)
     {
         var realization = applicationName is null ? null : ApplicationRealizationInput.From(profile);
         var strings = StringsCatalogInput.From(profile);
@@ -34,7 +34,8 @@ internal static class CratisScaffoldArtifacts
             }
 
             planned = realization is null ? planned : RealizationScaffold.Patch(planned, realization, rootNamespace);
-            yield return contractsFolder is null ? planned : EventContractsScaffold.Patch(planned, contractsFolder);
+            planned = contractsFolder is null ? planned : EventContractsScaffold.Patch(planned, contractsFolder);
+            yield return usesGraphs && applicationName is not null ? GraphScaffold.Patch(planned, applicationName) : planned;
         }
 
         if (realization is not null)

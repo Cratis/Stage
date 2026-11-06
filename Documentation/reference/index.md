@@ -22,6 +22,7 @@ For startup, port configuration and session limits, continue with [The Stage con
 - [Default generated Scene](default-scene-composition.md) covers editable keyed lookups, omitted cases, input formats and stable proxy identities.
 - [Generated values and command responses](generated-values-rendering.md) covers UUID concepts, generation fixtures, response contracts and limits.
 - [Event reaction rendering](reaction-rendering.md) covers Automation artifacts, reactor identity, side effects, retry behavior and refusals.
+- [Graph rendering](graph-rendering.md) covers graph declarations and graph projections rendered as Chronicle node and edge records, the Neo4j host wiring and the graph constructs Stage refuses.
 - [Scene UI render plans](render-plans.md) explains what Stage resolves for each `ui profile`, how to interpret findings, and how one invocation covers every target.
 - [Template helper catalogue](template-helpers.md) lists the generated v1 locked declarative-kit helper signatures and standard-library allowlist.
 

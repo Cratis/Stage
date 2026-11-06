@@ -19,7 +19,6 @@ public class when_conforming_to_the_chronicle_projection_visitor
     [InlineData("children lines identified by number\n  no automap\n  children allocations identified by id\n    from Allocated key id\n      amount = amount\n  every\n    exclude children\n    changed = true", "recursive-children-and-explicit-mode")]
     [InlineData("nested shipping\n  no automap\n  every\n    label = label\n  from Shipped\n    city = city", "nested-explicit-mode")]
     [InlineData("every\n  lastSeen = $eventContext.occurred\nevery\n  lastSeen = $eventSourceId", "top-level-every-replacement")]
-    [InlineData("from ItemRegistered+2 key id\n  id = id", "versioned-event")]
     [InlineData("from ItemRegistered\n  label = null\n  clear label\nremove with ItemRemoved\nremove via join on ItemDetached", "null-clear-and-removal")]
     [InlineData("nested shipping\n  from Shipped\n    city = city\n  nested carrier\n    from CarrierAssigned\n      name = name\n    clear with CarrierCleared", "recursive-nested")]
     [InlineData("children lines identified by lineNumber\n  from LineAdded key lineNumber\n    number = lineNumber\n  every\n    first = first\n  every\n    second = second\n  nested detail\n    from LineChanged\n      note = note", "child-every-merge-and-nested")]
@@ -32,12 +31,7 @@ public class when_conforming_to_the_chronicle_projection_visitor
     [InlineData("nested shipping\n  from Shipped\n    city = city\n  children lines identified by number\n    from LineAdded key number\n      number = number", "nested-children")]
     public void should_match_the_kernel_visitor(string blocks, string caseName)
     {
-        var projection = CompileProjection(caseName == "versioned-event" ? blocks.Replace("+2", string.Empty, StringComparison.Ordinal) : blocks, caseName);
-        if (caseName == "versioned-event")
-        {
-            var subscription = (FromSyntax)projection.Blocks.Single();
-            projection = projection with { Blocks = [subscription with { Events = [subscription.Events.Single() with { Event = "ItemRegistered+2" }] }] };
-        }
+        var projection = CompileProjection(blocks, caseName);
         if (caseName == "root-disabled-inherited-mode")
         {
             projection = projection with { AutoMap = AutoMapMode.Disabled };

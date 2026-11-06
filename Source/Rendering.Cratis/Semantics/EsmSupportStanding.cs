@@ -15,6 +15,6 @@ internal sealed record EsmSupportStanding(EsmVersionStanding Version, ImmutableA
         SemanticUnknownMemberScope scope)
     {
         var standing = support.Classify(model.LanguageVersion, model.SemanticVersion);
-        return new(standing, standing == EsmVersionStanding.NewerWithinRange ? SemanticUnknownMembers.Find(model, ledger, scope) : []);
+        return new(standing, standing == EsmVersionStanding.NewerWithinRange || (standing == EsmVersionStanding.Audited && support.ScansMembers(model.LanguageVersion, model.SemanticVersion)) ? SemanticUnknownMembers.Find(model, ledger, scope) : []);
     }
 }

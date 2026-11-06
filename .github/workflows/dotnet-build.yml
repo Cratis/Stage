@@ -238,7 +238,7 @@ jobs:
         run: |
           git init "$RUNNER_TEMP/chronicle-source"
           git -C "$RUNNER_TEMP/chronicle-source" remote add origin https://github.com/Cratis/Chronicle.git
-          git -C "$RUNNER_TEMP/chronicle-source" fetch --depth=1 origin 6b32f743afcbeaa0fdeab5b0fa72ab1f40f96e9e
+          git -C "$RUNNER_TEMP/chronicle-source" fetch --depth=1 origin e9b84622a51d37d62bcc46e0ee35133bcaf91d43
           git -C "$RUNNER_TEMP/chronicle-source" checkout --detach FETCH_HEAD
 
       # The helper invokes dotnet test --no-build with the guarded filter for each project, then
@@ -667,7 +667,7 @@ jobs:
         run: |
           git init "$RUNNER_TEMP/chronicle-source"
           git -C "$RUNNER_TEMP/chronicle-source" remote add origin https://github.com/Cratis/Chronicle.git
-          git -C "$RUNNER_TEMP/chronicle-source" fetch --depth=1 origin 6b32f743afcbeaa0fdeab5b0fa72ab1f40f96e9e
+          git -C "$RUNNER_TEMP/chronicle-source" fetch --depth=1 origin e9b84622a51d37d62bcc46e0ee35133bcaf91d43
           git -C "$RUNNER_TEMP/chronicle-source" checkout --detach FETCH_HEAD
 
       - name: Restore NuGet packages

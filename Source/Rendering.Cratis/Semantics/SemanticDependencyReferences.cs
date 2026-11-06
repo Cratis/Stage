@@ -86,7 +86,7 @@ internal static class SemanticDependencyReferences
         SemanticProjectionMapping:Source Target Factor
         SemanticGraphProjection:Nodes Edges
         SemanticGraphElementHandlers:Handlers
-        SemanticGraphHandler:Event Mappings Key Source Target Identity
+        SemanticGraphHandler:Event Mappings Key Source Target Identity ForEach
         SemanticGraphMapping:Source Factor
         SemanticProjectionLiteral:Value
         SemanticProjectionNested:Property Scope

@@ -131,7 +131,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticGraphProperty", rendered, "Name Type IsKey");
         Add(entries, "SemanticGraphProjection", rendered, "Name Graph Nodes Edges");
         Add(entries, "SemanticGraphElementHandlers", rendered, "Name Handlers");
-        Add(entries, "SemanticGraphHandler", rendered, "Event Mappings Key Source Target Identity Removes Detach");
+        Add(entries, "SemanticGraphHandler", rendered, "Event Mappings Key Source Target Identity ForEach Removes Detach");
         Add(entries, "SemanticGraphMapping", rendered, "Property Operation Source Factor");
         Add(entries, "SemanticGraphSpecification", rendered, "Owner Name Given GivenGraphs WhenAppended ThenGraphs");
         Add(entries, "SemanticGraphStep", rendered, "Graph Elements");

@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Arc;
+using Cratis.Arc.Neo4j;
 using Cratis.Chronicle;
 using Cratis.Chronicle.AspNetCore;
 using Cratis.Chronicle.Connections;
@@ -27,6 +28,13 @@ public static class CratisServiceConfiguration
     public static WebApplicationBuilder AddStageCratis(this WebApplicationBuilder builder, string eventStore, string programIdentifier) =>
         builder.AddStageCratis(eventStore, programIdentifier, StageHttpRouteOptions.FromConfiguration(builder.Configuration));
 
+    /// <summary>
+    /// Gets whether the configuration names a Neo4j server for graph queries (<c language="text">Cratis:Neo4j:Server</c>, or <c language="text">Cratis__Neo4j__Server</c> in the environment).
+    /// </summary>
+    /// <param name="configuration">The host configuration.</param>
+    /// <returns><see langword="true"/> when a server is configured.</returns>
+    internal static bool HasNeo4j(IConfiguration configuration) => !string.IsNullOrWhiteSpace(configuration["Cratis:Neo4j:Server"]);
+
     internal static WebApplicationBuilder AddStageCratis(this WebApplicationBuilder builder, string eventStore, string programIdentifier, StageHttpRouteOptions routeOptions, PublishedOptions? published = null)
     {
         if (published is not null)
@@ -50,7 +58,15 @@ public static class CratisServiceConfiguration
 
             // The Stage runs fully in-memory: the Chronicle kernel uses in-memory storage and its projections
             // persist to the kernel's in-memory sink, so no MongoDB-backed Arc read-model store is configured here.
-            configureArcBuilder: _ => { },
+            configureArcBuilder: arc =>
+            {
+                // Graph queries read through Arc's graph session, so the connection is registered only when the host is told where Neo4j is.
+                // Otherwise a model without a graph query, and a sandbox without Neo4j, start exactly as before.
+                if (HasNeo4j(builder.Configuration))
+                {
+                    arc.WithNeo4j(options => options.EventStore ??= eventStore);
+                }
+            },
             configureChronicleOptions: options =>
             {
                 options.EventStore = eventStore;

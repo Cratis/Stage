@@ -2,7 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Diagnostics.CodeAnalysis;
+using Cratis.Arc.Neo4j;
 using Cratis.Arc.Queries;
+using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Api;
 using Microsoft.AspNetCore.Http;
 
@@ -21,10 +23,12 @@ public sealed class SemanticRuntimeQueryPerformerProvider : IQueryPerformerProvi
     /// <param name="runtimes">The optional semantic runtime.</param>
     /// <param name="factories">The optional type factory.</param>
     /// <param name="contexts">The optional HTTP accessor.</param>
+    /// <param name="graphSessions">The optional graph session factory; without it a graph query is not served.</param>
     public SemanticRuntimeQueryPerformerProvider(
         IEnumerable<ISemanticRuntime> runtimes,
         IEnumerable<DynamicTypeFactory> factories,
-        IEnumerable<IHttpContextAccessor> contexts)
+        IEnumerable<IHttpContextAccessor> contexts,
+        IEnumerable<IGraphSessionFactory>? graphSessions = null)
     {
         var runtime = runtimes.FirstOrDefault();
         var factory = factories.FirstOrDefault();
@@ -63,6 +67,17 @@ public sealed class SemanticRuntimeQueryPerformerProvider : IQueryPerformerProvi
                 }
             }
 
+            if (graphSessions?.FirstOrDefault() is { } sessions)
+            {
+                foreach (var graphQuery in runtime.Plan.Model.Application.GraphQueries.Where(candidate => located.Slice.Queries.All(query => query.Name != candidate.Name) && OwnedBy(located, candidate)))
+                {
+                    var model = runtime.Plan.ReadModels[graphQuery.ReadModel];
+                    var graph = runtime.Plan.Model.Application.Graphs.Single(candidate => candidate.Name == graphQuery.Graph);
+                    var type = factory.CreateReadModelType(located.TypeNamespace, ModelNaming.ToIdentifier(model.Name));
+                    _performers.Add(new SemanticGraphQueryPerformer(type, ModelNaming.ToIdentifier(graphQuery.Name), located.CanonicalLocation, runtime, graphQuery, graph, model, sessions, context));
+                }
+            }
+
             foreach (var query in located.Slice.Queries)
             {
                 var model = runtime.Plan.ReadModels[query.ReadModel];
@@ -82,4 +97,8 @@ public sealed class SemanticRuntimeQueryPerformerProvider : IQueryPerformerProvi
         performer = _performers.Find(candidate => candidate.FullyQualifiedName == query);
         return performer is not null;
     }
+
+    // The model does not record which slice declares a graph query; it lives in the one that declares the read model it returns.
+    static bool OwnedBy(LocatedSemanticSlice located, SemanticGraphQuery query) =>
+        located.Slice.ReadModels.Any(readModel => readModel.Id == query.ReadModel);
 }

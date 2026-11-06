@@ -100,7 +100,7 @@ internal static partial class SemanticRunProjectionAdmission
             if (emptyQuery && plan.Queries.ContainsKey(assertion.Query)) continue;
             if (!plan.Queries.TryGetValue(assertion.Query, out var query) ||
                 !plan.ReadModels.TryGetValue(query.ReadModel, out var model) ||
-                (query.Filters.IsEmpty && (query.Delivery != SemanticQueryDelivery.Snapshot || query.Cardinality != SemanticQueryCardinality.ZeroOrOne ||
+                (query.Filters.IsEmpty && (query.Cardinality != SemanticQueryCardinality.ZeroOrOne ||
                     !QueryKeyMatches(model, query))) ||
                 (plan.Projections.Values.All(projection => projection.ReadModel != query.ReadModel) && specification.GivenReadModels.All(seed => seed.ReadModel != query.ReadModel)))
             {

@@ -468,7 +468,7 @@ specifications: the Screenplay v4.24.0 reference evaluator declares `SemanticCon
 
 Facts are compared against Stage's recorded occurrences; Chronicle's persisted log is checked for fact count.
 A separate Chronicle projection scenario evaluates admitted read-model assertions, including keyed absence
-assertions (`then no readmodel … for …`), and optional snapshot queries by the read-model identifier.
+assertions (`then no readmodel … for …`), and optional queries by the read-model identifier, snapshot or `observable` (the result is the read model the query's first delivery carries).
 An absence assertion passes only when that keyed instance is missing; an instance at another key does not
 make it fail. Specifications can inspect projected Given events without a command or append action.
 Protected queries evaluate the same portable policies as commands, with the fixture caller, query argument

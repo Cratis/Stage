@@ -46,6 +46,14 @@ public static class SemanticSchemas
         return new JsonObject { ["type"] = "object", ["properties"] = nodes, ["required"] = required }.ToJsonString();
     }
 
+    /// <summary>
+    /// Gets the schema of one type reference, the way a property of an event or read model is registered.
+    /// </summary>
+    /// <param name="reference">The type reference.</param>
+    /// <param name="application">The application that declares the concepts and types the reference names.</param>
+    /// <returns>The JSON schema node.</returns>
+    public static JsonObject TypeSchemaOf(SemanticTypeReference reference, SemanticApplication application) => TypeSchema(reference, application);
+
     static JsonObject TypeSchema(SemanticTypeReference reference, SemanticApplication application)
     {
         var schema = TypeShape(reference, application);

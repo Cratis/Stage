@@ -67,7 +67,7 @@ public static class guard_context_application
                 {
                     Directives = [Data("NumberSubject"), new ScreenComponentSyntax("core.section", "host", _at)
                     {
-                        Outlets = [new ComponentOutletSyntax("first", [Data("TextSubject"), action], _at), new ComponentOutletSyntax("second", [Action("item.note", operation)], _at)]
+                        Slots = [new ComponentSlotSyntax("first", [Data("TextSubject"), action], _at), new ComponentSlotSyntax("second", [Action("item.note", operation)], _at)]
                     }]
                 };
                 break;

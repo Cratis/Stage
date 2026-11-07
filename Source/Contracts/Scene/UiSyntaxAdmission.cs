@@ -10,12 +10,14 @@ namespace Cratis.Stage.Contracts.Scene;
 /// Refuses the UI members the Scene converters do not translate. Shared by render planning and Host scene loading.
 /// </summary>
 /// <remarks>
-/// Package components, toolbars, UI bindings, template metadata and outlets on layouts and screen templates are
-/// translated by the converters, and so is the typed composition ABI of Screenplay 4.120: exposures, instance values,
+/// Package components, toolbars, UI bindings, template metadata, slots and the outlets of layouts, screen templates and dialog templates
+/// are translated by the converters, and so is the typed composition ABI of Screenplay 4.120: exposures, instance values,
 /// screen contributions, template slot content and picker metadata, grid/grow/span arrangements, and a
-/// <c>navigate</c> directive's route, outlet and parameters (as a Scene <c>DestinationReference</c>), and a navigation
-/// contribution's id, icon, presentation, group and destination. Dialog template
-/// outlets have no Scene counterpart - a Scene dialog template declares none - so they are refused rather than dropped.
+/// <c>navigate</c> directive's route, slot and parameters (as a Scene <c>DestinationReference</c>), and a navigation
+/// contribution's id, icon, presentation, group and destination. Since Screenplay 6 and Scene 5 a dialog template's
+/// <c>outlet actions of actions</c> is a Scene outlet and is translated. Two Screenplay 6 members are not translated yet and are
+/// refused rather than dropped: <c>show &lt;Screen&gt; by &lt;param&gt; from &lt;element&gt;.selection</c> (a binding between components) and a
+/// form field's <c>choose from query</c> picker.
 /// </remarks>
 public sealed class UiSyntaxAdmission : ScreenplaySyntaxWalker
 {
@@ -38,16 +40,15 @@ public sealed class UiSyntaxAdmission : ScreenplaySyntaxWalker
     public override void VisitNode(SyntaxNode node)
     {
         new Screenplay.ActionSubjectSyntaxAdmission().VisitNode(node);
-        var member = node switch
+        (string? Member, string Path) refused = node switch
         {
-            DialogTemplateSyntax dialog when dialog.Outlets.Any() => "DialogTemplateSyntax.Outlets",
-            _ => null
+            ScreenShowSyntax show => ("ScreenShowSyntax", show.Screen),
+            FormFieldSyntax { Choices: not null } field => ("FormFieldSyntax.Choices", field.Property),
+            _ => (null, string.Empty)
         };
-        if (member is not null)
-        {
-            if (_diagnostics is null) throw new UnsupportedUiSyntax(member, node.Location);
-            var path = node is DialogTemplateSyntax template ? template.Name : node.GetType().Name;
-            _diagnostics.Report(new(UnsupportedUiSyntax.DiagnosticCode, DiagnosticSeverity.Error, member, path, node.Location, $"Unsupported {member} was omitted from '{path}'."));
-        }
+        var (member, path) = refused;
+        if (member is null) return;
+        if (_diagnostics is null) throw new UnsupportedUiSyntax(member, node.Location);
+        _diagnostics.Report(new(UnsupportedUiSyntax.DiagnosticCode, DiagnosticSeverity.Error, member, path, node.Location, $"Unsupported {member} was omitted from '{path}'."));
     }
 }

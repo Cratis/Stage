@@ -27,7 +27,7 @@ public class and_the_layout_uses_flow_arrangement : Specification
 
         _syntax = new(
             "AppShell",
-            [new SlotSyntax("navigation", "Navigation", SourceLocation.Start), new SlotSyntax("content", null, SourceLocation.Start)],
+            [new SlotSyntax("navigation", SourceLocation.Start), new SlotSyntax("content", SourceLocation.Start)],
             SourceLocation.Start,
             new ArrangementSyntax(ArrangementMode.Flow, SourceLocation.Start, root, [], null));
     }

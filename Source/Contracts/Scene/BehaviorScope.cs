@@ -36,19 +36,9 @@ public sealed record BehaviorScope(
     public Cratis.Scene.Model.Structure.ApplicationStructure? Structure { get; init; }
 
     /// <summary>
-    /// Gets the toolbars the feature and the module above a screen declare, outermost first, which the screen's template fills into its <c language="csharp">toolbar</c> slot.
-    /// </summary>
-    public IReadOnlyList<ScreenplaySyntax.ScreenToolbarSyntax> FeatureToolbars { get; init; } = [];
-
-    /// <summary>
     /// Gets the lexical response names of each command, mapped to authored response member paths.
     /// </summary>
     public IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> CommandResponses { get; init; } = new Dictionary<string, IReadOnlyDictionary<string, string>>(StringComparer.Ordinal);
-
-    /// <summary>
-    /// The templates the document declares, by name, with the slots each has - the only way to know whether a template has a toolbar slot.
-    /// </summary>
-    public IReadOnlyDictionary<string, IReadOnlyList<string>> DeclaredTemplateSlots { get; init; } = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
 
     /// <summary>
     /// A scope for a document that declares nothing, used where behaviors are not being translated.

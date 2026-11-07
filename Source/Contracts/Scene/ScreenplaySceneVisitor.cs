@@ -49,7 +49,7 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
     static List<SceneLayouts.Layout> ConvertLayouts(ScreenplaySyntax.ApplicationSyntax syntax, BehaviorScope scope, ConversionDiagnostics? diagnostics) =>
         [
             .. (syntax.Layouts ?? [])
-                .Select(layout => LayoutConverter.Convert(layout, diagnostics) with
+                .Select(layout => LayoutConverter.Convert(layout, diagnostics, scope.Structure) with
                 {
                     Behaviors = scope.Resolve(layout.Behaviors, layout.UsedBehaviors, layout.Name)
                 })
@@ -80,7 +80,6 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
 
         // What a module contributes belongs to every screen beneath it, recorded against the module alone.
         IReadOnlyList<string> path = [module.Name];
-        scope = scope with { FeatureToolbars = [.. module.Toolbars] };
         IReadOnlyList<SceneContributionPoints.Contribution> contributed = [.. (module.Contributions ?? [])
             .Select((contribution, index) => ContributionConverter.Convert(contribution, $"{module.Name}.contribution[{index}]", path, scope.Diagnostics))];
         foreach (var feature in module.Features)
@@ -99,7 +98,6 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
         IReadOnlyList<SceneModel.Behavior> inherited,
         IReadOnlyList<SceneContributionPoints.Contribution> moduleContributions)
     {
-        scope = scope with { FeatureToolbars = [.. scope.FeatureToolbars, .. feature.Toolbars] };
         IReadOnlyList<string> hierarchy = [.. parentPath, feature.Name];
         var path = string.Join('.', hierarchy);
         var contributions = moduleContributions
@@ -132,14 +130,7 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
         new UiSyntaxAdmission(diagnostics).VisitApplication(syntax);
         var uiProfiles = syntax.UiProfiles?.SelectMany(profile => UiProfileConverter.Convert(profile, diagnostics)).ToList() ?? [];
         var themes = syntax.Themes?.Select(ThemeConverter.Convert).ToList() ?? [];
-        var scope = BehaviorScope.For(syntax, _findings) with
-        {
-            Diagnostics = diagnostics,
-            DeclaredTemplateSlots = syntax.Modules
-                .SelectMany(module => module.ScreenTemplates ?? [])
-                .GroupBy(template => template.Name, StringComparer.Ordinal)
-                .ToDictionary(group => group.Key, group => (IReadOnlyList<string>)[.. group.First().Slots.Select(slot => slot.Name)], StringComparer.Ordinal)
-        };
+        var scope = BehaviorScope.For(syntax, _findings) with { Diagnostics = diagnostics };
         var layouts = ConvertLayouts(syntax, scope, diagnostics);
 
         var screenTemplates = new List<SceneScreens.ScreenTemplate>();
@@ -171,6 +162,7 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
             Exposures = [.. (syntax.Exposures ?? []).Select(exposure => CompositionConverter.Exposure(exposure, diagnostics))],
             InstanceContributions = [.. (syntax.InstanceContributions ?? []).SelectMany(CompositionConverter.Instance)],
             Navigation = NavigationConverter.Convert(syntax, diagnostics, structure),
+            OutletLevels = OutletLevelConverter.Convert(syntax, structure) is { Count: > 0 } levels ? levels : null,
             Structure = structure,
             TemplateReferences = TemplateReferenceConverter.Collect(syntax),
             SampleDataPacks = SampleDataConverter.Packs(syntax),

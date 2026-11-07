@@ -2,7 +2,7 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageVersionOverrideEnabled>false</CentralPackageVersionOverrideEnabled>
-    <CratisScreenplayVersion Condition="'$(CratisScreenplayVersion)' == ''">5.10.0</CratisScreenplayVersion>
+    <CratisScreenplayVersion Condition="'$(CratisScreenplayVersion)' == ''">6.0.0</CratisScreenplayVersion>
     <PureTransitionReferencePackVersion>10.0.12</PureTransitionReferencePackVersion>
     <!-- Cratis.Ante.Contracts requires this Chronicle client or later. Only an application rendered with onboarding pins it; every other render stays on the Chronicle pin below. -->
     <AnteContractsChronicleVersion>19.129.0</AnteContractsChronicleVersion>
@@ -49,8 +49,8 @@
     <PackageVersion Include="Cratis.Ante.Contracts" Version="1.7.0" />
     <PackageVersion Include="Cratis.Showrunner.BoxOffice" Version="1.14.0" />
     <PackageVersion Include="Cratis.Showrunner.Herald" Version="1.14.0" />
-    <PackageVersion Include="Cratis.Scene.Engine" Version="4.88.0" />
-    <PackageVersion Include="Cratis.Scene.Model" Version="4.88.0" />
+    <PackageVersion Include="Cratis.Scene.Engine" Version="5.0.0" />
+    <PackageVersion Include="Cratis.Scene.Model" Version="5.0.0" />
     <PackageVersion Include="Cratis.Screenplay" Version="$(CratisScreenplayVersion)" />
     <PackageVersion Include="Cratis.Screenplay.Matching" Version="$(CratisScreenplayVersion)" />
     <!-- Spec-only: the released conformance corpus consumed by the Cratis renderer's planner fixtures, at the Screenplay version the renderer compiles with. -->

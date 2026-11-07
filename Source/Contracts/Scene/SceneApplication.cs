@@ -49,9 +49,17 @@ public record SceneApplication(
     public IReadOnlyList<SceneExposure.InstanceContribution> InstanceContributions { get; init; } = [];
 
     /// <summary>
-    /// Gets the application's topbar and sidebar and what each module inherits, extends or overrides. Empty when the document declares no region.
+    /// Gets the application's navigation outlets and what each module refines or contributes to them. Empty when the document declares no
+    /// navigation outlet.
     /// </summary>
     public SceneNavigation.NavigationModel Navigation { get; init; } = new(new SceneNavigation.ApplicationNavigation([]), []);
+
+    /// <summary>
+    /// Gets the outlet levels of the modules, features and slice screens that refine or contribute to an outlet - the host's levels Scene's
+    /// engine resolves an outlet through (see <see cref="StageOutletChains"/>). Null when no level changes an outlet.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<Cratis.Scene.Engine.Outlets.OutletLevel>? OutletLevels { get; init; }
 
     /// <summary>
     /// Gets the modules, features and slices (with each slice's kind) that navigation targets and toolbar buttons resolve against.

@@ -92,7 +92,7 @@ public class when_resolving_the_uiprofile_root_vector : Specification
                 ["kind"] = Camel(shell.Kind),
                 ["source"] = Camel(shell.Source),
                 ["origin"] = Camel(shell.Origin),
-                ["primaryOutlet"] = shell.PrimaryOutlet,
+                ["primarySlot"] = shell.PrimarySlot,
                 ["options"] = JsonNode.Parse(JsonSerializer.Serialize(shell.Options.OrderBy(option => option.Key, StringComparer.Ordinal).ToDictionary(option => option.Key, option => option.Value))),
                 ["diagnostics"] = new JsonArray([.. shell.Diagnostics.Select(diagnostic => (JsonNode)JsonValue.Create(Camel(diagnostic.Code)))])
             };

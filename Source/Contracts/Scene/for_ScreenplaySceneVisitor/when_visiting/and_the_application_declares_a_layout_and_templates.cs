@@ -17,18 +17,18 @@ public class and_the_application_declares_a_layout_and_templates : Specification
     {
         var layout = new LayoutSyntax(
             "AppShell",
-            [new SlotSyntax("navigation", "Navigation", SourceLocation.Start), new SlotSyntax("content", null, SourceLocation.Start)],
+            [new SlotSyntax("navigation", SourceLocation.Start), new SlotSyntax("content", SourceLocation.Start)],
             SourceLocation.Start);
 
         var screenTemplate = new ScreenTemplateSyntax(
             "MasterDetail",
-            [new SlotSyntax("sidebar", null, SourceLocation.Start), new SlotSyntax("main", null, SourceLocation.Start)],
+            [new SlotSyntax("sidebar", SourceLocation.Start), new SlotSyntax("main", SourceLocation.Start)],
             SourceLocation.Start,
             FitsSlot: "content");
 
         var dialogTemplate = new DialogTemplateSyntax(
             "RegisterInvoiceDialog",
-            [new SlotSyntax("body", null, SourceLocation.Start)],
+            [new SlotSyntax("body", SourceLocation.Start)],
             SourceLocation.Start);
 
         var screen = new ScreenSyntax(

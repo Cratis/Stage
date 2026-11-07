@@ -242,9 +242,9 @@ public static class ScreenDirectiveConverter
             properties[property.Property] = property.Binding is null ? ScreenplayRichSyntax.ComponentPropertyValue(property) : ScreenplayRichSyntax.Binding(property.Binding);
         }
 
-        var slots = component.Outlets.ToDictionary(
-            outlet => outlet.Name,
-            outlet => Convert(outlet.Directives, $"{stableId}.{outlet.Name}", scope),
+        var slots = component.Slots.ToDictionary(
+            slot => slot.Name,
+            slot => Convert(slot.Directives, $"{stableId}.{slot.Name}", scope),
             StringComparer.Ordinal);
 
         return SceneElementFactory.Component(stableId, component.Component, properties, slots) with

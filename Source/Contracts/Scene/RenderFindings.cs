@@ -61,7 +61,7 @@ public static class RenderFindings
         }
 
         var slots = application.Layouts.SelectMany(layout => layout.Slots.Select(slot => slot.Name)).Distinct(StringComparer.Ordinal).ToList();
-        foreach (var diagnostic in NavigationRegionDiagnostics.Diagnose(index, application.Navigation, slots))
+        foreach (var diagnostic in NavigationOutletDiagnostics.Diagnose(index, application.Navigation, slots))
         {
             yield return new RenderFinding(RenderFindingKind.NavigationInvalid, diagnostic.Entry ?? string.Empty, $"{diagnostic.Code}: {diagnostic.Message}");
         }

@@ -55,12 +55,12 @@ internal sealed class GuardContexts : ScreenplaySyntaxWalker
         VisitNode(syntax);
         foreach (var behavior in syntax.Behaviors) VisitBehavior(behavior);
         foreach (var uses in syntax.UsedBehaviors) VisitUsesBehavior(uses);
-        foreach (var outlet in syntax.Outlets)
+        foreach (var slot in syntax.Slots)
         {
-            In(_current.Enter(outlet.Directives), () =>
+            In(_current.Enter(slot.Directives), () =>
             {
-                VisitNode(outlet);
-                foreach (var directive in outlet.Directives) VisitScreenDirective(directive);
+                VisitNode(slot);
+                foreach (var directive in slot.Directives) VisitScreenDirective(directive);
             });
         }
     }

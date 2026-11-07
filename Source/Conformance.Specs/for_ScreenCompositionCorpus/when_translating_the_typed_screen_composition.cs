@@ -18,7 +18,7 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 
 /// <summary>
 /// The corpus's positive typed composition source - exposures, instance values, screen contributions, template
-/// content and picker metadata, grid/grow/span arrangements and a navigation outlet - translated to Scene by Stage.
+/// content and picker metadata, grid/grow/span arrangements and a navigation slot - translated to Scene by Stage.
 /// </summary>
 /// <remarks>
 /// Each construct is asserted on its own Scene type, never on an element's open property bag, and the canonical
@@ -62,15 +62,15 @@ public class when_translating_the_typed_screen_composition : given.the_planned_s
     [Fact] void should_span_each_grid_slot() => Grid.Children.OfType<FlowSlotLeaf>().Select(slot => slot.Span).ShouldEqual([1, 1]);
 
     [Fact] void should_add_the_screens_own_contributions_after_its_scopes() => _scene.Screens.Single(screen => screen.Name == "WorkItemList").Contributions.Select(contribution => contribution.ContributionPointName).ShouldEqual(["Navigation", "Navigation", "Navigation", "WorkspaceActions", "Navigation"]);
-    [Fact] void should_navigate_into_an_outlet() => Destination.Outlet.ShouldEqual("details");
-    [Fact] void should_mark_the_destination_as_an_outlet() => Destination.Kind.ShouldEqual(DestinationKind.Outlet);
+    [Fact] void should_navigate_into_a_slot() => Destination.Slot.ShouldEqual("details");
+    [Fact] void should_mark_the_destination_as_a_slot() => Destination.Kind.ShouldEqual(DestinationKind.Slot);
     [Fact] void should_bind_the_route_parameter() => Destination.RouteParameterBindings["workItemId"].ComponentPropertyPath.ShouldEqual("selectedItem.workItemId");
 
     [Fact] void should_record_where_each_screen_was_declared() => _scene.Screens.All(screen => string.Join('/', screen.Path) == "Workspaces/Tracking").ShouldBeTrue();
     [Fact] void should_carry_the_stable_id_of_a_navigation_entry() => Entry("Work items").Properties["id"].ShouldEqual("nav:work-items");
     [Fact] void should_carry_the_icon_of_a_navigation_entry() => Entry("Work items").Properties["icon"].ShouldEqual("folder");
     [Fact] void should_carry_the_presentation_of_a_navigation_entry() => Entry("Work items").Properties["presentation"].ShouldEqual("primary");
-    [Fact] void should_open_a_navigation_entry_in_its_outlet() => EntryDestination("Work items").Outlet.ShouldEqual("details");
+    [Fact] void should_open_a_navigation_entry_in_its_slot() => EntryDestination("Work items").Slot.ShouldEqual("details");
     [Fact] void should_open_a_navigation_entry_in_its_dialog() => string.Join('/', EntryDestination("Edit work item").Dialog, EntryDestination("Edit work item").Kind).ShouldEqual("EditWorkItemDialog/Dialog");
     [Fact] void should_send_a_navigation_entry_to_an_external_route() => string.Join('/', EntryDestination("Help").Route, EntryDestination("Help").Kind).ShouldEqual("https://cratis.io/help/External");
 
@@ -89,7 +89,7 @@ public class when_translating_the_typed_screen_composition : given.the_planned_s
         .SelectMany(Elements)
         .Select(element => element.Properties.GetValueOrDefault(SceneElementProperties.Destination))
         .OfType<DestinationReference>()
-        .Single(destination => destination.Outlet is not null && destination.RouteParameterBindings.ContainsKey("workItemId"));
+        .Single(destination => destination.Slot is not null && destination.RouteParameterBindings.ContainsKey("workItemId"));
 
     static IEnumerable<FlowNode> All(FlowNode node) =>
         node is FlowContainer container ? [node, .. container.Children.SelectMany(All)] : [node];

@@ -28,7 +28,7 @@ public class and_the_layout_uses_freeform_arrangement : Specification
 
         _syntax = new(
             "Storyboard",
-            [new SlotSyntax("header", null, SourceLocation.Start), new SlotSyntax("footer", null, SourceLocation.Start)],
+            [new SlotSyntax("header", SourceLocation.Start), new SlotSyntax("footer", SourceLocation.Start)],
             SourceLocation.Start,
             new ArrangementSyntax(ArrangementMode.Freeform, SourceLocation.Start, null, null, [variant]));
     }

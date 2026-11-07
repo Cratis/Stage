@@ -123,7 +123,7 @@ public static class ContributionConverter
     /// <returns>The supported contribution content.</returns>
     public static SceneContributionPoints.Contribution Convert(ScreenplaySyntax.ContributionSyntax contribution, string id, IReadOnlyList<string> hierarchy, ConversionDiagnostics? diagnostics)
     {
-        if (diagnostics is null || contribution.Destination is not { } destination || destination.Kind is ScreenplaySyntax.ContributionDestinationKind.Outlet or ScreenplaySyntax.ContributionDestinationKind.Dialog or ScreenplaySyntax.ContributionDestinationKind.External) return Convert(contribution, id, hierarchy);
+        if (diagnostics is null || contribution.Destination is not { } destination || destination.Kind is ScreenplaySyntax.ContributionDestinationKind.Slot or ScreenplaySyntax.ContributionDestinationKind.Dialog or ScreenplaySyntax.ContributionDestinationKind.External) return Convert(contribution, id, hierarchy);
         var construct = $"contribution destination {destination.Kind}";
         diagnostics.Report(new("STAGE-SCENE-CONTRIBUTION-001", DiagnosticSeverity.Error, construct, id, destination.Location, $"Unsupported {construct} was omitted from '{id}'."));
         return Convert(contribution with { Destination = null }, id, hierarchy);
@@ -137,12 +137,12 @@ public static class ContributionConverter
             return navigate;
         }
 
-        // `destination outlet|dialog|external <target>` says where the entry opens; a `navigate to` beside it supplies the screen
+        // `destination slot|dialog|external <target>` says where the entry opens; a `navigate to` beside it supplies the screen
         // and parameters, so the two compose instead of one hiding the other.
         var opens = navigate ?? new SceneCommon.DestinationReference(RouteParameterBindings: new Dictionary<string, SceneCommon.BindingExpression>());
         return destination.Kind switch
         {
-            ScreenplaySyntax.ContributionDestinationKind.Outlet => opens with { Outlet = destination.Target, Kind = SceneCommon.DestinationKind.Outlet },
+            ScreenplaySyntax.ContributionDestinationKind.Slot => opens with { Slot = destination.Target, Kind = SceneCommon.DestinationKind.Slot },
             ScreenplaySyntax.ContributionDestinationKind.Dialog => opens with { Dialog = destination.Target, Kind = SceneCommon.DestinationKind.Dialog },
             ScreenplaySyntax.ContributionDestinationKind.External => opens with { Route = destination.Target, Kind = SceneCommon.DestinationKind.External },
             _ => throw new UnknownCompositionValue("contribution destination", destination.Kind.ToString()),

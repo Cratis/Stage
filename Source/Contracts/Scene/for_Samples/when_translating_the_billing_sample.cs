@@ -62,7 +62,7 @@ public class when_translating_the_billing_sample : Specification
     void should_translate_both_templates() =>
         (_compilation.Result.Value.ScreenTemplates.Count + _compilation.Result.Value.DialogTemplates.Count).ShouldEqual(2);
 
-    [Fact] void should_translate_the_navigation_regions() => _compilation.Result.Value.Navigation.Application.Regions.Count.ShouldEqual(2);
+    [Fact] void should_translate_the_navigation_outlets() => _compilation.Result.Value.Navigation.Application.Outlets.Count(outlet => outlet.Kind == Cratis.Scene.Model.Outlets.OutletKind.Navigation).ShouldEqual(2);
 
     [Fact] void should_translate_the_module_navigation() => _compilation.Result.Value.Navigation.Modules.Single().Module.ShouldEqual("Ledger");
 

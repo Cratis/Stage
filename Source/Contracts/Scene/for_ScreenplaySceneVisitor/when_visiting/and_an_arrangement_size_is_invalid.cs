@@ -19,7 +19,7 @@ public class and_an_arrangement_size_is_invalid : Specification
         var location = new SourceLocation(10, 3, "shell.play");
         var arrangement = new ArrangementSyntax(ArrangementMode.Freeform, location, Variants:
             [new VariantSyntax(width, height, [new PlaceSyntax("content", location, SizeWidth: size, SizeHeight: "fill")], location)]);
-        var layout = new LayoutSyntax("Shell", [new SlotSyntax("content", null, location)], location, arrangement);
+        var layout = new LayoutSyntax("Shell", [new SlotSyntax("content", location)], location, arrangement);
         var application = new ApplicationSyntax([], [], [], [], location) { Layouts = [layout] };
 
         var legacyError = Catch.Exception(() => ArrangementConverter.Convert(arrangement));

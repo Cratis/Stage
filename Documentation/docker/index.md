@@ -477,9 +477,9 @@ login screen. The setting is **off when absent** outside Docker. It supplies a s
 do not receive that persona.
 This changes only the Stage host, never rendered applications or their authentication.
 
-The sandbox runs with `ASPNETCORE_ENVIRONMENT=Docker`, not Development. Arc's discovery catalogs require
-authentication and answer `401` to anonymous sandbox requests by design. The persona is not applied to these
-endpoints, and Play does not use them.
+Stage decides for itself whether it is in development (see [Development](#development)); it does not read that
+from `ASPNETCORE_ENVIRONMENT`. The sandbox is development, so Arc's discovery catalogs (`/.cratis/users`,
+`/.cratis/tenants`) answer anonymous requests. The persona is not applied to these endpoints, and Play does not use them.
 
 Stage selects the default persona once at startup:
 
@@ -506,6 +506,43 @@ To use another persona, change the modeled user menu's `role` and restart the se
 Every sandbox API caller acts as the selected persona. There is no login or per-user identity verification.
 Restrict access at a trusted proxy and keep the session private. This mechanism is only for exploring a
 modeled application, not for protecting a production system.
+:::
+
+### Development
+
+Stage owns its definition of development and tells ASP.NET Core and Arc about it, so a deployment's
+`ASPNETCORE_ENVIRONMENT` cannot make a Stage development or stop it from being one.
+
+- The play sandbox is development. Set `Stage:Development` (`Stage__Development=false`) to turn that off.
+- A published application is never development, and no setting makes it so.
+
+Development is what lets surfaces meant for tools open: Arc maps its user and tenant discovery endpoints
+anonymously, and the sandbox may offer modeled users. It does not turn any of them on by itself.
+
+### Development users
+
+A model can declare the people a session acts as with `user` (see [Personas](https://github.com/Cratis/Screenplay/blob/main/Documentation/screenplay/personas.md#users)):
+
+```screenplay
+persona SchemaSteward
+  policy NamingSchemaAdmin
+
+user kari "Kari Nordmann" as SchemaSteward
+user guest "Guest"
+```
+
+Set `Stage:Sandbox:Users` (`Stage__Sandbox__Users=true`) to offer them. The switch is explicit and off when absent.
+
+- Stage lists the users at `/.cratis/users`, with the roles and claims synthesized from the policies of the personas each one
+  plays. Lens reads that list, and the user you pick there is the caller for every request, so you can switch between them
+  while testing without restarting Stage.
+- The single server-selected persona above is off while users are on, and Stage trusts the identity headers the tool sends.
+- Stage refuses to start if `Stage:Sandbox:Users` is on when Stage is not in development, or together with
+  `Stage:Sandbox:ForwardedIdentity`. A published application never offers users.
+
+:::danger[Modeled users are not authentication]
+Whoever can reach the sandbox can present any identity, including a role the model never gave a user. Keep the session
+private, and leave `Stage:Sandbox:Users` off anywhere that is not a development or test environment.
 :::
 
 To disable the persona middleware, set `Stage__Sandbox__Identity=false` in the host environment (for Docker,

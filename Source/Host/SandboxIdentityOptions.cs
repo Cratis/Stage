@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Arc;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Cratis.Stage.Host;
 
@@ -20,8 +21,20 @@ internal sealed record SandboxIdentityOptions(bool Enabled, bool ForwardedIdenti
         // The identity headers are not signed, so trusting them is only right when every request arrives through AuthProxy, which strips what a
         // client sends and writes its own. A sandbox that plays a persona and one that trusts AuthProxy cannot both decide who the caller is.
         var forwarded = configuration.GetValue<bool>("Stage:Sandbox:ForwardedIdentity");
-        services.AddSingleton(new SandboxIdentityOptions(configuration.GetValue<bool>("Stage:Sandbox:Identity") && !forwarded, forwarded));
-        if (forwarded)
+
+        // Modeled users are the one other case where the headers are trusted: a development tool such as Lens sends the user it selected. It is
+        // development only and explicit (see SandboxUsersOptions), so the users and AuthProxy cannot both be on, and the users, who are the
+        // caller the tool chose, take the place of the single persona Stage would pick for itself.
+        var users = SandboxUsersOptions.Read(configuration, StageDevelopment.Decide(sandbox: true, configuration));
+        if (users.Enabled && forwarded)
+        {
+            throw new InvalidOperationException($"{SandboxUsersOptions.Key} and Stage:Sandbox:ForwardedIdentity are both on. Modeled users are a development tool; behind AuthProxy the caller is whoever signed in.");
+        }
+
+        services.AddSingleton(users);
+        services.TryAddSingleton(SandboxUsers.None);
+        services.AddSingleton(new SandboxIdentityOptions(configuration.GetValue<bool>("Stage:Sandbox:Identity") && !forwarded && !users.Enabled, forwarded));
+        if (forwarded || users.Enabled)
         {
             services.Configure<ArcOptions>(options => options.TrustForwardedIdentityHeaders = true);
         }

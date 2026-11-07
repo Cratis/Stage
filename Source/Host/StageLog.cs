@@ -29,6 +29,9 @@ internal static partial class StageLog
     [LoggerMessage(LogLevel.Information, "Sandbox API callers act as persona '{Persona}' (roles: {Roles})")]
     internal static partial void SandboxPersonaSelected(ILogger logger, string persona, string roles);
 
+    [LoggerMessage(LogLevel.Information, "Sandbox users are on: callers act as the user a development tool selects ({Users}); the single server-selected persona is off")]
+    internal static partial void SandboxUsersOffered(ILogger logger, string users);
+
     [LoggerMessage(LogLevel.Warning, "Sandbox persona '{Persona}' skips policy '{Policy}': {Reason}")]
     internal static partial void SandboxPersonaPolicySkipped(ILogger logger, string persona, string policy, string reason);
 }

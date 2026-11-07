@@ -6,11 +6,11 @@ import type { NavigationModel } from '@cratis/scene.model';
 import { stageNavigationModel } from '../stageNavigationModel';
 
 const navigation = {
-    application: { regions: [{ region: 'sidebar', items: [{ id: 'a', title: '$strings.nav.a', target: { module: 'M' } }, { id: 'b', title: '$strings.nav.missing' }, { id: 'c', title: 'Plain' }] }] },
+    application: { outlets: [{ name: 'sidebar', kind: 'navigation', defaults: [{ kind: 'navigation', id: 'a', title: '$strings.nav.a', target: { module: 'M' } }, { kind: 'navigation', id: 'b', title: '$strings.nav.missing' }, { kind: 'navigation', id: 'c', title: 'Plain' }] }] },
     modules: [],
 } as unknown as NavigationModel;
 const titles = (dictionary?: Record<string, string>) =>
-    (stageNavigationModel({ screens: [], navigation }, undefined, dictionary).navigation.application.regions[0].items as { title: string }[]).map(item => item.title);
+    (stageNavigationModel({ screens: [], navigation }, undefined, dictionary).navigation.application.outlets[0].defaults as { title: string }[]).map(item => item.title);
 
 describe('when the active locale has a dictionary', () => {
     it('replaces a reference with the text of the locale', () => expect(titles({ 'nav.a': 'Innsendinger' })[0]).toBe('Innsendinger'));

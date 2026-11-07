@@ -18,8 +18,8 @@ const screenOf = (name: string, path: string[], content: unknown[]) => ({
     name, layout: 'AppShell', screenTemplate: null, forms: [], behaviors: [], contributions: [], path, slotContent: { content },
 });
 
-// The shape the Screenplay converter emits for a model with navigation regions: modules and features with a slice each, and
-// the application's regions with a module overriding its sidebar.
+// The shape the Screenplay converter emits for a model with navigation outlets: modules and features with a slice each, and
+// the application's navigation outlets with a module overriding its sidebar.
 const scene = {
     layouts: [],
     screenTemplates: [],
@@ -40,17 +40,17 @@ const scene = {
     navigation: {
         application: {
             logo: { image: '', title: 'Acme' },
-            regions: [
-                { region: 'topbar', items: [{ id: 'dashboard', title: 'Dashboard', target: { module: 'Dashboard' } }, { id: 'sales', title: 'Sales', target: { module: 'Sales' } }] },
-                { region: 'sidebar', items: [{ id: 'overview', title: 'Overview', target: { module: 'Dashboard', feature: 'Overview' } }] },
+            outlets: [
+                { name: 'topbar', kind: 'navigation', defaults: [{ kind: 'navigation', id: 'dashboard', title: 'Dashboard', target: { module: 'Dashboard' } }, { kind: 'navigation', id: 'sales', title: 'Sales', target: { module: 'Sales' } }] },
+                { name: 'sidebar', kind: 'navigation', defaults: [{ kind: 'navigation', id: 'overview', title: 'Overview', target: { module: 'Dashboard', feature: 'Overview' } }] },
             ],
         },
         modules: [{
             module: 'Sales',
-            regions: [{ region: 'sidebar', mode: 'override', items: [
-                { id: 'orders', title: 'Orders', target: { module: 'Sales', feature: 'Orders' } },
-                { id: 'customers', title: 'Customers', target: { module: 'Sales', feature: 'Customers' } },
-                { id: 'reports', title: 'Reports', target: { module: 'Sales', feature: 'Reports' } },
+            refinements: [{ outlet: 'sidebar', mode: 'overrides', items: [
+                { kind: 'navigation', id: 'orders', title: 'Orders', target: { module: 'Sales', feature: 'Orders' } },
+                { kind: 'navigation', id: 'customers', title: 'Customers', target: { module: 'Sales', feature: 'Customers' } },
+                { kind: 'navigation', id: 'reports', title: 'Reports', target: { module: 'Sales', feature: 'Reports' } },
             ] }],
         }],
     },
@@ -61,8 +61,8 @@ const scene = {
         screenOf('Overview', ['Dashboard', 'Overview'], [page('Overview page')]),
         screenOf('OrderList', ['Sales', 'Orders'], [
             page('Orders page'),
-            element('orders-toolbar', 'core:toolbar', { name: 'orders' }, { items: [
-                element('new-order', 'core:toolbarItem', { name: 'new', kind: 'Action', label: 'New order', slice: 'Sales.Orders.PlaceOrder', emphasis: 'primary' }),
+            element('orders-toolbar', 'core:outletItems', { name: 'orders', kind: 'actions', items: [
+                { kind: 'button', id: 'new', title: 'New order', slice: 'Sales.Orders.PlaceOrder', emphasis: 'primary' },
             ] }),
         ]),
         screenOf('CustomerList', ['Sales', 'Customers'], [page('Customers page')]),

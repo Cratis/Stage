@@ -22,7 +22,7 @@ function projected(profileName: string) {
         kind: shell.kind,
         source: shell.source,
         origin: shell.origin,
-        primaryOutlet: shell.primaryOutlet,
+        primarySlot: shell.primarySlot,
         options: Object.fromEntries(Object.entries(shell.options ?? {}).sort(([left], [right]) => left.localeCompare(right))),
         diagnostics: shell.diagnostics.map(diagnostic => diagnostic.code),
     };

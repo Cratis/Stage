@@ -28,10 +28,13 @@ const scene = {
         { id: 'KnowledgeBase', name: 'KnowledgeBase', features: [], slices: [] },
     ] }] },
     navigation: {
-        application: { regions: [{ region: 'topbar', items: [{ id: 'support', title: 'Support', target: { module: 'Support' } }] }] },
-        modules: [{ module: 'Support', regions: [{ region: 'sidebar', mode: 'override', items: [
-            { id: 'tickets', title: 'Tickets', target: { module: 'Support', feature: 'Tickets' } },
-            { id: 'kb', title: 'Knowledge base', target: { module: 'Support', feature: 'KnowledgeBase' }, slot: 'side' },
+        application: { outlets: [
+            { name: 'topbar', kind: 'navigation', defaults: [{ kind: 'navigation', id: 'support', title: 'Support', target: { module: 'Support' } }] },
+            { name: 'sidebar', kind: 'navigation', defaults: [] },
+        ] },
+        modules: [{ module: 'Support', refinements: [{ outlet: 'sidebar', mode: 'overrides', items: [
+            { kind: 'navigation', id: 'tickets', title: 'Tickets', target: { module: 'Support', feature: 'Tickets' } },
+            { kind: 'navigation', id: 'kb', title: 'Knowledge base', target: { module: 'Support', feature: 'KnowledgeBase' }, slot: 'side' },
         ] }] }],
     },
     screens: [screenOf('TicketList', ['Support', 'Tickets'], 'Tickets page'), screenOf('ArticleScreen', ['Support', 'KnowledgeBase'], 'Knowledge base page')],
@@ -44,10 +47,11 @@ const sidebar = () => screen.findByRole('navigation', { name: 'Sidebar' });
 // What the user sees after a click: which page is in the primary outlet, what the side pane shows, which items are marked, and whether
 // the pane offers to close. The Stage and the Scene preview host compose through the same `ApplicationHost`, so these are the same.
 async function observed() {
-    const outlet = (name: string) => document.querySelector(`[data-scene-outlet="${name}"]`);
+    const outlet = (name: string) => document.querySelector(`[data-scene-slot="${name}"]`);
     return {
         page: outlet('primary')?.getAttribute('data-scene-screen'),
-        side: outlet('side')?.getAttribute('data-scene-outlet-screen') ?? null,
+        // The blueprint's shell region is a slot too; the screen is in the slot element that places one.
+        side: document.querySelector('[data-scene-slot="side"][data-scene-slot-screen]')?.getAttribute('data-scene-slot-screen') ?? null,
         marked: Array.from((await sidebar()).querySelectorAll('[aria-current]')).map(item => item.textContent?.trim()),
         closable: screen.queryByRole('button', { name: 'Close' }) !== null,
     };

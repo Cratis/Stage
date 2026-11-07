@@ -18,7 +18,7 @@ export function screenTablesOf(element: SceneElement): string[] {
     const tables = new Set<string>();
     const visit = (node: SceneElement): void => {
         const component = node as ExternalComponent;
-        if (component.componentName === 'core:outlet') return;
+        if (component.componentName === 'core:slot') return;
         rowScopesOf(component).forEach(scope => tables.add(scope));
         for (const children of Object.values(component.slots ?? {})) children.forEach(visit);
     };

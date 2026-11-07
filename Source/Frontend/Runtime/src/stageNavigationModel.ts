@@ -8,7 +8,7 @@ import type { SceneNavigationModel } from '@cratis/scene.react';
 
 /** Whether the model declares navigation regions of its own - the application's or a module's. */
 export function declaresRegions(navigation: NavigationModel | undefined): boolean {
-    return (navigation?.application.regions.length ?? 0) > 0 || (navigation?.modules.length ?? 0) > 0;
+    return (navigation?.application.outlets.length ?? 0) > 0 || (navigation?.modules.length ?? 0) > 0;
 }
 
 /**
@@ -47,7 +47,7 @@ export function stageNavigationModel(
     isVisible?: (item: EffectiveNavItem) => boolean,
     dictionary?: Record<string, string>,
 ): SceneNavigationModel {
-    const navigation = scene.navigation ?? { application: { regions: [] }, modules: [] };
+    const navigation: NavigationModel = scene.navigation ?? { application: { outlets: [] }, modules: [] };
     return {
         structure: scene.structure ?? { modules: [] },
         navigation: dictionary ? withStringsResolved(navigation, dictionary) : navigation,

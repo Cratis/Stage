@@ -173,9 +173,9 @@ function isDestination(value: unknown): value is DestinationReference {
     return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-/** Whether an entry opens somewhere a plain link to its screen does not reach: an outlet, a dialog or an external route. */
+/** Whether an entry opens somewhere a plain link to its screen does not reach: a slot, a dialog or an external route. */
 export function opensElsewhere(destination: DestinationReference): boolean {
-    return destination.outlet !== undefined || destination.dialog !== undefined || destination.kind === 'external' || destination.kind === 'dialog';
+    return destination.slot !== undefined || destination.dialog !== undefined || destination.kind === 'external' || destination.kind === 'dialog';
 }
 
 /**

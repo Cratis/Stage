@@ -29,12 +29,16 @@ const scene = {
         { id: 'NoIcon', name: 'NoIcon', features: [], slices: [] },
     ] }] },
     navigation: {
-        application: { regions: [{ region: 'topbar', items: [{ id: 'support', title: 'Support', icon: 'headset', target: { module: 'Support' } }], buttons: [{ id: 'add', title: 'Add box', icon: 'plus' }] }] },
-        modules: [{ module: 'Support', regions: [{ region: 'sidebar', mode: 'override', items: [
-            { id: 'tickets', title: 'Tickets', icon: 'box', target: { module: 'Support', feature: 'Tickets' } },
-            { id: 'kb', title: 'Knowledge base', icon: 'Cratis.Icons.Lucide#package', target: { module: 'Support', feature: 'KnowledgeBase' }, slot: 'side' },
-            { id: 'missing-icon', title: 'Unknown icon', icon: 'not-a-lucide-icon', target: { module: 'Support', feature: 'MissingIcon' } },
-            { id: 'no-icon', title: 'Without icon', target: { module: 'Support', feature: 'NoIcon' } },
+        application: { outlets: [
+            { name: 'topbar', kind: 'navigation', defaults: [{ kind: 'navigation', id: 'support', title: 'Support', icon: 'headset', target: { module: 'Support' } }] },
+            { name: 'topbarButtons', kind: 'actions', defaults: [{ kind: 'button', id: 'add', title: 'Add box', icon: 'plus' }] },
+            { name: 'sidebar', kind: 'navigation', defaults: [] },
+        ] },
+        modules: [{ module: 'Support', refinements: [{ outlet: 'sidebar', mode: 'overrides', items: [
+            { kind: 'navigation', id: 'tickets', title: 'Tickets', icon: 'box', target: { module: 'Support', feature: 'Tickets' } },
+            { kind: 'navigation', id: 'kb', title: 'Knowledge base', icon: 'Cratis.Icons.Lucide#package', target: { module: 'Support', feature: 'KnowledgeBase' }, slot: 'side' },
+            { kind: 'navigation', id: 'missing-icon', title: 'Unknown icon', icon: 'not-a-lucide-icon', target: { module: 'Support', feature: 'MissingIcon' } },
+            { kind: 'navigation', id: 'no-icon', title: 'Without icon', target: { module: 'Support', feature: 'NoIcon' } },
         ] }] }],
     },
     screens: [
@@ -86,7 +90,7 @@ describe('when Play draws authored navigation icons', () => {
         expect(item.textContent).toContain(title);
         fireEvent.click(item);
 
-        await waitFor(() => expect(document.querySelector('[data-scene-outlet="primary"]')?.textContent).toContain(page));
+        await waitFor(() => expect(document.querySelector('[data-scene-slot="primary"]')?.textContent).toContain(page));
     });
 
     it('should draw a topbar button with both its icon and label', async () => {

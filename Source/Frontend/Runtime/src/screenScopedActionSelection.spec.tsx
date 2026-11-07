@@ -20,7 +20,7 @@ describe('the tables belonging to a screen', () => {
     it.each(['kanbanBoard', 'Cratis.Blueprint.Default:kanbanBoard'])('should register only the card query and selection of a %s board', component => {
         const board = element('picking', component, { cards: { kind: 'queryResult', query: 'PickingQueue' }, columns: { kind: 'queryResult', query: 'Columns' } });
         const summary = element('summary', 'core:text', { value: { kind: 'queryResult', query: 'OtherShipments' } });
-        const outlet = element('outlet', 'core:outlet', {}, { content: [element('foreign', component, { cards: { kind: 'queryResult', query: 'ForeignQueue' } })] });
+        const outlet = element('outlet', 'core:slot', {}, { content: [element('foreign', component, { cards: { kind: 'queryResult', query: 'ForeignQueue' } })] });
 
         expect(screenTablesOf(element('screen', 'core:stack', {}, { content: [board, summary, outlet] }))).toEqual(['picking', 'binding:PickingQueue']);
     });
@@ -28,7 +28,7 @@ describe('the tables belonging to a screen', () => {
     it('should find distinct tables nested in any slot without descending into outlets', () => {
         const ownTable = element('own-table', 'core:table');
         const nested = element('nested', 'core:stack', {}, { content: [ownTable] });
-        const outlet = element('outlet', 'core:outlet', {}, { content: [element('other-table', 'core:table')] });
+        const outlet = element('outlet', 'core:slot', {}, { content: [element('other-table', 'core:table')] });
         const tree = element('screen', 'core:stack', {}, { body: [nested, outlet], footer: [ownTable, element('footer-table', 'core:table')] });
 
         expect(screenTablesOf(tree)).toEqual(['own-table', 'footer-table']);

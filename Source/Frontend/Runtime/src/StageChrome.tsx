@@ -4,7 +4,7 @@
 import { writeThemeChoice } from './stageThemeChoice';
 import { createContext, useContext, type ReactNode } from 'react';
 import type { ComponentRegistry, RegisteredComponentProps } from '@cratis/scene.react';
-import { SceneElementView, SceneNavigationContextInternal, useSceneOutlets, useSceneTheme } from '@cratis/scene.react';
+import { SceneElementView, SceneNavigationContextInternal, coreSlotShape, useSceneSlots, useSceneTheme } from '@cratis/scene.react';
 import { useEffect } from 'react';
 import { ColorScheme, useLayoutConfig, defaultBlueprintThemes } from '@cratis/scene.blueprint.default';
 import { NotesButton } from '@cratis/showrunner.notes.react';
@@ -155,30 +155,30 @@ function NavigationEntryLink({ node, screen, activeScreen }: { node: NavigationN
 }
 
 /**
- * The `core:outlet` the Stage renders: the screen the Scene navigation host placed in the named outlet, drawn
+ * The `core:slot` the Stage renders: the screen the Scene navigation host placed in the named slot, drawn
  * inside the Stage's own data scope so its queries, selections and commands work as they do on a primary screen.
  *
- * Scene's own outlet renders the placed screen in a scope of its own, which cannot see what the Stage resolves
- * queries and selections with, so the Stage draws the same region itself - including the `Close` button of an outlet the host
- * put in a slot the shell declares (`slot side`).
+ * Scene's own slot renders the placed screen in a scope of its own, which cannot see what the Stage resolves
+ * queries and selections with, so the Stage draws the same region itself - including the `Close` button of a slot the host
+ * put a screen in (`slot side`). Routed slots are not routed yet: the Stage places screens through the navigation host only.
  */
-export function StageOutlet({ element }: RegisteredComponentProps) {
-    const name = typeof element.properties.name === 'string' ? element.properties.name : '';
+export function StageSlot({ element }: RegisteredComponentProps) {
+    const shape = coreSlotShape(element.properties);
     const navigation = useContext(SceneNavigationContextInternal);
-    const outlets = useSceneOutlets();
+    const slots = useSceneSlots();
     const data = useStageData();
-    const placed = navigation?.outlets[name];
-    const screen = placed && outlets ? outlets.screens[placed] : undefined;
-    const closable = element.properties.closable === true;
+    const placed = navigation?.slots[shape.name];
+    const screen = placed && slots ? slots.screens[placed] : undefined;
+    const closable = shape.closable;
 
     return (
-        <div data-scene-outlet={name} data-scene-outlet-screen={placed}>
+        <div data-scene-slot={shape.name} data-scene-slot-screen={placed} data-scene-slot-role={shape.role}>
             {closable && placed && (
-                <div className='scene-outlet-bar'>
-                    <button type='button' className='scene-outlet-close' aria-label='Close' onClick={() => navigation?.closeOutlet(name)}>Close</button>
+                <div className='scene-slot-bar'>
+                    <button type='button' className='scene-slot-close' aria-label='Close' onClick={() => navigation?.closeSlot(shape.name)}>Close</button>
                 </div>
             )}
-            {screen && outlets && <ScreenSlice screen={placed}><StageScreenTables element={screen}><SceneElementView element={screen} registry={outlets.registry} resolveBinding={data.resolveBinding} /></StageScreenTables></ScreenSlice>}
+            {screen && slots && <ScreenSlice screen={placed}><StageScreenTables element={screen}><SceneElementView element={screen} registry={slots.registry} resolveBinding={data.resolveBinding} /></StageScreenTables></ScreenSlice>}
         </div>
     );
 }
@@ -218,5 +218,5 @@ export const stageChromeComponents: ComponentRegistry = {
     [stageThemeToggleComponent]: StageThemeToggle,
     [stageNavigationTreeComponent]: StageNavigationTree,
     [stageActivityComponent]: StageActivity,
-    'core:outlet': StageOutlet,
+    'core:slot': StageSlot,
 };

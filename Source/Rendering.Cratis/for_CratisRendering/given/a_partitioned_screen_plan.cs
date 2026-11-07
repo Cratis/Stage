@@ -36,10 +36,10 @@ public class a_partitioned_screen_plan : Specification
         _compilation = when_rendering_authoring_documentation.Compile(ModelSource);
         var syntax = new ScreenplayCompiler().Compile(ModelSource);
         Assert.True(syntax.Success, string.Join(';', syntax.Diagnostics));
-        _scene = new ScreenplaySceneVisitor().Visit(syntax.Value!);
+        _scene = new ScreenplaySceneVisitor().Visit(syntax.Value);
         _legacy = CratisRendering.CreateProfile("Projects", new("Projects", "Projects"), _scene);
         _profile = CratisRendering.WithScreenPartitions(_legacy, _compilation);
-        _loaded = new(_compilation.Model, SemanticExecutionPlan.Compile(_compilation.Model).Plan!);
+        _loaded = new(_compilation.Model, SemanticExecutionPlan.Compile(_compilation.Model).Plan);
         _options = _options with { Profile = _profile };
     }
 

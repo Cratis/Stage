@@ -23,7 +23,7 @@ public class with_an_unhandled_event_member_and_an_independent_slice : given.an_
     [Fact] void should_repeat_the_degradations() => Assert.Equal(_plan.Degradations.ToArray(), _repeated.Degradations.ToArray());
     [Fact] void should_include_the_semantic_inventory() => (_plan.Inventory is not null).ShouldBeTrue();
     [Fact] void should_not_count_omissions_as_skipped_specifications() => _plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-PLAN-007").ShouldBeFalse();
-    [Fact] void should_emit_one_gap_per_selected_root() => _plan.Inventory!.Constructs.SelectMany(construct => construct.Degradations).Count(gap => gap.Evidence.Diagnostic.Code == "STAGE-DEGRADE-001").ShouldEqual(1);
+    [Fact] void should_emit_one_gap_per_selected_root() => _plan.Inventory.Constructs.SelectMany(construct => construct.Degradations).Count(gap => gap.Evidence.Diagnostic.Code == "STAGE-DEGRADE-001").ShouldEqual(1);
     [Fact]
     void should_render_the_independent_slice_in_a_degraded_plan() => Assert.True(_plan.Outcome == ArtifactRenderOutcome.Degraded,
         $"Outcome: {_plan.Outcome}; diagnostics: {string.Join(" | ", _plan.Diagnostics.Select(diagnostic => $"{diagnostic.Code} ({diagnostic.Artifact}): {diagnostic.Message}"))}");
@@ -35,9 +35,9 @@ public class with_an_unhandled_event_member_and_an_independent_slice : given.an_
     [Fact] void should_keep_the_original_root_message() => _plan.Degradations.Single(gap => gap.Diagnostic.Artifact == _unsupportedEvent).Diagnostic.Message.ShouldContain("STAGE-ESM-012");
     [Fact] void should_not_keep_errors_after_a_successful_retry() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error).ShouldBeEmpty();
     [Fact]
-    void should_mark_every_selected_omitted_owner_as_graph_proven() => _plan.Inventory!.Constructs.Where(construct => _plan.Refusals.Any(refusal => refusal.Artifact == construct.Identity))
+    void should_mark_every_selected_omitted_owner_as_graph_proven() => _plan.Inventory.Constructs.Where(construct => _plan.Refusals.Any(refusal => refusal.Artifact == construct.Identity))
         .All(construct => construct.Outcome == ArtifactRenderOutcome.Degraded && construct.Degradations.Single().PlaceholderKind == ArtifactRenderPlaceholderKind.GraphProvenOmittedLeaf).ShouldBeTrue();
     [Fact]
-    void should_link_each_dependent_to_the_root() => _plan.Inventory!.Constructs.SelectMany(construct => construct.Degradations)
+    void should_link_each_dependent_to_the_root() => _plan.Inventory.Constructs.SelectMany(construct => construct.Degradations)
         .Where(gap => gap.Evidence.Diagnostic.Code == "STAGE-DEGRADE-005").All(gap => gap.Roots.SequenceEqual([new ArtifactRenderGapReference(_unsupportedEvent, "STAGE-DEGRADE-001")])).ShouldBeTrue();
 }

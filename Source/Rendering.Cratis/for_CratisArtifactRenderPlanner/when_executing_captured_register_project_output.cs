@@ -44,7 +44,7 @@ public class when_executing_captured_register_project_output : a_register_projec
             (Guid.Parse(Corpus.RuntimeStreamId), "Screenplay"),
             (Guid.Parse("4fa85f64-5717-4562-b3fc-2c963f66afa7"), "Stage")
         ];
-        _expectedRejectionMessage = Corpus.SpecificationExpectations.Single(_ => _.Outcome == SemanticExecutionOutcomeKind.Rejected).RejectionMessage!;
+        _expectedRejectionMessage = Corpus.SpecificationExpectations.Single(_ => _.Outcome == SemanticExecutionOutcomeKind.Rejected).RejectionMessage;
     }
 
     void Because()
@@ -55,7 +55,7 @@ public class when_executing_captured_register_project_output : a_register_projec
         _reserializedCapture = SemanticModelSerializer.Serialize(_capturedModel);
         _capturedExecution = SemanticExecutionPlan.Compile(_capturedModel);
         var scope = new ArtifactRenderScope(ArtifactRenderScopeKind.Application, _capturedModel.Application.Id);
-        _capturedPlan = CratisRendering.Plan(_capturedModel, _capturedExecution.Plan!, scope, _options);
+        _capturedPlan = CratisRendering.Plan(_capturedModel, _capturedExecution.Plan, scope, _options);
         var sources = _capturedPlan.Artifacts
             .Where(_ => _.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && _.RelativePath != "Program.cs")
             .Select(_ => new RenderedFile(_.RelativePath, Text(_)))
@@ -65,39 +65,39 @@ public class when_executing_captured_register_project_output : a_register_projec
 
         // Load once for this fixture; the unchanged compiler includes every generated DEBUG specification.
         var assembly = RenderedOutput.Load(sources);
-        var projectIdType = assembly.GetType("Projects.Common.ProjectId", throwOnError: true)!;
-        var projectNameType = assembly.GetType("Projects.Common.ProjectName", throwOnError: true)!;
-        var commandType = assembly.GetType("Projects.Projects.Registration.RegisterProject.RegisterProject", throwOnError: true)!;
-        _expectedEventType = assembly.GetType("Projects.Projects.Registration.RegisterProject.ProjectRegistered", throwOnError: true)!;
-        var validatorType = assembly.GetType("Projects.Projects.Registration.RegisterProject.RegisterProjectValidator", throwOnError: true)!;
-        var validator = (IValidator)Activator.CreateInstance(validatorType)!;
-        var handle = commandType.GetMethod("Handle", Type.EmptyTypes)!;
+        var projectIdType = assembly.GetType("Projects.Common.ProjectId", throwOnError: true);
+        var projectNameType = assembly.GetType("Projects.Common.ProjectName", throwOnError: true);
+        var commandType = assembly.GetType("Projects.Projects.Registration.RegisterProject.RegisterProject", throwOnError: true);
+        _expectedEventType = assembly.GetType("Projects.Projects.Registration.RegisterProject.ProjectRegistered", throwOnError: true);
+        var validatorType = assembly.GetType("Projects.Projects.Registration.RegisterProject.RegisterProjectValidator", throwOnError: true);
+        var validator = (IValidator)Activator.CreateInstance(validatorType);
+        var handle = commandType.GetMethod("Handle", Type.EmptyTypes);
         foreach (var input in _inputs)
         {
-            var projectId = Activator.CreateInstance(projectIdType, input.Id)!;
-            var projectName = Activator.CreateInstance(projectNameType, input.Name)!;
-            var command = Activator.CreateInstance(commandType, projectId, projectName)!;
+            var projectId = Activator.CreateInstance(projectIdType, input.Id);
+            var projectName = Activator.CreateInstance(projectNameType, input.Name);
+            var command = Activator.CreateInstance(commandType, projectId, projectName);
             _destinations.Add(((ICanProvideEventSourceId)command).GetEventSourceId());
             _validations.Add(Validate(validator, commandType, command));
-            var @event = handle.Invoke(command, [])!;
+            var @event = handle.Invoke(command, []);
             var eventType = @event.GetType();
             _eventClrTypes.Add(eventType);
             _eventTypes.Add(eventType.GetEventType());
-            _eventProjectIds.Add(((EventSourceId<Guid>)eventType.GetProperty("ProjectId")!.GetValue(@event)!).Value);
-            _eventNames.Add(((ConceptAs<string>)eventType.GetProperty("Name")!.GetValue(@event)!).Value);
+            _eventProjectIds.Add(((EventSourceId<Guid>)eventType.GetProperty("ProjectId").GetValue(@event)).Value);
+            _eventNames.Add(((ConceptAs<string>)eventType.GetProperty("Name").GetValue(@event)).Value);
         }
 
         var emptyNameCommand = Activator.CreateInstance(
             commandType,
             Activator.CreateInstance(projectIdType, _inputs[0].Id),
-            Activator.CreateInstance(projectNameType, string.Empty))!;
+            Activator.CreateInstance(projectNameType, string.Empty));
         _emptyNameValidation = Validate(validator, commandType, emptyNameCommand);
     }
 
     [Fact] void should_preserve_the_captured_bytes() => _reserializedCapture.SequenceEqual(_capture).ShouldBeTrue();
     [Fact] void should_load_the_expected_corpus_revision() => _capturedModel.Revision.ShouldEqual(Corpus.SemanticRevision);
     [Fact] void should_admit_the_captured_execution_plan() => _capturedExecution.Success.ShouldBeTrue();
-    [Fact] void should_execute_only_the_deserialized_model() => ReferenceEquals(_capturedExecution.Plan!.Model, _capturedModel).ShouldBeTrue();
+    [Fact] void should_execute_only_the_deserialized_model() => ReferenceEquals(_capturedExecution.Plan.Model, _capturedModel).ShouldBeTrue();
     [Fact] void should_admit_the_captured_application_render_plan() => _capturedPlan.Success.ShouldBeTrue();
     [Fact] void should_compile_all_generated_backend_and_debug_specification_sources() => string.Join(Environment.NewLine, _compilationErrors).ShouldEqual(string.Empty);
     [Fact] void should_compile_without_warnings() => string.Join(Environment.NewLine, _compilationWarnings).ShouldEqual(string.Empty);
@@ -115,7 +115,8 @@ public class when_executing_captured_register_project_output : a_register_projec
     [Fact] void should_have_no_failures_for_valid_names() => _validations.SelectMany(_ => _.Errors).ShouldBeEmpty();
     [Fact] void should_reject_an_empty_name() => _emptyNameValidation.IsValid.ShouldBeFalse();
     [Fact] void should_report_exactly_one_empty_name_failure() => _emptyNameValidation.Errors.Count.ShouldEqual(1);
-    [Fact] void should_report_the_name_property() => Assert.True(
+    [Fact]
+    void should_report_the_name_property() => Assert.True(
         _emptyNameValidation.Errors.Select(_ => _.PropertyName).SequenceEqual(["name"]),
         $"Expected exactly [name]; actual ({_emptyNameValidation.Errors.Count}): [{string.Join(", ", _emptyNameValidation.Errors.Select(_ => _.PropertyName))}]");
     [Fact] void should_report_the_exact_corpus_rejection_message() => _emptyNameValidation.Errors.Select(_ => _.ErrorMessage).ShouldEqual(_expectedRejectionMessage);
@@ -123,7 +124,7 @@ public class when_executing_captured_register_project_output : a_register_projec
     static ValidationResult Validate(IValidator validator, Type commandType, object command)
     {
         var contextType = typeof(ValidationContext<>).MakeGenericType(commandType);
-        var context = (IValidationContext)Activator.CreateInstance(contextType, command)!;
+        var context = (IValidationContext)Activator.CreateInstance(contextType, command);
         return validator.Validate(context);
     }
 }

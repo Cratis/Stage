@@ -32,17 +32,17 @@ public class when_running_all_comparison_rules : Specification
                     returns answer
                   specification Accepted
                     when Check
-                      values = {{accepted}}
+                      {{Structured("values", accepted, 10)}}
                       answer = true
                     then returns true
                   specification Rejected
                     when Check
-                      values = {{rejected}}
+                      {{Structured("values", rejected, 10)}}
                       answer = true
                     then error "All values must meet the bound"
                   specification Empty
                     when Check
-                      values = []
+                      values none
                       answer = true
                     then returns true
             """;
@@ -50,7 +50,7 @@ public class when_running_all_comparison_rules : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("model"), "model", "Model.play", source);
         var compilation = new SemanticModelCompiler().Compile("Comparisons", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         foreach (var specification in plan.Specifications.Values)
         {
             SemanticRunAdmission.Check(plan, specification).ShouldBeNull();
@@ -66,4 +66,6 @@ public class when_running_all_comparison_rules : Specification
         report.Results.Count.ShouldEqual(3);
         report.Results.ShouldEachConformTo(result => result.Outcome == SemanticSpecificationOutcome.Passed);
     }
+
+    static string Structured(string property, string value, int indent) => global::Cratis.Stage.Specifications.given.StructuredValueText.Assignment(property, value, indent);
 }

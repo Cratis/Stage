@@ -16,24 +16,27 @@ public class when_planning_onboarding : given.a_model_with_authentication_and_on
     string[] Codes => [.. _plan.Diagnostics.Select(diagnostic => diagnostic.Code)];
 
     [Fact] void should_plan_without_errors() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error).ShouldBeEmpty();
-    [Fact] void should_configure_ante_for_the_application_store() => Ante["HostStore"]!.GetValue<string>().ShouldEqual(Application);
-    [Fact] void should_have_ante_use_the_store_the_application_observes() => Ante["EventStore"]!.GetValue<string>().ShouldEqual("Ante");
-    [Fact] void should_enable_the_onboarding_contract() => Ante["Enabled"]!.GetValue<bool>().ShouldBeTrue();
-    [Fact] void should_open_registration_because_the_model_opens_sign_up() => Ante["RegistrationEnabled"]!.GetValue<bool>().ShouldBeTrue();
-    [Fact] void should_have_sign_up_create_a_tenant() => Ante["SignUp"]!.GetValue<string>().ShouldEqual("CreateTenant");
-    [Fact] void should_allow_both_kinds_of_invitation() => Ante["InvitationTypes"]!.ToJsonString().ShouldEqual("[\"CreateTenant\",\"JoinTenant\"]");
-    [Fact] void should_let_ante_grant_only_the_personas_the_model_grants() => Ante["Personas"]!.ToJsonString().ShouldEqual("[\"Librarian\",\"Member\"]");
-    [Fact] void should_name_the_terms_and_the_privacy_policy() => Ante["Legal"]!.ToJsonString().ShouldEqual("{\"TermsAndConditions\":\"Legal/terms-of-service.md\",\"PrivacyPolicy\":\"Legal/privacy-policy.md\"}");
+    [Fact] void should_configure_ante_for_the_application_store() => Ante["HostStore"].GetValue<string>().ShouldEqual(Application);
+    [Fact] void should_have_ante_use_the_store_the_application_observes() => Ante["EventStore"].GetValue<string>().ShouldEqual("Ante");
+    [Fact] void should_enable_the_onboarding_contract() => Ante["Enabled"].GetValue<bool>().ShouldBeTrue();
+    [Fact] void should_open_registration_because_the_model_opens_sign_up() => Ante["RegistrationEnabled"].GetValue<bool>().ShouldBeTrue();
+    [Fact] void should_have_sign_up_create_a_tenant() => Ante["SignUp"].GetValue<string>().ShouldEqual("CreateTenant");
+    [Fact] void should_allow_both_kinds_of_invitation() => Ante["InvitationTypes"].ToJsonString().ShouldEqual("[\"CreateTenant\",\"JoinTenant\"]");
+    [Fact] void should_let_ante_grant_only_the_personas_the_model_grants() => Ante["Personas"].ToJsonString().ShouldEqual("[\"Librarian\",\"Member\"]");
+    [Fact] void should_name_the_terms_and_the_privacy_policy() => Ante["Legal"].ToJsonString().ShouldEqual("{\"TermsAndConditions\":\"Legal/terms-of-service.md\",\"PrivacyPolicy\":\"Legal/privacy-policy.md\"}");
     [Fact] void should_give_the_first_member_of_a_signed_up_tenant_the_persona_of_a_tenant_invitation() => Text("GeneratedOnboarding/OnboardingRules.cs").ShouldContain("SignupPersona = \"Librarian\"");
     [Fact] void should_grant_an_invitation_only_what_the_model_grants() => Text("GeneratedOnboarding/OnboardingRules.cs").ShouldContain("MemberGrantable { get; } = [\"Member\"]");
     [Fact] void should_let_only_the_inviting_personas_invite() => Text("GeneratedOnboarding/OnboardingRules.cs").ShouldContain("MemberInviters { get; } = [\"Librarian\"]");
+    [Fact] void should_authorize_inviters_against_the_tenant_they_invite_into() => Text("GeneratedOnboarding/OnboardingInvitations.cs").ShouldContain("MemberPersonaClaims.Holds(context.Principal, tenants.Current.Value");
     [Fact] void should_render_the_command_that_invites_a_member() => Text("GeneratedOnboarding/OnboardingInvitations.cs").ShouldContain("public record InviteMemberToTenant(string Email, IReadOnlyList<string> Personas)");
     [Fact] void should_reject_a_persona_outside_the_grant() => Text("GeneratedOnboarding/OnboardingInvitations.cs").ShouldContain("OnboardingRules.MemberGrantable.Contains(persona");
-    [Fact] void should_record_an_invitation_in_the_tenant_of_the_caller_and_publish_it_to_the_outbox_ante_observes() =>
+    [Fact]
+    void should_record_an_invitation_in_the_tenant_of_the_caller_and_publish_it_to_the_outbox_ante_observes() =>
         Text("GeneratedOnboarding/InvitationPublisher.cs").ShouldContain("EventStoreNamespaceName.Default");
     [Fact] void should_publish_an_invitation_once() => Text("GeneratedOnboarding/InvitationPublisher.cs").ShouldContain("new IdempotencyKey($\"invitation:{context.EventSourceId}\")");
     [Fact] void should_protect_the_address_of_the_invitee_in_the_event_log() => Text("GeneratedOnboarding/OnboardingEvents.cs").ShouldContain("[property: PII] string Email");
-    [Fact] void should_observe_the_seven_outcomes_of_ante() => new[] { "InvitationTokenIssued", "InvitationRejected", "InvitationToJoinTenantAccepted", "InvitationToCreateTenantAccepted", "OrganizationRegistrationCompleted", "OrganizationRegistrationDeclined", "LegalTermsAccepted" }
+    [Fact]
+    void should_observe_the_seven_outcomes_of_ante() => new[] { "InvitationTokenIssued", "InvitationRejected", "InvitationToJoinTenantAccepted", "InvitationToCreateTenantAccepted", "OrganizationRegistrationCompleted", "OrganizationRegistrationDeclined", "LegalTermsAccepted" }
         .Where(outcome => !Text("GeneratedOnboarding/AnteOutcomes.cs").Contains($"({outcome} @event", StringComparison.Ordinal)).ShouldBeEmpty();
     [Fact] void should_provision_each_outcome_once() => Text("GeneratedOnboarding/Provisioning.cs").ShouldContain("AppendOnce(eventSourceId, @event, new IdempotencyKey(key))");
     [Fact] void should_send_the_invitation_through_herald_with_the_link_on_the_public_origin() => Text("GeneratedOnboarding/OnboardingEmails.cs").ShouldContain("/invite/{issued.Token}");
@@ -45,7 +48,7 @@ public class when_planning_onboarding : given.a_model_with_authentication_and_on
     [Fact] void should_reference_herald_and_the_ante_contracts() => Text($"{Application}.csproj").ShouldContain("Cratis.Showrunner.Herald");
     [Fact] void should_register_onboarding_with_the_application() => Text("Program.cs").ShouldContain($"{Application}.GeneratedOnboarding.Registration.Register(builder);");
     [Fact] void should_reference_box_office_for_the_offering() => Text($"{Application}.csproj").ShouldContain("Cratis.Showrunner.BoxOffice\"");
-    [Fact] void should_pin_box_office() => Text("Directory.Packages.props").ShouldContain("Cratis.Showrunner.BoxOffice\" Version=\"1.13.0\"");
+    [Fact] void should_pin_box_office() => Text("Directory.Packages.props").ShouldContain("Cratis.Showrunner.BoxOffice\" Version=\"1.14.0\"");
     [Fact] void should_declare_the_default_offering_the_model_names() => Text("GeneratedOnboarding/OnboardingRegistration.cs").ShouldContain(".DefaultOffering(\"Starter\")");
     [Fact] void should_declare_a_product_that_is_the_same_for_every_render() => Text("GeneratedOnboarding/OnboardingRegistration.cs").ShouldContain($".Product(Guid.Parse(\"{Realization.RealizationArtifacts.ProductId(Application)}\"))");
     [Fact] void should_add_box_office_and_its_offering() => Text("GeneratedOnboarding/OnboardingRegistration.cs").ShouldContain("builder.AddBoxOffice();");

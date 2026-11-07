@@ -15,5 +15,5 @@ public class with_a_noncanonical_stream_id : given.a_routed_event
     void Because() => _error = Catch.Exception(() => SemanticWorldRebuilder.Create(_plan, [_event], 0));
 
     [Fact] void should_refuse_reconstruction() => _error.ShouldBeOfExactType<SemanticWorldRebuildRefused>();
-    [Fact] void should_keep_the_diagnostic_value_free() => _error!.Message.ShouldNotContain(_event.Context.EventStreamId);
+    [Fact] void should_keep_the_diagnostic_value_free() => _error.Message.ShouldNotContain(_event.Context.EventStreamId);
 }

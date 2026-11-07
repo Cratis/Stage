@@ -245,9 +245,19 @@ public static partial class CratisRendering
     /// <param name="profile">The resolved profile.</param>
     /// <param name="compilation">The compilation whose documents declare the authentication and onboarding.</param>
     /// <param name="physicalModelRoot">The folder holding the <c language="text">.play</c> files on disk, which the images of the onboarding emails are read from; omitted, there are none.</param>
-    /// <returns>The profile carrying the realization input, or the profile unchanged when the model declares neither authentication nor onboarding.</returns>
+    /// <returns>The profile carrying realization and explicit passive identities, or unchanged when none are declared.</returns>
     public static ArtifactRenderProfile WithRealization(ArtifactRenderProfile profile, SemanticCompilation compilation, string? physicalModelRoot = null) =>
-        WithRealization(profile, ApplicationRealization.From(compilation, physicalModelRoot));
+        WithPassiveReadModels(WithRealization(profile, ApplicationRealization.From(compilation, physicalModelRoot)), compilation);
+
+    /// <summary>
+    /// Adds explicitly passive read-model identities from the same compilation to the hashed render profile.
+    /// Portable ESM bytes do not carry passivity; profiles without this input retain active behavior.
+    /// </summary>
+    /// <param name="profile">The resolved profile.</param>
+    /// <param name="compilation">The compilation carrying the explicit passive declarations.</param>
+    /// <returns>The profile with canonical passive metadata, or unchanged when none was authored.</returns>
+    public static ArtifactRenderProfile WithPassiveReadModels(ArtifactRenderProfile profile, SemanticCompilation compilation) =>
+        PassiveReadModelsInput.With(profile, compilation.PassiveReadModels);
 
     /// <summary>
     /// Adds the realization of the application to the profile.

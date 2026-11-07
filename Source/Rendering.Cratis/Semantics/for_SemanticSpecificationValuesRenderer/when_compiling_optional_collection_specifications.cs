@@ -36,7 +36,9 @@ public class when_compiling_optional_collection_specifications : Specification
                   specification Checking
                     when Check
                       id = "one"
-                      values = [{{literal}}, {{literal}}]
+                      values
+                        item {{literal}}
+                        item {{literal}}
                       scalar = {{literal}}
                       otherScalar = {{literal}}
                     then returns "one"
@@ -51,10 +53,10 @@ public class when_compiling_optional_collection_specifications : Specification
         var fixtures = specification.GetFields(BindingFlags.NonPublic | BindingFlags.Static).Where(field => field.IsInitOnly).ToArray();
         fixtures.Select(field => field.FieldType).ShouldContainOnly(typeof(string), elementType, typeof(Nullable<>).MakeGenericType(elementType));
         var command = assembly.GetTypes().Single(type => type.Name == "Check");
-        var collection = command.GetProperty("Values")!;
+        var collection = command.GetProperty("Values");
         collection.PropertyType.ShouldEqual(typeof(IReadOnlyList<>).MakeGenericType(elementType));
         new NullabilityInfoContext().Create(collection).ReadState.ShouldEqual(NullabilityState.Nullable);
-        command.GetProperty("Scalar")!.PropertyType.ShouldEqual(typeof(Nullable<>).MakeGenericType(elementType));
+        command.GetProperty("Scalar").PropertyType.ShouldEqual(typeof(Nullable<>).MakeGenericType(elementType));
     }
 }
 #endif

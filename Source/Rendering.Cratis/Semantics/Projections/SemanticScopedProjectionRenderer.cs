@@ -24,14 +24,17 @@ internal static class SemanticScopedProjectionRenderer
     {
         var builder = new CSharpCodeBuilder();
         var modelName = Identifiers.ToPascalCase(readModel.Name);
-        var projectionName = Identifiers.ToPascalCase(projection.Name);
-        var implementationName = projectionName == modelName ? $"{projectionName}Projection" : projectionName;
+        var implementationName = GeneratedPascalCase.ProjectionImplementation(projection.Name, readModel.Name);
         builder.Summary($"Projects events onto {modelName}.")
             .OpenBlock($"public class {implementationName} : global::Cratis.Chronicle.Projections.IProjectionFor<{modelName}>")
             .Summary("Defines the event transitions for this projection.")
             .Line("/// <param name=\"builder\">The projection builder.</param>")
             .OpenBlock($"public void Define(global::Cratis.Chronicle.Projections.IProjectionBuilderFor<{modelName}> builder)")
             .Line("builder.NoAutoMap();");
+        if (context.IsPassive(readModel.Id))
+        {
+            builder.Line("builder.Passive();");
+        }
         var identifiers = readModel.Properties.Where(property => property.IsIdentifier).ToArray();
         CompositeKey? composite = identifiers.Length > 1 ? new(SemanticCompositeKeyAdmission.KeyTypeName(readModel), identifiers) : null;
         RenderScope(builder, scope, context, readModel.Properties, "builder", identifiers.Length == 1 ? identifiers[0] : null, composite);
@@ -104,6 +107,7 @@ internal static class SemanticScopedProjectionRenderer
             {
                 // Chronicle rejects On for a child join: the join always matches the elements' own identity.
                 code.Line($"join.On(model => model.{Identifiers.ToPascalCase(on.Name)});");
+                RenderKey(code, join.Key, @event, context, "join", "UsingKey");
             }
 
             RenderMappings(code, join.Mappings, properties, @event, context, "join");
@@ -172,7 +176,7 @@ internal static class SemanticScopedProjectionRenderer
 
     static void RenderKey(
         CSharpCodeBuilder code,
-        SemanticProjectionKey key,
+        SemanticProjectionKey? key,
         SemanticEventContract @event,
         SemanticApplicationContext context,
         string receiver,

@@ -23,7 +23,7 @@ public class when_running_composite_event_values : Specification
     [Fact] void should_cover_given_produced_appended_and_invoked_values() => _report.Results.Count.ShouldEqual(4);
     [Fact] void should_agree_with_the_reference() => Assert.All(_reference, result => Assert.True(result.Passed, string.Join(';', result.Failures)));
     [Fact] void should_execute_every_specification() => Assert.All(_report.Results, result => Assert.True(result.Outcome == SemanticSpecificationOutcome.Passed, $"{result.Name}: {result.Outcome} {result.Unsupported?.Details} {string.Join(';', result.Failures)}"));
-    [Fact] void should_report_composite_facts_as_member_name_keyed_json() => Assert.All(_report.Results.SelectMany(result => result.Trace!.Facts), fact => Assert.Equal("nested", JsonSerializer.Deserialize<JsonElement>(Assert.Single(fact.Values).Value).GetProperty("label").GetString()));
+    [Fact] void should_report_composite_facts_as_member_name_keyed_json() => Assert.All(_report.Results.SelectMany(result => result.Trace.Facts), fact => Assert.Equal("nested", JsonSerializer.Deserialize<JsonElement>(Assert.Single(fact.Values).Value).GetProperty("label").GetString()));
 
     public static SemanticExecutionPlan Compile(string source = Source)
     {
@@ -60,22 +60,40 @@ public class when_running_composite_event_values : Specification
               specification ProducedComposite
                 when RecordDetails
                   id = "one"
-                  details = {"label":"nested","child":{"count":7}}
+                  details
+                    label = "nested"
+                    child
+                      count = 7
                 then DetailsRecorded
-                  details = {"child":{"count":7},"label":"nested"}
+                  details
+                    child
+                      count = 7
+                    label = "nested"
               specification GivenComposite
                 given DetailsRecorded
                   for "before"
-                  details = {"label":"nested","child":{"count":6}}
+                  details
+                    label = "nested"
+                    child
+                      count = 6
                 when RecordDetails
                   id = "one"
-                  details = {"label":"nested","child":{"count":7}}
+                  details
+                    label = "nested"
+                    child
+                      count = 7
                 then DetailsRecorded
-                  details = {"child":{"count":7},"label":"nested"}
+                  details
+                    child
+                      count = 7
+                    label = "nested"
               specification AppendedComposite
                 when append DetailsRecorded
                   for "one"
-                  details = {"label":"nested","child":{"count":7}}
+                  details
+                    label = "nested"
+                    child
+                      count = 7
                 then no events
               event DetailsRequested
                 details Details
@@ -87,8 +105,14 @@ public class when_running_composite_event_values : Specification
               specification InvokedComposite
                 when append DetailsRequested
                   for "one"
-                  details = {"label":"nested","child":{"count":7}}
+                  details
+                    label = "nested"
+                    child
+                      count = 7
                 then DetailsRecorded
-                  details = {"child":{"count":7},"label":"nested"}
+                  details
+                    child
+                      count = 7
+                    label = "nested"
         """;
 }

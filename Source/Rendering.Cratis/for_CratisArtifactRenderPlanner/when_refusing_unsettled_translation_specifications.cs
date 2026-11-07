@@ -8,6 +8,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
+[PerFactSpecificationLifecycle]
 public class when_refusing_unsettled_translation_specifications : given.a_translation_application
 {
     const string Source = """

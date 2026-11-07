@@ -8,6 +8,8 @@
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="Cratis.Screenplay" />
+        <PackageReference Include="System.Security.Cryptography.Pkcs" />
+        <PackageReference Include="System.Security.Cryptography.Xml" />
     </ItemGroup>
     <!--
         Specs compile the rendered output in memory against the real Cratis assemblies — asserting on generated
@@ -84,6 +86,11 @@
         <PackageReference Include="Cratis.Chronicle" GeneratePathProperty="true" ExcludeAssets="all" PrivateAssets="all" />
     </ItemGroup>
     <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+        <!-- The specs compile the state machines and workflows Stage renders against the real Cratis.Choreography assemblies. -->
+        <PackageReference Include="Cratis.Choreography" ExcludeAssets="analyzers" PrivateAssets="all" />
+        <PackageReference Include="Cratis.Choreography.Chronicle" ExcludeAssets="analyzers" PrivateAssets="all" />
+    </ItemGroup>
+    <ItemGroup Condition="'$(Configuration)' == 'Debug'">
         <!-- Frozen Screenplay v4.41.0 typed-context vectors: every member and nullable type is checked by specs. -->
         <EmbeddedResource Include="for_SemanticTypedContextRenderer/Vectors/*.json" />
         <!-- Screenplay v4.114.0 portable stream-id codec vectors. -->
@@ -133,14 +140,18 @@
         </ItemGroup>
     </Target>
     <ItemGroup>
+        <Compile Include="../Stage/Semantics/SemanticListCreation.cs" Link="Semantics/SemanticListCreation.cs" />
+        <Compile Include="../Stage/Semantics/SemanticProjectionObservation.cs" Link="Semantics/SemanticProjectionObservation.cs" />
         <ProjectReference Include="../Contracts/Contracts.csproj" />
     </ItemGroup>
     <!-- The emitted NuGet pins come from the same evaluated CPM items as Stage's build, in both configurations. -->
     <Target Name="GenerateScaffoldPackageVersions" BeforeTargets="CoreCompile">
         <ItemGroup>
+            <_ScaffoldPackage Include="Cratis.Screenplay" Constant="Screenplay" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Screenplay')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Screenplay.Matching" Constant="ScreenplayMatching" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Screenplay.Matching')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis" Constant="Cratis" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Arc.MongoDB" Constant="ArcMongoDB" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Arc.MongoDB')->Metadata('Version'))" />
+            <_ScaffoldPackage Include="Cratis.Arc.Neo4j" Constant="ArcNeo4j" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Arc.Neo4j')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Arc.Chronicle.Testing" Constant="ArcChronicleTesting" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Arc.Chronicle.Testing')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Specifications" Constant="Specifications" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Specifications')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Specifications.XUnit" Constant="SpecificationsXUnit" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Specifications.XUnit')->Metadata('Version'))" />
@@ -157,6 +168,8 @@
             <_ScaffoldPackage Include="Cratis.Showrunner.Herald" Constant="Herald" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Showrunner.Herald')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Showrunner.BoxOffice" Constant="BoxOffice" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Showrunner.BoxOffice')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Chronicle.ForAnte" Constant="AnteChronicle" PinVersion="$(AnteContractsChronicleVersion)" />
+            <_ScaffoldPackage Include="Cratis.Choreography" Constant="Choreography" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Choreography')->Metadata('Version'))" />
+            <_ScaffoldPackage Include="Cratis.Choreography.Chronicle" Constant="ChoreographyChronicle" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Choreography.Chronicle')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Chronicle" Constant="Chronicle" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Chronicle')->Metadata('Version'))" />
         </ItemGroup>
         <Error Code="STAGE-MISSING-SCAFFOLD-PIN" Condition="'%(_ScaffoldPackage.PinVersion)' == ''"

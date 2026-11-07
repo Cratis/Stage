@@ -56,18 +56,33 @@ public class when_comparing_composite_event_payloads(when_comparing_composite_ev
               specification ProducedComposite
                 when RecordDetails
                   id = "one"
-                  details = {"label":"nested","child":{"count":7}}
+                  details
+                    label = "nested"
+                    child
+                      count = 7
                 then DetailsRecorded
-                  details = {"label":"nested","child":{"count":7}}
+                  details
+                    label = "nested"
+                    child
+                      count = 7
               specification GivenComposite
                 given DetailsRecorded
                   for "before"
-                  details = {"label":"nested","child":{"count":6}}
+                  details
+                    label = "nested"
+                    child
+                      count = 6
                 when RecordDetails
                   id = "one"
-                  details = {"label":"nested","child":{"count":7}}
+                  details
+                    label = "nested"
+                    child
+                      count = 7
                 then DetailsRecorded
-                  details = {"label":"nested","child":{"count":7}}
+                  details
+                    label = "nested"
+                    child
+                      count = 7
               event DetailsRequested
                 details Details
               reaction ForwardDetails
@@ -78,9 +93,15 @@ public class when_comparing_composite_event_payloads(when_comparing_composite_ev
               specification InvokedComposite
                 when append DetailsRequested
                   for "one"
-                  details = {"label":"nested","child":{"count":7}}
+                  details
+                    label = "nested"
+                    child
+                      count = 7
                 then DetailsRecorded
-                  details = {"label":"nested","child":{"count":7}}
+                  details
+                    label = "nested"
+                    child
+                      count = 7
         """;
 }
 #endif

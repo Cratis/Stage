@@ -24,9 +24,11 @@ public class when_inspecting_the_specification_read_models : given.a_compiled_mo
 
     // Both steps name the same read model, so both resolve to the same identifier — the way the event and command
     // steps already resolve what they refer to.
-    [Fact] void should_resolve_both_steps_to_the_same_read_model() =>
+    [Fact]
+    void should_resolve_both_steps_to_the_same_read_model() =>
         _specification.ThenReadModels[0].ReadModelId.ShouldEqual(_specification.GivenReadModels[0].ReadModelId);
-    [Fact] void should_give_each_step_its_own_identity() =>
+    [Fact]
+    void should_give_each_step_its_own_identity() =>
         _specification.ThenReadModels[0].Id.ShouldNotEqual(_specification.GivenReadModels[0].Id);
 
     static string Value(SpecificationReadModel readModel, string property)

@@ -39,14 +39,14 @@ public class when_comparing_the_canonical_source(when_comparing_the_canonical_so
 
         static ExecutableSemanticModel CompileSource()
         {
-            using var resource = typeof(RegisterProjectCorpus).Assembly.GetManifestResourceStream("Cratis.Screenplay.CanonicalCorpus.Corpus.NotEmptyWhitespace.source.play")!;
+            using var resource = typeof(RegisterProjectCorpus).Assembly.GetManifestResourceStream("Cratis.Screenplay.CanonicalCorpus.Corpus.NotEmptyWhitespace.source.play");
             using var reader = new StreamReader(resource);
             var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("NotEmptyWhitespace"));
             var document = SemanticSourceDocument.Create(catalog.ResolveDocument("source"), "source", "NotEmptyWhitespace.play", reader.ReadToEnd());
             var compilation = new SemanticModelCompiler().Compile("NotEmptyWhitespace", SemanticDocumentSet.Create([document], catalog));
             Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
 
-            return compilation.Value!.Model;
+            return compilation.Value.Model;
         }
     }
 }

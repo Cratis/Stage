@@ -20,8 +20,8 @@ public class with_moved_document_mappings : given.a_release_baseline_tree
 
     async Task Because() => _loaded = await SemanticModelLoader.LoadAsync(_root, [], ".screenplay/identities.json", "RecordsApp");
     [Fact] void should_preserve_the_document_identity() => _loaded.Success.ShouldBeTrue();
-    [Fact] void should_check_the_baseline() => _loaded.Loaded!.ReleaseBaseline.Status.ShouldEqual(ReleaseBaselineAssessmentStatus.Checked);
-    [Fact] void should_assess_the_rendered_revision() => _loaded.Loaded!.ReleaseBaseline.ModelRevision.ShouldEqual(_loaded.Loaded.Model.Revision);
-    [Fact] void should_find_the_changed_revision() => _loaded.Loaded!.ReleaseBaseline.Violations.Single().Kind.ShouldEqual("BaselinedRevisionChanged");
+    [Fact] void should_check_the_baseline() => _loaded.Loaded.ReleaseBaseline.Status.ShouldEqual(ReleaseBaselineAssessmentStatus.Checked);
+    [Fact] void should_assess_the_rendered_revision() => _loaded.Loaded.ReleaseBaseline.ModelRevision.ShouldEqual(_loaded.Loaded.Model.Revision);
+    [Fact] void should_find_the_changed_revision() => _loaded.Loaded.ReleaseBaseline.Violations.Single().Kind.ShouldEqual("BaselinedRevisionChanged");
 }
 #endif

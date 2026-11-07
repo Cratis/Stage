@@ -1,9 +1,15 @@
 ---
-title: Event-source routing
-description: Look up how the Cratis semantic planner renders named sources, streams and portable stream identities.
+title: Cratis Stage event-source routing
+description: Cratis Stage renders named event sources and streams into Chronicle definitions, Arc command routes and observer filters, with portable stream IDs.
 ---
 
-The Cratis semantic planner admits Screenplay ESM v8 event-source routes. A generated command appends to the declared source type, stream type and stream identity, rather than Chronicle's defaults. The generated application profile takes its exact Chronicle and Arc pins from Stage's `Directory.Packages.props`; Chronicle registers the event-source definitions used by Arc's hosted command pipeline.
+Cratis Stage event-source routing makes generated commands append to the source type, stream type and stream
+identity declared in Screenplay. Use it when events must go to a named stream instead of Chronicle's defaults.
+The semantic planner admits these routes from v8 of Screenplay's executable semantic model (ESM), the compiled
+model Stage renders.
+
+The generated application profile takes its exact Chronicle and Arc pins from Stage's `Directory.Packages.props`.
+Chronicle registers the event-source definitions used by Arc's hosted command pipeline.
 
 ## Generated definitions
 
@@ -28,7 +34,15 @@ public class AccountEventSource : IEventSource
 }
 ```
 
-The source attribute uses the **stored** source name explicitly. Recoverability applies to identity names: PascalCase names that normalization leaves unchanged, are valid C# identifiers and are not keywords. For these names, definition classes append `EventSource` to the model name, even if it already ends in that suffix. Each identity-named stream has a public string constant on the source class: its identifier is the model stream name and its value is the stored stream name. Stream attributes, command attributes and generated specification routes reference that constant directly, including when the stored name differs. Streams appear in ordinal stored-name order. Stage emits neither descriptions nor concurrency dimensions.
+The source attribute explicitly names the stored source. To recover the model names from generated definitions,
+use identity names: PascalCase names that normalization leaves unchanged, are valid C# identifiers and are not
+keywords. For these names, definition classes append `EventSource` to the model name, even if it already ends
+in that suffix.
+
+Each identity-named stream gets a public string constant on the source class. Its identifier is the model
+stream name and its value is the stored stream name. Stream attributes, command attributes and generated
+specification routes reference the constant directly, including when the stored name differs. Streams appear
+in ordinal stored-name order. Stage emits neither descriptions nor concurrency dimensions.
 
 Other names retain the existing normalized class names and stored stream-name literals. For example, source `account` becomes `AccountEventSource`, and stream `Account_Name` uses its stored name as a literal without declaring a misleading `AccountName` constant. Such names do not round-trip through the recoverable shape; readers fall back to treating them as code. Class-name collisions fail planning with `STAGE-ESM-012`, rather than renaming a definition. Identity-named stream constants that collide with another member or the class name also fail with `STAGE-ESM-012`.
 
@@ -40,7 +54,23 @@ An application render emits every source. A narrower render emits only sources r
 
 A routed command carries `Cratis.Arc.Chronicle.Commands.EventSourceAttribute<TSource>` with a direct reference to the stream constant, such as `AccountEventSource.Transactions`. An unkeyed stream needs only that attribute; its handler retains the existing return shape.
 
-For a keyed stream, the handler returns `EventForEventSourceId` wrappers with `EventStreamId` set. Literal identities are formatted during planning and emitted as escaped C# literals. Property identities are formatted inside `Handle()`. Composite identities use declaration order. Every event the command produces receives the same route, even when a production targets another event-source instance, unless the production declares its own `stream Source.Stream` override. An override renders that production's wrapper with its own `EventSource`, `EventStream` and, for a keyed stream, `EventStreamId`; Arc takes the wrapper's source and stream together and inherits nothing from the command. Arc 22.112.1 takes a wrapper's stream id when it differs from `EventStreamId.Default`; otherwise it falls back to the command context's stream id, which Stage never sets because it emits neither `[EventStreamId]` nor `ICanProvideEventStreamId`. Stage has not proven two override shapes equivalent to the reference execution, so it does not admit them yet and refuses them with `STAGE-ESM-036`: an override on an unkeyed stream under a keyed command route, and a literal override stream id of `Default`, which Arc cannot tell from an unset wrapper stream id. Existing `Occurred` metadata and tags remain on each wrapper.
+For a keyed stream, the handler returns `EventForEventSourceId` wrappers with `EventStreamId` set. Literal
+identities are formatted during planning and emitted as escaped C# literals. Property identities are formatted
+inside `Handle()`. Composite identities use declaration order. Existing `Occurred` metadata and tags remain
+on each wrapper.
+
+Every event the command produces receives the same route, even when a production targets another event-source
+instance, unless that production declares its own `stream Source.Stream` override. An override gives the
+production's wrapper its own `EventSource`, `EventStream` and, for a keyed stream, `EventStreamId`. Arc takes
+the wrapper's source and stream together and inherits neither from the command.
+
+Arc 22.112.1 uses a wrapper's stream id when it differs from `EventStreamId.Default`. Otherwise it falls back
+to the command context's stream id. Stage never sets that context value because it emits neither
+`[EventStreamId]` nor `ICanProvideEventStreamId`.
+
+Stage refuses two override shapes with `STAGE-ESM-036`: an override on an unkeyed stream under a keyed command
+route, and a literal override stream id of `Default`. Stage has not established equivalence to reference
+execution for these shapes; Arc cannot distinguish a literal `Default` from an unset wrapper stream id.
 
 ## Observer filters
 
@@ -53,7 +83,14 @@ An ESM v10 reducer or reaction's `from` clause filters the facts delivered to it
 
 `TSource` is the generated event-source definition. The stream filter references the model-named constant, whose value is the stored stream name, or uses a stored-name literal for a non-identity name. Filters do not select stream identities. Unrouted facts never match a filtered observer. A source-only filter accepts every stream of that source; a source-and-stream filter accepts only that pair. Reserved stored names fail planning with `STAGE-ESM-030`.
 
-Reaction filters render and also apply in the semantic Host and specification executor. Generated reaction productions retain unrouted destination metadata; the observer filter does not route their output. The legacy syntax paths still refuse observer filters with `STAGE-ESM-035`. Reducer support is rendering-only: Stage's Host and in-memory specification executor still refuse reducers, and filtered reducers retain `STAGE-ESM-035` in those paths. Generated read-model companion specifications for filtered reducers fail with `STAGE-ESM-011`: Chronicle's `ReadModelScenario` does not preserve route metadata or apply observer filters.
+Reaction filters render and also apply in the semantic Host and specification executor. Generated reaction
+productions retain unrouted destination metadata: filtering an observer's input does not route its output.
+The legacy syntax paths refuse observer filters with `STAGE-ESM-035`.
+
+Reducer support is rendering-only. Stage's Host and in-memory specification executor refuse reducers, and
+filtered reducers retain `STAGE-ESM-035` in those paths. Generated read-model companion specifications for
+filtered reducers fail with `STAGE-ESM-011` because Chronicle's `ReadModelScenario` does not preserve route
+metadata or apply observer filters.
 
 ## Identity codec
 

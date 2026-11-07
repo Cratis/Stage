@@ -13,5 +13,5 @@ public class when_disabled : given.an_api_pipeline
 
     Task Because() => Execute();
 
-    [Fact] void should_leave_the_request_anonymous() => _context.User.Identity!.IsAuthenticated.ShouldBeFalse();
+    [Fact] void should_leave_the_request_anonymous() => _context.User.Identity.IsAuthenticated.ShouldBeFalse();
 }

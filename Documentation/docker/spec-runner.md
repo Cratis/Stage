@@ -1,14 +1,59 @@
 ---
-title: The specification runner
-description: Running the specifications modeled in a Screenplay model as a container job, and reading the results.json it writes.
+title: Cratis Stage specification runner
+description: Run Screenplay model specifications with the semantic engine, choose the correct report format, and distinguish model checks from application tests.
 ---
 
-The specifications in a Screenplay model are part of the model, not a separate test project — so they can be run
-without building anything. `cratis/stage-specrunner` is that run: a **run-to-completion job** that compiles the
-model, verifies its specifications, writes `results.json`, and exits.
+Use Cratis Stage's `cratis/stage-specrunner` to check the expectations declared in a Cratis Screenplay model.
+It compiles `.play` source, writes a report, and exits without starting a server or requiring an event store.
+Choose the semantic engine to execute supported behavior, then read each reported outcome. These are model
+checks, not tests of a generated application or the live [Stage container](index.md).
 
-Unlike [the Stage container](index.md), it starts no server and needs no event store. It is meant for a build
-pipeline or an editor's "verify my model" action. The default structural engine is **deprecated**: it checks
+## Choose an engine
+
+| Your task | Engine | Report and boundary |
+| --- | --- | --- |
+| Execute supported modeled behavior against specification expectations | `--engine semantic` | Versioned `stage-spec-run/1` report with semantic IDs and per-specification outcomes. Unsupported capabilities are reported, not silently simulated. |
+| Keep an existing structural-results consumer working during migration | `--engine structural` (the default) | Legacy Guid-keyed `results.json`. Checks model consistency, not behavior; deprecated and scheduled for removal in the next major version. |
+
+For a new run, choose `--engine semantic`. Keep `--engine structural` only when an existing consumer still needs
+its legacy report, and update that reader when migrating: the two report formats are not interchangeable.
+Neither engine proves that generated code builds or that an application behaves correctly in production.
+
+## Run semantic specifications
+
+1. Prepare a Screenplay `.play` file or folder containing the model and its specifications. If needed,
+   [create a model](/screenplay/getting-started/) first. Choose a writable host folder for reports.
+2. Replace both host paths below and run the semantic engine:
+
+   ```bash title="Terminal — execute modeled specifications"
+   docker run --rm \
+       -v /path/to/screenplays:/model:ro \
+       -v /path/to/results:/output \
+       cratis/stage-specrunner:latest --engine semantic \
+       --model /model --output /output/results.json
+   ```
+
+3. Open `/path/to/results/results.json` and read each outcome: `Passed`, `Failed`, `Unsupported`, or `Cancelled`.
+   The report uses `stage-spec-run/1`; do not pass it to a legacy structural-results reader. For `Failed`, read
+   the mismatch details and revise the model or its expectation. For `Unsupported`, read the capability reason:
+   Stage could not execute that check, so it has not established whether the expectation holds.
+
+:::caution[Exit 0 does not mean the specifications passed]
+The semantic process returns `0` after writing a report even when specifications fail or are unsupported.
+Check the reported outcomes, not just the process exit code. Input failures do not replace an existing report:
+use the output from this run, not a stale file. See [exit codes](#exit-codes) for input and argument failures.
+:::
+
+For scope filters, local execution, and the semantic Host route, see
+[Opt in to semantic execution](#opt-in-to-semantic-execution). The lookup sections below retain the structural
+compatibility contract as well as semantic capability details.
+
+## Execution capabilities
+
+The semantic engine runs the executable semantic model (ESM) compiled from your Screenplay source. The ESM version
+identifies the model's semantics, not the Screenplay package release.
+
+The default structural engine is **deprecated**: it checks
 model consistency, not behavior, and will be removed in the next major version. This minor version retains
 `structural` as the default for existing `results.json` consumers; each structural run prints one deprecation
 notice to standard error. Structural runs refuse named event sources, streams and event-source routes with
@@ -53,11 +98,24 @@ append/redelivery specifications retain `STAGE-ESM-024`; renderer clock fixtures
 The executor uses its own reaction loop. Unlike the [semantic Stage Host](index.md#opt-in-to-semantic-execution),
 which refuses the whole live batch if settlement fails, a specification ends at its first rejection or
 unsupported capability. Rendered Chronicle reactors run eventually and retry failed partitions.
-Structural refusals exit `1` without writing results;
-semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.247.3, admits exact ESM v1–v30 and v32–v34
-version pairs (not mixed/noncanonical pairs), plus newer pairs within the declared ESM range (`>=32.0 <33`). Within that range, unaudited members refuse their owning slice or application with `STAGE-ESM-016`; only the specification's own slice is admitted for execution. Pairs outside the range that are not audited or the exact v33/v34 pairs are refused with `STAGE-ESM-016`, naming the range.
-At v33 the executor runs a capture that keys its records by event source when it consumes inbox (foreign) events; the model validator rejects one over local events;
-at v34 `then invokes` is compared as described below. The renderer and the live semantic Host admit exact v33 models (the renderer renders `key is event source`; see [Translation rendering](../reference/translation-rendering.md)) but still refuse v34 models whole with `STAGE-ESM-016`. The Host has no capture runtime of its own, so a v33 capture keyed by event source does not block live admission.
+Structural refusals exit `1` without writing results; semantic runs record `Unsupported`, never a passing
+specification.
+
+The semantic executor uses Screenplay 5.7.0. That package version is separate from the compiled model's ESM version. The executor accepts the renderer's audited language/semantic version pairs,
+including v31–v34, v36 and v38, plus matching newer pairs within the declared range (`>=32.0 <33`). Mixed or
+noncanonical pairs are not admitted. A pair that is neither audited nor within the accepted range is refused
+with `STAGE-ESM-016`, naming the range.
+
+For a newer pair within that range, Stage checks for unaudited members. They refuse their owning slice or
+application with `STAGE-ESM-016`; only the specification's own slice is admitted for execution. Passing the
+version check does not admit every construct in the model.
+
+At v33 the executor runs a capture that keys its records by event source when it consumes inbox (foreign)
+events; the model validator rejects one over local events. The renderer renders `key is event source`
+(see [Translation rendering](../reference/translation-rendering.md)). The Host has no capture runtime of its
+own, so this capture does not block live admission. At v34, `then invokes` is compared as described below.
+The renderer and live semantic Host also admit the exact v34 version pair; they can still refuse individual
+constructs with `STAGE-ESM-016`.
 A v22 model with `reaction batches atomic` executes each direct-production batch all-or-none; see [Atomic reaction batches](#atomic-reaction-batches).
 At v28 the semantic executor runs Uuid `==` and `!=` in command requirements and `produces when` guards, including protected
 read paths, with the reference evaluator's results: Uuids compare ordinally in canonical lowercase hyphenated spelling, and a
@@ -87,7 +145,7 @@ exactly `*`, containing `#`, and leading- or trailing-whitespace keys reject bef
 instance is stored at that key. These refused keys and absent views reject validation before all requirements and
 generation, with `<View> '<key>' does not exist.`, preserving the supplied key text. This refused-key check is specific
 to protected reads; command identifiers keep their existing behavior. The Host delegates to the pinned
-Screenplay 4.247.3 evaluator with the same refused-key checks. Read-backed requirements and
+Screenplay 5.7.0 evaluator with the same refused-key checks. Read-backed requirements and
 produced-event mappings use that projected state. Non-Error requirements on protected commands remain
 `Unsupported` with `STAGE-ESM-045` until Screenplay defines their severity semantics. This admission check includes
 commands reachable through reaction invocations, even in specifications expecting rejection, and runs before any facts are appended.
@@ -130,12 +188,14 @@ The semantic executor, Host and renderer admit text and non-text `secret` concep
 Generated applications carry protection attributes, and renderer admission refuses protected identity
 uses or enums with `STAGE-ESM-040` ([Concept compliance rendering](../reference/compliance-rendering.md)).
 Migrate to `--engine semantic` and the semantic report format described below.
+For existing legacy-results consumers only, the structural invocation is:
 
-```bash
+```bash title="Terminal — legacy structural compatibility"
 docker run --rm \
     -v /path/to/screenplays:/model:ro \
     -v /path/to/results:/output \
-    cratis/stage-specrunner:latest
+    cratis/stage-specrunner:latest --engine structural \
+    --model /model --output /output/results.json
 ```
 
 ```text
@@ -246,7 +306,9 @@ Screenplay's first-violation ordering. These rendering limits do not narrow the 
 
 ## Mount points and arguments
 
-The image defaults to the two mounted folders, so the invocation above needs no arguments:
+The image's Docker `CMD` supplies `--model /model --output /output/results.json` only when no arguments follow
+its name. Arguments after the image name replace these defaults, so pass both `--model` and `--output` whenever
+selecting an engine or overriding a path. The other arguments are optional:
 
 | Argument | Default | Meaning |
 |---|---|---|
@@ -289,9 +351,12 @@ source path and position, ordered by path, line and column. Folder diagnostics u
 The existing argument parser treats an invalid `--slice` or `--spec` GUID as no filter, rather than rejecting it.
 Check filter values before invoking the runner; this input-path support does not change that policy.
 
+<a id="reading-resultsjson"></a>
+
 ## Reading results.json
 
-The file carries the model's identifier and one result per specification, each with its per-step outcomes:
+For `--engine semantic`, read the [semantic report format](#opt-in-to-semantic-execution) instead.
+The structural results file carries the model's identifier and one result per specification, each with its per-step outcomes:
 
 ```json
 {
@@ -403,7 +468,7 @@ specifications: the Screenplay v4.24.0 reference evaluator declares `SemanticCon
 
 Facts are compared against Stage's recorded occurrences; Chronicle's persisted log is checked for fact count.
 A separate Chronicle projection scenario evaluates admitted read-model assertions, including keyed absence
-assertions (`then no readmodel … for …`), and optional snapshot queries by the read-model identifier.
+assertions (`then no readmodel … for …`), and optional queries by the read-model identifier, snapshot or `observable` (the result is the read model the query's first delivery carries).
 An absence assertion passes only when that keyed instance is missing; an instance at another key does not
 make it fail. Specifications can inspect projected Given events without a command or append action.
 Protected queries evaluate the same portable policies as commands, with the fixture caller, query argument
@@ -422,11 +487,13 @@ history; subsequent command, append and reaction facts fold on top through Chron
 seeding. Other keys retain their projected history, and invoked commands read the same seeded world. Seed-only
 models can be asserted and queried without a projection. Projected seeds must contain every scalar property
 and an identifier equal to their key; partial or null projected seeds remain `Unsupported(GivenReadModel)`
-because concrete scenario records cannot preserve missing-property presence. Generated absence specifications
-also seed complete scalar records for independent projections, preserving the same history replacement and
-later command or append replay. They can assert absence beside presence at another seeded key or inspect
-seeds without an action. Partial or null seeds, seeded decision reads, reducers, dependent projection scopes
-and seeded query combinations retain `STAGE-ESM-011`.
+because concrete scenario records cannot preserve missing-property presence. Generated projection specifications
+also seed complete scalar records with identifiers matching their keys for independent projections, preserving
+the same history replacement and later command or append replay. Positive read-model expectations do not
+require an absence assertion; specifications can also assert absence beside presence at another seeded key
+or inspect seeds without an action. Partial or null seeds, seeded command reads (including decision reads),
+reducers, dependent projection scopes and seeded query combinations retain `STAGE-ESM-011`, except for the
+already-supported query-only lookup of one complete seeded record.
 
 Per-run projections reject optional or composite
 read-model properties and non-identifier
@@ -436,7 +503,7 @@ An event-source identity
 mapping into a non-identifier property requires exactly the identifier's type without enumeration constraints;
 otherwise it returns `Unsupported(Projection)`. More than one projection for a requested read model also
 returns `Unsupported(Projection)`. They also apply the renderer's scoped-projection admission predicate, so
-composite keys, joins inside nested (blocked by the pinned reference; [Screenplay #1078](https://github.com/Cratis/Screenplay/issues/1078)), and children inside nested remain rejected. The per-run executor runs identity and safe scalar literal `all` mappings natively through `FromAll`, including unrelated event types and sources, creating an instance per event source. Every fact observed by `all` must have the identifier's value type and enumeration values. Root `every` literals at join levels use native `FromEvery.ToValue`: original `from` mappings, including exact same-target Sets, remain declared because Chronicle uses those targets to select join backfills. At join-free levels, literal `every` mappings still lower to each declared `from` block and replace an exact scalar Set on the same target. Prefix overlaps and non-Set collisions remain refused. Empty `all`, Clear (`score = null` is a clear, not a literal Set), child/nested `every` with joins, and `every` including children remain unsupported; IncludeChildren is unverified by Stage. No null-Set behavior is admitted. Queries other than optional snapshots
+composite keys, joins inside nested objects under children, nested joins on the nested key (`id`), children inside nested and join removals inside nested remain rejected; joins inside root-level nested objects render. The per-run executor runs identity and safe scalar literal `all` mappings natively through `FromAll`, including unrelated event types and sources, creating an instance per event source. Every fact observed by `all` must have the identifier's value type and enumeration values. Root `every` literals at join levels use native `FromEvery.ToValue`: original `from` mappings, including exact same-target Sets, remain declared because Chronicle uses those targets to select join backfills. At join-free levels, literal `every` mappings still lower to each declared `from` block and replace an exact scalar Set on the same target. Prefix overlaps and non-Set collisions remain refused. Empty `all`, Clear (`score = null` is a clear, not a literal Set), child/nested `every` with joins, and `every` including children remain unsupported; IncludeChildren is unverified by Stage. No null-Set behavior is admitted. Queries other than optional snapshots
 by identifier return `Unsupported(Query)`. Other unimplemented
 behavior (implicit event-source identity allocation, external effects and
 unsupported expression or value shapes) is also blocked rather than reported as a pass. The semantic

@@ -36,6 +36,6 @@ public class the_live_navigation_model : a_routed_model
             directory = directory.Parent;
         }
 
-        return directory!.FullName;
+        return directory.FullName;
     }
 }

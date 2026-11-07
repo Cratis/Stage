@@ -12,6 +12,6 @@ public class and_revisions_are_unchanged : given.a_release_baseline
     void Because() => _assessment = StageReleaseBaseline.Check(_workspace, _baseline);
     [Fact] void should_check_the_whole_application() => _assessment.Status.ShouldEqual(ReleaseBaselineAssessmentStatus.Checked);
     [Fact] void should_report_no_violations() => _assessment.Violations.ShouldBeEmpty();
-    [Fact] void should_carry_the_assessed_revision() => _assessment.ModelRevision.ShouldEqual(_workspace.Compilation.Value!.Model.Revision);
+    [Fact] void should_carry_the_assessed_revision() => _assessment.ModelRevision.ShouldEqual(_workspace.Compilation.Value.Model.Revision);
 }
 #endif

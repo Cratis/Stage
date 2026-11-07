@@ -16,7 +16,8 @@ public class when_using_the_core_header : Specification
 
     [Fact] void should_encode_the_canonical_json() => ArtifactFileHeader.CreateInput(["Ærlig ©", ""]).Bytes.ShouldEqual(JsonSerializer.SerializeToUtf8Bytes(new[] { "Ærlig ©", "" }));
     [Fact] void should_have_a_stable_hash() => ArtifactFileHeader.CreateInput(["hello"]).Sha256.ShouldEqual(ArtifactFileHeader.CreateInput(["hello"]).Sha256);
-    [Fact] void should_leave_an_empty_header_profile_unchanged()
+    [Fact]
+    void should_leave_an_empty_header_profile_unchanged()
     {
         var profile = Profile();
         ArtifactFileHeader.With(profile, []).ShouldEqual(profile);
@@ -63,7 +64,8 @@ public class when_using_the_core_header : Specification
         result.Artifacts.ShouldBeEmpty();
     }
 
-    [Fact] void should_refuse_duplicate_inputs()
+    [Fact]
+    void should_refuse_duplicate_inputs()
     {
         var input = ArtifactFileHeader.CreateInput(["hello"]);
         ArtifactFileHeader.Apply(Profile(input, ArtifactRenderInput.Create("cratis-render:file-header", "1", input.Bytes)), [], ArtifactCommentSyntaxes.Default).Diagnostics.Single().Code.ShouldEqual("STAGE-HEADER-001");
@@ -85,7 +87,8 @@ public class when_using_the_core_header : Specification
 
     [Fact] void should_not_infer_ownership_from_content() => Encoding.UTF8.GetString(ArtifactFileHeader.Apply(ArtifactFileHeader.With(Profile(), ["hello"]), [PlannedArtifact.CreateText("Code.cs", "// hello\n\ncode")], ArtifactCommentSyntaxes.Default).Artifacts.Single().Bytes.AsSpan()).ShouldEqual("// hello\n\n// hello\n\ncode");
 
-    [Fact] void should_apply_once_explicitly()
+    [Fact]
+    void should_apply_once_explicitly()
     {
         var profile = ArtifactFileHeader.With(Profile(), ["hello", "  ", "end  "]);
         var first = ArtifactFileHeader.Apply(profile, [PlannedArtifact.CreateText("Code.cs", "code")], ArtifactCommentSyntaxes.Default);
@@ -95,21 +98,37 @@ public class when_using_the_core_header : Specification
     }
 
     [Theory]
-    [InlineData(".cs")][InlineData(".ts")][InlineData(".tsx")][InlineData(".mts")][InlineData(".cts")]
-    [InlineData(".js")][InlineData(".jsx")][InlineData(".mjs")][InlineData(".cjs")]
-    [InlineData(".kt")][InlineData(".kts")][InlineData(".go")][InlineData(".java")]
+    [InlineData(".cs")]
+    [InlineData(".ts")]
+    [InlineData(".tsx")]
+    [InlineData(".mts")]
+    [InlineData(".cts")]
+    [InlineData(".js")]
+    [InlineData(".jsx")]
+    [InlineData(".mjs")]
+    [InlineData(".cjs")]
+    [InlineData(".kt")]
+    [InlineData(".kts")]
+    [InlineData(".go")]
+    [InlineData(".java")]
     void should_recognize_code_case_insensitively(string extension) => ArtifactCommentSyntaxes.Default.TryGet("dir.with.dot/Code" + extension.ToUpperInvariant(), out _).ShouldBeTrue();
 
     [Theory]
-    [InlineData(".json")][InlineData(".md")][InlineData(".csproj")][InlineData(".props")]
-    [InlineData(".yml")][InlineData(".css")][InlineData(".html")]
+    [InlineData(".json")]
+    [InlineData(".md")]
+    [InlineData(".csproj")]
+    [InlineData(".props")]
+    [InlineData(".yml")]
+    [InlineData(".css")]
+    [InlineData(".html")]
     void should_leave_content_untouched(string extension)
     {
         var artifact = PlannedArtifact.CreateText("Code" + extension, "code");
         ArtifactFileHeader.Apply(ArtifactFileHeader.With(Profile(), ["hello"]), [artifact], ArtifactCommentSyntaxes.Default).Artifacts.Single().ShouldEqual(artifact);
     }
 
-    [Fact] void should_not_change_the_default_syntaxes()
+    [Fact]
+    void should_not_change_the_default_syntaxes()
     {
         var custom = ArtifactCommentSyntaxes.Default.With(".py", new("#", [])).With(".cs", new("!", []));
         custom.TryGet("code.py", out var python).ShouldBeTrue();

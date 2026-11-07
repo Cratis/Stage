@@ -18,5 +18,5 @@ public class with_unmodeled_tags : a_rebuildable_world
     }
 
     [Fact] void should_refuse_the_unmodeled_tags() => _error.ShouldBeOfExactType<SemanticWorldRebuildRefused>();
-    [Fact] void should_name_the_mismatched_metadata() => _error!.Message.ShouldContain("tags or occurrence");
+    [Fact] void should_name_the_mismatched_metadata() => _error.Message.ShouldContain("tags or occurrence");
 }

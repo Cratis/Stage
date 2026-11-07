@@ -15,7 +15,7 @@ public class when_evaluating_outputs : for_TemplatePreparer.given.a_kit
     public void should_use_locked_helpers_for_output_paths_and_conditions()
     {
         var prepared = TemplateProfile.Prepare(Kit(path: "{{ name.snake model.words }}.txt", when: "model.enabled", forEach: "model.items"), new given.a_language());
-        using var plan = prepared.Templates!.BeginPlan(TemplateBudget.Default);
+        using var plan = prepared.Templates.BeginPlan(TemplateBudget.Default);
         plan.RenderPath("main", Scope).Value.ShouldEqual("customer.txt");
         plan.EvaluateWhen("main", Scope).Value.ShouldBeFalse();
         var items = plan.EvaluateForEach("main", Scope);
@@ -27,7 +27,7 @@ public class when_evaluating_outputs : for_TemplatePreparer.given.a_kit
     [Fact]
     public void should_use_defaults_for_absent_expressions()
     {
-        using var plan = TemplateProfile.Prepare(Kit(), new given.a_language()).Templates!.BeginPlan(TemplateBudget.Default);
+        using var plan = TemplateProfile.Prepare(Kit(), new given.a_language()).Templates.BeginPlan(TemplateBudget.Default);
         plan.EvaluateWhen("main", Scope).Value.ShouldBeTrue();
         plan.EvaluateForEach("main", Scope).Value[0].GetRawText().ShouldEqual(Scope.GetRawText());
     }
@@ -38,24 +38,24 @@ public class when_evaluating_outputs : for_TemplatePreparer.given.a_kit
     [InlineData("path")]
     public void should_latch_unknown_output_ids(string operation)
     {
-        using var plan = TemplateProfile.Prepare(Kit(), new given.a_language()).Templates!.BeginPlan(TemplateBudget.Default);
+        using var plan = TemplateProfile.Prepare(Kit(), new given.a_language()).Templates.BeginPlan(TemplateBudget.Default);
         var code = operation switch
         {
-            "when" => plan.EvaluateWhen("missing", Scope).Refusal!.Code,
-            "forEach" => plan.EvaluateForEach("missing", Scope).Refusal!.Code,
-            _ => plan.RenderPath("missing", Scope).Refusal!.Code
+            "when" => plan.EvaluateWhen("missing", Scope).Refusal.Code,
+            "forEach" => plan.EvaluateForEach("missing", Scope).Refusal.Code,
+            _ => plan.RenderPath("missing", Scope).Refusal.Code
         };
         code.ShouldEqual(TemplateCodes.Input);
         plan.IsRefused.ShouldBeTrue();
-        plan.EvaluateWhen("main", Scope).Refusal!.Code.ShouldEqual(TemplateCodes.AlreadyRefused);
+        plan.EvaluateWhen("main", Scope).Refusal.Code.ShouldEqual(TemplateCodes.AlreadyRefused);
     }
 
     [Fact]
     public void should_bound_aggregate_fan_out()
     {
-        using var plan = TemplateProfile.Prepare(Kit(forEach: "model.items"), new given.a_language()).Templates!.BeginPlan(TemplateBudget.Default with { MaxFanOut = 3 });
+        using var plan = TemplateProfile.Prepare(Kit(forEach: "model.items"), new given.a_language()).Templates.BeginPlan(TemplateBudget.Default with { MaxFanOut = 3 });
         plan.EvaluateForEach("main", Scope).Succeeded.ShouldBeTrue();
-        plan.EvaluateForEach("main", Scope).Refusal!.Code.ShouldEqual(TemplateCodes.FanOut);
+        plan.EvaluateForEach("main", Scope).Refusal.Code.ShouldEqual(TemplateCodes.FanOut);
     }
 
     [Fact]

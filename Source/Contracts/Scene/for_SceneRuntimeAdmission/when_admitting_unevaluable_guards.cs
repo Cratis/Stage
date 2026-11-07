@@ -28,6 +28,41 @@ public class when_admitting_unevaluable_guards : Specification
     [Fact] void should_admit_an_evaluable_guarded_interaction() => Issues(Interaction(_evaluable)).ShouldBeEmpty();
     [Fact] void should_refuse_an_unevaluable_guarded_interaction() => Issues(Interaction(_againstAPath)).ShouldContainOnly(UnsupportedGuardedInteraction.DiagnosticCode);
 
+    [Theory]
+    [InlineData(1)]
+    [InlineData(true)]
+    [InlineData(null)]
+    void should_refuse_contains_with_a_non_string_literal_on_both_surfaces(object? literal)
+    {
+        var condition = new ComparisonConditionSyntax("item.tags", ComparisonOperator.Contains, new LiteralExpressionSyntax(literal, _at), _at);
+        Issues(Action(condition)).ShouldContainOnly(UnsupportedGuardedScreenAction.DiagnosticCode);
+        Issues(Interaction(condition)).ShouldContainOnly(UnsupportedGuardedInteraction.DiagnosticCode);
+    }
+
+    [Fact]
+    void should_admit_contains_with_a_known_string_field_on_both_surfaces()
+    {
+        var condition = new ComparisonConditionSyntax("item.title", ComparisonOperator.Contains, new LiteralExpressionSyntax("open", _at), _at);
+        Issues(Action(condition), path => path == "item.title").ShouldBeEmpty();
+        Issues(Interaction(condition), path => path == "item.title").ShouldBeEmpty();
+    }
+
+    [Fact]
+    void should_refuse_contains_with_an_unknown_field_type_on_both_surfaces()
+    {
+        var condition = new ComparisonConditionSyntax("item.title", ComparisonOperator.Contains, new LiteralExpressionSyntax("open", _at), _at);
+        Issues(Action(condition)).ShouldContainOnly(UnsupportedGuardedScreenAction.DiagnosticCode);
+        Issues(Interaction(condition)).ShouldContainOnly(UnsupportedGuardedInteraction.DiagnosticCode);
+    }
+
+    [Fact]
+    void should_admit_null_equality_on_both_surfaces()
+    {
+        var condition = new ComparisonConditionSyntax("item.status", ComparisonOperator.Equal, new LiteralExpressionSyntax(null, _at), _at);
+        Issues(Action(condition)).ShouldBeEmpty();
+        Issues(Interaction(condition)).ShouldBeEmpty();
+    }
+
     static ScreenGuardedActionSyntax Action(ConditionSyntax condition) =>
         new("Close", [new ScreenActionAlternativeSyntax(condition, "CloseWorkItem", _at)], _at) { Otherwise = new ScreenActionOtherwiseSyntax(ScreenActionOtherwiseOutcome.Hidden, null, _at) };
 
@@ -38,9 +73,9 @@ public class when_admitting_unevaluable_guards : Specification
             Otherwise = new InteractionOtherwiseSyntax([], _at),
         };
 
-    static string[] Issues(SyntaxNode node)
+    static string[] Issues(SyntaxNode node, Func<string, bool>? isStringField = null)
     {
-        var admission = new SceneRuntimeAdmission();
+        var admission = isStringField is null ? new SceneRuntimeAdmission() : new SceneRuntimeAdmission(isStringField);
         admission.VisitNode(node);
         return [.. admission.Issues.Select(_ => _.Code)];
     }

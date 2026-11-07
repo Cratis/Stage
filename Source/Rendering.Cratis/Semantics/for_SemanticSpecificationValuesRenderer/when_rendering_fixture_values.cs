@@ -19,11 +19,12 @@ public class when_rendering_fixture_values : Specification
     {
         var model = invoice_model.Compile("type Details\n  title String\n" + invoice_model.Source("Uuid", invoice_model.UuidSource, invoice_model.OtherUuidSource));
         var options = new CratisRenderingOptions("Invoices", "Invoices");
-        _context = new(new(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id)), options);
+        _context = new(new(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id)), options);
         _types = new(_context) { SpecificationValues = new(_context, _context.Specifications.Values.First()) };
     }
 
-    [Fact] void should_declare_each_repeated_value_once()
+    [Fact]
+    void should_declare_each_repeated_value_once()
     {
         var value = SemanticValue.Text("3fa85f64-5717-4562-b3fc-2c963f66afa6");
         var type = SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Uuid);
@@ -36,13 +37,15 @@ public class when_rendering_fixture_values : Specification
     }
 
     [Fact] void should_keep_a_single_simple_literal_inline() => Render(_types.Value(SemanticValue.Text("one"), SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Text))).ShouldNotContain("static readonly");
-    [Fact] void should_discard_unused_values()
+    [Fact]
+    void should_discard_unused_values()
     {
         _types.Value(SemanticValue.Text("unused"), SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Text));
         Render(string.Empty).ShouldNotContain("unused");
     }
 
-    [Fact] void should_suffix_colliding_property_names()
+    [Fact]
+    void should_suffix_colliding_property_names()
     {
         var type = SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Uuid);
         var first = _types.Value(SemanticValue.Text("3fa85f64-5717-4562-b3fc-2c963f66afa6"), type);
@@ -57,7 +60,8 @@ public class when_rendering_fixture_values : Specification
     [InlineData(SemanticPrimitiveType.DateTime, "2026-01-02T03:04:05Z", "DateTimeOffset")]
     public void should_name_single_use_complex_values(SemanticPrimitiveType primitive, string value, string typeName) => Render(_types.Value(SemanticValue.Text(value), SemanticTypeReference.ForPrimitive(primitive))).ShouldContain($"static readonly global::System.{typeName}");
 
-    [Fact] void should_name_composite_values()
+    [Fact]
+    void should_name_composite_values()
     {
         var type = _context.Types.Values.Single();
         var value = new SemanticCompositeValue([new(type.Properties.Single().Id, SemanticValue.Text("Title"))]);

@@ -23,7 +23,7 @@ public class when_refusing_later_version_constructs : Specification
         foreach (var corpus in new[] { ReactionsCorpus.V6 })
         {
             var model = SemanticModelSerializer.Deserialize(corpus.EsmBytes.AsSpan());
-            var plan = SemanticExecutionPlan.Compile(model).Plan!;
+            var plan = SemanticExecutionPlan.Compile(model).Plan;
             var specifications = model.Application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices)
                 .SelectMany(slice => slice.Specifications).Where(Uses(plan)).Select(specification => specification.Id).ToArray();
             Assert.NotEmpty(specifications);
@@ -32,7 +32,8 @@ public class when_refusing_later_version_constructs : Specification
         }
     }
 
-    [Fact] void should_report_every_affected_specification_as_unsupported() => Assert.True(
+    [Fact]
+    void should_report_every_affected_specification_as_unsupported() => Assert.True(
         _results.TrueForAll(_ => _.Result.Outcome == SemanticSpecificationOutcome.Unsupported),
         string.Join(Environment.NewLine, _results.Select(_ => $"{_.Corpus} {_.Result.Name}: {_.Result.Outcome} {string.Join(',', _.Result.Failures)}")));
 

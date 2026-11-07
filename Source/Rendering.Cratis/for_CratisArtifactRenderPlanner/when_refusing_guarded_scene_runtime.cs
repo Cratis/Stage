@@ -70,11 +70,15 @@ public class when_refusing_guarded_scene_runtime : Specification
               feature Registration
                 slice StateChange RegisterProject
                   command RegisterProject
+                  readmodel Subject
+                    name String
+                  query FindSubject => Subject
                   screen Overview
+                    data Subject via query FindSubject
             """ + "\n" + directive;
         var compilation = new ScreenplayCompiler().Compile(source);
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
 
-        return new ScreenplaySceneVisitor().Visit(compilation.Value!);
+        return new ScreenplaySceneVisitor().Visit(compilation.Value);
     }
 }

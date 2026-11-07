@@ -70,7 +70,7 @@ public class when_refusing_unsettled_no_event_specifications : Specification
                     {action}
                     then no events
             """);
-        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Recovery", "Recovery"));
+        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Recovery", "Recovery"));
         var specification = model.Application.Modules.Single().Features.Single().Slices.Single().Specifications.Single();
         plan.Success.ShouldBeTrue();
         plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Complete);

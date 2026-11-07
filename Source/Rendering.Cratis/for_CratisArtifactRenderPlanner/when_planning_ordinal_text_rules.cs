@@ -27,10 +27,10 @@ public class when_planning_ordinal_text_rules : Specification
             optional ? document.Text.Replace("reference Reference", "reference Reference?", StringComparison.Ordinal) : document.Text));
         var compilation = new SemanticModelCompiler().Compile("TextRules", SemanticDocumentSet.Create([.. documents], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         model.LanguageVersion.ShouldEqual(LanguageVersion.V24);
         model.SemanticVersion.ShouldEqual(SemanticVersion.V24);
-        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("TextRules", "TextRules"));
+        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("TextRules", "TextRules"));
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         plan.Artifacts.ShouldNotBeEmpty();
     }

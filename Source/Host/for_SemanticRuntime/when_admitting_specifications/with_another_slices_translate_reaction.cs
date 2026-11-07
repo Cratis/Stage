@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
+using Cratis.Stage.Semantics;
 using Xunit;
 
 namespace Cratis.Stage.Host.for_SemanticRuntime.when_admitting_specifications;
@@ -41,7 +42,7 @@ public class with_another_slices_translate_reaction : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("work"), "work", "Work.play", source);
         var compilation = new SemanticModelCompiler().Compile("Work", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        _plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        _plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
     }
 
     void Because() => _admission = new(_plan);

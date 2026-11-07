@@ -161,7 +161,7 @@ public class when_verifying_implementation_attachments : Specification
             _loaded.Model.Application with { Name = "DifferentOrders" });
         var request = new ArtifactRenderRequest(
             model,
-            global::Cratis.Screenplay.Semantics.Execution.SemanticExecutionPlan.Compile(model).Plan!,
+            global::Cratis.Screenplay.Semantics.Execution.SemanticExecutionPlan.Compile(model).Plan,
             CratisRendering.CreateProfile("DifferentOrders", new("Orders", "Orders")),
             new(ArtifactRenderScopeKind.Application, model.Application.Id))
         {

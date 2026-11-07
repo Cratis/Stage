@@ -28,30 +28,36 @@ public class when_a_query_returns_another_read_model_the_slice_builds : a_slice_
 
     void Because() => _file = _renderer.Render(_dashboardSlice, _applicationSet, "CratisApp");
 
-    [Fact] void should_render_the_query_that_returns_the_rendered_read_model() =>
+    [Fact]
+    void should_render_the_query_that_returns_the_rendered_read_model() =>
         _file.Content.ShouldContain(
             "public static async Task<InvoiceSummary?> GetInvoiceSummary(IReadModels readModels, EventSourceId invoiceNumber) => " +
             "await readModels.GetInstanceById<InvoiceSummary>(invoiceNumber);");
 
-    [Fact] void should_not_render_a_method_for_the_query_that_returns_the_other_one() =>
+    [Fact]
+    void should_not_render_a_method_for_the_query_that_returns_the_other_one() =>
         _file.Content.ShouldNotContain("IQueryable<InvoiceSummary> GetOverdueInvoices");
 
-    [Fact] void should_not_render_the_other_read_models_query_against_any_type() =>
+    [Fact]
+    void should_not_render_the_other_read_models_query_against_any_type() =>
         _file.Content.Contains("GetOverdueInvoices(", StringComparison.Ordinal).ShouldBeFalse();
 
-    [Fact] void should_report_the_query_it_renders_no_method_for() =>
+    [Fact]
+    void should_report_the_query_it_renders_no_method_for() =>
         _file.Diagnostics.ShouldContain(
             "Query 'GetOverdueInvoices' returns 'OverdueInvoices', which is not the read model rendered here — no method is " +
             "rendered for it, since rendering one against the read model that is here would answer with a read model the " +
             "document does not ask it for.");
 
-    [Fact] void should_note_it_in_the_emitted_file() =>
+    [Fact]
+    void should_note_it_in_the_emitted_file() =>
         _file.Content.ShouldContain(
             "// TODO: query 'GetOverdueInvoices' not rendered — it returns 'OverdueInvoices', which is not the read model rendered here");
 
     // The query's policy belongs to its generated method. Rendering fewer methods must not quietly widen or
     // narrow it — the unguarded query on the other read model still says nothing here.
-    [Fact] void should_keep_the_generated_method_guarded_by_its_querys_policy() =>
+    [Fact]
+    void should_keep_the_generated_method_guarded_by_its_querys_policy() =>
         _file.Content.ShouldContain("[Roles(\"Accountant\")]\n    public static async Task<InvoiceSummary?> GetInvoiceSummary");
 
     [Fact] void should_not_publish_the_read_model_to_everyone() => _file.Content.Contains("[AllowAnonymous]", StringComparison.Ordinal).ShouldBeFalse();

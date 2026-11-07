@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Host.for_SemanticRuntime.given;
+using Cratis.Stage.Semantics;
 using Xunit;
 
 namespace Cratis.Stage.Host.for_SemanticRuntime.when_admitting_later_versions;
@@ -43,5 +44,5 @@ public class with_an_unkeyed_override_under_a_keyed_command_route : Specificatio
 
     void Because() => _admission = new(_plan);
 
-    [Fact] void should_refuse_the_command() => _admission.Blocking.Where(entry => entry.Details!.StartsWith("STAGE-ESM-036:", StringComparison.Ordinal)).Select(entry => entry.Artifact).ShouldContainOnly(_plan.Commands.Keys.Select(id => id.ToString()));
+    [Fact] void should_refuse_the_command() => _admission.Blocking.Where(entry => entry.Details.StartsWith("STAGE-ESM-036:", StringComparison.Ordinal)).Select(entry => entry.Artifact).ShouldContainOnly(_plan.Commands.Keys.Select(id => id.ToString()));
 }

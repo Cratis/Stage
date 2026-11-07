@@ -25,9 +25,9 @@ public class with_a_consuming_projection : a_command_only_plan
         $"Reference: {string.Join("; ", _reference.Failures)}; Stage: {_report.Results.Single().Outcome}");
 
     [Fact]
-    void should_execute_the_projection() => Assert.NotEmpty(_report.Results.Single().Trace!.ReadModels);
+    void should_execute_the_projection() => Assert.NotEmpty(_report.Results.Single().Trace.ReadModels);
 
 
     [Fact]
-    void should_trace_query_by_expectation_index() => Assert.StartsWith("0:", Assert.Single(_report.Results.Single().Trace!.Queries).Key, StringComparison.Ordinal);
+    void should_trace_query_by_expectation_index() => Assert.StartsWith("0:", Assert.Single(_report.Results.Single().Trace.Queries).Key, StringComparison.Ordinal);
 }

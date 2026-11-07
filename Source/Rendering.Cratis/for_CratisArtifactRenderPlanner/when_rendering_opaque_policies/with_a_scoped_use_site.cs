@@ -8,6 +8,7 @@ using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
+using Cratis.Stage.Rendering.Cratis.Semantics;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_rendering_opaque_policies;
@@ -47,8 +48,8 @@ public class with_a_scoped_use_site : Specification
     }
 
     [Fact] void should_keep_every_policy_artifacts_bytes_and_sources() => _scoped.Artifacts.Where(artifact => artifact.RelativePath.StartsWith("GeneratedPolicies/", StringComparison.Ordinal) || artifact.RelativePath.StartsWith("TypedContexts/", StringComparison.Ordinal)).All(artifact => _application.Artifacts.Any(expected => expected.RelativePath == artifact.RelativePath && expected.Bytes.SequenceEqual(artifact.Bytes) && expected.Sources.SequenceEqual(artifact.Sources))).ShouldBeTrue();
-    [Fact] void should_emit_only_the_selected_use_sites_body() => _scoped.Artifacts.Count(artifact => artifact.RelativePath.StartsWith("GeneratedPolicies/PolicyBodies_", StringComparison.Ordinal)).ShouldEqual(1);
-    [Fact] void should_emit_only_the_selected_use_sites_wrapper() => _scoped.Artifacts.Count(artifact => artifact.RelativePath.StartsWith("TypedContexts/TypedContext_", StringComparison.Ordinal)).ShouldEqual(1);
+    [Fact] void should_emit_only_the_selected_use_sites_body() => _scoped.Artifacts.Count(artifact => artifact.RelativePath.StartsWith("GeneratedPolicies/PolicyBodies.", StringComparison.Ordinal) && artifact.RelativePath != "GeneratedPolicies/PolicyBodies.cs").ShouldEqual(1);
+    [Fact] void should_emit_only_the_selected_use_sites_wrapper() => _scoped.Artifacts.Count(artifact => artifact.RelativePath.StartsWith("TypedContexts/", StringComparison.Ordinal) && !TypedContextTypes.Fixed.Contains(Path.GetFileNameWithoutExtension(artifact.RelativePath), StringComparer.Ordinal)).ShouldEqual(1);
     [Fact] void should_keep_the_legacy_shared_bodies_path() => _scoped.Artifacts.Select(artifact => artifact.RelativePath).ShouldContain("GeneratedPolicies/PolicyBodies.cs");
     [Fact] void should_keep_the_legacy_shared_context_path() => _scoped.Artifacts.Select(artifact => artifact.RelativePath).ShouldContain("TypedContexts/PolicyContext.cs");
     [Fact] void should_compile_without_warnings() => _warnings.ShouldBeEmpty();

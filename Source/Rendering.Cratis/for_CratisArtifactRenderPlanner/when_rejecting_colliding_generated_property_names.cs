@@ -113,7 +113,7 @@ public class when_rejecting_colliding_generated_property_names
         var execution = SemanticExecutionPlan.Compile(changedModel);
         Assert.True(execution.Success, string.Join("; ", execution.Issues));
         var view = changed.Slices.Single(slice => slice.Kind == SemanticSliceKind.StateView);
-        var plan = CratisRendering.Plan(changedModel, execution.Plan!, new(ArtifactRenderScopeKind.Slice, view.Id), new("Projects", "Projects"));
+        var plan = CratisRendering.Plan(changedModel, execution.Plan, new(ArtifactRenderScopeKind.Slice, view.Id), new("Projects", "Projects"));
 
         Assert.False(plan.Success);
         Assert.Empty(plan.Artifacts);
@@ -139,7 +139,7 @@ public class when_rejecting_colliding_generated_property_names
             original.Application with { Types = [changed] });
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success, string.Join("; ", execution.Issues));
-        var plan = CratisRendering.Plan(model, execution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
+        var plan = CratisRendering.Plan(model, execution.Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
         Assert.False(plan.Success);
         Assert.Empty(plan.Artifacts);
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" && diagnostic.Artifact == changed.Id);
@@ -168,7 +168,7 @@ public class when_rejecting_colliding_generated_property_names
     {
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success, string.Join("; ", execution.Issues));
-        return CratisRendering.Plan(model, execution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
+        return CratisRendering.Plan(model, execution.Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
     }
 
     static ExecutableSemanticModel Compile(string source)
@@ -177,6 +177,6 @@ public class when_rejecting_colliding_generated_property_names
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("collision"), "collision", "Collision.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join("; ", compilation.Diagnostics.Select(diagnostic => diagnostic.Message)));
-        return compilation.Value!.Model;
+        return compilation.Value.Model;
     }
 }

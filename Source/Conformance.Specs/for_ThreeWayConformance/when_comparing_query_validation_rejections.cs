@@ -41,7 +41,7 @@ public class when_comparing_query_validation_rejections(when_comparing_query_val
 
         async Task Because()
         {
-            var plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(QueryValidationCorpus.V18.EsmBytes.AsSpan())).Plan!;
+            var plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(QueryValidationCorpus.V18.EsmBytes.AsSpan())).Plan;
             CorpusRendering = invoice_model.Plan(plan.Model);
             Reference = [.. plan.Specifications.Keys.Select(id => new SemanticSpecificationRunner().Run(plan, id))];
             Stage = [.. (await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results];

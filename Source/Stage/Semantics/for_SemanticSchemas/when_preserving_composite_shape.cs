@@ -13,7 +13,7 @@ public class when_preserving_composite_shape : given.a_schema
 
     void Because() => _schema = Value(Schema("concept Email : String pii\ntype Contact\n  email Email\n  visible String", "Contact"));
 
-    [Fact] void should_classify_the_personal_leaf() => _schema["properties"]!["email"]!["compliance"]!.ToJsonString().ShouldEqual("[{\"metadataType\":\"PII\",\"details\":\"\"}]");
+    [Fact] void should_classify_the_personal_leaf() => _schema["properties"]["email"]["compliance"].ToJsonString().ShouldEqual("[{\"metadataType\":\"PII\",\"details\":\"\"}]");
     [Fact] void should_leave_the_container_unclassified() => _schema.ContainsKey("compliance").ShouldBeFalse();
-    [Fact] void should_leave_other_leaves_unclassified() => _schema["properties"]!["visible"]!.ToJsonString().ShouldEqual("{\"type\":\"string\"}");
+    [Fact] void should_leave_other_leaves_unclassified() => _schema["properties"]["visible"].ToJsonString().ShouldEqual("{\"type\":\"string\"}");
 }

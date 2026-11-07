@@ -27,7 +27,18 @@ public class with_the_default_composition : a_register_project_render_request
     // Recomputed for merged Screenplay 4.258.0 and npm @cratis/scene 4.86.0.
     // Recomputed for Screenplay 4.259.0: the scaffold now emits the published matcher pin.
     // Re-frozen for Cratis/Stage#120 merged with train 10: authentication artifacts and host wiring on top of the train 10 output.
-    const string Before = "5c6666af74fd84b4e8f4aac44810a39860899daefdeb04a83400a2b5f186e7eb";
+    // Re-frozen for Cratis/Stage#937: only Directory.Packages.props pins Pkcs to 10.0.14 and documents Xml runtime servicing.
+    // Recomputed for Screenplay 5.0.0: the scaffold emits the 5.0.0 matcher pin.
+    // Recomputed for Screenplay 5.1.0: the scaffold emits the 5.1.0 matcher pin.
+    // Re-frozen after merging main (Screenplay 5.1.0) into train 10: the 4.259.0-era constants were stale.
+    // Recaptured by the owning spec for train 11's merged pins and rendering deliveries.
+    // Recomputed for Chronicle 19.117.0: the scaffold emits the matching package and development image pins.
+    // Recomputed for Screenplay 5.3.1: the scaffold emits the matching matcher pin.
+    // Recomputed for Cratis/Stage#967: the scaffold hosts Choreography 2.2.0 with Chronicle 19.124.0 and Arc 22.165.2.
+    // Recomputed for Arc 22.166.0: the scaffold emits the matching backend and frontend pins.
+    // Recomputed for Chronicle 19.129.0: the scaffold emits the matching package pins and development image tag.
+    // Recomputed for Screenplay 5.10.0, Arc 22.168.0 and the main merge: the scaffold emits the matching pins, and npm Arc, Components and Scene at the published releases.
+    const string Before = "31b67b0fbff74001f0becb7154e6422a15b94fa6159573f00a064a4099210783";
 
     ArtifactRenderPlan _plan = null!;
 

@@ -26,14 +26,14 @@ public class and_integer_fixture_stream_ids_are_out_of_range : Specification
     void Exercise(ExecutableSemanticModel model, bool composite)
     {
         var options = new CratisRenderingOptions("Routed", "Routed");
-        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile("Routed", options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile("Routed", options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
         var context = new SemanticApplicationContext(request, options);
         var located = context.DeclaringSlice(context.Specifications.Values.Single().Id);
         var slice = located.Slice;
         var specification = slice.Specifications.Single();
         foreach (var value in new[] { -9007199254740992m, 9007199254740992m })
         {
-            var route = specification.ThenEvents[0].Route!;
+            var route = specification.ThenEvents[0].Route;
             var invalid = composite
                 ? route with { StreamIdParts = [.. route.StreamIdParts.Select(part => part.Part == "month" ? part with { Value = SemanticValue.Number(value) } : part)] }
                 : route with { StreamId = SemanticValue.Number(value) };
@@ -56,7 +56,7 @@ public class and_integer_fixture_stream_ids_are_out_of_range : Specification
 
             // Direct-append specifications are refused before rendering, independently of their route.
             _appendRefusals.Add(SemanticCratisAdmission.Evaluate(context, [located with { Slice = slice with { Specifications = [append] } }]).Any(diagnostic => diagnostic.Code == "STAGE-ESM-011"));
-            _appendCodecRefusals.Add(!SemanticSpecificationRouteRendering.CanFormat(append.WhenAppended!.Route!, context));
+            _appendCodecRefusals.Add(!SemanticSpecificationRouteRendering.CanFormat(append.WhenAppended.Route, context));
         }
     }
 

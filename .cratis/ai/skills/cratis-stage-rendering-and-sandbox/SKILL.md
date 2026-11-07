@@ -1,6 +1,6 @@
 ---
 name: cratis-stage-rendering-and-sandbox
-description: "What Cratis Stage and `cratis render` do with a Screenplay `.play` model: the model shape Stage admits and refuses (`STAGE-ESM-*`, `PLAY0268` render refusals), what it emits (C# Arc/Chronicle backend, React/Vite scaffold with Arc `CommandForm` shell emission over Scene typed bindings, Debug specifications), managed publication, `--force`, recovery, scoped renders (`--scope`) and `--check`, authored-UI omission/parity checks, the unmanaged `Customizations/` seam, and the `cratis/stage` sandbox and `cratis/stage-specrunner` job. Use when deciding whether Stage can render a model, reading a blocked render, re-rendering safely, checking generated/runtime screen parity, or running the sandbox. Not for: authoring the model (use `cratis-screenplay-model-authoring`) or the render and gap-fill workflow (use `cratis-screenplay-render-and-gap-fill`)."
+description: Use when diagnosing Stage admission or blocked renders, checking screen parity, re-rendering safely or running its sandbox. Not for model authoring or the accepted-model delivery workflow.
 license: MIT
 ---
 <!-- cratis-ai-managed: skills/cratis-stage-rendering-and-sandbox/SKILL.md -->
@@ -17,14 +17,20 @@ Probe the model; admission rules are not a render result.
 
 Requires cratis CLI ≥ 3.57 (`cratis --version`) to render ESM v14 and v15 models; an older CLI refuses newer ESM versions with `CLI-RENDER-004` (or `STAGE-ESM-016` from Stage directly).
 
-Requires Cratis CLI 3.74.0 to render ESM v21–v26 models and 3.75.0 for v27; CLI 3.66.0–3.73.0 refuse v21 and later with `CLI-RENDER-004`, and every CLI refuses v28 and later with it. Above the ceiling, a construct the bundled compiler cannot bind reports PLAY0268 before `CLI-RENDER-004` is reached.
+Requires Cratis CLI 3.74.0 to render ESM v21–v26 models, 3.75.0 for v27, 3.81.0 for v28 and 3.86.0 for v29–v30. CLI 3.66.0–3.73.0 refuse v21 and later with `CLI-RENDER-004`. Above a CLI's ceiling, a construct its bundled compiler cannot bind reports PLAY0268 before `CLI-RENDER-004` is reached.
 
 ## Batches, described handlers, text rules and protected reads
 
-Read [language admission](../cratis-screenplay-toolchain/references/language-admission.md)
-for v22–v25: text rules and admitted protected reads render; atomic batches and
-described bodies do not. Semantic execution is separate from rendering. Stub mode
-emits no described-body stubs. Keep protection and report refusal.
+Start with [current target boundaries](references/current-boundaries.md), reviewed
+against Stage v4.197.0: matched language/ESM 1.0–30.0 and 32.0 are admitted, not
+31.0. The reviewed CLI's `cratis render` admits ESM through v30; its bundled
+Stage then applies matched-pair and construct gates. V32 needs a direct caller of
+the reviewed Stage baseline. See [CLI bundle details](../cratis-screenplay-toolchain/references/language-admission.md#stage-admission-and-execution).
+Renderer, semantic Host/specification execution and legacy syntax admission are
+separate gates.
+Bounded atomic batches render; unverifiable query performers can produce explicit
+gaps, not completed behavior. Described handlers still refuse even in Stub mode.
+Keep protection and report remaining refusals.
 
 ## When to use
 
@@ -76,9 +82,11 @@ printed), `1` is a missing input. Add `-o json` for the counts and the publicati
 Key facts:
 
 - **Binding uses the CLI's bundled compiler**, not the standalone one. Version admission
-  does not imply construct support: exact ESM v1–v27 pairs are admitted;
-  v28 and mixed pairs refuse `STAGE-ESM-016`. Requires Stage 4.139.0 for v22 admission;
-  older Stage refuses v22 with `-016`, while atomic mode still refuses `-043`.
+  does not imply construct support: the reviewed CLI render checks only the
+  semantic version, admitting through v30 (`CLI-RENDER-004` above it); its bundled
+  Stage then checks matched pairs and constructs. Direct Stage admits matched
+  pairs 1.0–30.0 and 32.0. Mixed/unknown Stage pairs refuse `STAGE-ESM-016`.
+  Atomic shapes the renderer cannot preserve still refuse `-043`.
   Requires Stage 4.141.0 to render v26 Date/DateTime command comparisons; older
   renderers refuse `-046`. Read [references/date-comparisons.md](references/date-comparisons.md)
   when rendering dates for the remaining refusals and input-binding differences. Pattern/random generation and checksum validation
@@ -131,23 +139,25 @@ and unaudited-version refusals still stop first. Codes, limits and fixes:
   scalar UUID/String generation strategies and v15 freshness, responses and fixtures; concept
   compliance; supported event-triggered Automation with `runs as`/`from` as `[OnceOnly]` reactors;
   single-hop reaction append specifications, Debug specifications and authored UI through Scene.
-- **Refused:** Translate/captures, non-event triggers, opaque bodies and clock specs (`STAGE-ESM-024`);
+  Bounded source-event Translate capture/outbound publication, composite projections
+  and further semantic projection/query shapes are covered in [current boundaries](references/current-boundaries.md).
+- **Refused:** unsupported Translate shapes, non-event reaction triggers, opaque bodies and clock specs (`STAGE-ESM-024`);
   mixed effects (`STAGE-ESM-037`, redelivery duplicates events); unsupported reaction mappings (`-039`),
   protected identities/enums (`-040`); unsupported generated types/results (`-028`/`-038`);
-  appends beyond single-hop/cascade specs (`-011`), absence (`-027`), evolution (`STAGE-ESM-026`), public/foreign events
+  appends/absence beyond admitted specification shapes (`-011`/`-027`), evolution (`STAGE-ESM-026`), unsupported public/foreign-event uses
   (`-032`/`-033`), claim-reading/opaque `runs as` gates (`-034`), legacy filters (`-035`), production
-  overrides (`-036`), code validation (`-005`), DateTime filters (`-010`),
-  unsupported conditional productions, composite read-model keys (`STAGE-ESM-048`, and `-047` for a single-instance query by parts) and unsupported `all` shapes.
-  Protected reads render as Arc read protection in a new enough bundle; shapes it cannot preserve, and every protected read in an older bundle, refuse `STAGE-ESM-044` (see admission.md). The renderer refuses described handlers `STAGE-IMPL-002`
-  (even Stub mode), and atomic mode in admitted pairs `STAGE-ESM-043`.
-- **Attached command handlers (`PLAY0800`):** file/inline handlers permanently require
-  constrained implementation attachments: gap-fill the slice in code, not by waiting
-  for ESM admission. Read the required typed `arguments.subject` for the command,
-  never match message text. Requires Screenplay 4.210.0 (`screenplay --version`);
-  older bundled binders use PLAY0268 for these handlers.
+  overrides (`-036`), unsupported code validation (`-005`), DateTime filters (`-010`),
+  unsupported conditional productions, unsupported composite-key projection shapes, including DateTime and decimal key parts (`STAGE-ESM-048`, and `-047` for a single-instance query by parts) and unsupported `all` shapes.
+  Protected reads render as Arc read protection in a new enough bundle; shapes it cannot preserve, and every protected read in an older bundle, refuse `STAGE-ESM-044` (see admission.md). Described handlers still refuse `STAGE-IMPL-002` even in Stub mode. Query-performer gaps are a separate contract, not a completed implementation.
+- **Attached command handlers:** a file/inline handler beside unconditional `produces`
+  with a resolved body binds as the v23 result contract and Stage renders its C# body.
+  Without `produces`, with `produces ... when` or with an unresolved body it refuses
+  `PLAY0800`: read the required typed `arguments.subject` for the command, never match
+  message text. Older bundled binders refuse every attached handler (version gate:
+  toolchain `references/executable-subset.md`).
 - **Binding refusals:** read toolchain `references/executable-subset.md` for
-  `PLAY0268`/`PLAY0271` families; binding is not rendering. V27 keys are admitted
-  but refuse rendering (`STAGE-ESM-048`). Never drop protection.
+  `PLAY0268`/`PLAY0271` families; binding is not rendering. Composite keys have
+  target-specific support, not blanket refusal. Never drop protection.
 
 A refusal is not a licence to weaken the model: drop no specification, event generation or
 protection to get a render; keep the model, record the capability gap and gap-fill.
@@ -198,6 +208,11 @@ generated application: API on `9090`, Workbench on `https://localhost:35000`.
 Requires Cratis CLI 3.73.0 for the semantic engine by default, 3.75.0 for v27 keys;
 older CLIs use the legacy EventModel engine, which does not enforce authorization.
 Unsigned caller headers make sandbox authorization no security boundary.
+A model with `authentication` makes `cratis run` start a stack instead: AuthProxy (the
+address to open), the Stage with `Stage__Sandbox__ForwardedIdentity=true` so it trusts the
+forwarded identity instead of playing a persona, and with `onboarding` Ante and MongoDB.
+`cratis render` realizes authentication and onboarding (`references/rendered-application.md`).
+Requires cratis CLI 3.116.0 (`cratis --version`); older CLIs run the Stage alone and play a persona.
 Read [references/sandbox-and-specrunner.md](references/sandbox-and-specrunner.md)
 before running either image: engine selection, protected reads, outside-append
 conflicts/retries, reached bodies, authored occurrence and generated-spec limits live there.
@@ -227,7 +242,8 @@ to disk with no managed staging and no safe stale-file removal; a failure can le
   result. State the scope in the V5 report.
 - Report V5 as separate results, each a result or "not run": admission, publication,
   Debug build (`dotnet build <destination>/<Project>.csproj -c Debug`), Debug tests
-  (`dotnet test` on the same project) and runtime. Render alone is the first two.
+  (`dotnet test <destination>/<Project>.csproj -c Debug --no-build` after the build; Stage-rendered apps use VSTest) and runtime. Render alone is the first two.
+  Use a built spec executable only in repositories whose spec projects really are executables (see [specs.csharp](../../rules/specs.csharp.md)); the rendered app's executable starts its web server, not its specs.
 - A refusal is kept verbatim as reported: `PLAY*` (compile or bind), `PLAN-*` (execution
   plan), `STAGE-*` (admission), `CLI-RENDER-*`, or a plain ownership error for a managed
   file. The fix is an intent-preserving model change or a recorded gap, never an edit of

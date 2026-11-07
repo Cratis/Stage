@@ -40,7 +40,7 @@ public class a_policy_plan : Specification
     {
         _loaded = opaque_policy_model.Load(opaque_policy_model.Source("return context.Identity.IsAuthenticated;"));
         _application = opaque_policy_model.Plan(_loaded);
-        _plan = CratisRendering.PlanFrom(_loaded, new([PlanSelectionEntry.Slice("Billing", "Invoicing", "Issue")]), new(_loaded.Model.Application.Name, "InvoiceApp", "Invoices")).Plan!;
+        _plan = CratisRendering.PlanFrom(_loaded, new([PlanSelectionEntry.Slice("Billing", "Invoicing", "Issue")]), new(_loaded.Model.Application.Name, "InvoiceApp", "Invoices")).Plan;
     }
 
     protected string? Read(string path)

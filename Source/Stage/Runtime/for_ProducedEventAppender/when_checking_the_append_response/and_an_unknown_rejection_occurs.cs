@@ -14,6 +14,6 @@ public class and_an_unknown_rejection_occurs : Specification
 
     void Because() => _result = ProducedEventAppender.Rejection(new AppendManyResponse { IsSuccess = false });
 
-    [Fact] void should_not_report_success() => _result!.IsSuccess.ShouldBeFalse();
-    [Fact] void should_report_an_error() => _result!.ExceptionMessages.Single().ShouldEqual("Chronicle rejected the produced events without a reason.");
+    [Fact] void should_not_report_success() => _result.IsSuccess.ShouldBeFalse();
+    [Fact] void should_report_an_error() => _result.ExceptionMessages.Single().ShouldEqual("Chronicle rejected the produced events without a reason.");
 }

@@ -14,7 +14,7 @@ public class when_admitting_the_v15_golden_vector : Specification
     SemanticExecutionPlan _plan = null!;
     SemanticSpecificationRunReport _report = null!;
 
-    void Establish() => _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(EsmGoldenVectors.Get(15).Bytes.AsSpan()), []).Plan!;
+    void Establish() => _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(EsmGoldenVectors.Get(15).Bytes.AsSpan()), []).Plan;
     async Task Because() => _report = await new SemanticSpecificationExecutor().Run(_plan, new([]), new());
 
     [Fact] void should_read_the_full_v15_vector() => _plan.Model.SemanticVersion.ShouldEqual(SemanticVersion.V15);

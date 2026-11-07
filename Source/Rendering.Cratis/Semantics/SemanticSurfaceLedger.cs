@@ -88,6 +88,56 @@ internal static class SemanticSurfaceLedger
         Add(entries, "EventContractRevision", ignored("Revision values are carried for admission; evolved events fail STAGE-ESM-026, not generation registration."), "Value");
         Add(entries, "SemanticApplication", rendered, "Concepts Id Modules Name Types Policies EventSources");
 
+        // Screenplay 5.3.1 exposes clock operands and calendar/time-zone metadata in newer ESM pairs.
+        // Those pairs remain outside the audited set and the >=32.0 <33 prospective range;
+        // STAGE-ESM-016 refuses them before rendering. This pin update does not implement clock behavior.
+        var clock = rejected("STAGE-ESM-016");
+        Add(entries, "SemanticApplication", clock, "TimeZone ContextMembers");
+
+        // ESM v37.1 lets a read model declare the order of its properties. Stage orders them canonically and does not audit the declared order yet.
+        Add(entries, "SemanticReadModel", clock, "PropertyOrder");
+        Add(entries, "SemanticTimeZone", clock, "Configurable Id");
+        Add(entries, "SemanticCommand", clock, "Calendar");
+        Add(entries, "SemanticCommandCalendar", clock, "ContextMember TimeZone");
+        Add(entries, "SemanticClockOperand", clock, "Amount DateOf Kind Unit");
+        Add(entries, "SemanticClockKind", clock, "Now Today");
+        Add(entries, "SemanticClockUnit", clock, "Day Hour Minute");
+        Add(entries, "SemanticConditionOperand", clock, "Clock DateOf");
+        Add(entries, "SemanticValidationRule", clock, "ClockOperand");
+        Add(entries, "SemanticSpecification", clock, "GivenTimeZone");
+
+        // ESM v38 graphs. Each construct renders as Chronicle's model-bound graph records and specifications; the shapes the model-bound API
+        // and the whole of a graph is refused with STAGE-ESM-063 when the pinned Chronicle client predates the graph API (before 19.129.0).
+        // and the whole of a graph is refused with STAGE-ESM-063 while the pinned Chronicle client has no graph API.
+        Add(entries, "SemanticApplication", rendered, "Graphs GraphProjections GraphSpecifications");
+
+        // ESM v40: queries that read a graph, and the event-time clock and query expectations of graph specifications. The sandbox runs
+        // them against Neo4j; the renderer does not render a graph query yet and refuses it with STAGE-ESM-068.
+        var graphQuery = rejected("STAGE-ESM-068");
+        Add(entries, "SemanticApplication", graphQuery, "GraphQueries");
+        Add(entries, "SemanticGraphQuery", graphQuery, "Name Graph ReadModel Cardinality Delivery Arguments Matches Conditions Returns Authorization");
+        Add(entries, "SemanticGraphQueryArgument", graphQuery, "Name Type IsKey");
+        Add(entries, "SemanticGraphMatch", graphQuery, "IsOptional Start Hops");
+        Add(entries, "SemanticGraphPatternNode", graphQuery, "Alias Label");
+        Add(entries, "SemanticGraphHop", graphQuery, "Alias Type Outgoing Node");
+        Add(entries, "SemanticGraphCondition", graphQuery, "Alias Property Argument Literal");
+        Add(entries, "SemanticGraphReturn", graphQuery, "Property Alias Source");
+        Add(entries, "SemanticGraphSpecification", graphQuery, "ThenQueries Clock");
+        Add(entries, "SemanticGraphQueryExpectation", graphQuery, "Query Exactly Arguments Rows");
+        Add(entries, "SemanticGraphRow", graphQuery, "Values");
+        Add(entries, "SemanticGraph", rendered, "Name Nodes Edges");
+        Add(entries, "SemanticGraphNode", rendered, "Label Properties");
+        Add(entries, "SemanticGraphEdge", rendered, "Type Source Target Properties IdentifiedBy");
+        Add(entries, "SemanticGraphProperty", rendered, "Name Type IsKey");
+        Add(entries, "SemanticGraphProjection", rendered, "Name Graph Nodes Edges");
+        Add(entries, "SemanticGraphElementHandlers", rendered, "Name Handlers");
+        Add(entries, "SemanticGraphHandler", rendered, "Event Mappings Key Source Target Identity ForEach Removes Detach");
+        Add(entries, "SemanticGraphMapping", rendered, "Property Operation Source Factor");
+        Add(entries, "SemanticGraphSpecification", rendered, "Owner Name Given GivenGraphs WhenAppended ThenGraphs");
+        Add(entries, "SemanticGraphStep", rendered, "Graph Elements");
+        Add(entries, "SemanticGraphElementStep", rendered, "IsNode Absent Name Key Values Target Identity");
+        Add(entries, "SemanticGraphPropertyValue", rendered, "Property Value");
+
         // Atomic batches use the existing event collection return. Multiple same-event production triggers
         // and routed productions retain STAGE-ESM-043 because their batch boundaries cannot be preserved: a Chronicle reactor
         // returns one append batch, and ordered per-trigger batches that are not duplicated on redelivery need Cratis/Chronicle#5248.
@@ -127,6 +177,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticValidationRule", rendered, "Kind Message Property Severity Operand");
         Add(entries, "SemanticValidationRule", rendered, "Name RequirementId");
         Add(entries, "SemanticValidationRuleKind", rendered, "NotEmpty Maximum Minimum Equal NotEqual GreaterThan GreaterThanOrEqual LessThan LessThanOrEqual Length AllGreaterThan AllGreaterThanOrEqual Matches Checksum Contains NotContains StartsWith EndsWith RulePredicate CodeValidation DecimalPlaces");
+
+        // Unknown concept rules still refuse; unknown command rules degrade by denying the enclosing operation.
         Add(entries, "SemanticValidationRuleKind", rejected("STAGE-ESM-005"), "Unknown");
         Add(entries, "SemanticValidationSeverity", rendered, "Error Information Warning");
 
@@ -188,6 +240,8 @@ internal static class SemanticSurfaceLedger
         // State view: an optional snapshot lookup by identifier or a snapshot/live collection (keyed by one `by` or unkeyed).
         // Query arguments retain concept types, including nested members and collection elements, for Arc validation.
         // QueryShapes records the cross-product rather than treating an enum value as universally supported.
+        // Passivity is carried by SemanticCompilation.PassiveReadModels through PassiveReadModelsInput,
+        // not portable ESM; the attribute and fluent projection flag are rendered for #208.
         Add(entries, "SemanticReadModel", rendered, "Id Name Properties");
         Add(entries, "SemanticProjection", rendered, "Id Name ReadModel Transitions");
         Add(entries, "SemanticProjection", rendered, "Scope");
@@ -220,9 +274,11 @@ internal static class SemanticSurfaceLedger
         // IncludeChildren remain unverified by Stage and refused; Screenplay rejects synthetic null Sets.
         // Child join removal across parents and nested clear/recreation render on Chronicle 19.32.0;
         // differential and MongoDB probes cover both sequences. Root join removal remains blocked by
-        // Chronicle#4263 and Screenplay#563; joins inside nested remain blocked by the pinned Screenplay
-        // reference (Screenplay#1078). Children inside nested remain unsupported. Nested clear requires
-        // a matching root from and identical key.
+        // Chronicle#4263 and Screenplay#563. Joins inside root-level nested objects render as nested joins, except on the
+        // nested key (id), which Chronicle backfills and the reference does not. Joins inside nested under children, children
+        // inside nested and join removals inside nested remain unsupported. Nested clear requires
+        // a matching root from and identical key. Root joins also admit required, type-matched event-property keys;
+        // later root events after a differently keyed join are refused (https://github.com/Cratis/Chronicle/issues/5439).
         Add(entries, "SemanticProjectionScope", rendered, "Children From Joins Every JoinRemovals Nested Removals");
         Add(entries, "SemanticProjectionChildren", rendered, "IdentifiedBy Property Scope");
         Add(entries, "SemanticProjectionCompositeKey", rejected("STAGE-ESM-017"), "Parts Type");
@@ -230,8 +286,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticProjectionEventProperty", rendered, "Path");
         Add(entries, "SemanticProjectionEvery", rendered, "IncludeChildren Mappings SubscribesToAllEvents");
         Add(entries, "SemanticProjectionFrom", rendered, "EventContract Key Mappings ParentKey");
-        Add(entries, "SemanticProjectionJoin", rendered, "EventContract Mappings On");
-        Add(entries, "SemanticProjectionJoin", rejected("STAGE-ESM-017"), "Key");
+        Add(entries, "SemanticProjectionJoin", rendered, "EventContract Key Mappings On");
         Add(entries, "SemanticProjectionJoinRemoval", rendered, "EventContract Key");
         Add(entries, "SemanticProjectionKey", rendered, "Kind");
         Add(entries, "SemanticProjectionKeyKind", rendered, "Value");
@@ -425,7 +480,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticEventVisibility", rendered, "Private");
         Add(entries, "SemanticEventVisibility", publication, "Public");
         Add(entries, "SemanticProjection", publication, "Target");
-        Add(entries, "SemanticReducer", rejected(SemanticVersionFeatures.PublicEvents), "Target");
+        Add(entries, "SemanticReducer", publication, "Target");
         Add(entries, "SemanticProjectionTargetKind", rendered, "ReadModel");
         Add(entries, "SemanticProjectionTargetKind", publication, "Event");
         Add(entries, "SemanticSlice", rendered, "Direction");
@@ -470,6 +525,31 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticExpressionKind", reads, "ReadPath");
         Add(entries, "SemanticReadPathExpression", reads, "Read PropertyId");
         Add(entries, "SemanticOneOfExpression", rejected("STAGE-ESM-006"), "CollectionProperty");
+
+        // State machines and workflows (ESM v36, Screenplay 5.1.0). The runtime drives them on the Orleans silo and the renderer emits
+        // Cratis.Choreography state machines and workflow definitions; what neither can express is refused with its STAGE-LIFECYCLE diagnostic.
+        var lifecycleNotRendered = rejected("STAGE-LIFECYCLE-010");
+        var scheduled = rejected("STAGE-LIFECYCLE-007");
+        var verifiedByTheReferenceEvaluator = ignored("Lifecycle specifications are verified by the reference lifecycle evaluator in the spec runner; no generated specification is emitted.");
+        Add(entries, "SemanticApplication", rendered, "StateMachines Workflows");
+        Add(entries, "SemanticStateMachine", rendered, "Name ReadModel States Transitions");
+        Add(entries, "SemanticStateMachine", verifiedByTheReferenceEvaluator, "Specifications");
+        Add(entries, "SemanticState", rendered, "Name IsInitial IsFinal Entering");
+        Add(entries, "SemanticStateEntry", rendered, "Kind Command Workflow");
+        Add(entries, "SemanticStateEntryKind", rendered, "SendCommand StartWorkflow");
+        Add(entries, "SemanticStateTransition", rendered, "From Event Guard To");
+        Add(entries, "SemanticWorkflow", rendered, "Name Subject Nodes Edges");
+        Add(entries, "SemanticWorkflow", verifiedByTheReferenceEvaluator, "Specifications");
+        Add(entries, "SemanticWorkflowNode", rendered, "Name Kind TriggerKind Event StateMachine State Command MaxAttempts AttemptTimeout RetryDelay Duration ExpiresAfter");
+        Add(entries, "SemanticWorkflowNode", scheduled, "Every At OnDayOfWeek OnDayOfMonth");
+        Add(entries, "SemanticWorkflowNode", lifecycleNotRendered, "Condition WhenTrue WhenFalse ApproverKind Approver Items MaxParallel JoinMode JoinCount");
+        Add(entries, "SemanticWorkflowEdge", rendered, "From Outlet To");
+        Add(entries, "SemanticWorkflowNodeKind", rendered, "Trigger Action Wait");
+        Add(entries, "SemanticWorkflowNodeKind", lifecycleNotRendered, "Decision Approval ForEach Join");
+        Add(entries, "SemanticLifecycleSpecification", verifiedByTheReferenceEvaluator, "Name Given WhenAppended WhenStarted Outcomes Then");
+        Add(entries, "SemanticLifecycleOutcome", verifiedByTheReferenceEvaluator, "Node Outlet");
+        Add(entries, "SemanticLifecycleExpectation", verifiedByTheReferenceEvaluator, "Kind Target Command");
+        Add(entries, "SemanticLifecycleExpectationKind", verifiedByTheReferenceEvaluator, "State Sends Starts Completes Fails Waits");
 
         return entries;
     }

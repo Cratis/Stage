@@ -1,6 +1,6 @@
 ---
 title: Translation rendering
-description: The supported inbox capture and public-event outbox publication subset, and its remaining refusals.
+description: Cratis Stage renders inbound captures and outbound publications as Chronicle reactors, preserving typed keys, capture state and explicit refusal limits.
 ---
 
 Stage renders supported `Translate` slices as Chronicle reactors. Inbound translation turns foreign
@@ -35,7 +35,7 @@ as a whole; Stage does not emit only its top-level appends.
 
 ### Typed capture keys (ESM v32)
 
-Stage admits the exact language/semantic v32 pair from Screenplay 4.247.3; v31 remains unaudited.
+Stage uses Screenplay 5.7.0 and admits exact ESM v1.0–v34.0, v36.0 and v38.0 language/semantic pairs, including v31 and v32, not v35, v37 or arbitrary minor versions.
 A v32 capture preserves the key's declared event-source type rather than treating it as text.
 Required scalar `Text`, `Uuid` and `WholeNumber` keys, and non-enumerated concepts over those
 primitives, render when every source contract has the same key type and every append declares that
@@ -175,9 +175,12 @@ a public outcome from another slice is not approximated as a local append. Unord
 caller/clock/error/return assertions, and values outside the existing typed event-fixture subset
 are also refused.
 
-With render-around enabled, Stage omits refused specifications, reports their identities in
-`Refusals`, and can still render otherwise admitted translation artifacts. Without that opt-in,
-the refusal blocks the plan.
+When all errors are specification-execution gaps classified by `SemanticRefusalScope`
+(`STAGE-ESM-011`, `STAGE-ESM-024` or `STAGE-ESM-051` on specifications), Stage omits those
+specifications, reports their identities in `Refusals`, and changes their diagnostics to warnings.
+These exclusions do not require the render-around opt-in and do not make the plan refused.
+Application-contract or safety errors remain blocking refusal diagnostics; render-around does not
+permit dropping those contracts.
 
 See [Build a renderer target](../guides/build-renderer-target.md) for the admission table and
 [Event reaction rendering](reaction-rendering.md) for Automation reactors.

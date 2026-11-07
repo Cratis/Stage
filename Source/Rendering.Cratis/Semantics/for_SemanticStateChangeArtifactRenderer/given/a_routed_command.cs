@@ -43,7 +43,7 @@ public class a_routed_command : Specification
     protected void Plan()
     {
         ReplaceSlice();
-        _plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model).Plan!, new(ArtifactRenderScopeKind.Application, _model.Application.Id), new("InvoiceApp", "InvoiceApp"));
+        _plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model).Plan, new(ArtifactRenderScopeKind.Application, _model.Application.Id), new("InvoiceApp", "InvoiceApp"));
         _plan.Success.ShouldBeTrue();
         _code = Text(_plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("/Deposit.cs", StringComparison.Ordinal)));
     }

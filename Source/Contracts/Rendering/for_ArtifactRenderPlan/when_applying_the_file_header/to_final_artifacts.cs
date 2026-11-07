@@ -9,13 +9,15 @@ namespace Cratis.Stage.Contracts.Rendering.for_ArtifactRenderPlan.when_applying_
 
 public class to_final_artifacts : given.an_artifact_render_request
 {
-    [Fact] void should_preserve_the_unheaded_digest()
+    [Fact]
+    void should_preserve_the_unheaded_digest()
     {
         var artifacts = new[] { PlannedArtifact.CreateText("b.cs", "b", [_request.Model.Application.Id]), PlannedArtifact.CreateText("a.cs", "a") };
         ArtifactRenderPlan.Create(_request, [.. artifacts], []).Digest.ShouldEqual(ArtifactRenderPlan.ComputeDigest(_request.Profile.Target, _request.Profile.TargetVersion, _request.Profile.Renderer, _request.Profile.RendererVersion, _request.Model.Application.Name, [.. artifacts], []));
     }
 
-    [Fact] void should_preserve_content_sources_and_binary_bytes()
+    [Fact]
+    void should_preserve_content_sources_and_binary_bytes()
     {
         var json = PlannedArtifact.CreateText("data.json", "{}");
         var binary = PlannedArtifact.CreateBinary("blob.cs", [1, 2]);
@@ -31,7 +33,8 @@ public class to_final_artifacts : given.an_artifact_render_request
         ArtifactRenderPlan.Create(request with { Profile = ArtifactFileHeader.With(_request.Profile, ["changed"]) }, plain.Artifacts, []).Digest.ShouldNotEqual(headed.Digest);
     }
 
-    [Fact] void should_preserve_the_marker_through_removal_overloads()
+    [Fact]
+    void should_preserve_the_marker_through_removal_overloads()
     {
         var request = _request with { Profile = ArtifactFileHeader.With(_request.Profile, ["hello"]) };
         var first = ArtifactRenderPlan.Create(request, [PlannedArtifact.CreateText("Code.cs", "// hello\n\ncode")], [], [], [], []);
@@ -42,13 +45,15 @@ public class to_final_artifacts : given.an_artifact_render_request
         Text(second.Artifacts.Single()).ShouldEqual("// hello\n\n// hello\n\ncode");
     }
 
-    [Fact] void should_allow_custom_comment_syntax()
+    [Fact]
+    void should_allow_custom_comment_syntax()
     {
         var request = _request with { Profile = ArtifactFileHeader.With(_request.Profile, ["hello"]), CommentSyntaxes = ArtifactCommentSyntaxes.Default.With(".py", new("#", [])) };
         Text(ArtifactRenderPlan.Create(request, [PlannedArtifact.CreateText("code.py", "code")], []).Artifacts.Single()).ShouldEqual("# hello\n\ncode");
     }
 
-    [Fact] void should_refuse_java_before_publishing()
+    [Fact]
+    void should_refuse_java_before_publishing()
     {
         var request = _request with { Profile = ArtifactFileHeader.With(_request.Profile, ["\\uuuu0041"]) };
         var result = ArtifactRenderPlan.Create(request, [PlannedArtifact.CreateText("Code.java", "code")], []);

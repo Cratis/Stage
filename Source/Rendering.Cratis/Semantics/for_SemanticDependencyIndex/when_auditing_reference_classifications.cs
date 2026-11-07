@@ -23,7 +23,7 @@ public class when_auditing_reference_classifications : for_SemanticSurfaceLedger
     {
         var members = EnumerateSurface().Concat(TypedContextMembers()).ToArray();
         _unclassified = [.. members.Where(member => SemanticDependencySurface.Classify(member) is null)];
-        _unexplained = [.. members.Where(member => SemanticDependencySurface.Classify(member) is { Kind: null, NonReferenceReason: null or "" })];
+        _unexplained = [.. members.Where(member => SemanticDependencySurface.Classify(member) is { Kind: null, NonReferenceReason: null or "", RefusalReason: null or "" })];
     }
 
     [Theory]
@@ -35,7 +35,13 @@ public class when_auditing_reference_classifications : for_SemanticSurfaceLedger
     [InlineData("SemanticHandlerResultEntry.EventContract")]
     [InlineData("SemanticHandlerResultEntry.Payload")]
     [InlineData("SemanticHandlerResultEntry.DestinationType")]
-    void should_classify_handler_result_references(string member) => SemanticDependencySurface.Classify(member)!.Kind.ShouldNotBeNull();
+    void should_classify_handler_result_references(string member) => SemanticDependencySurface.Classify(member).Kind.ShouldNotBeNull();
+
+    [Theory]
+    [InlineData("SemanticApplication.StateMachines")]
+    [InlineData("SemanticApplication.Workflows")]
+    [InlineData("SemanticWorkflowNode.Command")]
+    void should_classify_lifecycle_references(string member) => SemanticDependencySurface.Classify(member)!.Kind.ShouldNotBeNull();
 
     [Fact] void should_classify_every_reference_carrying_surface_member() => Assert.True(_unclassified.Length == 0, string.Join(Environment.NewLine, _unclassified));
     [Fact] void should_explain_members_without_owner_references() => _unexplained.ShouldBeEmpty();

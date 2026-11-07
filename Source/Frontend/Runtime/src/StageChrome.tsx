@@ -7,10 +7,12 @@ import type { ComponentRegistry, RegisteredComponentProps } from '@cratis/scene.
 import { SceneElementView, SceneNavigationContextInternal, useSceneOutlets, useSceneTheme } from '@cratis/scene.react';
 import { useEffect } from 'react';
 import { ColorScheme, useLayoutConfig, defaultBlueprintThemes } from '@cratis/scene.blueprint.default';
-import { screenHash, stageLocaleComponent, stageNavigationTreeComponent, stageThemeToggleComponent } from './blueprint';
+import { NotesButton } from '@cratis/showrunner.notes.react';
+import { screenHash, stageLocaleComponent, stageNotesComponent, stageNavigationTreeComponent, stageThemeToggleComponent } from './blueprint';
 import { opensElsewhere, type NavigationNode } from './navigationTree';
 import { useStageData } from './stageData';
 import { externalRouteHref } from './externalRouteHref';
+import { ScreenSlice } from './stageStructure';
 import { StageScreenTables } from './stageScreenTables';
 
 /** What the Stage's own components need that the document itself does not carry. */
@@ -19,6 +21,8 @@ export interface StageChromeState {
     locale: string;
     setLocale: (locale: string) => void;
     activity: string;
+    /** Whether the host serves the Notes backend, so the feedback button has something to talk to. */
+    notesEnabled?: boolean;
 }
 
 const emptyState: StageChromeState = { locales: [], locale: '', setLocale: () => undefined, activity: '' };
@@ -32,6 +36,12 @@ export function StageChromeProvider({ state, children }: { state: StageChromeSta
 
 /** The name the status line is registered under. */
 export const stageActivityComponent = 'Stage:activity';
+
+/** The feedback button in the topbar, rendered only when the host serves Notes; the button hides itself for a user who is signed out. */
+export function StageNotes() {
+    const { notesEnabled } = useContext(StageChromeContext);
+    return notesEnabled ? <NotesButton size='small' /> : null;
+}
 
 /** The language picker in the topbar, shown only when the model declares more than one. */
 export function StageLocale() {
@@ -168,7 +178,7 @@ export function StageOutlet({ element }: RegisteredComponentProps) {
                     <button type='button' className='scene-outlet-close' aria-label='Close' onClick={() => navigation?.closeOutlet(name)}>Close</button>
                 </div>
             )}
-            {screen && outlets && <StageScreenTables element={screen}><SceneElementView element={screen} registry={outlets.registry} resolveBinding={data.resolveBinding} /></StageScreenTables>}
+            {screen && outlets && <ScreenSlice screen={placed}><StageScreenTables element={screen}><SceneElementView element={screen} registry={outlets.registry} resolveBinding={data.resolveBinding} /></StageScreenTables></ScreenSlice>}
         </div>
     );
 }
@@ -203,6 +213,7 @@ export function ColorSchemeMirror() {
 
 /** The Stage's own components, to merge over the blueprint's. */
 export const stageChromeComponents: ComponentRegistry = {
+    [stageNotesComponent]: StageNotes,
     [stageLocaleComponent]: StageLocale,
     [stageThemeToggleComponent]: StageThemeToggle,
     [stageNavigationTreeComponent]: StageNavigationTree,

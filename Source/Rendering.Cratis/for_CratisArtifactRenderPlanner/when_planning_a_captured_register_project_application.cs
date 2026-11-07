@@ -38,14 +38,14 @@ public class when_planning_a_captured_register_project_application : a_register_
             var capturedExecution = SemanticExecutionPlan.Compile(capturedModel);
             _capturedExecutions.Add(capturedExecution);
             var capturedScope = new ArtifactRenderScope(ArtifactRenderScopeKind.Application, capturedModel.Application.Id);
-            var capturedPlan = CratisRendering.Plan(capturedModel, capturedExecution.Plan!, capturedScope, _options);
+            var capturedPlan = CratisRendering.Plan(capturedModel, capturedExecution.Plan, capturedScope, _options);
             _capturedPlans.Add(capturedPlan);
 
             // The direct route is only a comparison: neither its model nor its execution plan feeds the captured route.
             var directExecution = SemanticExecutionPlan.Compile(compilation.Model);
             _directExecutions.Add(directExecution);
             var directScope = new ArtifactRenderScope(ArtifactRenderScopeKind.Application, compilation.Model.Application.Id);
-            _directPlans.Add(CratisRendering.Plan(compilation.Model, directExecution.Plan!, directScope, _options));
+            _directPlans.Add(CratisRendering.Plan(compilation.Model, directExecution.Plan, directScope, _options));
         }
 
         _calculatedHashes.AddRange(_capturedPlans.Concat(_directPlans).SelectMany(_ => _.Artifacts)
@@ -61,7 +61,7 @@ public class when_planning_a_captured_register_project_application : a_register_
     [Fact] void should_capture_the_exact_canonical_corpus_bytes() => _captures.TrueForAll(_ => _.SequenceEqual(Corpus.EsmBytes)).ShouldBeTrue();
     [Fact] void should_reserialize_each_capture_byte_for_byte() => _captures.Zip(_reserializedCaptures).All(pair => pair.First.SequenceEqual(pair.Second)).ShouldBeTrue();
     [Fact] void should_admit_both_captured_execution_plans() => _capturedExecutions.TrueForAll(_ => _.Success).ShouldBeTrue();
-    [Fact] void should_derive_execution_only_from_the_deserialized_models() => _capturedExecutions.Zip(_capturedModels).All(pair => ReferenceEquals(pair.First.Plan!.Model, pair.Second)).ShouldBeTrue();
+    [Fact] void should_derive_execution_only_from_the_deserialized_models() => _capturedExecutions.Zip(_capturedModels).All(pair => ReferenceEquals(pair.First.Plan.Model, pair.Second)).ShouldBeTrue();
     [Fact] void should_admit_both_direct_execution_plans() => _directExecutions.TrueForAll(_ => _.Success).ShouldBeTrue();
     [Fact] void should_admit_all_application_render_plans() => _capturedPlans.Concat(_directPlans).All(_ => _.Success).ShouldBeTrue();
     [Fact] void should_plan_nonempty_applications() => _capturedPlans.Concat(_directPlans).All(_ => !_.Artifacts.IsEmpty).ShouldBeTrue();
@@ -69,10 +69,12 @@ public class when_planning_a_captured_register_project_application : a_register_
     [Fact] void should_render_the_captured_semantic_revision() => _capturedPlans.TrueForAll(_ => _.SemanticRevision == Corpus.SemanticRevision).ShouldBeTrue();
     [Fact] void should_order_all_paths_ordinally() => _capturedPlans.Concat(_directPlans).All(_ => _.Artifacts.Select(artifact => artifact.RelativePath).SequenceEqual(_.Artifacts.Select(artifact => artifact.RelativePath).Order(StringComparer.Ordinal))).ShouldBeTrue();
     [Fact] void should_match_each_direct_plans_ordered_paths() => _capturedPlans.Zip(_directPlans).All(pair => pair.First.Artifacts.Select(_ => _.RelativePath).SequenceEqual(pair.Second.Artifacts.Select(_ => _.RelativePath))).ShouldBeTrue();
-    [Fact] void should_match_each_direct_plans_raw_bytes() => Assert.True(
+    [Fact]
+    void should_match_each_direct_plans_raw_bytes() => Assert.True(
         _capturedPlans.Zip(_directPlans).All(pair => pair.First.Artifacts.Zip(pair.Second.Artifacts).All(artifacts => artifacts.First.Bytes.SequenceEqual(artifacts.Second.Bytes))),
         DescribeArtifactMismatches());
-    [Fact] void should_match_each_direct_plans_hashes() => Assert.True(
+    [Fact]
+    void should_match_each_direct_plans_hashes() => Assert.True(
         _capturedPlans.Zip(_directPlans).All(pair => pair.First.Artifacts.Select(_ => _.Sha256).SequenceEqual(pair.Second.Artifacts.Select(_ => _.Sha256))),
         DescribeArtifactMismatches());
     [Fact] void should_match_ordered_paths_across_captured_physical_forms() => _capturedPlans.Skip(1).All(plan => plan.Artifacts.Select(_ => _.RelativePath).SequenceEqual(_capturedPlans[0].Artifacts.Select(_ => _.RelativePath))).ShouldBeTrue();

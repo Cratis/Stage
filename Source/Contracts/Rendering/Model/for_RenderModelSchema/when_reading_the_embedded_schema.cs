@@ -22,5 +22,5 @@ public class when_reading_the_embedded_schema : Specification
 
     [Fact] void should_ship_the_schema_with_the_assembly() => _embedded.ShouldNotBeNull();
 
-    [Fact] void should_embed_the_saved_schema_bytes() => for_RenderModelJson.given.render_models.EqualBytes(File.ReadAllBytes(given.render_model_schema.FilePath("render-model.v1.schema.json")), _embedded!);
+    [Fact] void should_embed_the_saved_schema_bytes() => for_RenderModelJson.given.render_models.EqualBytes(File.ReadAllBytes(given.render_model_schema.FilePath("render-model.v1.schema.json")), _embedded);
 }

@@ -50,10 +50,10 @@ public class when_resolving_the_uiprofile_root_vector : Specification
 
     [Fact] void should_translate_the_three_profiles() => _scene.UiProfiles.Select(profile => profile.Name).ShouldEqual(["Desktop", "Docked", "FromBlueprint"]);
     [Fact] void should_carry_the_root_template_of_each_profile() => _scene.UiProfiles.All(profile => profile.Root is not null).ShouldBeTrue();
-    [Fact] void should_carry_the_shell_options_with_their_kinds() => _scene.UiProfiles[0].Root!.Options!["showFooter"]!.GetValue<bool>().ShouldBeTrue();
-    [Fact] void should_carry_the_appearance() => _scene.UiProfiles[0].Appearance!.Accent.ShouldEqual("#4F46E5");
-    [Fact] void should_carry_the_template_new_screens_start_from() => _scene.UiProfiles[0].Defaults!.NewScreenTemplate!.Id.ShouldEqual("Sheet");
-    [Fact] void should_carry_the_pin_of_a_blueprint_root() => _scene.UiProfiles[2].Root!.Template.Version.ShouldEqual("^4.5");
+    [Fact] void should_carry_the_shell_options_with_their_kinds() => _scene.UiProfiles[0].Root.Options["showFooter"].GetValue<bool>().ShouldBeTrue();
+    [Fact] void should_carry_the_appearance() => _scene.UiProfiles[0].Appearance.Accent.ShouldEqual("#4F46E5");
+    [Fact] void should_carry_the_template_new_screens_start_from() => _scene.UiProfiles[0].Defaults.NewScreenTemplate.Id.ShouldEqual("Sheet");
+    [Fact] void should_carry_the_pin_of_a_blueprint_root() => _scene.UiProfiles[2].Root.Template.Version.ShouldEqual("^4.5");
     [Fact] void should_translate_to_the_checked_in_scene() => _sceneJson.ShouldEqual(Normalize(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "for_UiProfileRootVector", SceneFile))));
     [Fact] void should_resolve_each_profile_to_the_checked_in_shell() => _shellsJson.ShouldEqual(Normalize(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "for_UiProfileRootVector", ShellsFile))));
 
@@ -69,7 +69,7 @@ public class when_resolving_the_uiprofile_root_vector : Specification
             File.WriteAllText(Path.Combine(root, "application.play"), text);
             var compilation = new PlayFileCompiler().CompileFolder(root).Result;
             Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-            return new ScreenplaySceneVisitor().Visit(compilation.Value!);
+            return new ScreenplaySceneVisitor().Visit(compilation.Value);
         }
         finally
         {
@@ -85,7 +85,7 @@ public class when_resolving_the_uiprofile_root_vector : Specification
         var shells = new JsonObject();
         foreach (var target in plan.Targets)
         {
-            var shell = target.Shell!;
+            var shell = target.Shell;
             shells[target.Profile.Name] = new JsonObject
             {
                 ["name"] = shell.Name,
@@ -94,12 +94,12 @@ public class when_resolving_the_uiprofile_root_vector : Specification
                 ["origin"] = Camel(shell.Origin),
                 ["primaryOutlet"] = shell.PrimaryOutlet,
                 ["options"] = JsonNode.Parse(JsonSerializer.Serialize(shell.Options.OrderBy(option => option.Key, StringComparer.Ordinal).ToDictionary(option => option.Key, option => option.Value))),
-                ["diagnostics"] = new JsonArray([.. shell.Diagnostics.Select(diagnostic => (JsonNode)JsonValue.Create(Camel(diagnostic.Code))!)])
+                ["diagnostics"] = new JsonArray([.. shell.Diagnostics.Select(diagnostic => (JsonNode)JsonValue.Create(Camel(diagnostic.Code)))])
             };
         }
 
         return Normalize(shells.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
     }
 
-    static string Camel(object value) => JsonNamingPolicy.CamelCase.ConvertName(value.ToString()!);
+    static string Camel(object value) => JsonNamingPolicy.CamelCase.ConvertName(value.ToString());
 }

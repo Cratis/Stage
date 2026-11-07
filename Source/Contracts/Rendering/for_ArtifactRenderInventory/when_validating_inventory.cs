@@ -45,7 +45,7 @@ public class when_validating_inventory : given.an_inventory
     {
         var strict = _plan.WithAcceptance(_plan.Degradations, strict: true);
         strict.Inventory.ShouldEqual(_inventory);
-        strict.Inventory!.Score.ShouldEqual(_plan.Inventory!.Score);
+        strict.Inventory.Score.ShouldEqual(_plan.Inventory.Score);
         strict.CanPublishArtifacts.ShouldBeTrue();
         strict.Success.ShouldBeFalse();
         strict.Outcome.ShouldEqual(ArtifactRenderOutcome.Degraded);

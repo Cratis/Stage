@@ -41,7 +41,7 @@ public class a_register_project_render_request : Specification
     {
         var singleForm = Corpus.SourceForms.Single(_ => _.Name == "single");
         _model = Compile(singleForm).Model;
-        _executionPlan = SemanticExecutionPlan.Compile(_model).Plan!;
+        _executionPlan = SemanticExecutionPlan.Compile(_model).Plan;
         _options = new("Projects", "Projects");
         var profile = CratisRendering.CreateProfile(_model.Application.Name, _options);
 

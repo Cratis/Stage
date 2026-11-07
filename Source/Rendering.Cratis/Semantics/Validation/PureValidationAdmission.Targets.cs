@@ -41,17 +41,17 @@ internal static partial class PureValidationAdmission
 
     static bool IsSequence(INamedTypeSymbol type) => type.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.IEnumerable<T>";
 
-    static PureTransitionAdmission.Verdict? TargetRejection(MethodDeclarationSyntax method, SemanticModel model, SemanticTypedContextDescriptor descriptor)
+    static PureTransitionAdmission.Verdict? TargetRejection(MethodDeclarationSyntax method, SemanticModel model, SemanticTypedContextDescriptor descriptor, IReadOnlySet<string> contextTypes)
     {
         var concept = descriptor.Members.Single(member => member.Name == "Value").Type.ModelType?.Kind == SemanticTypeReferenceKind.Concept;
         foreach (var node in method.Body!.DescendantNodes())
         {
             var operation = model.GetOperation(node);
-            if (operation is IInvocationOperation call && IsAccessor(call))
+            if (operation is IInvocationOperation call && IsAccessor(call, contextTypes))
             {
                 if (AccessorRejection(call, concept) is { } rejection) return rejection;
             }
-            else if (CastOrTest(node, operation, model) is { } conversion && ConversionRejection(conversion, concept) is { } rejection)
+            else if (CastOrTest(node, operation, model) is { } conversion && ConversionRejection(conversion, concept, contextTypes) is { } rejection)
             {
                 return rejection;
             }
@@ -59,10 +59,10 @@ internal static partial class PureValidationAdmission
         return null;
     }
 
-    static bool IsAccessor(IInvocationOperation call) => IsWrapper(call.TargetMethod.ContainingType) &&
+    static bool IsAccessor(IInvocationOperation call, IReadOnlySet<string> contextTypes) => IsWrapper(call.TargetMethod.ContainingType, contextTypes) &&
         (call.TargetMethod.Name == "ValueAs" || call.TargetMethod.Name == "ArtifactAs");
 
-    static bool IsWrapper(INamedTypeSymbol type) => type.Name.StartsWith("TypedContext_", StringComparison.Ordinal);
+    static bool IsWrapper(INamedTypeSymbol type, IReadOnlySet<string> contextTypes) => TypedContextTypes.IsContext(type, contextTypes);
 
     static PureTransitionAdmission.Verdict? AccessorRejection(IInvocationOperation call, bool concept)
     {
@@ -81,13 +81,13 @@ internal static partial class PureValidationAdmission
         _ => null
     };
 
-    static PureTransitionAdmission.Verdict? ConversionRejection(ValueConversion conversion, bool concept)
+    static PureTransitionAdmission.Verdict? ConversionRejection(ValueConversion conversion, bool concept, IReadOnlySet<string> contextTypes)
     {
         if (AlwaysTrueTypeTest(conversion))
         {
             return Reject("STAGE-ESM-022", $"Type test 'is {conversion.Target}' on a non-nullable '{conversion.Target}' value is always true; use the value directly or a designation pattern.");
         }
-        return AdmittedTarget(conversion, concept) ? null :
+        return AdmittedTarget(conversion, concept, contextTypes) ? null :
             Reject("STAGE-ESM-022", $"Validation cast or type test to '{conversion.Target}' is outside the declared value realization.");
     }
 
@@ -95,8 +95,8 @@ internal static partial class PureValidationAdmission
         conversion.Operand?.Type is { IsValueType: true } from && from.OriginalDefinition.SpecialType != SpecialType.System_Nullable_T &&
         SymbolEqualityComparer.Default.Equals(from, conversion.Target);
 
-    static bool AdmittedTarget(ValueConversion conversion, bool concept) =>
-        conversion.Operand is IPropertyReferenceOperation read && read.Property.Name == "Value" && IsWrapper(read.Property.ContainingType) &&
+    static bool AdmittedTarget(ValueConversion conversion, bool concept, IReadOnlySet<string> contextTypes) =>
+        conversion.Operand is IPropertyReferenceOperation read && read.Property.Name == "Value" && IsWrapper(read.Property.ContainingType, contextTypes) &&
         ValueTarget(read.Type!, conversion.Target, conversion.TypeTest, concept);
 
     sealed record ValueConversion(IOperation? Operand, ITypeSymbol? Target, bool TypeTest);

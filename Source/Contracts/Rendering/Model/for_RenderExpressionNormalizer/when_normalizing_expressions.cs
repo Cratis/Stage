@@ -20,7 +20,7 @@ public class when_normalizing_expressions : for_RenderModelBuilder.given.a_respo
         var result = Assert.IsType<RenderExpression.Resolved>(_normalizer.Normalize(expression));
         result.Target.ShouldEqual(expression.Target);
         result.TypeState.ShouldEqual(RenderTypeState.Resolved);
-        result.Type!.Primitive.ShouldEqual(SemanticPrimitiveType.Text);
+        result.Type.Primitive.ShouldEqual(SemanticPrimitiveType.Text);
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public class when_normalizing_expressions : for_RenderModelBuilder.given.a_respo
     {
         var result = Assert.IsType<RenderExpression.Comparison>(_normalizer.Condition(new SemanticComparison(new(default, new SemanticNumberValue(1)), operation, new(default, new SemanticNumberValue(2)))));
         result.Operator.ShouldEqual(operation);
-        result.Type!.Primitive.ShouldEqual(SemanticPrimitiveType.Boolean);
+        result.Type.Primitive.ShouldEqual(SemanticPrimitiveType.Boolean);
     }
 
     [Theory]

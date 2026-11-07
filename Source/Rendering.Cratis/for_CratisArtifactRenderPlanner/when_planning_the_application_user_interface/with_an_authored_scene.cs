@@ -26,8 +26,17 @@ public class with_an_authored_scene : a_screen_composition_render
     // Components 4.38.1 (only the npm package pin changes).
     // Recomputed for merged Screenplay 4.258.0 and npm @cratis/scene 4.86.0.
     // Recomputed for Screenplay 4.259.0: the scaffold now emits the published matcher pin.
-    // Re-frozen for Cratis/Stage#120 merged with train 10: authentication artifacts and host wiring on top of the train 10 output.
-    const string Before = "cf583cab13b07762115de4ae2b9463ebef4f41fd2b963d176b9d4d947d62c9a2";
+    // Re-frozen for Cratis/Stage#209 on Scene 4.86.0 and Screenplay 4.259.0: native guarded-action serialization and restored guard/message bridges.
+    // Re-frozen after train 11: authored submit continuations, response contracts/reference schemas and bundled runtime changes;
+    // generated documentation/specification imports, Entra host artifacts/wiring/dependencies and Yarn preapprovals;
+    // Components 4.38.1, Cratis.Specifications 5.1.0, Microsoft.Identity.Web 4.16.1 and the Pkcs 10.0.13 security pin.
+    // Re-captured by execution for train 11 merge (#209/#857 with #925): native guards on Scene 4.87.0 and merged scaffold/runtime output.
+    // Recomputed for Chronicle 19.117.0: the scaffold emits the matching package and development image pins.
+    // Recomputed for Screenplay 5.3.1: the scaffold emits the matching matcher pin.
+    // Recomputed for Cratis/Stage#967: Choreography hosting and updated backend/frontend pins.
+    // Recomputed for Chronicle 19.129.0: the scaffold emits the matching package pins and development image tag.
+    // Recomputed for Screenplay 5.10.0, Arc 22.168.0 and the main merge: the scaffold emits the matching pins, and npm Arc, Components and Scene at the published releases.
+    const string Before = "97e44ff49b2026a7e05510a701867b15b110ec19ea79539e5198f129dd833cdd";
 
     ArtifactRenderPlan _plan = null!;
 

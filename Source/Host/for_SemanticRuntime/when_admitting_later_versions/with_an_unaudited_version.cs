@@ -6,6 +6,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Host.for_SemanticRuntime.given;
+using Cratis.Stage.Semantics;
 using Xunit;
 
 namespace Cratis.Stage.Host.for_SemanticRuntime.when_admitting_later_versions;
@@ -23,7 +24,7 @@ public class with_an_unaudited_version : Specification
     void Because()
     {
         // Simulate dependency versions Stage has not audited.
-        _admissions = [.. new uint[] { 35, 36 }.Select(version =>
+        _admissions = [.. new uint[] { 35, 37 }.Select(version =>
         {
             typeof(ExecutableSemanticModel).GetField("<LanguageVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(_plan.Model, new LanguageVersion(version, 0));
             typeof(ExecutableSemanticModel).GetField("<SemanticVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(_plan.Model, new SemanticVersion(version, 0));

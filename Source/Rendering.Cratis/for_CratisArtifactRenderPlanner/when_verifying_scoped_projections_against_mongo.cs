@@ -238,10 +238,10 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("mongo"), "mongo", "Scopes.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success, string.Join(Environment.NewLine, execution.Issues));
-        return CratisRendering.Plan(model, execution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
+        return CratisRendering.Plan(model, execution.Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
     }
 
     string _output = string.Empty;
@@ -258,7 +258,8 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
 
     [Fact] void should_admit_identity_only_all() => when_rejecting_unsupported_scoped_projections.VerifyFromAllAdmission();
 
-    [Fact] void should_report_both_mongo_shapes_when_configured()
+    [Fact]
+    void should_report_both_mongo_shapes_when_configured()
     {
         if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("STAGE_CHRONICLE_MONGO_CONNECTION")))
         {
@@ -269,18 +270,19 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
         Assert.Contains("ALL_SOURCE=6fa85f64-5717-4562-b3fc-2c963f66afa9; MEMORY=6fa85f64-5717-4562-b3fc-2c963f66afa9; MONGO=6fa85f64-5717-4562-b3fc-2c963f66afa9", _output, StringComparison.Ordinal);
     }
 
-    [Fact] void should_confirm_screenplay_reference_for_both_sequences()
+    [Fact]
+    void should_confirm_screenplay_reference_for_both_sequences()
     {
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("reference"), "reference", "Scopes.play", when_rendering_scoped_projections.ScopedSource);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success);
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var module = model.Application.Modules.Single();
         var feature = module.Features.Single();
         var view = feature.Slices.Single(slice => slice.Kind == SemanticSliceKind.StateView);
         var projection = view.Projections.Single(candidate => candidate.Name == "ProjectSummaryProjection");
-        var scope = projection.Scope!;
+        var scope = projection.Scope;
         var events = feature.Slices.SelectMany(slice => slice.Events).ToDictionary(@event => @event.Name);
         scope = scope with
         {
@@ -343,22 +345,27 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
         };
         var givens = facts.Select(fact => new SemanticSpecificationEvent(events[fact.Name].Id, [.. events[fact.Name].Properties.Select(property => new SemanticPropertyValue(property.Id, new SemanticTextValue(property.Name switch
         {
-            "projectId" => fact.Project!, "noteId" => fact.Note!, "name" => fact.Label!,
+            "projectId" => fact.Project, "noteId" => fact.Note, "name" => fact.Label,
             _ => throw new UnknownReferenceProperty(property.Name)
-        })))]) { EventSource = new(identity, new SemanticTextValue(fact.Stream)) }).ToArray();
+        })))])
+        { EventSource = new(identity, new SemanticTextValue(fact.Stream)) }).ToArray();
         var marker = events["ProjectRegistered"];
         const string third = "7fa85f64-5717-4562-b3fc-2c963f66afaa";
         var specification = original with
         {
-            GivenEvents = [.. givens], When = null,
+            GivenEvents = [.. givens],
+            When = null,
             WhenAppended = new SemanticSpecificationAppend(marker.Id,
                 [.. marker.Properties.Select(property => new SemanticPropertyValue(property.Id,
                     new SemanticTextValue(property.Name == "projectId" ? third : "Unused")))])
             { EventSource = new(identity, new SemanticTextValue(third)) },
-            ThenEvents = [], ThenReadModels = [], ThenQueries = [], ThenErrors = []
+            ThenEvents = [],
+            ThenReadModels = [],
+            ThenQueries = [],
+            ThenErrors = []
         };
         var constructor = typeof(SemanticExecutionPlan).GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic).Single();
-        var plan = execution.Plan!;
+        var plan = execution.Plan;
         var reference = (SemanticExecutionPlan)constructor.Invoke([
             model, plan.Commands, plan.Events, plan.Projections, plan.ReadModels, plan.Queries,
             plan.Specifications.SetItem(specification.Id, specification), plan.Constraints,
@@ -379,7 +386,7 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
 
     // The execution plan keeps what it did not admit internally; a reference plan assembled for a probe carries the same.
     static object? UnadmittedArtifacts(SemanticExecutionPlan plan) =>
-        typeof(SemanticExecutionPlan).GetProperty("UnadmittedArtifacts", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(plan);
+        typeof(SemanticExecutionPlan).GetProperty("UnadmittedArtifacts", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(plan);
 
     sealed class UnknownReferenceProperty(string name) : Exception($"Unknown reference property '{name}'.");
 }

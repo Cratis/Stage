@@ -20,7 +20,7 @@ public class when_binding_compliance_concepts : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("compliance"), "compliance", "Compliance.play", compliance_concepts.Source);
         var result = new SemanticModelCompiler().Compile("Compliance", SemanticDocumentSet.Create([document], catalog));
         _bound = result.Success;
-        _version = result.Value!.Model.SemanticVersion;
+        _version = result.Value.Model.SemanticVersion;
         _codes = [.. result.Diagnostics.Select(diagnostic => diagnostic.Code)];
     }
 

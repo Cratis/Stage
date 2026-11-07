@@ -68,8 +68,9 @@ internal sealed record SemanticReducerBindingEnvironment(string[] Imports, Gener
             .Using($"{context.RootNamespace}.TypedContexts")
             .Using(SliceNaming.Namespace(context.RootNamespace, located.Path));
 
-        // Like a self reducer, a body may name the concepts and types its read model is built from.
-        if (context.ReadModels[reducer.ReadModel].Properties.Any(property => SemanticTypeSystem.DeclarationNeedsCommon(property.Type)))
+        // Like a self reducer, a body may name the concepts and types its state is built from.
+        // An event-target reducer's state is its event contract, not a read model.
+        if (SemanticReducerArtifactRenderer.State(context, reducer).Properties.Any(property => SemanticTypeSystem.DeclarationNeedsCommon(property.Type)))
         {
             builder.Using(context.CommonNamespace);
         }

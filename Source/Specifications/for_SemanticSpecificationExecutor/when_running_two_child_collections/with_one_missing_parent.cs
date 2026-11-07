@@ -28,7 +28,7 @@ public class with_one_missing_parent : Specification
     void should_refuse_the_mixed_case_by_name()
     {
         _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-        _result.Unsupported!.Details.ShouldContain("several child collections");
+        _result.Unsupported.Details.ShouldContain("several child collections");
     }
 
     const string Source = """
@@ -84,7 +84,9 @@ public class with_one_missing_parent : Specification
                 then readmodel Current
                   id = "parent"
                   name = "parent name"
-                  lefts = [{"code":"one"}]
-                  rights = []
+                  lefts
+                    item
+                      code = "one"
+                  rights none
         """;
 }

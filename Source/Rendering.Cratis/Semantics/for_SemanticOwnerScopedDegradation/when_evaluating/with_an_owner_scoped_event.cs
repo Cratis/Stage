@@ -25,7 +25,7 @@ public class with_an_owner_scoped_event : for_CratisArtifactRenderPlanner.when_d
     void Because() => _roots = SemanticOwnerScopedDegradation.TryRoots(_context, _diagnostics, _index, new(false));
 
     [Fact] void should_attribute_the_error_to_the_event() => _context.OwnerScopedRefusals.Exists(diagnostic => diagnostic.Artifact == _unsupportedEvent).ShouldBeTrue();
-    [Fact] void should_qualify_the_event_as_a_root() => _roots![_unsupportedEvent].ShouldEqual("STAGE-DEGRADE-001");
+    [Fact] void should_qualify_the_event_as_a_root() => _roots[_unsupportedEvent].ShouldEqual("STAGE-DEGRADE-001");
     [Fact] void should_reject_a_read_model_omission_when_migration_removals_are_planned() => SemanticOwnerScopedDegradation.TryRoots(_context, _diagnostics, _index, new(false, [new("unused", "unused", _model.Application.Id)])).ShouldBeNull();
     [Fact] void should_bypass_omission_in_strict_mode() => SemanticOwnerScopedDegradation.TryRoots(_context, _diagnostics, _index, new(true)).ShouldBeNull();
     [Fact] void should_reject_an_unattributed_error_even_on_the_root() => SemanticOwnerScopedDegradation.TryRoots(_context, [.. _diagnostics, new("STAGE-ESM-012", ArtifactRenderDiagnosticSeverity.Error, "An independent event-shape defect.", _unsupportedEvent)], _index, new(false)).ShouldBeNull();

@@ -73,7 +73,13 @@ public static partial class conformance_outcomes
         var problems = new SortedSet<string>(StringComparer.Ordinal);
         if (plan.Specifications.Count == 0)
         {
-            return conformance_observation.WithoutRefusals(report.Results.Count == 0 ? NoSpecifications : "gap:results-without-specifications");
+            // A model without slice specifications can still carry the specifications of its state machines and workflows, which the executor runs.
+            return conformance_observation.WithoutRefusals(report.Results.Count switch
+            {
+                0 => NoSpecifications,
+                _ when report.Results.All(result => result.Outcome == SemanticSpecificationOutcome.Passed) => Supported,
+                _ => "gap:lifecycle-specifications-failed"
+            });
         }
 
         problems.UnionWith(executor_result_ids.Problems(
@@ -124,7 +130,7 @@ public static partial class conformance_outcomes
     {
         var refused = new Dictionary<refusal_fingerprint, string>();
         var problems = new SortedSet<string>(StringComparer.Ordinal);
-        foreach (var entry in new SemanticRuntimeAdmission(plan).Entries.Where(entry => entry.Status != Supported))
+        foreach (var entry in HostAdmission.Entries(plan).Where(entry => entry.Status != Supported))
         {
             var details = entry.Details ?? string.Empty;
             var capability = entry.Capability ?? string.Empty;
@@ -154,7 +160,7 @@ public static partial class conformance_outcomes
         if (!IdentifierName.IsMatch(model.Application.Name))
         {
             model = ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, model.Application with { Name = name });
-            plan = SemanticExecutionPlan.Compile(model, []).Plan!;
+            plan = SemanticExecutionPlan.Compile(model, []).Plan;
         }
 
         var source = conformance_source_bodies.Compile(vector);

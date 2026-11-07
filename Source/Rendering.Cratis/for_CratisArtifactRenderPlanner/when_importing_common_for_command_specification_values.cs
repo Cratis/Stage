@@ -28,13 +28,13 @@ public class when_importing_common_for_command_specification_values : Specificat
     {
         var source = "concept Note : String\n" + invoice_model.Source("String", invoice_model.TextSource, invoice_model.OtherTextSource)
             .Replace("command IssueInvoice\n", "command IssueInvoice\n        note Note?\n        notes Note[]?\n", StringComparison.Ordinal)
-            .Replace("when IssueInvoice\n", "when IssueInvoice\n          note = \"placeholder\"\n          notes = [\"placeholder\"]\n", StringComparison.Ordinal) +
+            .Replace("when IssueInvoice\n", "when IssueInvoice\n          note = \"placeholder\"\n          notes\n            item \"placeholder\"\n", StringComparison.Ordinal) +
             "\n      event NoteRecorded\n        note Note\n";
         var model = invoice_model.Compile(source);
         var options = new CratisRenderingOptions("InvoiceApp", "Invoices");
         var request = new ArtifactRenderRequest(
             model,
-            SemanticExecutionPlan.Compile(model).Plan!,
+            SemanticExecutionPlan.Compile(model).Plan,
             CratisRendering.CreateProfile(model.Application.Name, options),
             new(ArtifactRenderScopeKind.Application, model.Application.Id));
         _context = new(request, options);

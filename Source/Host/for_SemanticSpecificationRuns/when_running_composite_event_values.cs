@@ -29,17 +29,23 @@ public class when_running_composite_event_values : a_specification_endpoint
               specification RecordedComposite
                 given DetailsRecorded
                   for "before"
-                  details = {"label":"previous","count":6}
+                  details
+                    label = "previous"
+                    count = 6
                 when RecordDetails
                   id = "one"
-                  details = {"label":"nested","count":7}
+                  details
+                    label = "nested"
+                    count = 7
                 then DetailsRecorded
-                  details = {"count":7,"label":"nested"}
+                  details
+                    count = 7
+                    label = "nested"
         """;
 
     Task Because() => Request("{}");
 
     [Fact] void should_return_ok() => _status.ShouldEqual(StatusCodes.Status200OK);
     [Fact] void should_pass_in_the_real_child_executor() => Report.Results.Single().Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
-    [Fact] void should_report_named_composite_members() => JsonSerializer.Deserialize<JsonElement>(Report.Results.Single().Trace!.Facts.Single().Values.Single().Value).GetProperty("label").GetString().ShouldEqual("nested");
+    [Fact] void should_report_named_composite_members() => JsonSerializer.Deserialize<JsonElement>(Report.Results.Single().Trace.Facts.Single().Values.Single().Value).GetProperty("label").GetString().ShouldEqual("nested");
 }

@@ -12,6 +12,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticOccurrenceHandlerArtifactRenderer;
 
+[PerFactSpecificationLifecycle]
 public class when_delivering_application_trigger_invocations : Specification
 {
     Assembly _assembly = null!;

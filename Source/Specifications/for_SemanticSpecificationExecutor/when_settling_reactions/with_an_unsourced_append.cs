@@ -8,5 +8,5 @@ public class with_an_unsourced_append : given.a_reaction_plan
     void Establish() => Compile("reaction Worker\n  when Started\n    item\n    invokes Complete\n      item = item", "then readmodel Marker\n  item = \"one\"", new() { Action = "when append Started\n  item = \"one\"\n  amount = 1" });
     Task Because() => Execute();
     [Fact] void should_ignore_the_unobserved_null_destination_in_replay() => AssertMatchesReference();
-    [Fact] void should_materialize_the_invoked_explicit_destination() => _result.Trace!.ReadModels.Count.ShouldEqual(1);
+    [Fact] void should_materialize_the_invoked_explicit_destination() => _result.Trace.ReadModels.Count.ShouldEqual(1);
 }

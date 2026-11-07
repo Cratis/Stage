@@ -50,7 +50,7 @@ public class when_inspecting_an_automapped_read_model : Specification
     {
         var readModel = _model.Collections.Single().Modules.Single().Features.Single().Slices
             .Select(slice => slice.ReadModel)
-            .First(readModel => readModel is not null)!;
+            .First(readModel => readModel is not null);
 
         using var schema = JsonDocument.Parse(readModel.Schema);
         var properties = schema.RootElement.GetProperty("properties").EnumerateObject().Select(property => property.Name).ToArray();

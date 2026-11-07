@@ -34,9 +34,9 @@ public class a_scoped_from_block : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("scopes"), "scopes", "Scopes.play", when_rendering_scoped_projections.ScopedSource);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var options = new CratisRenderingOptions("Projects", "Projects");
-        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile("Projects", options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile("Projects", options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
         _context = new(request, options);
         _view = _context.SelectedSlices().Single(located => located.Slice.Kind == SemanticSliceKind.StateView).Slice;
         _projection = _view.Projections.Single(projection => projection.Name == "ProjectSummaryProjection");
@@ -45,11 +45,11 @@ public class a_scoped_from_block : Specification
         _info = properties.Single(property => property.Name == "info");
         _notes = properties.Single(property => property.Name == "notes");
         _nestedName = _context.Types[_info.Type.Target].Properties.Single().Id;
-        _scope = _projection.Scope!;
+        _scope = _projection.Scope;
         _firstFrom = _scope.From[0];
         _from = _scope.From[1];
         _mapping = _from.Mappings.Single(mapping => mapping.Target[0] == _name.Id);
-        _eventName = ((SemanticProjectionEventProperty)_mapping.Source!).Path[0];
+        _eventName = ((SemanticProjectionEventProperty)_mapping.Source).Path[0];
     }
 
     protected void Evaluate()

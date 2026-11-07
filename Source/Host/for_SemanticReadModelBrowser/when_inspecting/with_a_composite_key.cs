@@ -4,6 +4,7 @@
 using System.Text.Json;
 using Cratis.Specifications;
 using Cratis.Stage.Host.for_SemanticReadModelBrowser.given;
+using Cratis.Stage.Semantics;
 using Xunit;
 
 namespace Cratis.Stage.Host.for_SemanticReadModelBrowser.when_inspecting;
@@ -36,7 +37,7 @@ public class with_a_composite_key : a_browser
 
     async Task Establish()
     {
-        new SemanticRuntimeAdmission(_semanticRuntime!.Plan).Blocking.ShouldBeEmpty();
+        new SemanticRuntimeAdmission(_semanticRuntime.Plan).Blocking.ShouldBeEmpty();
         await Register("""
             {"projectId":"3fa85f64-5717-4562-b3fc-2c963f66afa6","address":{"city":"Oslo"}}
             """);

@@ -31,7 +31,7 @@ public class when_rendering_a_validated_command_with_a_specification : a_multi_s
                       name = "invoice"
             """);
         compilation.Success.ShouldBeTrue();
-        _application = compilation.Value!;
+        _application = compilation.Value;
     }
 
     async Task Because() => await _renderer.Render([_application], _targetDirectory, _output, _error);

@@ -18,6 +18,6 @@ public class when_policy_requirements_conflict : given.a_persona_model
           policy IsNotStaff
         """);
 
-    [Fact] void should_keep_the_roles_from_the_satisfiable_policy() => _principal!.IsInRole("Staff").ShouldBeTrue();
-    [Fact] void should_remain_authenticated() => _principal!.Identity!.IsAuthenticated.ShouldBeTrue();
+    [Fact] void should_keep_the_roles_from_the_satisfiable_policy() => _principal.IsInRole("Staff").ShouldBeTrue();
+    [Fact] void should_remain_authenticated() => _principal.Identity.IsAuthenticated.ShouldBeTrue();
 }

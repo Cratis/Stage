@@ -23,10 +23,10 @@ internal static class SemanticReducerTypedContexts
         var ns = string.Join('.', context.Domain.Append("TypedContexts"));
         foreach (var descriptor in Selected(context, slices))
         {
-            yield return (ns, SemanticTypedContextRenderer.WrapperName(descriptor));
+            yield return (ns, context.ContextNames.ContextWrapper(descriptor));
             foreach (var member in descriptor.Members.Where(member => EmitsQueryShape(member.Type, context)))
             {
-                yield return (ns, SemanticTypedContextRenderer.LocalShapeName(descriptor, member.Name));
+                yield return (ns, context.ContextNames.ContextShape(descriptor, member.Name));
             }
         }
     }

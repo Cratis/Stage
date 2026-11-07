@@ -1,6 +1,6 @@
 ---
 title: Authentication rendering
-description: Look up how the Cratis renderer makes an application trust the identity AuthProxy forwards, which files it renders for a runtime to start AuthProxy with, and how the sandbox follows.
+description: Cratis Stage configures rendered applications to trust AuthProxy identity headers, emits runtime configuration files, and supports sandbox forwarding.
 ---
 
 A model's `authentication` block names the identity providers an application signs people in with. The Cratis renderer turns it into an application that runs behind Cratis AuthProxy and a configuration AuthProxy starts from.

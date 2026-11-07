@@ -21,7 +21,7 @@ public sealed class FactAttribute : Xunit.FactAttribute
     static string? ProbePermission()
     {
         var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (!File.Exists(Path.Combine(directory.FullName, "Stage.slnx"))) directory = directory.Parent!;
+        while (!File.Exists(Path.Combine(directory.FullName, "Stage.slnx"))) directory = directory.Parent;
         var folder = Path.Combine(directory.FullName, ".ai-work", "210", "link-probes", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);
         try

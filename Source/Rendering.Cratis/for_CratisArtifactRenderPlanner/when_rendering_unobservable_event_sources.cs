@@ -46,13 +46,13 @@ public class when_rendering_unobservable_event_sources
         var specification = slice.Specifications.Single(selected => selected.Name == name);
         var options = new CratisRenderingOptions("Payments", "Payments");
         var context = new SemanticApplicationContext(
-            new(model, SemanticExecutionPlan.Compile(model, []).Plan!, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id)),
+            new(model, SemanticExecutionPlan.Compile(model, []).Plan, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id)),
             options);
         var diagnostics = new List<ArtifactRenderDiagnostic>();
         SemanticSpecificationAdmission.Validate(context, slice with { Specifications = [specification] }, diagnostics);
         Assert.Empty(diagnostics);
         Assert.True(SemanticProjectionFactSpecification.TryLower(context, specification, out var lowered));
-        var rendered = SemanticReadModelSpecificationRenderer.Render(lowered!, specification.ThenReadModels.Single(), context);
+        var rendered = SemanticReadModelSpecificationRenderer.Render(lowered, specification.ThenReadModels.Single(), context);
         Assert.Contains("ForEventSource(\"when-append\")", rendered.Content, StringComparison.Ordinal);
         Assert.Contains("SingleOrDefault(_scenario.Instances.Values", rendered.Content, StringComparison.Ordinal);
     }

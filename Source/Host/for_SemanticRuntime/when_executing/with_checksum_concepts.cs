@@ -43,7 +43,7 @@ public class with_checksum_concepts
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("checksum"), "checksum", "Checksum.play", source);
         var compilation = new SemanticModelCompiler().Compile("Checksums", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         new SemanticRuntimeAdmission(plan).Blocking.ShouldBeEmpty();
         var appender = Substitute.For<IAppendSemanticFacts, ISemanticFactTail>();
         ((ISemanticFactTail)appender).Tail().Returns(ulong.MaxValue);

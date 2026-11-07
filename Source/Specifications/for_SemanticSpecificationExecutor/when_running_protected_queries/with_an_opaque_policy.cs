@@ -27,6 +27,6 @@ public class with_an_opaque_policy : a_projected_specification
     Task Because() => Run();
 
     [Fact] void should_not_treat_unsupported_as_a_denial() => _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-    [Fact] void should_name_the_authorization_capability() => _result.Unsupported!.Capability.ShouldEqual(StageExecutionCapability.Authorization);
+    [Fact] void should_name_the_authorization_capability() => _result.Unsupported.Capability.ShouldEqual(StageExecutionCapability.Authorization);
     [Fact] void should_match_the_reference() => ((SemanticUnsupported)_reference.Execution).Capability.ShouldEqual(SemanticExecutionCapability.Authorization);
 }

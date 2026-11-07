@@ -195,7 +195,7 @@ public class when_comparing_re_admitted_projection_shapes(when_comparing_re_admi
                       name = "{{parent.Item1}}"
                     then readmodel ProjectSummary
                       projectId = "{{parent.Item2}}"
-                      notes = []
+                      notes none
                       label = "fixed"
                 """);
             var specifications = string.Join('\n', new[] { recreation }.Concat(joined)).Split('\n').Select(line => "    " + line);
@@ -204,7 +204,7 @@ public class when_comparing_re_admitted_projection_shapes(when_comparing_re_admi
             var document = SemanticSourceDocument.Create(catalog.ResolveDocument("re-admitted"), "re-admitted", "Scopes.play", source);
             var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
             Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-            return compilation.Value!.Model;
+            return compilation.Value.Model;
         }
     }
 }

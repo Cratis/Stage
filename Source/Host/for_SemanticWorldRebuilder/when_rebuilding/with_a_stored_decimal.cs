@@ -21,5 +21,5 @@ public class with_a_stored_decimal : a_stored_typed_event
 
     [Fact] void should_convert_through_chronicles_number_schema() => _converted.ShouldBeOfExactType<double>();
     [Fact] void should_refuse_the_non_exact_event_property() => _error.ShouldBeOfExactType<SemanticWorldRebuildRefused>();
-    [Fact] void should_name_the_refused_property() => _error!.Message.ShouldContain("value");
+    [Fact] void should_name_the_refused_property() => _error.Message.ShouldContain("value");
 }

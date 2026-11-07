@@ -12,6 +12,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_redelivering_a_captured_event;
 
+[PerFactSpecificationLifecycle]
 public class after_a_refused_append : given.a_captured_delivery
 {
     void Because() => Render();
@@ -23,7 +24,7 @@ public class after_a_refused_append : given.a_captured_delivery
         var reactor = Reactor();
         var fact = Fact(0);
         var delivery = ReactorDelivery.For(reactor, fact.Context);
-        var effects = await (Task<IEnumerable<object>>)reactor.GetType().GetMethod("OnArrived")!.Invoke(reactor, [fact.Content, fact.Context, delivery])!;
+        var effects = await (Task<IEnumerable<object>>)reactor.GetType().GetMethod("OnArrived").Invoke(reactor, [fact.Content, fact.Context, delivery]);
         var result = await new EventsForEventSourceIdResultHandler().Handle(new ReactorContext(fact.Context, reactor, []) { Delivery = delivery }, _store, effects);
         result.IsSuccess.ShouldBeFalse();
         _log.Committed.ShouldBeEmpty();

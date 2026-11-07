@@ -112,6 +112,13 @@ internal static partial class PureTransitionAdmission
         ["exceptions"] = "Only explicit InvalidOperationException(string) and ArgumentException(string) throws."
     };
 
+    /// <summary>The simple names an authored body may bind to the audited framework surface; a generated declaration with one of these names would rebind it.</summary>
+    internal static readonly IReadOnlyList<string> AuditedNames =
+    [
+        "Math", "String", "Enumerable", "ImmutableArray", "DateTimeOffset", "TimeSpan", "StringComparison", "MidpointRounding", "CultureInfo",
+        "ArgumentException", "InvalidOperationException", "IEnumerable", "IFormatProvider", "Guid", "DateOnly", "EventContext", "ReducerContextValues"
+    ];
+
     // These are the 10.0.12 package's assemblies embedded in the renderer, independent of
     // the installed SDK or host runtime. Never fall back to another installed SDK pack.
     internal static readonly Lazy<MetadataReference[]> _references = new(LoadEmbeddedReferences);
@@ -146,6 +153,15 @@ internal static partial class PureTransitionAdmission
         SemanticReadModel readModel,
         SemanticEventContract @event,
         SemanticTypedContextDescriptor descriptor,
+        SemanticImplementationRequirement requirement) =>
+        Analyze(body, context, (readModel.Id, readModel.Name, readModel.Properties), @event, descriptor, requirement);
+
+    internal static Verdict Analyze(
+        string body,
+        SemanticApplicationContext context,
+        (SemanticId Id, string Name, ImmutableArray<SemanticProperty> Properties) readModel,
+        SemanticEventContract @event,
+        SemanticTypedContextDescriptor descriptor,
         SemanticImplementationRequirement requirement)
     {
         // Reject disallowed type tests before diagnostics: an ImmutableArray input cannot legally
@@ -170,7 +186,8 @@ internal static partial class PureTransitionAdmission
 
         // The actual output file owns the binding environment: a separate classic reducer,
         // or the entire combined slice, including sibling reducers/projections and Automation commands.
-        var environment = context.ReducerBindings(located, reducer);
+        var eventTarget = reducer.Target == SemanticProjectionTargetKind.Event;
+        var environment = eventTarget ? SemanticReducerBindingEnvironment.Create(located, context, reducer) : context.ReducerBindings(located, reducer);
         var reducerEvents = reducer.Transitions.Select(transition => context.Events[transition.EventContract]).ToArray();
         var stubbed = reducerEvents.Select(@event => (
                 Id: (SemanticId?)@event.Id,
@@ -220,12 +237,12 @@ internal static partial class PureTransitionAdmission
             definitions.Add($"namespace {context.CommonNamespace} {{ public record {Identifiers.ToPascalCase(composite.Name)}({Parameters(composite.Properties)}); }}");
         }
 
-        var self = context.SelfReduces(readModel.Id);
+        var self = !eventTarget && context.SelfReduces(readModel.Id);
         if (!self)
         {
-            definitions.Add($"namespace {modelNs} {{ public record {Identifiers.ToPascalCase(readModel.Name)}({Parameters(SemanticStateViewArtifactRenderer.OrderedProperties(readModel.Properties), true)}); }}");
+            definitions.Add($"namespace {modelNs} {{ public record {Identifiers.ToPascalCase(readModel.Name)}({Parameters(eventTarget ? readModel.Properties : SemanticStateViewArtifactRenderer.OrderedProperties(readModel.Properties), true)}); }}");
         }
-        foreach (var visibleEvent in environment.Events)
+        foreach (var visibleEvent in environment.Events.Where(candidate => !eventTarget || candidate.Id != readModel.Id))
         {
             var eventNs = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(visibleEvent.Id).Path);
             var immutable = context.Reducers.Any(candidate => candidate.Transitions.Any(transition => transition.EventContract == visibleEvent.Id));
@@ -255,7 +272,7 @@ internal static partial class PureTransitionAdmission
         }
 
         var modelType = $"global::{modelNs}.{Identifiers.ToPascalCase(readModel.Name)}";
-        var wrapperType = $"global::{context.TypedContextsNamespace}.TypedContext_{SemanticTypedContextRenderer.Suffix(descriptor)}";
+        var wrapperType = $"global::{context.TypedContextsNamespace}.{context.ContextNames.ContextWrapper(descriptor)}";
         var tenant = $"namespace {context.RootNamespace}.TypedContexts {{ public record TenantId(string Value) {{ public static readonly TenantId Default = new(\"00000000-0000-0000-0000-000000000000\"); public static readonly TenantId NotSet = new(\"\"); }} }}";
 
         // Model stubs are compilation peers, not imports into the reducer file. The body has the
@@ -278,8 +295,7 @@ internal static partial class PureTransitionAdmission
         var builder = new CSharpCodeBuilder().Namespace(ns);
         environment.Configure(builder);
 
-        var suffix = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
-            System.Text.Encoding.UTF8.GetBytes(descriptor.RequirementId)))[..8];
+        var helperName = context.InlineNames.ReducerTransition(descriptor.RequirementId);
         builder.OpenBlock($"public class {reducerName} : IReducerFor<{modelType}>");
         foreach (var transitionEvent in reducerEvents)
         {
@@ -290,14 +306,14 @@ internal static partial class PureTransitionAdmission
                 .EndBlock();
         }
 
-        var code = builder.OpenBlock($"static {modelType}? Transition_{suffix}({wrapperType} context)")
+        var code = builder.OpenBlock($"static {modelType}? {helperName}({wrapperType} context)")
             .RawVerbatim(body)
             .EndBlock()
             .EndBlock()
             .ToString();
         if (self)
         {
-            code = SelfAnalysisCode(context, located, readModel, reducer, descriptor, body);
+            code = SelfAnalysisCode(context, located, context.ReadModels[readModel.Id], reducer, descriptor, body);
         }
         var options = new CSharpParseOptions(Microsoft.CodeAnalysis.CSharp.LanguageVersion.Latest);
         var tree = CSharpSyntaxTree.ParseText(code, options);
@@ -308,9 +324,9 @@ internal static partial class PureTransitionAdmission
             ReferenceDirectoryOverride.Value is { } referenceDirectory ? LoadReferences(referenceDirectory) : _references.Value,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
         var semanticModel = compilation.GetSemanticModel(tree);
-        var referencedTypes = MethodTypeReferences(tree, semanticModel, $"Transition_{suffix}");
+        var referencedTypes = MethodTypeReferences(tree, semanticModel, $"{helperName}");
         var analyzedBody = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>()
-            .Single(declaration => IsTransitionMethod(declaration, $"Transition_{suffix}")).Body!;
+            .Single(declaration => IsTransitionMethod(declaration, $"{helperName}")).Body!;
         var boundTypes = analyzedBody.DescendantNodes().OfType<SimpleNameSyntax>()
             .Select(name => semanticModel.GetSymbolInfo(name).Symbol).OfType<INamedTypeSymbol>().ToArray();
         var shadow = peers.FirstOrDefault(name => ShadowsAuditedName(name) ||
@@ -332,7 +348,7 @@ internal static partial class PureTransitionAdmission
         if (errors.Length > 0)
         {
             var error = errors[0];
-            var helper = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single(method => IsTransitionMethod(method, $"Transition_{suffix}"));
+            var helper = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single(method => IsTransitionMethod(method, $"{helperName}"));
             var location = CSharpInlineIndentation.Locate(code, body, helper.Body!.OpenBraceToken.Span.End);
             var detail = $"{error.Id}: {error.GetMessage(System.Globalization.CultureInfo.InvariantCulture)}{GeneratedMemberDiagnostic.Hint(error, semanticModel)}";
             if (location is null || !error.Location.IsInSource || error.Location.SourceTree != tree || error.Location.SourceSpan.Start < location.Start ||
@@ -345,8 +361,8 @@ internal static partial class PureTransitionAdmission
             return Reject("STAGE-ESM-019", $"Reducer body {sourceLocation}: {detail}");
         }
 
-        var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single(method => IsTransitionMethod(method, $"Transition_{suffix}"));
-        return Walk(semanticModel, method.Body!, new PureTransitionAnalysisContext(descriptor, context.RootNamespace, GeneratedConceptSymbols(context, compilation)));
+        var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single(method => IsTransitionMethod(method, $"{helperName}"));
+        return Walk(semanticModel, method.Body!, new PureTransitionAnalysisContext { Descriptor = descriptor, RootNamespace = context.RootNamespace, GeneratedConcepts = GeneratedConceptSymbols(context, compilation), ContextTypes = context.TypedContextTypeNames });
 
         string Parameters(IEnumerable<SemanticProperty> properties, bool reducerInput = false) => string.Join(", ", properties.Select(property =>
             $"{types.Type(property.Type, reducerInput)} {Identifiers.ToPascalCase(property.Name)}"));
@@ -388,11 +404,10 @@ internal static partial class PureTransitionAdmission
         return (block, null);
     }
 
-    internal static Verdict AnalyzeRendered(CSharpCompilation compilation, string reducerPath, SemanticTypedContextDescriptor descriptor, SemanticApplicationContext? context = null)
+    internal static Verdict AnalyzeRendered(CSharpCompilation compilation, string reducerPath, SemanticTypedContextDescriptor descriptor, SemanticApplicationContext context)
     {
         var tree = compilation.SyntaxTrees.Single(_ => _.FilePath == reducerPath);
-        var methodName = "Transition_" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
-            System.Text.Encoding.UTF8.GetBytes(descriptor.RequirementId)))[..8];
+        var methodName = context.InlineNames.ReducerTransition(descriptor.RequirementId);
         var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single(method => IsTransitionMethod(method, methodName));
         if (compilation.GetDiagnostics().Any(_ => _.Severity == DiagnosticSeverity.Error))
         {
@@ -400,17 +415,15 @@ internal static partial class PureTransitionAdmission
         }
 
         var model = compilation.GetSemanticModel(tree);
-        return context is null
-            ? Walk(model, method.Body!, descriptor)
-            : Walk(model, method.Body!, new PureTransitionAnalysisContext(descriptor, context.RootNamespace, GeneratedConceptSymbols(context, compilation)));
+        return Walk(model, method.Body!, new PureTransitionAnalysisContext { Descriptor = descriptor, RootNamespace = context.RootNamespace, GeneratedConcepts = GeneratedConceptSymbols(context, compilation), ContextTypes = context.TypedContextTypeNames });
     }
 
     // Resolve only modeled, non-enum Common concepts in this compilation. Source ownership or
     // a matching short name alone never grants an operator entry into the allowlist.
-    internal static bool Generated(ITypeSymbol? type, Compilation compilation) => type is INamedTypeSymbol named &&
-        !named.IsAnonymousType && named.ContainingAssembly.Name == compilation.AssemblyName &&
+    internal static bool Generated(ITypeSymbol? type, TrustScope scope) => type is INamedTypeSymbol named &&
+        !named.IsAnonymousType && named.ContainingAssembly.Name == scope.Compilation.AssemblyName &&
         named.Locations.Length > 0 && named.Locations.All(location => location.IsInSource &&
-            compilation.SyntaxTrees.Contains(location.SourceTree)) && !named.Name.StartsWith("TypedContext_", StringComparison.Ordinal);
+            scope.Compilation.SyntaxTrees.Contains(location.SourceTree)) && !TypedContextTypes.IsContext(named, scope.ContextTypes);
 
     internal static IReadOnlyDictionary<INamedTypeSymbol, ITypeSymbol> GeneratedConceptSymbols(SemanticApplicationContext context, Compilation compilation) =>
         GeneratedConceptConversions.Resolve(context, compilation);
@@ -418,13 +431,12 @@ internal static partial class PureTransitionAdmission
     internal static bool IsGeneratedConceptConversion(ISymbol symbol, IReadOnlyDictionary<INamedTypeSymbol, ITypeSymbol> trusted) =>
         GeneratedConceptConversions.Matches(symbol, trusted);
 
-    internal static bool ShadowsAuditedName(string name) =>
-        NameIs(name, "Math", "String", "Enumerable", "ImmutableArray", "DateTimeOffset", "TimeSpan", "StringComparison", "MidpointRounding", "CultureInfo", "ArgumentException", "InvalidOperationException", "IEnumerable", "IFormatProvider", "Guid", "DateOnly", "EventContext", "ReducerContextValues");
+    internal static bool ShadowsAuditedName(string name) => AuditedNames.Contains(name, StringComparer.Ordinal);
 
-    internal static HashSet<(string Name, string? Namespace)> MethodTypeReferences(SyntaxTree tree, SemanticModel model, string methodPrefix = "Transition_")
+    internal static HashSet<(string Name, string? Namespace)> MethodTypeReferences(SyntaxTree tree, SemanticModel model, string methodName)
     {
         var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>()
-            .Single(declaration => IsTransitionMethod(declaration, methodPrefix));
+            .Single(declaration => IsTransitionMethod(declaration, methodName));
         var names = new HashSet<(string Name, string? Namespace)>();
         foreach (var name in method.Body!.DescendantNodes().OfType<SimpleNameSyntax>())
         {
@@ -504,10 +516,10 @@ internal static partial class PureTransitionAdmission
         return true;
     }
 
-    static bool IsTransitionMethod(MethodDeclarationSyntax method, string prefix) =>
-        method.Identifier.Text.StartsWith(prefix, StringComparison.Ordinal) ||
+    static bool IsTransitionMethod(MethodDeclarationSyntax method, string name) =>
+        method.Identifier.Text == name ||
         (method.Identifier.Text == SemanticReducerArtifactRenderer.SelfTransitionMethod &&
-            method.Parent is ClassDeclarationSyntax container && container.Identifier.Text.StartsWith(prefix, StringComparison.Ordinal));
+            method.Parent is ClassDeclarationSyntax container && container.Identifier.Text == name);
 
     static string ForbiddenSymbol(SyntaxNode forbidden, string body) => forbidden switch
     {
@@ -595,7 +607,7 @@ internal static partial class PureTransitionAdmission
         if (info.CurrentProperty is not null) yield return info.CurrentProperty;
     }
 
-    static bool InvalidLambda(IAnonymousFunctionOperation lambda)
+    static bool InvalidLambda(IAnonymousFunctionOperation lambda, IReadOnlySet<string> contextTypes)
     {
         if (!IsLinqExpressionLambda(lambda))
         {
@@ -603,7 +615,7 @@ internal static partial class PureTransitionAdmission
         }
 
         return lambda.Syntax.DescendantNodes().OfType<CheckedExpressionSyntax>().Any() ||
-            Descendants(lambda.Body).Any(child => child != lambda.Body && InvalidLambdaChild(child, lambda));
+            Descendants(lambda.Body).Any(child => child != lambda.Body && InvalidLambdaChild(child, lambda, contextTypes));
     }
 
     static bool IsLinqExpressionLambda(IAnonymousFunctionOperation lambda) =>
@@ -611,20 +623,20 @@ internal static partial class PureTransitionAdmission
         call.TargetMethod.ContainingType.ToDisplayString() == "System.Linq.Enumerable" &&
         lambda.Syntax is LambdaExpressionSyntax { Body: ExpressionSyntax };
 
-    static bool InvalidLambdaChild(IOperation child, IAnonymousFunctionOperation lambda) => child switch
+    static bool InvalidLambdaChild(IOperation child, IAnonymousFunctionOperation lambda, IReadOnlySet<string> contextTypes) => child switch
     {
         ISimpleAssignmentOperation or ICompoundAssignmentOperation or IIncrementOrDecrementOperation or
             ICoalesceAssignmentOperation or IThrowOperation or IAnonymousFunctionOperation or IArrayElementReferenceOperation => true,
         IBinaryOperation binary => InvalidLambdaBinary(binary),
         IUnaryOperation unary => InvalidLambdaUnary(unary),
         IConversionOperation conversion => InvalidLambdaConversion(conversion),
-        _ => InvalidLambdaReference(child, lambda)
+        _ => InvalidLambdaReference(child, lambda, contextTypes)
     };
 
-    static bool InvalidLambdaReference(IOperation child, IAnonymousFunctionOperation lambda) => child switch
+    static bool InvalidLambdaReference(IOperation child, IAnonymousFunctionOperation lambda, IReadOnlySet<string> contextTypes) => child switch
     {
         IInvocationOperation call => !SafeLambdaCall(call),
-        ILocalReferenceOperation or IParameterReferenceOperation => CapturesDisallowedValue(child, lambda),
+        ILocalReferenceOperation or IParameterReferenceOperation => CapturesDisallowedValue(child, lambda, contextTypes),
         _ => false
     };
 
@@ -647,11 +659,11 @@ internal static partial class PureTransitionAdmission
          type.AllInterfaces.Any(@interface => @interface.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.IEnumerable<T>") ||
          type.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.IEnumerable<T>");
 
-    static bool CapturesDisallowedValue(IOperation operation, IAnonymousFunctionOperation lambda) => operation switch
+    static bool CapturesDisallowedValue(IOperation operation, IAnonymousFunctionOperation lambda, IReadOnlySet<string> contextTypes) => operation switch
     {
         ILocalReferenceOperation => true, // Only lambda parameters and the typed context may be captured.
         IParameterReferenceOperation parameter => !lambda.Symbol.Parameters.Any(p => SymbolEqualityComparer.Default.Equals(p, parameter.Parameter)) &&
-            !(parameter.Parameter.Type.Name.StartsWith("TypedContext_", StringComparison.Ordinal) &&
+            !(TypedContextTypes.IsContext(parameter.Parameter.Type, contextTypes) &&
               parameter.Parameter.ContainingSymbol is IMethodSymbol),
         _ => false
     };
@@ -755,16 +767,16 @@ internal static partial class PureTransitionAdmission
         _ => symbol
     });
 
-    static bool SafeDataType(ITypeSymbol? type, Compilation compilation) =>
-        SafeValue(type, compilation) ||
-        (type is IArrayTypeSymbol array && SafeDataType(array.ElementType, compilation)) ||
+    static bool SafeDataType(ITypeSymbol? type, TrustScope scope) =>
+        SafeValue(type, scope) ||
+        (type is IArrayTypeSymbol array && SafeDataType(array.ElementType, scope)) ||
         (type is INamedTypeSymbol named &&
         (named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T ||
          named.OriginalDefinition.ToDisplayString() == "System.Collections.Immutable.ImmutableArray<T>") &&
-        SafeDataType(named.TypeArguments[0], compilation));
+        SafeDataType(named.TypeArguments[0], scope));
 
-    static bool SafeValue(ITypeSymbol? type, Compilation compilation) =>
-        SafeValueType(type) || Generated(type, compilation) ||
+    static bool SafeValue(ITypeSymbol? type, TrustScope scope) =>
+        SafeValueType(type) || Generated(type, scope) ||
         NameIs(type?.ToDisplayString() ?? string.Empty, "System.DateTimeOffset", "System.TimeSpan", "System.Guid", "System.DateOnly");
 
     static bool WideningInteger(ITypeSymbol? from, ITypeSymbol? to) => (from?.SpecialType, to?.SpecialType) switch
@@ -786,12 +798,12 @@ internal static partial class PureTransitionAdmission
     static bool SafeValueType(ITypeSymbol? type) => Number(type) || type?.SpecialType is SpecialType.System_Boolean or
         SpecialType.System_Char or SpecialType.System_String;
 
-    static bool SafePattern(IPatternOperation pattern, Compilation compilation) => pattern switch
+    static bool SafePattern(IPatternOperation pattern, TrustScope scope) => pattern switch
     {
         IConstantPatternOperation constant => constant.Value.ConstantValue.HasValue &&
             (constant.Value.ConstantValue.Value is null || SafeValueType(constant.Value.Type)),
-        INegatedPatternOperation negated => SafePattern(negated.Pattern, compilation),
-        IDeclarationPatternOperation declaration => Generated(declaration.MatchedType, compilation),
+        INegatedPatternOperation negated => SafePattern(negated.Pattern, scope),
+        IDeclarationPatternOperation declaration => Generated(declaration.MatchedType, scope),
         IDiscardPatternOperation => true,
         _ => false
     };

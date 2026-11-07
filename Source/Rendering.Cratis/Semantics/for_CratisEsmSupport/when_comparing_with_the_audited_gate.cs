@@ -47,7 +47,11 @@ public class when_comparing_with_the_audited_gate : Specification
         (new(31, 0), new(31, 0)),
         (new(32, 0), new(32, 0)),
         (new(33, 0), new(33, 0)),
-        (new(34, 0), new(34, 0))
+        (new(34, 0), new(34, 0)),
+        (new(36, 0), new(36, 0)),
+        (new(38, 0), new(38, 0)),
+        (new(40, 0), new(40, 0)),
+        (new(41, 0), new(41, 0))
     ];
 
     readonly List<string> _descriptorMismatches = [];
@@ -85,6 +89,17 @@ public class when_comparing_with_the_audited_gate : Specification
     [Fact] void should_audit_the_exact_v34_pair() => CratisEsmSupport.Descriptor.Classify(LanguageVersion.V34, SemanticVersion.V34).ShouldEqual(EsmVersionStanding.Audited);
     [Fact]
     void should_refuse_v33_and_v34_minors_and_v35_as_future_majors() => new SemanticVersion[] { new(33, 1), new(34, 1), new(35, 0) }.ShouldEachConformTo(version =>
+        CratisEsmSupport.Descriptor.Classify(new(version.Major, version.Minor), version) == EsmVersionStanding.FutureMajor);
+    [Fact] void should_audit_the_exact_v36_pair() => CratisEsmSupport.Descriptor.Classify(LanguageVersion.V36, SemanticVersion.V36).ShouldEqual(EsmVersionStanding.Audited);
+    [Fact] void should_audit_the_exact_v38_pair() => CratisEsmSupport.Descriptor.Classify(LanguageVersion.V38, SemanticVersion.V38).ShouldEqual(EsmVersionStanding.Audited);
+    [Fact] void should_audit_the_exact_v41_pair() => CratisEsmSupport.Descriptor.Classify(LanguageVersion.V41, SemanticVersion.V41).ShouldEqual(EsmVersionStanding.Audited);
+    [Fact] void should_check_the_members_of_a_v41_model_against_the_ledger() => CratisEsmSupport.Descriptor.ScansMembers(LanguageVersion.V41, SemanticVersion.V41).ShouldBeTrue();
+    [Fact] void should_audit_the_exact_v40_pair() => CratisEsmSupport.Descriptor.Classify(LanguageVersion.V40, SemanticVersion.V40).ShouldEqual(EsmVersionStanding.Audited);
+    [Fact] void should_check_the_members_of_a_v40_model_against_the_ledger() => CratisEsmSupport.Descriptor.ScansMembers(LanguageVersion.V40, SemanticVersion.V40).ShouldBeTrue();
+    [Fact] void should_check_the_members_of_a_v38_model_against_the_ledger() => CratisEsmSupport.Descriptor.ScansMembers(LanguageVersion.V38, SemanticVersion.V38).ShouldBeTrue();
+    [Fact] void should_not_scan_the_members_of_the_pairs_it_audited_whole() => CratisEsmSupport.Descriptor.ScansMembers(LanguageVersion.V36, SemanticVersion.V36).ShouldBeFalse();
+    [Fact]
+    void should_keep_v37_and_its_minor_outside_the_audit() => new SemanticVersion[] { new(37, 0), new(37, 1) }.ShouldEachConformTo(version =>
         CratisEsmSupport.Descriptor.Classify(new(version.Major, version.Minor), version) == EsmVersionStanding.FutureMajor);
     [Fact] void should_describe_the_range() => CratisEsmSupport.Descriptor.Accepts.ToString().ShouldEqual(">=32.0 <33");
 

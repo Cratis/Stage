@@ -20,6 +20,6 @@ public class and_the_root_joins_on_the_event : given.an_orphan_child_projection
     void should_refuse_by_name_instead_of_dropping_the_other_operation()
     {
         _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-        _result.Unsupported!.Details.ShouldContain("missing child parent");
+        _result.Unsupported.Details.ShouldContain("missing child parent");
     }
 }

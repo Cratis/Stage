@@ -46,7 +46,7 @@ public class when_binding_same_named_queries_in_distinct_slices : a_register_pro
             : slice);
         var application = _model.Application with { Modules = [module with { Features = [feature with { Slices = [.. slices] }] }] };
         _model = ExecutableSemanticModel.Create(_model.LanguageVersion, _model.SemanticVersion, application);
-        _executionPlan = SemanticExecutionPlan.Compile(_model).Plan!;
+        _executionPlan = SemanticExecutionPlan.Compile(_model).Plan;
         _request = new(_model, _executionPlan, _request.Profile, new(ArtifactRenderScopeKind.Application, _model.Application.Id));
         _identities = [.. _model.Application.Modules.Single().Features.Single().Slices.SelectMany(_ => _.Queries).Select(_ => _.Id.ToString()).Order(StringComparer.Ordinal)];
     }

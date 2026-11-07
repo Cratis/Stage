@@ -16,16 +16,24 @@ internal sealed class SemanticHandleLocals(SemanticCommand command)
         StringComparer.Ordinal);
     readonly Dictionary<string, string> _allocated = new(StringComparer.Ordinal);
 
-    internal string Name(string preferred)
+    internal string Name(string preferred) => Allocate(preferred, preferred);
+
+    /// <summary>Allocates the local that holds one handler production, never aliasing a named local.</summary>
+    /// <param name="position">Declared position of the production.</param>
+    /// <param name="preferred">Preferred local name.</param>
+    /// <returns>The allocated local name.</returns>
+    internal string Production(int position, string preferred) => Allocate($"\u0001production:{position}", preferred);
+
+    string Allocate(string key, string preferred)
     {
-        if (_allocated.TryGetValue(preferred, out var allocated)) return allocated;
+        if (_allocated.TryGetValue(key, out var allocated)) return allocated;
         var candidate = preferred;
         var suffix = 1;
         while (!_reserved.Add(candidate))
         {
             candidate = $"{preferred}{suffix++}";
         }
-        _allocated.Add(preferred, candidate);
+        _allocated.Add(key, candidate);
 
         return candidate;
     }

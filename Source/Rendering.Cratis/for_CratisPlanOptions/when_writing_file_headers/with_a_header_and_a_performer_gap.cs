@@ -35,13 +35,14 @@ public class with_a_header_and_a_performer_gap : for_CratisRendering.given.a_sou
     {
         var loaded = await SemanticModelLoader.LoadAsync(_root, [], null, _planOptions.ApplicationName);
         Assert.True(loaded.Success, string.Join("; ", loaded.Diagnostics));
-        _plain = CratisRendering.PlanFrom(loaded.Loaded!, _featureSelection, _planOptions).Plan!;
-        _headed = CratisRendering.PlanFrom(loaded.Loaded!, _featureSelection, _planOptions with { FileHeader = ["Ærlig \U0001F600"] }).Plan!;
+        _plain = CratisRendering.PlanFrom(loaded.Loaded, _featureSelection, _planOptions).Plan;
+        _headed = CratisRendering.PlanFrom(loaded.Loaded, _featureSelection, _planOptions with { FileHeader = ["Ærlig \U0001F600"] }).Plan;
         var request = _request with { Profile = ArtifactFileHeader.With(_request.Profile, ["Ærlig \U0001F600"]) };
         _again = ArtifactRenderPlan.Create(request, _headed.Artifacts, _headed.Diagnostics, _headed.ImplementationGaps, _headed.Refusals, _headed.RequiredRemovals);
     }
 
-    [Fact] void should_have_a_real_performer_gap()
+    [Fact]
+    void should_have_a_real_performer_gap()
     {
         _headed.Outcome.ShouldEqual(ArtifactRenderOutcome.Partial);
         _headed.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-IMPL-006");

@@ -27,7 +27,7 @@ public class and_an_arrangement_node_is_unknown : Specification
     }
 
     [Fact] void should_preserve_the_first_legacy_refusal() => _error.ShouldBeOfExactType<UnknownArrangementNode>();
-    [Fact] void should_preserve_the_legacy_message() => _error!.Message.ShouldEqual(_legacyError!.Message);
+    [Fact] void should_preserve_the_legacy_message() => _error.Message.ShouldEqual(_legacyError.Message);
     [Fact] void should_let_collecting_callers_retain_the_diagnostic() => _collected.ConversionDiagnostics[0].Code.ShouldEqual("STAGE-SCENE-ARRANGEMENT-001");
     [Fact] void should_collect_the_later_error() => _collected.ConversionDiagnostics[^1].Code.ShouldEqual("STAGE-SCENE-ARRANGEMENT-002");
     [Fact] void should_keep_the_layout_in_the_collecting_result() => _collected.Layouts[0].Name.ShouldEqual("Shell");

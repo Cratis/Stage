@@ -26,12 +26,12 @@ public class when_rejecting_incomplete_scoped_projections
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("scopes"), "scopes", "Scopes.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var original = compilation.Value!.Model;
+        var original = compilation.Value.Model;
         var module = original.Application.Modules.Single();
         var feature = module.Features.Single();
         var view = feature.Slices.Single(slice => slice.Kind == SemanticSliceKind.StateView);
         var projection = view.Projections.Single(candidate => candidate.Name == "ProjectSummaryProjection");
-        var scope = projection.Scope!;
+        var scope = projection.Scope;
         var readModel = view.ReadModels.Single(candidate => candidate.Name == "ProjectSummary");
         var name = readModel.Properties.Single(property => property.Name == "name").Id;
         var child = scope.Children.Single();
@@ -44,13 +44,16 @@ public class when_rejecting_incomplete_scoped_projections
             "missing-root-property" => scope with { From = [.. scope.From.Select(subscription => subscription with { Mappings = [.. subscription.Mappings.Where(mapping => mapping.Target[0] != name)] })] },
             "missing-child-property" => scope with { Children = [child with { Scope = child.Scope with { From = [.. child.Scope.From.Select(subscription => subscription with { Mappings = [.. subscription.Mappings.Where(mapping => mapping.Target[0] != childName)] })] } }] },
             "missing-nested-property" => scope with { Nested = [.. scope.Nested.Select(nested => nested with { Scope = nested.Scope with { From = [.. nested.Scope.From.Select(subscription => subscription with { Mappings = [] })] } })] },
-            "every-overwrites-identity" => scope with { Every = scope.Every! with { Mappings = [new([rootIdentity], SemanticProjectionOperation.Set, SemanticProjectionValue.EventSourceIdentity)] } },
+            "every-overwrites-identity" => scope with { Every = scope.Every with { Mappings = [new([rootIdentity], SemanticProjectionOperation.Set, SemanticProjectionValue.EventSourceIdentity)] } },
             "overwritten-root-identity" => scope with { From = [scope.From[0] with { Key = new SemanticProjectionValueKey(new SemanticProjectionEventSourceIdentity()) }, .. scope.From.Skip(1)] },
             "overwritten-child-identity" => scope with { Children = [child with { Scope = child.Scope with { From = [child.Scope.From[0] with { Key = new SemanticProjectionValueKey(new SemanticProjectionEventSourceIdentity()) }] } }] },
-            "event-source-into-other-concept" => scope with { From = [.. scope.From.Select(subscription => subscription with
+            "event-source-into-other-concept" => scope with
+            {
+                From = [.. scope.From.Select(subscription => subscription with
             {
                 Mappings = [.. subscription.Mappings.Select(mapping => mapping.Target.Contains(name) ? mapping with { Source = SemanticProjectionValue.EventSourceIdentity } : mapping)]
-            })] },
+            })]
+            },
             _ => throw new UnknownVariant(variant)
         };
         var changed = view with { Projections = [.. view.Projections.Select(candidate => candidate.Id == projection.Id ? candidate with { Scope = scope } : candidate)] };
@@ -61,7 +64,7 @@ public class when_rejecting_incomplete_scoped_projections
         var execution = SemanticExecutionPlan.Compile(original);
         Assert.True(execution.Success);
         var options = new CratisRenderingOptions("Projects", "Projects");
-        var request = new ArtifactRenderRequest(model, execution.Plan!, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var request = new ArtifactRenderRequest(model, execution.Plan, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
         var context = new SemanticApplicationContext(request, options);
         Assert.Contains(SemanticCratisAdmission.Evaluate(context, context.SelectedSlices()), diagnostic => diagnostic.Code == "STAGE-ESM-017");
     }

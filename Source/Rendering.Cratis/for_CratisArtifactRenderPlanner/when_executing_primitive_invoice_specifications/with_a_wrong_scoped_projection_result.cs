@@ -30,7 +30,7 @@ public class with_a_wrong_scoped_projection_result : a_generated_application
         _error = await Catch.Exception(() => Run("scoped-wrong-test.log", "test", "-c", "Debug", "--no-build"));
     }
 
-    [Fact] void should_fail_the_generated_scoped_projection_specification() => _error!.Message.ShouldContain("should_project_name");
-    [Fact] void should_report_the_wrong_expectation() => _error!.Message.ShouldContain("Failed");
+    [Fact] void should_fail_the_generated_scoped_projection_specification() => _error.Message.ShouldContain("should_project_name");
+    [Fact] void should_report_the_wrong_expectation() => _error.Message.ShouldContain("Failed");
 }
 #endif

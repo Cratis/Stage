@@ -39,7 +39,11 @@ public static class rendered_compilation
     internal static CSharpCompilation Compilation(IEnumerable<PlannedArtifact> artifacts)
     {
         var files = artifacts.ToArray();
-        if (files.Count(file => file.RelativePath.EndsWith(".csproj", StringComparison.Ordinal)) != 1)
+        var projects = files.Where(file => file.RelativePath.EndsWith(".csproj", StringComparison.Ordinal)).Select(file => file.RelativePath).ToArray();
+        var rootProjects = projects.Count(project => !project.Contains('/', StringComparison.Ordinal));
+        var contractsProjects = projects.Count(IsContractsProject);
+        var recognizedProjects = rootProjects + contractsProjects;
+        if ((rootProjects, contractsProjects, recognizedProjects == projects.Length) is not (1, <= 1, true))
         {
             throw new rendered_compilation_needs_one_project();
         }
@@ -55,8 +59,17 @@ public static class rendered_compilation
             .WithOptions(compilation.Options.WithOutputKind(OutputKind.ConsoleApplication));
     }
 
+    // The recognized nested <Project>.Events.Contracts/<Project>.Events.Contracts.csproj is the only project allowed beside the root application.
+    static bool IsContractsProject(string path)
+    {
+        var separator = path.IndexOf('/', StringComparison.Ordinal);
+        if (separator < 0 || path.IndexOf('/', separator + 1) >= 0) return false;
+        var folder = path[..separator];
+        return folder.EndsWith(".Events.Contracts", StringComparison.Ordinal) && path[(separator + 1)..] == $"{folder}.csproj";
+    }
+
     sealed class rendered_compilation_harness_error(string details) : Exception(details);
 
-    sealed class rendered_compilation_needs_one_project() : Exception("A published canonical render must contain exactly one C# project.");
+    sealed class rendered_compilation_needs_one_project() : Exception("A published canonical render must contain exactly one root C# project, and at most one nested Events.Contracts project.");
 }
 #endif

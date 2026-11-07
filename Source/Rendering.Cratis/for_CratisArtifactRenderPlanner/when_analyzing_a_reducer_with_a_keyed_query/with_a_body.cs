@@ -97,10 +97,7 @@ public class with_a_body
     {
         var request = await when_rendering_a_pure_reducer.Load(Model(body, performer: false));
         ArtifactRenderPlan? plan = null;
-        var exception = Record.Exception(() =>
-        {
-            plan = when_rendering_a_pure_reducer.Plan(request, self: true);
-        });
+        var exception = Record.Exception(() => plan = when_rendering_a_pure_reducer.Plan(request, self: true));
         Assert.Null(exception);
         Assert.NotNull(plan);
         Assert.False(plan.Success);
@@ -166,7 +163,7 @@ public class with_a_body
     [InlineData(true)]
     public async Task should_not_suggest_named_arguments_for_a_bcl_constructor(bool performer)
     {
-        var body = "_ = new DateTime(context.Key, 1, 1); return context.State;";
+        const string body = "_ = new DateTime(context.Key, 1, 1); return context.State;";
         var plan = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(Model(body, performer)), self: true);
         Assert.False(plan.Success);
         Assert.Empty(plan.Artifacts);

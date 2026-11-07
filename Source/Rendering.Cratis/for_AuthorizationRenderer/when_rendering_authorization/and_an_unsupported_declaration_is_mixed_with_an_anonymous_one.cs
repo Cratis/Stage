@@ -15,9 +15,11 @@ public class and_an_unsupported_declaration_is_mixed_with_an_anonymous_one : an_
 
     void Because() => _error = Catch.Exception(() => RenderAll(null, Authorize("Owner")));
 
-    [Fact] void should_block_the_artifact_despite_the_anonymous_declaration() =>
+    [Fact]
+    void should_block_the_artifact_despite_the_anonymous_declaration() =>
         _error.ShouldBeOfExactType<AuthorizationCannotBeRendered>();
-    [Fact] void should_report_that_the_portable_policy_backend_is_required() =>
+    [Fact]
+    void should_report_that_the_portable_policy_backend_is_required() =>
         _error.Message.ShouldContain("STAGE-AUTH-001:");
 }
 #endif

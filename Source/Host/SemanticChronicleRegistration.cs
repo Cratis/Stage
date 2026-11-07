@@ -14,6 +14,8 @@ using Cratis.Stage.Semantics;
 using ChronicleEvents = Cratis.Chronicle.Contracts.Events;
 using ChronicleEventSources = Cratis.Chronicle.Contracts.EventSources;
 using ChronicleEventTypes = Cratis.Chronicle.Contracts.EventTypes;
+using ChronicleProjections = Cratis.Chronicle.Contracts.Projections;
+using ChronicleReadModels = Cratis.Chronicle.Contracts.ReadModels;
 using ChronicleSequences = Cratis.Chronicle.Contracts.Sequences;
 
 namespace Cratis.Stage.Host;
@@ -21,6 +23,9 @@ namespace Cratis.Stage.Host;
 internal static class SemanticChronicleRegistration
 {
     internal const string SeedSubject = "stage-seed";
+
+    /// <summary>The environment variable naming the graph sink type the kernel projects graphs to; Neo4j when unset, InMemoryGraph for a kernel with no Neo4j.</summary>
+    internal const string GraphSinkVariable = "Stage__Graph__SinkType";
 
     internal static bool IsEmpty(ulong tail) => tail == ulong.MaxValue;
 
@@ -79,6 +84,10 @@ internal static class SemanticChronicleRegistration
                 })]
             }).ToArray();
 
+        // A graph is projected only by the kernel's graph sink, so its read model and projection are registered with the kernel
+        // the same way whether the kernel is the embedded one or an external Chronicle.
+        var graphs = SemanticGraphMirrors.Lower(plan, Environment.GetEnvironmentVariable(GraphSinkVariable) is { Length: > 0 } sink ? sink : SemanticGraphMirrors.Neo4jSinkTypeId);
+
         // Only register contracts on reconnect: the published semantic world must not be rebuilt or replaced.
         store.Connection.Lifecycle.OnConnected += RegisterContracts;
         await RegisterContracts();
@@ -118,6 +127,22 @@ internal static class SemanticChronicleRegistration
                     EventStore = store.Name,
                     Types = registrations
                 })).EnsureSuccess();
+            }
+            if (graphs.Count > 0)
+            {
+                await connectedAccessor.Services.ReadModels.RegisterMany(new ChronicleReadModels.RegisterManyRequest
+                {
+                    EventStore = store.Name,
+                    Owner = ChronicleReadModels.ReadModelOwner.Client,
+                    ReadModels = [.. graphs.Select(graph => graph.ReadModel)],
+                    Source = ChronicleReadModels.ReadModelSource.User
+                });
+                await connectedAccessor.Services.Projections.Register(new ChronicleProjections.RegisterRequest
+                {
+                    EventStore = store.Name,
+                    Owner = ChronicleProjections.ProjectionOwner.Client,
+                    Projections = [.. graphs.Select(graph => graph.Projection)]
+                });
             }
             if (sources.Length > 0)
             {

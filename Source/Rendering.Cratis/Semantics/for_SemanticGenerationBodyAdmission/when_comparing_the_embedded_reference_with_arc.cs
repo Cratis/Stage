@@ -16,7 +16,7 @@ public class when_comparing_the_embedded_reference_with_arc : Specification
     void Because()
     {
         var compilation = CSharpCompilation.Create("GenerationReferenceVersion", references: [SemanticGenerationBodyAdmission.FundamentalsReference]);
-        var symbol = (IAssemblySymbol)compilation.GetAssemblyOrModuleSymbol(SemanticGenerationBodyAdmission.FundamentalsReference)!;
+        var symbol = (IAssemblySymbol)compilation.GetAssemblyOrModuleSymbol(SemanticGenerationBodyAdmission.FundamentalsReference);
         _embeddedVersion = symbol.Identity.Version;
     }
 

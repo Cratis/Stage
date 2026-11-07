@@ -17,7 +17,7 @@ public class with_a_discovered_source_in_a_folder_the_model_root_skips : given.a
 
     async Task Because() => _loaded = await SemanticModelLoader.LoadAsync(_root, [], ".screenplay/identities.json", "RecordsApp");
     [Fact] void should_load_the_model() => _loaded.Success.ShouldBeTrue();
-    [Fact] void should_leave_the_skipped_source_out() => _loaded.Loaded!.Model.Application.Concepts.Any(concept => concept.Name == "Extra").ShouldBeFalse();
-    [Fact] void should_check_the_baseline() => _loaded.Loaded!.ReleaseBaseline.Status.ShouldEqual(ReleaseBaselineAssessmentStatus.Checked);
+    [Fact] void should_leave_the_skipped_source_out() => _loaded.Loaded.Model.Application.Concepts.Any(concept => concept.Name == "Extra").ShouldBeFalse();
+    [Fact] void should_check_the_baseline() => _loaded.Loaded.ReleaseBaseline.Status.ShouldEqual(ReleaseBaselineAssessmentStatus.Checked);
 }
 #endif

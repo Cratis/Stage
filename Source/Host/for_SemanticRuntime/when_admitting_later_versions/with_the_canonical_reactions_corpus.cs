@@ -6,6 +6,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Screenplay.Semantics.Serialization;
 using Cratis.Specifications;
+using Cratis.Stage.Semantics;
 using Xunit;
 
 namespace Cratis.Stage.Host.for_SemanticRuntime.when_admitting_later_versions;
@@ -15,11 +16,11 @@ public class with_the_canonical_reactions_corpus : Specification
     SemanticExecutionPlan _plan = null!;
     SemanticRuntimeAdmission _admission = null!;
 
-    void Establish() => _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(ReactionsCorpus.V6.EsmBytes.AsSpan())).Plan!;
+    void Establish() => _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(ReactionsCorpus.V6.EsmBytes.AsSpan())).Plan;
     void Because() => _admission = new(_plan);
 
     [Fact] void should_refuse_only_non_event_reactions() => _admission.Blocking.Where(entry => entry.Kind == "reaction").Select(entry => entry.Artifact).Distinct().Count().ShouldEqual(3);
-    [Fact] void should_keep_the_reaction_code() => _admission.Blocking.Where(entry => entry.Kind == "reaction").All(entry => entry.Details!.StartsWith("STAGE-ESM-024:", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_keep_the_reaction_code() => _admission.Blocking.Where(entry => entry.Kind == "reaction").All(entry => entry.Details.StartsWith("STAGE-ESM-024:", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_admit_the_event_reaction() => _admission.Blocking.Any(entry => entry.Artifact == _plan.Reactions.Single(reaction => reaction.Name == "ReminderScheduler").Id.ToString()).ShouldBeFalse();
     [Fact] void should_name_the_application_trigger_kind() => _admission.Blocking.Select(entry => entry.Details).ShouldContain("STAGE-ESM-024: Reaction 'PaymentImporter' uses trigger kind 'ApplicationTrigger', which Stage does not support yet.");
     [Fact] void should_name_the_schedule_kind() => _admission.Blocking.Select(entry => entry.Details).ShouldContain("STAGE-ESM-024: Reaction 'WeeklyDigest' uses trigger kind 'Schedule', which Stage does not support yet.");

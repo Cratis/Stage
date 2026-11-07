@@ -17,13 +17,13 @@ public class when_running_typed_multipart_projection_keys : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("app"), "app", "application.play", Source);
         var compilation = new SemanticModelCompiler().Compile("TypedMultipart", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         _report = await new SemanticSpecificationExecutor().Run(plan, new([]), new());
     }
 
     [Fact] void should_run_each_specification() => _report.Results.Count.ShouldEqual(2);
     [Fact] void should_preserve_uuid_and_text_concept_parts() => Assert.All(_report.Results, result => Assert.True(result.Outcome == SemanticSpecificationOutcome.Passed, string.Join(';', result.Failures) + result.Unsupported?.Details));
-    [Fact] void should_trace_both_distinct_uuid_keys() => _report.Results.Single(result => result.Name == "Found").Trace!.ReadModels.Count.ShouldEqual(2);
+    [Fact] void should_trace_both_distinct_uuid_keys() => _report.Results.Single(result => result.Name == "Found").Trace.ReadModels.Count.ShouldEqual(2);
 
     const string Source = """
         concept InvoiceId : Uuid
@@ -85,7 +85,9 @@ public class when_running_typed_multipart_projection_keys : Specification
                 when append Cancelled
                   tenant = "north"
                   invoice = "00000000-0000-0000-0000-000000000001"
-                then no readmodel Payment for {"tenant":"north","invoice":"00000000-0000-0000-0000-000000000001"}
+                then no readmodel Payment for
+                  tenant = "north"
+                  invoice = "00000000-0000-0000-0000-000000000001"
                 then readmodel Payment
                   invoice = "00000000-0000-0000-0000-000000000002"
                   tenant = "north"

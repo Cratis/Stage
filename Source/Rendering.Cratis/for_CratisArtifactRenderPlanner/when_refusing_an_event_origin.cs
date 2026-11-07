@@ -20,10 +20,10 @@ public class when_refusing_an_event_origin : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("foreign"), "foreign", "Foreign.play", "module Shipping\n  feature Shipments\n    slice StateView Tracking\n      event ShipmentDispatched from \"shipping\"");
         var compilation = new SemanticModelCompiler().Compile("Foreign", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        _model = compilation.Value!.Model;
+        _model = compilation.Value.Model;
     }
 
-    void Because() => _plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model).Plan!, new(ArtifactRenderScopeKind.Application, _model.Application.Id), new("Foreign", "Foreign"));
+    void Because() => _plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model).Plan, new(ArtifactRenderScopeKind.Application, _model.Application.Id), new("Foreign", "Foreign"));
 
     [Fact] void should_refuse_the_foreign_event_without_a_translate_slice() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-033" && diagnostic.Artifact == _model.Application.Modules.Single().Features.Single().Slices.Single().Events.Single().Id);
     [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();

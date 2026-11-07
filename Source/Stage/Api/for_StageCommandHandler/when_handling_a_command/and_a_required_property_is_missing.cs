@@ -18,6 +18,6 @@ public class and_a_required_property_is_missing : given.a_command_handler
         .Handle(ContextFor("{\"invoiceId\":\"33333333-3333-3333-3333-333333333333\"}")).AsTask());
 
     [Fact] void should_reject_it_as_a_validation_failure() => _error.ShouldBeOfExactType<CommandInputRejected>();
-    [Fact] void should_name_the_missing_property() => ((CommandInputRejected)_error!).ValidationResult.Members.ShouldContainOnly("authorName");
+    [Fact] void should_name_the_missing_property() => ((CommandInputRejected)_error).ValidationResult.Members.ShouldContainOnly("authorName");
     [Fact] void should_append_nothing() => _appender.DidNotReceiveWithAnyArgs().Append(default!, default!, default!);
 }

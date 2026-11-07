@@ -20,7 +20,7 @@ public class and_a_read_model_has_two_projections : Specification
     {
         var model = invoice_model.Compile(builderless_state_view_model.BuiltQuery);
         var options = new CratisRenderingOptions("WelcomeApp", "Welcome");
-        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
         var context = new SemanticApplicationContext(request, options);
         var located = context.SelectedSlices().Single(slice => slice.Slice.Kind == SemanticSliceKind.StateView);
         var projection = located.Slice.Projections.Single();

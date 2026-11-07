@@ -58,7 +58,7 @@ public class when_executing_localized_rejection_specifications(when_executing_lo
                 "en");
             return new CratisArtifactRenderPlanner().Plan(new(
                 model,
-                SemanticExecutionPlan.Compile(model).Plan!,
+                SemanticExecutionPlan.Compile(model).Plan,
                 profile,
                 new(ArtifactRenderScopeKind.Application, model.Application.Id)));
         }

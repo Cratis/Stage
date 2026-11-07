@@ -12,7 +12,7 @@ public class to_an_unkeyed_stream : given.a_routed_command
     void Establish()
     {
         _source = _source with { Streams = [_source.Streams[0] with { StreamIdType = null }] };
-        _command = _command with { Route = _command.Route! with { StreamId = null } };
+        _command = _command with { Route = _command.Route with { StreamId = null } };
     }
     void Because() => Plan();
 

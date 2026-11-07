@@ -25,13 +25,13 @@ public class when_loading_the_billing_invoice_model : Specification
             directory = directory.Parent;
         }
 
-        _model = await EventModelLoader.LoadFromDirectoryAsync(Path.Combine(directory!.FullName, "Samples", "Billing"));
+        _model = await EventModelLoader.LoadFromDirectoryAsync(Path.Combine(directory.FullName, "Samples", "Billing"));
         var slices = _model.Collections.SelectMany(_ => _.Modules).SelectMany(_ => _.Features)
             .Single(_ => _.Name == "Invoices").Slices;
-        _summary = slices.Single(_ => _.Name == "InvoiceList").ReadModel!.Projection!;
-        _state = slices.Single(_ => _.Name == "IssueInvoice").ReadModel!.Projection!;
-        _issue = slices.Single(_ => _.Name == "IssueInvoice").Command!;
-        _register = slices.Single(_ => _.Name == "RegisterInvoice").Command!;
+        _summary = slices.Single(_ => _.Name == "InvoiceList").ReadModel.Projection;
+        _state = slices.Single(_ => _.Name == "IssueInvoice").ReadModel.Projection;
+        _issue = slices.Single(_ => _.Name == "IssueInvoice").Command;
+        _register = slices.Single(_ => _.Name == "RegisterInvoice").Command;
     }
 
     [Fact] void should_preserve_protected_command_reads() => _model.ProtectedCommandReads.ShouldBeTrue();

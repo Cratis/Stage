@@ -17,5 +17,5 @@ public class without_a_materialized_instance : a_projected_specification
 
     [Fact] void should_pass_the_absence_assertion() => _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
     [Fact] void should_match_the_reference() => _reference.Passed.ShouldBeTrue();
-    [Fact] void should_expose_no_materialized_instances() => _result.Trace!.ReadModels.ShouldBeEmpty();
+    [Fact] void should_expose_no_materialized_instances() => _result.Trace.ReadModels.ShouldBeEmpty();
 }

@@ -3,6 +3,7 @@
 
 using Cratis.Specifications;
 using Cratis.Stage.Host.for_SemanticRuntime.given;
+using Cratis.Stage.Semantics;
 using Xunit;
 
 namespace Cratis.Stage.Host.for_SemanticRuntime.when_admitting_specifications;
@@ -28,7 +29,10 @@ public class with_composite_command_values : Specification
               specification CheckingInput
                 when CheckInput
                   id = "one"
-                  value = {"count":7,"next":{"count":8}}
+                  value
+                    count = 7
+                    next
+                      count = 8
                 then returns "one"
         """));
 

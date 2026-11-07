@@ -30,7 +30,7 @@ internal static class portable_match_cases
 
     internal static ExecutableSemanticModel Compile(string? refusal = null, bool concept = false)
     {
-        using var resource = typeof(RegisterProjectCorpus).Assembly.GetManifestResourceStream("Cratis.Screenplay.CanonicalCorpus.Corpus.MatchEndOfInput.source.play")!;
+        using var resource = typeof(RegisterProjectCorpus).Assembly.GetManifestResourceStream("Cratis.Screenplay.CanonicalCorpus.Corpus.MatchEndOfInput.source.play");
         using var reader = new StreamReader(resource);
         var source = reader.ReadToEnd();
         var inputs = new Dictionary<string, string>();
@@ -73,7 +73,7 @@ internal static class portable_match_cases
 
         // Authored fixtures do not decode JSON Unicode escapes. Supply exact UTF-16 inputs in typed ESM,
         // so these cases test matching rather than the source literal spelling.
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         return ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, model.Application with
         {
             Modules = [.. model.Application.Modules.Select(module => !inputs.TryGetValue(module.Name, out var input) ? module : module with
@@ -84,7 +84,7 @@ internal static class portable_match_cases
                     {
                         Specifications = [.. slice.Specifications.Select(specification => specification with
                         {
-                            When = specification.When! with
+                            When = specification.When with
                             {
                                 Values = [.. specification.When.Values.Select(value => slice.Commands.Single().Properties.Single(property => property.Id == value.TargetProperty).Name == "value"
                                     ? value with { Value = SemanticValue.Text(input) } : value)]

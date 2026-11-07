@@ -13,6 +13,7 @@ using NativeScreenplayCompiler = Cratis.Screenplay.ScreenplayCompiler;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 
+[PerFactSpecificationLifecycle]
 public class when_admitting_propertyless_root_string_keys : a_multi_slice_application
 {
     [Theory]
@@ -36,7 +37,7 @@ public class when_admitting_propertyless_root_string_keys : a_multi_slice_applic
         rejection.ProjectionName.ShouldEqual("Order");
         rejection.ReadModel.ShouldEqual("OrderReadModel");
         rejection.EventName.ShouldEqual("OrderCreated");
-        var key = (ExpressionKeySyntax)projection.Blocks.OfType<FromSyntax>().Single().Key!;
+        var key = (ExpressionKeySyntax)projection.Blocks.OfType<FromSyntax>().Single().Key;
         rejection.Location.ShouldEqual(reason == UnsupportedRootStringKeyReason.PropertylessRecord ? projection.Location : key.Expression.Location);
         rejection.Message.ShouldContain("STAGE-CRATIS-KEY-002");
         _error.ToString().ShouldContain(rejection.Message);
@@ -90,6 +91,6 @@ public class when_admitting_propertyless_root_string_keys : a_multi_slice_applic
             """);
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
         compilation.Diagnostics.ShouldBeEmpty();
-        _application = compilation.Value!;
+        _application = compilation.Value;
     }
 }

@@ -1,6 +1,6 @@
 ---
 title: URLs of a running Stage
-description: Every URL a play session exposes — the model's command and query endpoints, the Scalar reference, the introspection endpoints, and the Chronicle Workbench.
+description: Cratis Stage serves its API, Scalar reference, and Chronicle Workbench on port 9090. Find legacy command and query routes and response envelopes.
 ---
 
 A play session serves everything a caller needs on **one port**: the model's own API, the Scalar reference and
@@ -16,6 +16,23 @@ remains available with `Stage__Runtime__Engine=eventmodel` (or `--engine=eventmo
 That engine is deprecated, logs one warning at startup, and will be removed in Stage v6.
 
 Nothing needs to be discovered by hand — start at the Scalar reference and click.
+
+> **Two modes.** Everything on this page describes the **sandbox** (the default). A host started in
+> [published mode](published-applications.md) serves only the frontend, the model's `/api` operations, Arc's
+> `/.cratis/*` operations and a handful of `/stage/*` documents; every route in the table below answers `404`
+> there, and the tooling routes are not mapped at all.
+
+| Route                                                         | Sandbox | Published                                         |
+| ------------------------------------------------------------- | ------- | ------------------------------------------------- |
+| Frontend and `/api/...` model operations                      | yes     | yes                                               |
+| `/.cratis/*` Arc operations                                   | yes     | yes                                               |
+| `/stage/status`, `/stage/scene`, `/stage/routes`, `/stage/locales`, `/stage/strings/{locale}` | yes | yes                       |
+| `/stage/model-references`                                     | no      | yes                                               |
+| `/scalar`, `/openapi`                                         | yes     | not mapped                                        |
+| `/workbench`                                                  | yes     | not mapped                                        |
+| `/read-models`, `/stage/read-models`                          | yes     | not mapped                                        |
+| `/stage/load`, `/stage/semantic/*` (admission, specification runs) | yes | not mapped                                      |
+| `/stage/packages`                                             | yes     | not mapped                                        |
 
 ## Start here
 
@@ -55,7 +72,9 @@ curl -X POST http://localhost:9090/api/invoicing/invoice-management/adjustments/
 ```
 
 The **`/validate`** variant next to every command takes the same body and runs the command through the pipeline
-without executing it — that is what a client's form validation calls.
+without executing it — that is what a client's form validation calls. For semantic commands, this dry run
+enforces admitted modeled validation and authorization without committing facts. The legacy EventModel path
+does not enforce those modeled rules or policies.
 
 For produced event mappings, `$context.tenant` is the portable tenant ID translated from the command's Arc tenant, and
 `$context.causedBy.subject`, `.name`, and `.userName` resolve from the caller's identity (`subject` uses the
@@ -302,14 +321,20 @@ use `curl -k` from the command line).
 
 ## What the endpoints do today
 
-The surface above is mapped and described, but runtime semantics are intentionally partial:
+Runtime behavior depends on the selected engine. The default **semantic engine** enforces admitted modeled
+command validation and authorization, including authenticated-caller checks, roles, claims, and logical policy combinations,
+before producing facts. Invalid or denied commands return validation or authorization failures in Arc's
+`CommandResult` without appending facts. `/stage/semantic/admission` reports supported and unsupported artifacts;
+unsupported rules or policies are refused rather than ignored. Described command handlers still require a target
+implementation. Sandbox persona identities are for playing the model, not a production security boundary.
 
-- A **command** accepts its payload, evaluates its modeled `produces` mappings, appends the resulting facts to
-  Chronicle, and echoes the payload as the response. The modeled command validation rules and authorization
-  policies are not yet enforced on the runtime HTTP surface, so this sandbox path must not be treated as a
-  production security boundary.
-- A **query** reads the first 500 projected documents of its read model from Chronicle and returns them, or the
-  one matching `id`. Modeled query authorization is not yet enforced; only Arc query-pipeline filters can reject
+The legacy HTTP surface above and the separate verification and rendering paths retain these limits:
+
+- A **legacy EventModel command** accepts its payload, evaluates its modeled `produces` mappings, appends the resulting facts to
+  Chronicle, and echoes the payload as the response. This legacy path does not enforce modeled command validation
+  rules or authorization policies and must not be treated as a production security boundary.
+- A **legacy EventModel query** reads the first 500 projected documents of its read model from Chronicle and returns
+  them, or the one matching `id`. Modeled query authorization is not yet enforced; only Arc query-pipeline filters can reject
   a query. A document Stage cannot read fails the whole query with `InvalidStageReadModelDocument`.
 - The **specification runner** checks modeled facts and expectations, but that verification is model-level. It is
   not a substitute for executing every slice through the runtime or a rendered application.

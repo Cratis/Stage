@@ -20,6 +20,11 @@ namespace Cratis.Stage.Semantics;
 /// </summary>
 public static class SemanticRunAdmission
 {
+    /// <summary>
+    /// The code for graph declarations and graph projections, which the live runtime registers with the kernel for its graph sink to project, and decides specifications for with the reference graph runner.
+    /// </summary>
+    public const string GraphsNotProjected = "STAGE-ESM-065";
+
     static readonly ConditionalWeakTable<ExecutableSemanticModel, ConcurrentDictionary<string, EsmSupportStanding>> _standings = [];
 
     /// <summary>
@@ -62,7 +67,7 @@ public static class SemanticRunAdmission
         return SemanticVersionFeatures.InApplication(application).Except(SemanticVersionFeatures.RoutesInApplication(application))
             .Except(slices.SelectMany(slice => slice.Commands).SelectMany(SemanticVersionFeatures.DescribedHandlersInCommand))
             .Concat(slices.SelectMany(slice => LiveSliceFeatures(slice).Concat(SemanticVersionFeatures.EventReferences(slice, events))))
-            .Distinct().Select(Feature).Concat(AnonymousFeatures(application));
+            .Distinct().Select(Feature).Concat(AnonymousFeatures(application)).Concat(GraphFeatures(application));
     }
 
     /// <summary>
@@ -100,7 +105,27 @@ public static class SemanticRunAdmission
             return $"{SemanticVersionFeatures.Automation}: Translation integrations are not executed in the sandbox: inbound facts require seeds; outbound event projections publish locally only.";
         }
 
+        if (feature.Details.StartsWith($"{GraphsNotProjected}:", StringComparison.Ordinal) && IsKind(feature, "graph"))
+        {
+            return $"{GraphsNotProjected}: Graphs are projected by the kernel's graph sink: the sandbox registers each graph and its projection with the kernel it runs against, embedded or external, and the kernel writes the nodes and edges. The sandbox itself does not read a graph back, and graph specifications are decided by Screenplay's reference graph runner.";
+        }
+
         return null;
+    }
+
+    /// <summary>
+    /// Finds the graph declarations, graph projections and graph specifications of the application, which the live runtime does not project.
+    /// </summary>
+    /// <param name="application">The application.</param>
+    /// <returns>One note when the application declares any graph construct.</returns>
+    public static IEnumerable<SemanticAdmissionFeature> GraphFeatures(SemanticApplication application)
+    {
+        if (application.Graphs.IsDefaultOrEmpty && application.GraphProjections.IsDefaultOrEmpty && application.GraphSpecifications.IsDefaultOrEmpty) yield break;
+        yield return new(
+            application.Id.ToString(),
+            "graph",
+            nameof(StageExecutionCapability.Projection),
+            $"{GraphsNotProjected}: The application declares {application.Graphs.Length} graph(s) and {application.GraphProjections.Length} graph projection(s), which this runtime registers with the kernel's graph sink and does not read back.");
     }
 
     /// <summary>
@@ -306,7 +331,7 @@ public static class SemanticRunAdmission
     internal static EsmSupportStanding RunStanding(ExecutableSemanticModel model, IReadOnlySet<SemanticId> excluded)
     {
         var version = CratisEsmSupport.Descriptor.Classify(model.LanguageVersion, model.SemanticVersion);
-        if (version != EsmVersionStanding.NewerWithinRange) return new(version, []);
+        if (version != EsmVersionStanding.NewerWithinRange && !CratisEsmSupport.Descriptor.ScansMembers(model.LanguageVersion, model.SemanticVersion)) return new(version, []);
         var key = string.Join('/', excluded.Select(id => id.ToString()).Order(StringComparer.Ordinal));
         return _standings.GetOrCreateValue(model).GetOrAdd(
             key,

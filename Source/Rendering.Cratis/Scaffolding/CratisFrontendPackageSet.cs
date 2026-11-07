@@ -54,7 +54,8 @@ public sealed class CratisFrontendPackageSet
         string primeIconsPackageVersion,
         string lucideReactPackageVersion,
         string primeUixThemesPackageVersion,
-        string typesNodePackageVersion)
+        string typesNodePackageVersion,
+        string showrunnerNotesPackageVersion)
     {
         ArcPackageVersion = arcPackageVersion;
         ArcReactPackageVersion = arcReactPackageVersion;
@@ -78,6 +79,7 @@ public sealed class CratisFrontendPackageSet
         LucideReactPackageVersion = lucideReactPackageVersion;
         PrimeUixThemesPackageVersion = primeUixThemesPackageVersion;
         TypesNodePackageVersion = typesNodePackageVersion;
+        ShowrunnerNotesPackageVersion = showrunnerNotesPackageVersion;
     }
 
     /// <summary>
@@ -203,6 +205,14 @@ public sealed class CratisFrontendPackageSet
     public string TypesNodePackageVersion { get; }
 
     /// <summary>
+    /// Gets the exact version shared by <c language="json">@cratis/showrunner.notes</c> and <c language="json">@cratis/showrunner.notes.react</c>.
+    /// </summary>
+    /// <remarks>
+    /// The Stage frontend runtime declares both as peers, so a generated application installs them at the version the runtime declares.
+    /// </remarks>
+    public string ShowrunnerNotesPackageVersion { get; }
+
+    /// <summary>
     /// Gets the package set the current era emits.
     /// </summary>
     /// <remarks>
@@ -211,28 +221,29 @@ public sealed class CratisFrontendPackageSet
     /// compiles is the runtime the live Stage was verified with. A specification compares the two.
     /// </remarks>
     internal static CratisFrontendPackageSet Current { get; } = new(
-        "22.146.0",
-        "22.146.0",
-        "22.146.0",
-        "7.27.0",
+        "22.168.0",
+        "22.168.0",
+        "22.168.0",
+        "7.33.1",
         "7.8.2",
         "4.10.0",
         "0.2.2",
-        "19.3.0",
-        "19.3.0",
-        "7.18.4",
+        "19.3.1",
+        "19.3.1",
+        "7.18.5",
         "8.3.5",
         "7.0.2",
-        "6.1.1",
+        "6.2.1",
         "19.3.0",
         "19.3.0",
-        "4.38.1",
-        "4.86.0",
-        "11.2.0",
+        "4.40.0",
+        "4.88.0",
+        "11.2.2",
         "8.0.2",
-        "1.52.0",
-        "3.0.1",
-        "26.6.4");
+        "1.68.0",
+        "3.1.0",
+        "26.6.6",
+        "1.0.0");
 
     /// <summary>
     /// Creates an unvalidated frontend package set for in-assembly contract verification.
@@ -259,6 +270,7 @@ public sealed class CratisFrontendPackageSet
     /// <param name="lucideReactPackageVersion">The exact <c language="json">lucide-react</c> package version.</param>
     /// <param name="primeUixThemesPackageVersion">The exact <c language="json">@primeuix/themes</c> package version.</param>
     /// <param name="typesNodePackageVersion">The exact <c language="json">@types/node</c> package version.</param>
+    /// <param name="showrunnerNotesPackageVersion">The exact version shared by the <c language="json">@cratis/showrunner.notes</c> packages.</param>
     /// <returns>The frontend package set, validated only when a profile is created from it.</returns>
     internal static CratisFrontendPackageSet Create(
         string arcPackageVersion,
@@ -282,7 +294,8 @@ public sealed class CratisFrontendPackageSet
         string primeIconsPackageVersion,
         string lucideReactPackageVersion,
         string primeUixThemesPackageVersion,
-        string typesNodePackageVersion) =>
+        string typesNodePackageVersion,
+        string showrunnerNotesPackageVersion = "1.0.0") =>
         new(
             arcPackageVersion,
             arcReactPackageVersion,
@@ -305,7 +318,8 @@ public sealed class CratisFrontendPackageSet
             primeIconsPackageVersion,
             lucideReactPackageVersion,
             primeUixThemesPackageVersion,
-            typesNodePackageVersion);
+            typesNodePackageVersion,
+            showrunnerNotesPackageVersion);
 
     /// <summary>
     /// Gets every version in the set, for validation through the single exactness rule the scaffold profile owns.
@@ -335,5 +349,6 @@ public sealed class CratisFrontendPackageSet
         yield return LucideReactPackageVersion;
         yield return PrimeUixThemesPackageVersion;
         yield return TypesNodePackageVersion;
+        yield return ShowrunnerNotesPackageVersion;
     }
 }

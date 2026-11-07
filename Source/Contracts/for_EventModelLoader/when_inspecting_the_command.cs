@@ -17,10 +17,10 @@ public class when_inspecting_the_command : given.a_compiled_invoicing_model
 
     void Because()
     {
-        _command = _model.Collections[0].Modules[0].Features[0].Slices.Single(slice => slice.Name == "RegisterInvoice").Command!;
+        _command = _model.Collections[0].Modules[0].Features[0].Slices.Single(slice => slice.Name == "RegisterInvoice").Command;
         using var schema = JsonDocument.Parse(_command.Schema);
         _properties = schema.RootElement.GetProperty("properties").Clone();
-        _required = [.. schema.RootElement.GetProperty("required").EnumerateArray().Select(element => element.GetString()!)];
+        _required = [.. schema.RootElement.GetProperty("required").EnumerateArray().Select(element => element.GetString())];
     }
 
     [Fact] void should_name_the_command() => _command.Name.ShouldEqual("RegisterInvoice");

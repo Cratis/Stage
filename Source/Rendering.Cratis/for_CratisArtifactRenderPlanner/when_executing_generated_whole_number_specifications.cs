@@ -28,8 +28,8 @@ public class when_executing_generated_whole_number_specifications(when_executing
             Test = await Run("whole-number-test.log", "test", "InvoiceApp.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo", "--filter", "FullyQualifiedName~when_recording_", "--logger", "trx;LogFileName=whole-numbers.trx", "--results-directory", _evidence.FullName);
             var results = XDocument.Load(Path.Combine(_evidence.FullName, "whole-numbers.trx"));
             XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
-            Cases = [.. results.Descendants(ns + "TestMethod").Select(method => ((string)method.Attribute("className")!).Split('.')[^1]).Distinct(StringComparer.Ordinal)];
-            Outcomes = [.. results.Descendants(ns + "UnitTestResult").Select(result => (string)result.Attribute("outcome")!).Distinct(StringComparer.Ordinal)];
+            Cases = [.. results.Descendants(ns + "TestMethod").Select(method => ((string)method.Attribute("className")).Split('.')[^1]).Distinct(StringComparer.Ordinal)];
+            Outcomes = [.. results.Descendants(ns + "UnitTestResult").Select(result => (string)result.Attribute("outcome")).Distinct(StringComparer.Ordinal)];
         }
 
         public string Build { get; private set; } = null!;

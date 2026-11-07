@@ -26,14 +26,16 @@ public class a_not_empty_rule : Specification
                     name {type}
             """;
         if (!concept) source += "\n        validate\n          name not empty message \"Name is required\"";
-        source += $"\n        produces Registered\n          for id\n      event Registered\n      specification CheckingName\n        when Register\n          id = \"name-1\"\n          name = {value}\n        then Registered\n          for \"name-1\"";
+        source += $"\n        produces Registered\n          for id\n      event Registered\n      specification CheckingName\n        when Register\n          id = \"name-1\"\n          {NameValue(value)}\n        then Registered\n          for \"name-1\"";
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Names"));
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("names"), "names", "Names.play", source);
         var compilation = new SemanticModelCompiler().Compile("Names", SemanticDocumentSet.Create([document], catalog));
         compilation.Success.ShouldBeTrue();
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         _command = plan.Commands.Values.Single();
         _specification = plan.Specifications.Values.Single();
         _application = plan.Model.Application;
     }
+
+    static string NameValue(string value) => global::Cratis.Stage.Specifications.given.StructuredValueText.Assignment("name", value, 10);
 }

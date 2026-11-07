@@ -61,11 +61,11 @@ public class when_running_child_projections : Specification
     public async Task should_refuse_a_join_whose_event_identity_has_another_value_type(string action)
     {
         var plan = Compile(action, numberedLabels: true);
-        SemanticRunAdmission.Check(plan, plan.Specifications.Values.Single())!.Details.ShouldEqual(
+        SemanticRunAdmission.Check(plan, plan.Specifications.Values.Single()).Details.ShouldEqual(
             "A join's event-source identity must have the joined key's value type and enumeration values.");
         var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
         result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-        result.Unsupported!.Details.ShouldEqual("A join's event-source identity must have the joined key's value type and enumeration values.");
+        result.Unsupported.Details.ShouldEqual("A join's event-source identity must have the joined key's value type and enumeration values.");
     }
 
     [Fact]
@@ -196,7 +196,7 @@ public class when_running_child_projections : Specification
                     then readmodel Current
                       id = "parent"
                       name = "parent name"
-                      entries = {{expected}}
+                      {{Structured("entries", expected, 10)}}
             """;
         if (action == "root-join")
         {
@@ -238,4 +238,6 @@ public class when_running_child_projections : Specification
         }
         return when_running_property_keyed_removal_only_projections.Compile(source);
     }
+
+    static string Structured(string property, string value, int indent) => global::Cratis.Stage.Specifications.given.StructuredValueText.Assignment(property, value, indent);
 }

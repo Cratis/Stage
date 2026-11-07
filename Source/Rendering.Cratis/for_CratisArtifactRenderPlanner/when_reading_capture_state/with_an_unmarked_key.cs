@@ -10,6 +10,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_reading_capture_state;
 
+[PerFactSpecificationLifecycle]
 public class with_an_unmarked_key : given.a_captured_delivery
 {
     EventForEventSourceId[] _effects = [];

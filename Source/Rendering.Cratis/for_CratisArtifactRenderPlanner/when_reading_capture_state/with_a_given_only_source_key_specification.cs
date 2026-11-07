@@ -21,10 +21,11 @@ public class with_a_given_only_source_key_specification : given.a_translation_ap
 {
     ExecutableSemanticModel Canonical => SemanticModelSerializer.Deserialize(EsmGoldenVectors.Get(33).Bytes.AsSpan());
 
+    void Establish() => _model = Canonical;
+
     [Fact]
     async Task should_project_the_unchanged_canonical_private_given()
     {
-        _model = Canonical;
         var spec = Translation().Specifications.Single();
         spec.Id.ToString().ShouldEqual("sem1:450a348c26380bd109150021f55c569605dbaef3cf4c29735bbc8d17391bc396");
         spec.Name.ShouldEqual("AReceivedOrderIsSourcedByItsKey");
@@ -50,7 +51,6 @@ public class with_a_given_only_source_key_specification : given.a_translation_ap
     [Fact]
     void should_reject_an_inconsistent_identifier_before_rendering()
     {
-        _model = Canonical;
         Assert.Throws<InvalidSemanticContract>(() => Transform(_model, slice => slice.Kind != SemanticSliceKind.Translate ? slice : slice with
         {
             Specifications = [slice.Specifications.Single() with
@@ -94,7 +94,6 @@ public class with_a_given_only_source_key_specification : given.a_translation_ap
     [Fact]
     void should_refuse_invocations_in_an_otherwise_supported_direct_append()
     {
-        _model = Canonical;
         var slice = Translation();
         var original = slice.Specifications.Single();
         var foreign = slice.Events.Single(contract => contract.Origin is not null);
@@ -113,7 +112,6 @@ public class with_a_given_only_source_key_specification : given.a_translation_ap
     [Fact]
     void should_record_the_refusal_and_omit_a_wrong_key_specification()
     {
-        _model = Canonical;
         var original = Translation().Specifications.Single();
         var model = Transform(_model, slice => slice.Kind == SemanticSliceKind.Translate ? slice with
         {

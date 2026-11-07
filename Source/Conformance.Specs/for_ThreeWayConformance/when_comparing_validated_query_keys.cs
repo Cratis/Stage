@@ -17,7 +17,7 @@ public class when_comparing_validated_query_keys(when_comparing_validated_query_
 {
     [Fact] void should_accept_valid_keys_and_reject_out_of_rule_keys_in_the_reference() => Assert.All(fixture.ReferenceResults, passed => passed.ShouldBeTrue());
     [Fact] void should_match_seeded_optional_queries_in_stage() => Assert.All(fixture.StageResults.Take(2), result => result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed));
-    [Fact] void should_preserve_the_collection_query_refusal() => Assert.All(fixture.StageResults.Skip(2), result => result.Unsupported!.Capability.ShouldEqual(StageExecutionCapability.Query));
+    [Fact] void should_preserve_the_collection_query_refusal() => Assert.All(fixture.StageResults.Skip(2), result => result.Unsupported.Capability.ShouldEqual(StageExecutionCapability.Query));
     [Fact] void should_reject_an_invalid_optional_query_key() => fixture.StageResults[1].ExecutionKind.ShouldEqual("Rejected");
     [Fact] void should_detect_the_missing_query_validation() => fixture.StageResultsWithoutValidation[1].Outcome.ShouldEqual(SemanticSpecificationOutcome.Failed);
     [Fact] void should_match_lookup_and_collection_results_in_the_rendered_query_pipeline() => fixture.RenderedResults.ShouldContain("Passed!");
@@ -71,7 +71,7 @@ public class when_comparing_validated_query_keys(when_comparing_validated_query_
                     var languageVersion = key == "x" ? LanguageVersion.V18 : model.LanguageVersion;
                     var semanticVersion = key == "x" ? SemanticVersion.V18 : model.SemanticVersion;
                     var candidate = ExecutableSemanticModel.Create(languageVersion, semanticVersion, application);
-                    var plan = SemanticExecutionPlan.Compile(candidate).Plan!;
+                    var plan = SemanticExecutionPlan.Compile(candidate).Plan;
                     references.Add(new SemanticSpecificationRunner().Run(plan, specification.Id).Passed);
 
                     stages.Add((await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results.Single());
@@ -79,7 +79,7 @@ public class when_comparing_validated_query_keys(when_comparing_validated_query_
                     {
                         Concepts = [.. application.Concepts.Select(concept => concept with { Validations = [] })]
                     });
-                    var planWithoutValidation = SemanticExecutionPlan.Compile(withoutValidation).Plan!;
+                    var planWithoutValidation = SemanticExecutionPlan.Compile(withoutValidation).Plan;
                     stagesWithoutValidation.Add((await new SemanticSpecificationExecutor().Run(planWithoutValidation, new([specification.Id]), new())).Results.Single());
                 }
             }

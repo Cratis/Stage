@@ -59,5 +59,5 @@ public class when_refusing_protected_reaction_destinations
     }
 
     static void Set(ExecutableSemanticModel model, string property, object value) =>
-        typeof(ExecutableSemanticModel).GetField($"<{property}>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(model, value);
+        typeof(ExecutableSemanticModel).GetField($"<{property}>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(model, value);
 }

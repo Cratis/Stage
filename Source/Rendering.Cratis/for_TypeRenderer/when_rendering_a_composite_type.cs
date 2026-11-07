@@ -36,6 +36,7 @@ public class when_rendering_a_composite_type : Specification
 
     [Fact] void should_place_the_file_under_common_when_unused_by_any_slice() => _file.RelativePath.ShouldEqual(Path.Combine("Common", "Address.cs"));
     [Fact] void should_declare_the_namespace() => _file.Content.ShouldContain("namespace CratisApp.Common;");
-    [Fact] void should_declare_the_record_with_plain_and_concept_properties() =>
+    [Fact]
+    void should_declare_the_record_with_plain_and_concept_properties() =>
         _file.Content.ShouldContain("public record Address(string Street, PostalCode PostalCode);");
 }

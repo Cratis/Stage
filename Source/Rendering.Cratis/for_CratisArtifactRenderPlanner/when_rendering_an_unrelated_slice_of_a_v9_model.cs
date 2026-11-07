@@ -29,7 +29,7 @@ public class when_rendering_an_unrelated_slice_of_a_v9_model : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument(original.StableKey), original.StableKey, original.DisplayPath, source);
         var compilation = new SemanticModelCompiler().Compile(corpus.ApplicationName, SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        _v9 = compilation.Value!.Model;
+        _v9 = compilation.Value.Model;
         var module = _v9.Application.Modules.Single();
         var feature = module.Features.Single();
         var unrelated = feature.Slices.Single(slice => slice.Kind == SemanticSliceKind.StateChange);
@@ -51,5 +51,5 @@ public class when_rendering_an_unrelated_slice_of_a_v9_model : Specification
     [Fact] void should_emit_identical_artifact_bytes() => _actual.Artifacts.Select(artifact => (artifact.RelativePath, artifact.Sha256)).ShouldContainOnly(_baseline.Artifacts.Select(artifact => (artifact.RelativePath, artifact.Sha256)));
     [Fact] void should_emit_nonempty_output() => _actual.Artifacts.ShouldNotBeEmpty();
 
-    ArtifactRenderPlan Plan(ExecutableSemanticModel model) => CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, _scope, new("Contracts", "Contracts"));
+    ArtifactRenderPlan Plan(ExecutableSemanticModel model) => CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, _scope, new("Contracts", "Contracts"));
 }

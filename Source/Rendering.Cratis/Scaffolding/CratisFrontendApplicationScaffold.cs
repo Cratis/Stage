@@ -94,6 +94,8 @@ public sealed class CratisFrontendApplicationScaffold
         ("@cratis/scene.model", frontend.ScenePackageVersion),
         ("@cratis/scene.primereact", frontend.ScenePackageVersion),
         ("@cratis/scene.react", frontend.ScenePackageVersion),
+        ("@cratis/showrunner.notes", frontend.ShowrunnerNotesPackageVersion),
+        ("@cratis/showrunner.notes.react", frontend.ShowrunnerNotesPackageVersion),
         ("@cratis/stage.runtime", ScaffoldPackageVersions.StageRuntime),
         ("@primereact/core", frontend.PrimeReactPackageVersion),
         ("@primereact/headless", frontend.PrimeReactPackageVersion),
@@ -536,7 +538,7 @@ public sealed class CratisFrontendApplicationScaffold
         """;
 
     static string FrontendTsConfig() =>
-        """
+        /*lang=json*/ """
         {
             "compilerOptions": {
                 "target": "ES2022",
@@ -581,7 +583,7 @@ public sealed class CratisFrontendApplicationScaffold
         """;
 
     static string NodeTsConfig() =>
-        """
+        /*lang=json*/ """
         {
             "compilerOptions": {
                 "composite": true,
@@ -597,7 +599,7 @@ public sealed class CratisFrontendApplicationScaffold
         """;
 
     static string RootTsConfig() =>
-        """
+        /*lang=json*/ """
         {
             "extends": "./.frontend/tsconfig.json"
         }

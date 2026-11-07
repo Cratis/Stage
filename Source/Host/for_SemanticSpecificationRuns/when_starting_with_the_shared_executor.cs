@@ -60,6 +60,9 @@ public class when_starting_with_the_shared_executor : Specification
 
         // Keep production discovery; replace only the transport to the external kernel.
         var client = Substitute.For<IChronicleClient>();
+
+        // Chronicle's host lifecycle reads the client's options when the host starts, so a substituted client carries real ones.
+        client.Options.Returns(new ChronicleClientOptions { EventStore = "SpecificationHost" });
         var eventStore = Substitute.For<IEventStore>();
         client.GetEventStore(Arg.Any<EventStoreName>(), Arg.Any<EventStoreNamespaceName?>()).Returns(eventStore);
         builder.Services.AddSingleton(client);
@@ -80,13 +83,13 @@ public class when_starting_with_the_shared_executor : Specification
         using var run = await _http.PostAsync(SemanticSpecificationRuns.Route, content);
         var reportBody = await run.Content.ReadAsStringAsync();
         Assert.True(run.IsSuccessStatusCode, $"Run returned {(int)run.StatusCode}: {reportBody}");
-        _report = SemanticSpecificationRunReportFile.Read(reportBody)!;
+        _report = SemanticSpecificationRunReportFile.Read(reportBody);
         using var status = await _http.GetAsync("/stage/status");
         _status = status.StatusCode;
-        _stageStatus = JsonSerializer.Deserialize<StageStatus>(await status.Content.ReadAsStringAsync(), StageJson.Options)!;
+        _stageStatus = JsonSerializer.Deserialize<StageStatus>(await status.Content.ReadAsStringAsync(), StageJson.Options);
         using var deps = JsonDocument.Parse(await File.ReadAllTextAsync(Path.ChangeExtension(typeof(SemanticHost).Assembly.Location, ".deps.json")));
         _dependencies = [.. deps.RootElement.GetProperty("libraries").EnumerateObject().Select(entry => entry.Name.Split('/')[0])];
-        _handlers = [.. _app.Services.GetRequiredService<ICommandHandlerProviders>().Handlers.Select(handler => handler.CommandType.Assembly.GetName().Name!)];
+        _handlers = [.. _app.Services.GetRequiredService<ICommandHandlerProviders>().Handlers.Select(handler => handler.CommandType.Assembly.GetName().Name)];
     }
 
     [Fact] void should_leave_chronicle_artifact_registration_to_stage() => _app.Services.GetRequiredService<IOptions<ChronicleAspNetCoreOptions>>().Value.AutoDiscoverAndRegister.ShouldBeFalse();
@@ -94,7 +97,7 @@ public class when_starting_with_the_shared_executor : Specification
     [Fact] void should_keep_the_host_ready_after_a_run() => _stageStatus.State.ShouldEqual("ready");
     [Fact] void should_run_the_specification_in_the_child() => _report.Results.Single().Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
     [Fact] void should_have_no_kernel_or_testing_dependencies() => _dependencies.Where(name => new[] { "Cratis.Chronicle.Core", "Cratis.Chronicle.Grpc" }.Contains(name, StringComparer.Ordinal) || name.Contains(".Testing", StringComparison.Ordinal)).ShouldBeEmpty();
-    [Fact] void should_discover_only_stage_command_handlers() => _handlers.Where(name => !new[] { "Cratis.Stage", "Cratis.Stage.Host", "Stage.Generated" }.Contains(name, StringComparer.Ordinal)).ShouldBeEmpty();
+    [Fact] void should_discover_only_stage_and_notes_command_handlers() => _handlers.Where(name => !new[] { "Cratis.Stage", "Cratis.Stage.Host", "Stage.Generated", "Cratis.Showrunner.Notes" }.Contains(name, StringComparer.Ordinal)).ShouldBeEmpty();
 
     async Task Destroy()
     {

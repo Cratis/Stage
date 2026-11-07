@@ -17,7 +17,7 @@ public class an_isolated_structured_read : Specification
     {
         var mapping = wholeCopy ? "detail = detail" : "amount = detail.amount";
         var property = wholeCopy ? "detail Detail" : $"amount {memberType}";
-        var expectation = wholeCopy ? $"\n                      detail = {{\"amount\":{value}}}" : $"\n                      amount = {value}";
+        var expectation = wholeCopy ? $"\n                      detail\n                        amount = {value}" : $"\n                      amount = {value}";
         var source = $$"""
             type Detail
               amount {{memberType}}
@@ -43,7 +43,8 @@ public class an_isolated_structured_read : Specification
                   specification Checking
                     given Placed
                       for "one"
-                      detail = {"amount":{{value}}}
+                      detail
+                        amount = {{value}}
                     then readmodel Order
                       id = "one"{{expectation}}
             """;
@@ -52,7 +53,7 @@ public class an_isolated_structured_read : Specification
         var compilation = new SemanticModelCompiler().Compile("ExactReads", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
         // The source parser reads every literal as a double, so a high-precision literal is restored from the text.
-        var plan = exactExpected is null ? SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan! : ExactNumberLiterals.Plan(compilation.Value!.Model, decimal.Parse(value, CultureInfo.InvariantCulture), decimal.Parse(exactExpected, CultureInfo.InvariantCulture));
+        var plan = exactExpected is null ? SemanticExecutionPlan.Compile(compilation.Value.Model).Plan : ExactNumberLiterals.Plan(compilation.Value.Model, decimal.Parse(value, CultureInfo.InvariantCulture), decimal.Parse(exactExpected, CultureInfo.InvariantCulture));
         _result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
     }
 

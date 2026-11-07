@@ -21,10 +21,10 @@ public class with_multiple_integer_parts : given.a_routed_command
         _command = _command with
         {
             Properties = [.. _command.Properties, other],
-            Route = _command.Route! with
+            Route = _command.Route with
             {
                 StreamId = null,
-                StreamIdParts = [new("other", SemanticExpression.Property(SemanticExpressionRootKind.Command, other.Id)), new("month", _command.Route.StreamId!)]
+                StreamIdParts = [new("other", SemanticExpression.Property(SemanticExpressionRootKind.Command, other.Id)), new("month", _command.Route.StreamId)]
             }
         };
     }
@@ -33,13 +33,13 @@ public class with_multiple_integer_parts : given.a_routed_command
     {
         Plan();
         var assembly = Load();
-        var account = Activator.CreateInstance(assembly.GetType("InvoiceApp.Common.AccountId")!, Guid.NewGuid())!;
-        var monthType = assembly.GetType("InvoiceApp.Common.Month")!;
-        var commandType = assembly.GetType("InvoiceApp.Banking.Deposits.Deposit.Deposit")!;
+        var account = Activator.CreateInstance(assembly.GetType("InvoiceApp.Common.AccountId"), Guid.NewGuid());
+        var monthType = assembly.GetType("InvoiceApp.Common.Month");
+        var commandType = assembly.GetType("InvoiceApp.Banking.Deposits.Deposit.Deposit");
         foreach (var other in new[] { 9007199254740992L, 42L })
         {
-            var command = Activator.CreateInstance(commandType, account, Activator.CreateInstance(monthType, 9007199254740992L)!, 42m, Activator.CreateInstance(monthType, other)!)!;
-            _results.Add(Assert.IsType<ValidationResult>(((IOneOf)commandType.GetMethod("Handle")!.Invoke(command, null)!).Value));
+            var command = Activator.CreateInstance(commandType, account, Activator.CreateInstance(monthType, 9007199254740992L), 42m, Activator.CreateInstance(monthType, other));
+            _results.Add(Assert.IsType<ValidationResult>(((IOneOf)commandType.GetMethod("Handle").Invoke(command, null)).Value));
         }
     }
 

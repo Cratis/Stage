@@ -42,6 +42,47 @@ public class when_auditing_the_executable_model : given.the_executable_surface
             $"Stale ({_stale.Length}): {string.Join(", ", _stale)}; Invalid ({_invalid.Length}): {string.Join(", ", _invalid)}");
 
     [Theory]
+    [InlineData("SemanticApplication.TimeZone")]
+    [InlineData("SemanticTimeZone.Configurable")]
+    [InlineData("SemanticTimeZone.Id")]
+    [InlineData("SemanticCommand.Calendar")]
+    [InlineData("SemanticCommandCalendar.ContextMember")]
+    [InlineData("SemanticCommandCalendar.TimeZone")]
+    [InlineData("SemanticClockOperand.Amount")]
+    [InlineData("SemanticClockOperand.DateOf")]
+    [InlineData("SemanticClockOperand.Kind")]
+    [InlineData("SemanticClockOperand.Unit")]
+    [InlineData("SemanticClockKind.Now")]
+    [InlineData("SemanticClockKind.Today")]
+    [InlineData("SemanticClockUnit.Day")]
+    [InlineData("SemanticClockUnit.Hour")]
+    [InlineData("SemanticClockUnit.Minute")]
+    [InlineData("SemanticConditionOperand.Clock")]
+    [InlineData("SemanticConditionOperand.DateOf")]
+    [InlineData("SemanticValidationRule.ClockOperand")]
+    [InlineData("SemanticSpecification.GivenTimeZone")]
+    public void should_keep_clock_and_calendar_members_outside_the_admitted_pairs(string member) =>
+        _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-016"));
+
+    [Theory]
+    [InlineData("SemanticApplication.ContextMembers")]
+    [InlineData("SemanticReadModel.PropertyOrder")]
+    public void should_keep_the_v37_members_outside_the_audited_v38_pair(string member) =>
+        _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-016"));
+
+    [Theory]
+    [InlineData("SemanticApplication.Graphs")]
+    [InlineData("SemanticApplication.GraphProjections")]
+    [InlineData("SemanticApplication.GraphSpecifications")]
+    [InlineData("SemanticGraphNode.Label")]
+    [InlineData("SemanticGraphEdge.IdentifiedBy")]
+    [InlineData("SemanticGraphHandler.Detach")]
+    [InlineData("SemanticGraphMapping.Operation")]
+    [InlineData("SemanticGraphSpecification.GivenGraphs")]
+    [InlineData("SemanticGraphElementStep.Absent")]
+    public void should_classify_graph_members_as_rendered(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
+
+    [Theory]
     [InlineData("SemanticEventContract.Visibility")]
     [InlineData("SemanticEventContract.Origin")]
     [InlineData("SemanticEventVisibility.Public")]
@@ -61,9 +102,15 @@ public class when_auditing_the_executable_model : given.the_executable_surface
     [InlineData("SemanticCaptureConditionKind.Removed")]
     public void should_classify_translation_members_as_rendered(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
 
+    [Theory]
+    [InlineData("SemanticApplication.StateMachines")]
+    [InlineData("SemanticApplication.Workflows")]
+    [InlineData("SemanticWorkflowNode.Kind")]
+    public void should_render_lifecycle_members(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
+
     [Fact] void should_keep_expression_capture_guards_refused() => _ledger["SemanticCaptureConditionKind.Expression"].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-024"));
 
-    [Fact] void should_keep_event_target_reducers_refused() => _ledger["SemanticReducer.Target"].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-032"));
+    [Fact] void should_admit_event_target_reducers() => _ledger["SemanticReducer.Target"].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
 
     [Theory]
     [InlineData("SemanticSpecification.WhenAppended")]
@@ -163,6 +210,7 @@ public class when_auditing_the_executable_model : given.the_executable_surface
 
     static bool IsDiagnosticCode(string code) =>
         ((code.StartsWith("STAGE-ESM-", StringComparison.Ordinal) && code.Length == 13) ||
-         (code.StartsWith("STAGE-IMPL-", StringComparison.Ordinal) && code.Length == 14)) &&
+         (code.StartsWith("STAGE-IMPL-", StringComparison.Ordinal) && code.Length == 14) ||
+         (code.StartsWith("STAGE-LIFECYCLE-", StringComparison.Ordinal) && code.Length == 19)) &&
         code.AsSpan(code.Length - 3).ToString().All(char.IsAsciiDigit);
 }

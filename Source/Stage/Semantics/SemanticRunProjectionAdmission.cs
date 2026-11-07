@@ -100,7 +100,7 @@ internal static partial class SemanticRunProjectionAdmission
             if (emptyQuery && plan.Queries.ContainsKey(assertion.Query)) continue;
             if (!plan.Queries.TryGetValue(assertion.Query, out var query) ||
                 !plan.ReadModels.TryGetValue(query.ReadModel, out var model) ||
-                (query.Filters.IsEmpty && (query.Delivery != SemanticQueryDelivery.Snapshot || query.Cardinality != SemanticQueryCardinality.ZeroOrOne ||
+                (query.Filters.IsEmpty && (query.Cardinality != SemanticQueryCardinality.ZeroOrOne ||
                     !QueryKeyMatches(model, query))) ||
                 (plan.Projections.Values.All(projection => projection.ReadModel != query.ReadModel) && specification.GivenReadModels.All(seed => seed.ReadModel != query.ReadModel)))
             {
@@ -145,6 +145,7 @@ internal static partial class SemanticRunProjectionAdmission
 
     static string? Rejection(SemanticExecutionPlan plan, SemanticProjection projection, SemanticReadModel readModel, SemanticSpecification specification, HashSet<SemanticId> reachable)
     {
+        if (SemanticKeyedRootJoinOrdering.Divergence([projection], specification) is { } orderingReason) return orderingReason;
         if (ProjectionReferencedEventNamesAreUnique.Contracts(projection)
             .Any(id => plan.Events.TryGetValue(id, out var @event) && !SemanticRunAdmission.RuntimePropertyNamesAreUnique(@event.Properties)))
         {
@@ -199,7 +200,7 @@ internal static partial class SemanticRunProjectionAdmission
             var rejection = SemanticScopedProjectionSupport.Rejection(scope, new SemanticApplicationContext(plan), readModel.Properties);
             if (rejection is not null)
             {
-                return rejection;
+                return $"The spec runner cannot execute this projection shape: {rejection}";
             }
             if (HasProductOutsideFrom(scope))
             {
@@ -315,12 +316,18 @@ internal static partial class SemanticRunProjectionAdmission
     // Stage lowers every event-source identity to text, so Chronicle's join would match Text "1" with Number 1,
     // while the reference keeps them distinct. Admit a join only when its event's identities have the joined key's type.
     static bool JoinIdentityMatches(SemanticExecutionPlan plan, SemanticSpecification specification, SemanticProjectionJoin join, System.Collections.Immutable.ImmutableArray<SemanticProperty> properties, SemanticId? childIdentity) =>
-        join.Key is null &&
-        (childIdentity is null || join.On == childIdentity) &&
-        properties.SingleOrDefault(property => property.Id == join.On) is { Type: { IsCollection: false } onType } &&
+        ChildJoinIdentityMatches(join, childIdentity) &&
+        properties.SingleOrDefault(property => property.Id == join.On) is { Type: { IsCollection: false } onType } on &&
         IsScalar(onType) &&
         Primitive(plan, onType) is SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid &&
-        ScopedKeysMatch(plan, specification, join.EventContract, onType);
+        SemanticScopedProjectionSupport.RootJoinKeySupported(join.Key, on, plan.Events[join.EventContract], new(plan)) &&
+        ScopedKeysMatch(plan, specification, join.EventContract, onType, JoinKeyProperty(join));
+
+    static bool ChildJoinIdentityMatches(SemanticProjectionJoin join, SemanticId? identity) =>
+        identity is null || (join.Key is null && join.On == identity);
+
+    static SemanticId? JoinKeyProperty(SemanticProjectionJoin join) =>
+        join.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var id] } } ? id : null;
 
     static bool ChildJoinIdentitiesMatch(SemanticExecutionPlan plan, SemanticSpecification specification, SemanticProjectionChildren child, System.Collections.Immutable.ImmutableArray<SemanticProperty> parentProperties)
     {

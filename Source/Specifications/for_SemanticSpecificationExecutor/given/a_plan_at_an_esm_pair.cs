@@ -11,8 +11,8 @@ public class a_plan_at_an_esm_pair : a_command_only_plan
 {
     protected static void Versions(ExecutableSemanticModel model, uint major, uint minor)
     {
-        typeof(ExecutableSemanticModel).GetField("<LanguageVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(model, new LanguageVersion(major, minor));
-        typeof(ExecutableSemanticModel).GetField("<SemanticVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(model, new SemanticVersion(major, minor));
+        typeof(ExecutableSemanticModel).GetField("<LanguageVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(model, new LanguageVersion(major, minor));
+        typeof(ExecutableSemanticModel).GetField("<SemanticVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(model, new SemanticVersion(major, minor));
     }
 
     protected SemanticExecutionPlan WithApplication(Func<SemanticApplication, SemanticApplication> change, uint major, uint minor)

@@ -29,9 +29,9 @@ public class with_bodies_reached_by_reactions : when_settling_reactions.given.a_
             Commands = [.. slice.Commands.Select(command => command.Name == "Complete" && !reducer ? command with { CodeValidations = [new("cascade-command-body")] } : command)]
         };
         application = application with { Modules = [module with { Features = [feature with { Slices = [changed] }] }] };
-        var plan = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(_plan.Model.LanguageVersion, _plan.Model.SemanticVersion, application)).Plan!;
+        var plan = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(_plan.Model.LanguageVersion, _plan.Model.SemanticVersion, application)).Plan;
         var refusal = SemanticRunAdmission.Check(plan, plan.Specifications.Values.Single());
-        refusal!.Capability.ShouldEqual(reducer ? StageExecutionCapability.Projection : StageExecutionCapability.Command);
+        refusal.Capability.ShouldEqual(reducer ? StageExecutionCapability.Projection : StageExecutionCapability.Command);
         refusal.Details.ShouldContain("STAGE-IMPL-003: ");
         refusal.Details.ShouldContain(reducer ? "cascade-reducer-body" : "cascade-command-body");
     }

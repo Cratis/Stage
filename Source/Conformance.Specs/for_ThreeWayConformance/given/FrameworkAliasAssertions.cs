@@ -26,7 +26,7 @@ static class FrameworkAliasAssertions
         var root = (CompilationUnitSyntax)afterTree.GetRoot();
         var directive = Assert.Single(root.Usings, @using => @using.Alias is not null &&
             @using.NamespaceOrType.ToString() == $"global::{type.ContainingNamespace.ToDisplayString()}");
-        var alias = directive.Alias!.Name.Identifier.ValueText;
+        var alias = directive.Alias.Name.Identifier.ValueText;
         Assert.Matches("^StageImport[0-9]+$", alias);
         var reference = Assert.Single(root.DescendantNodes().OfType<AliasQualifiedNameSyntax>(), name =>
             name.Alias.Identifier.ValueText == alias && name.Name.Identifier.ValueText == type.Name);
@@ -37,7 +37,7 @@ static class FrameworkAliasAssertions
 
     static ISymbol IntendedSymbol(SemanticModel model, SyntaxNode site) => site switch
     {
-        ParameterSyntax parameter => Assert.IsType<INamedTypeSymbol>(model.GetTypeInfo(parameter.Type!).Type, exactMatch: false),
+        ParameterSyntax parameter => Assert.IsType<INamedTypeSymbol>(model.GetTypeInfo(parameter.Type).Type, exactMatch: false),
         InvocationExpressionSyntax invocation => Assert.IsType<IMethodSymbol>(model.GetSymbolInfo(invocation).Symbol, exactMatch: false),
         _ => throw new InvalidOperationException("The framework ambiguity must name a parameter type or invocation.")
     };

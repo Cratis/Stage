@@ -48,10 +48,10 @@ public class a_projected_specification : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("model"), "model", "Model.play", source);
         var compilation = new SemanticModelCompiler().Compile("Billing", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")));
-        var admitted = SemanticExecutionPlan.Compile(compilation.Value!.Model);
+        var admitted = SemanticExecutionPlan.Compile(compilation.Value.Model);
         Assert.NotNull(admitted.Plan);
 
-        return admitted.Plan!;
+        return admitted.Plan;
     }
 
     protected static SemanticExecutionPlan ExpectRejection(SemanticExecutionPlan plan, bool denied = false)

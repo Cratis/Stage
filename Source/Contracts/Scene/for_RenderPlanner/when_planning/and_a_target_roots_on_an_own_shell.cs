@@ -20,7 +20,7 @@ public class and_a_target_roots_on_an_own_shell : an_application_targeting_web_a
 
     void Because() => _result = RenderPlanner.Plan(_application, _catalog);
 
-    [Fact] void should_resolve_the_effective_shell_through_the_scene_engine() => _result.Targets[0].Shell!.Name.ShouldEqual("AppShell");
-    [Fact] void should_render_inside_the_application_s_own_layout() => _result.Targets[0].Layout!.Name.ShouldEqual("AppShell");
+    [Fact] void should_resolve_the_effective_shell_through_the_scene_engine() => _result.Targets[0].Shell.Name.ShouldEqual("AppShell");
+    [Fact] void should_render_inside_the_application_s_own_layout() => _result.Targets[0].Layout.Name.ShouldEqual("AppShell");
     [Fact] void should_have_no_findings() => _result.Targets[0].Findings.ShouldBeEmpty();
 }

@@ -26,7 +26,7 @@ public class when_rendering_a_policy_denial : Specification
         var slice = feature.Slices.Single();
         var specification = slice.Specifications[0] with { ThenEvents = [], ThenDenied = true };
         var options = new CratisRenderingOptions("Invoices", "Invoices");
-        var context = new SemanticApplicationContext(new(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id)), options);
+        var context = new SemanticApplicationContext(new(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id)), options);
         _source = SemanticCommandSpecificationRenderer.Render(specification, context).Content;
     }
 

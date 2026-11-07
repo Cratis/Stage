@@ -28,16 +28,17 @@ public class when_admitting_nested_clear_with_a_matching_root_from : Specificati
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("nested-clear"), "nested-clear", "Scopes.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success, string.Join(Environment.NewLine, execution.Issues));
-        _plan = CratisRendering.Plan(model, execution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
+        _plan = CratisRendering.Plan(model, execution.Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
     }
 
     [Fact] void should_admit_the_projection() => Assert.True(_plan.Success, string.Join(Environment.NewLine, _plan.Diagnostics));
     [Fact] void should_materialize_the_root_identifier_from_the_property_key() => ProjectionCode().ShouldContain("from.Set(model => model.ProjectId).To(evt => evt.ProjectId)");
     [Fact] void should_materialize_the_root_identifier_from_the_event_source_key() => ProjectionCode().ShouldContain("from.Set(model => model.ProjectId).ToEventSourceId()");
-    [Fact] void should_render_the_existing_nested_removal_lowering() => Assert.Contains(
+    [Fact]
+    void should_render_the_existing_nested_removal_lowering() => Assert.Contains(
         "nested.RemovedWith<ProjectRenamed>",
         Encoding.UTF8.GetString(_plan.Artifacts.Single(artifact => artifact.RelativePath == "Projects/Registration/ProjectLookup/ProjectLookup.cs").Bytes.AsSpan()),
         StringComparison.Ordinal);

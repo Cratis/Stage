@@ -17,7 +17,7 @@ public class with_from_all : a_command_only_plan
         var application = _originalModel.Application;
         var projection = _originalModel.Application.Modules.SelectMany(module => module.Features)
             .SelectMany(feature => feature.Slices).SelectMany(slice => slice.Projections).Single();
-        var scope = projection.Scope! with { Every = new(true, true, []) };
+        var scope = projection.Scope with { Every = new(true, true, []) };
         var changed = application with
         {
             Modules = [.. application.Modules.Select(module => module with
@@ -31,10 +31,10 @@ public class with_from_all : a_command_only_plan
                 })]
             })]
         };
-        var plan = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(_originalModel.LanguageVersion, _originalModel.SemanticVersion, changed)).Plan!;
+        var plan = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(_originalModel.LanguageVersion, _originalModel.SemanticVersion, changed)).Plan;
         _record = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([_original.Id]), new())).Results);
     }
 
     [Fact] void should_refuse_the_scope_before_execution() => _record.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-    [Fact] void should_share_the_renderers_empty_all_rejection() => Assert.Contains("An all block without mappings cannot render", _record.Unsupported!.Details);
+    [Fact] void should_share_the_renderers_empty_all_rejection() => Assert.Contains("An all block without mappings cannot render", _record.Unsupported.Details);
 }

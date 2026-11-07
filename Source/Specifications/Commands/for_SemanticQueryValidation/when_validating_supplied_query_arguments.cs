@@ -17,10 +17,10 @@ public class when_validating_supplied_query_arguments : Specification
 
     void Establish()
     {
-        _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(QueryValidationCorpus.V18.EsmBytes.AsSpan())).Plan!;
+        _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(QueryValidationCorpus.V18.EsmBytes.AsSpan())).Plan;
         var keyed = _plan.Queries.Values.Single(query => query.Argument is not null);
         var filter = _plan.Queries.Values.Single(query => !query.Filters.IsEmpty).Filters.Single();
-        var second = filter with { Id = keyed.Id, Name = "second", Type = keyed.Argument!.Type with { IsOptional = true } };
+        var second = filter with { Id = keyed.Id, Name = "second", Type = keyed.Argument.Type with { IsOptional = true } };
         var omitted = filter with { Id = keyed.Argument.Id, Name = "omitted" };
         _query = keyed with { Filters = [filter, second, omitted] };
         _request = new(keyed.Id, SemanticValue.Text("A"), [])

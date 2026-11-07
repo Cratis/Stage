@@ -27,7 +27,7 @@ public class when_generating_patterns_and_random_values : Specification
         var samples = Enumerable.Range(0, 256).Select(_ => SemanticGeneratedValues.New(concept, true, new(instant, GenerationContext.DefaultTenant))).ToArray();
         samples.All(value => SemanticGenerationShapes.Matches(concept, SemanticValue.Text(value), instant)).ShouldBeTrue();
         samples.Distinct(StringComparer.Ordinal).Count().ShouldBeGreaterThan(1);
-        if (concept.Generation!.Checksum is { } algorithm)
+        if (concept.Generation.Checksum is { } algorithm)
         {
             var checksum = algorithm switch { "luhn" => Checksum.Luhn, "mod11" => Checksum.Mod11, _ => Checksum.Mod97 };
             samples.All(value => GenerateValue.HasValidChecksum(value, checksum)).ShouldBeTrue();

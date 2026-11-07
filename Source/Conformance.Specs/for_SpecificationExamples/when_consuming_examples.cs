@@ -117,7 +117,7 @@ public class when_consuming_examples : Specification
     {
         var result = new ScreenplayCompiler().Compile(source);
         Assert.True(result.Success, string.Join("; ", result.Diagnostics));
-        var context = new ApplicationSet([result.Value!]);
+        var context = new ApplicationSet([result.Value]);
         var slice = context.Slices.Single();
         return SpecificationRenderer.Render(slice.Slice.Specifications.First(), slice.Slice.Commands.Single(), slice, context, "Projects").Content;
     }
@@ -135,7 +135,7 @@ public class when_consuming_examples : Specification
     {
         var result = CratisRendering.Plan(
             compilation.Model,
-            SemanticExecutionPlan.Compile(compilation.Model).Plan!,
+            SemanticExecutionPlan.Compile(compilation.Model).Plan,
             new(ArtifactRenderScopeKind.Application, compilation.Model.Application.Id),
             new("Projects", "Projects"));
         Assert.True(result.Success, string.Join("; ", result.Diagnostics));
@@ -143,5 +143,5 @@ public class when_consuming_examples : Specification
     }
 
     static async Task<SemanticSpecificationRunReport> Run(SemanticCompilation compilation) =>
-        await new SemanticSpecificationExecutor().Run(SemanticExecutionPlan.Compile(compilation.Model).Plan!, new([]), new());
+        await new SemanticSpecificationExecutor().Run(SemanticExecutionPlan.Compile(compilation.Model).Plan, new([]), new());
 }

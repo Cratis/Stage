@@ -10,7 +10,10 @@ internal static class SemanticDependencyReferences
     {
         [SemanticDependencyKind.Declaration] = """
         ExecutableSemanticModel:Application
-        SemanticApplication:Concepts Modules Types Policies EventSources Triggers
+        SemanticApplication:Concepts Modules Types Policies EventSources Triggers Graphs GraphProjections GraphSpecifications GraphQueries
+        SemanticGraph:Nodes Edges
+        SemanticGraphNode:Properties
+        SemanticGraphEdge:Properties
         SemanticModule:Features
         SemanticFeature:Features Slices
         SemanticSlice:Commands Constraints Events Projections Queries ReadModels Specifications Reducers Reactions Captures
@@ -20,10 +23,11 @@ internal static class SemanticDependencyReferences
         SemanticProperty:Type
         SemanticTypeReference:Target
         SemanticEventContract:Properties
-        SemanticReadModel:Properties
+        SemanticReadModel:Properties PropertyOrder
         SemanticCommand:Properties
         SemanticReadModelQueryArgument:Type
         SemanticApplicationTrigger:Properties
+        SemanticGraphProperty:Type
         """,
         [SemanticDependencyKind.Expression] = """
         SemanticConcept:Validations
@@ -80,6 +84,10 @@ internal static class SemanticDependencyReferences
         SemanticProjectionJoinRemoval:EventContract Key
         SemanticProjectionValueKey:Value
         SemanticProjectionMapping:Source Target Factor
+        SemanticGraphProjection:Nodes Edges
+        SemanticGraphElementHandlers:Handlers
+        SemanticGraphHandler:Event Mappings Key Source Target Identity ForEach
+        SemanticGraphMapping:Source Factor
         SemanticProjectionLiteral:Value
         SemanticProjectionNested:Property Scope
         SemanticProjectionRemoval:EventContract Key ParentKey
@@ -87,6 +95,10 @@ internal static class SemanticDependencyReferences
         """,
         [SemanticDependencyKind.Query] = """
         SemanticKeyedQuery:Argument ReadModel KeyProperty Authorization Filters KeyParts
+        SemanticGraphQuery:ReadModel Arguments Conditions Returns Authorization
+        SemanticGraphQueryArgument:Type
+        SemanticGraphCondition:Literal
+        SemanticGraphReturn:Property
         SemanticQueryKeyPart:Type KeyProperty
         SemanticQueryFilter:Type Property
         SemanticQueryFilterValue:Filter Value
@@ -94,6 +106,12 @@ internal static class SemanticDependencyReferences
         [SemanticDependencyKind.Specification] = """
         SemanticSpecification:GivenEvents GivenReadModels ThenEvents ThenReadModels ThenQueries When ThenAbsentReadModels WhenAppended WhenRedelivered GivenCaptures WhenCapture WhenTrigger GivenGenerated ThenReturns ThenInvocations
         SemanticSpecificationAbsentReadModel:Key ReadModel
+        SemanticGraphSpecification:Given GivenGraphs WhenAppended ThenGraphs ThenQueries
+        SemanticGraphQueryExpectation:Arguments Rows
+        SemanticGraphRow:Values
+        SemanticGraphStep:Elements
+        SemanticGraphElementStep:Key Values Target Identity
+        SemanticGraphPropertyValue:Value
         SemanticSpecificationRedelivery:Reaction Given
         SemanticSpecificationCommand:Command Values EventSource GeneratedValues
         SemanticSpecificationInvocation:Command Values
@@ -141,6 +159,15 @@ internal static class SemanticDependencyReferences
         SemanticReaction:From Triggers
         SemanticReactionTrigger:Source Where Produces Invokes
         SemanticInvocation:Command Mappings OnRefused
+        SemanticApplication:StateMachines Workflows
+        SemanticStateMachine:ReadModel States Transitions Specifications
+        SemanticState:Entering
+        SemanticStateEntry:Command
+        SemanticStateTransition:Event Guard
+        SemanticWorkflow:Subject Nodes Edges Specifications
+        SemanticWorkflowNode:Event Command Condition Items
+        SemanticLifecycleSpecification:Given WhenAppended WhenStarted Then
+        SemanticLifecycleExpectation:Command
         """,
         [SemanticDependencyKind.Capture] = """
         SemanticCapture:EventsSource Appends Children Nested
@@ -159,14 +186,16 @@ internal static class SemanticDependencyReferences
     internal static IReadOnlyDictionary<string, SemanticDependencyClassification> Build()
     {
         var entries = new Dictionary<string, SemanticDependencyClassification>(StringComparer.Ordinal);
-        foreach (var group in _groups)
-        {
-            foreach (var line in group.Value.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
-            {
-                var parts = line.Split(':');
-                foreach (var member in parts[1].Split(' ')) entries.Add($"{parts[0]}.{member}", new(group.Key));
-            }
-        }
+        foreach (var group in _groups) Add(entries, group.Value, new(group.Key));
         return entries;
+    }
+
+    static void Add(Dictionary<string, SemanticDependencyClassification> entries, string members, SemanticDependencyClassification classification)
+    {
+        foreach (var line in members.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+        {
+            var parts = line.Split(':');
+            foreach (var member in parts[1].Split(' ')) entries.Add($"{parts[0]}.{member}", classification);
+        }
     }
 }

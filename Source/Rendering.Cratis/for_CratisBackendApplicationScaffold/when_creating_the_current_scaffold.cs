@@ -56,7 +56,7 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     [Fact] void should_reference_all_specification_packages_only_in_debug() => TestingPackagesAreDebugOnly().ShouldBeTrue();
     [Fact] void should_not_emit_a_separate_specifications_project() => _first.Select(PathOf).Count(path => path.EndsWith(".csproj", StringComparison.Ordinal)).ShouldEqual(1);
     [Fact] void should_keep_the_host_active_in_debug() => Content("Program.cs").ShouldNotContain("#if");
-    [Fact] void should_disable_reverse_extraction_of_the_authoritative_source_model_in_every_project() => XDocument.Parse(Content("Directory.Build.props")).Root!.Element("PropertyGroup")!.Element("CratisEmbeddedScreenplayEnabled")!.Value.ShouldEqual("false");
+    [Fact] void should_disable_reverse_extraction_of_the_authoritative_source_model_in_every_project() => XDocument.Parse(Content("Directory.Build.props")).Root.Element("PropertyGroup").Element("CratisEmbeddedScreenplayEnabled").Value.ShouldEqual("false");
     [Fact] void should_not_duplicate_the_shared_extraction_setting_in_the_host() => Content("MyApp.csproj").ShouldNotContain("CratisEmbeddedScreenplayEnabled");
     [Fact] void should_not_suppress_the_test_entry_point_warning() => Content("MyApp.csproj").ShouldNotContain("NoWarn");
     [Fact] void should_mark_the_application_as_a_test_project_only_in_debug() => DebugProperty("IsTestProject").ShouldEqual("true");
@@ -66,7 +66,7 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     [Fact] void should_isolate_editor_configuration_from_parent_rules() => Content(".editorconfig").ShouldContain("root = true");
     [Fact] void should_disable_ancestor_editor_configuration_discovery() => XDocument.Parse(Content("Directory.Build.props")).Descendants("DiscoverEditorConfigFiles").Single().Value.ShouldEqual("false");
     [Fact] void should_disable_ancestor_global_analyzer_configuration_discovery() => XDocument.Parse(Content("Directory.Build.props")).Descendants("DiscoverGlobalAnalyzerConfigFiles").Single().Value.ShouldEqual("false");
-    [Fact] void should_include_the_application_editor_configuration_explicitly() => XDocument.Parse(Content("Directory.Build.props")).Descendants("EditorConfigFiles").Single().Attribute("Include")!.Value.ShouldEqual("$(MSBuildThisFileDirectory).editorconfig");
+    [Fact] void should_include_the_application_editor_configuration_explicitly() => XDocument.Parse(Content("Directory.Build.props")).Descendants("EditorConfigFiles").Single().Attribute("Include").Value.ShouldEqual("$(MSBuildThisFileDirectory).editorconfig");
     [Fact] void should_allow_bdd_specification_names() => Content(".editorconfig").ShouldContain("[{**/when_*.cs,**/when_*/**/*.cs,**/for_*/**/*.cs,**/given/**/*.cs}]\n# Cratis specifications use BDD names, including should_ facts.\ndotnet_diagnostic.IDE1006.severity = none\ndotnet_diagnostic.CA1707.severity = none");
     [Fact] void should_describe_running_the_specifications_from_the_application_project() => Content("README.md").ShouldContain("dotnet test MyApp.csproj\n");
     [Fact] void should_describe_specifications_compiling_only_in_debug() => Content("README.md").ShouldContain("A Release build\nremoves them and needs no test packages.");
@@ -74,6 +74,8 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     [Fact] void should_enable_corepack_before_installing_with_the_pinned_yarn() => Content("README.md").ShouldContain("corepack enable\nyarn install\n");
     [Fact] void should_document_scaffold_ownership() => Content("README.md").ShouldContain("Scaffold files belong to you after first run");
     [Fact] void should_configure_cratis_with_mongodb_and_camel_case_chronicle_naming() => Content("Program.cs").ShouldContain("configureArcBuilder: arc => arc.WithMongoDB(),\n    configureChronicleBuilder: chronicle => chronicle.WithCamelCaseNamingPolicy()");
+    [Fact] void should_configure_choreography() => Content("Program.cs").ShouldContain("builder.AddCratisChoreography(new CratisChoreographyOptions");
+    [Fact] void should_keep_the_chronicle_telemetry_defaults_resolvable() => Content("Program.cs").ShouldContain("builder.Services.AddSingleton<Action<ChronicleTelemetryOptions>>(_ => { });");
     [Fact] void should_activate_cratis_and_the_health_endpoint_before_running() => ProgramSemantics().ShouldEqual("True|True|True");
     [Fact] void should_emit_the_exact_arc_chronicle_and_mongodb_settings() => AppSettingsSemantics().ShouldEqual("api|False|1|MyApp|chronicle://chronicle-dev-client:chronicle-dev-secret@localhost:35000|mongodb://localhost:27017|MyApp");
     [Fact] void should_wait_for_a_healthy_chronicle_before_starting_the_backend() => Content("README.md").ShouldContain("docker compose up -d --wait\ndotnet run --project MyApp.csproj");
@@ -92,8 +94,8 @@ public class when_creating_the_current_scaffold : a_current_scaffold
 
     string BuildProperties()
     {
-        var props = XDocument.Parse(Content("Directory.Build.props")).Root!.Element("PropertyGroup")!;
-        return string.Join('|', new[] { "TargetFramework", "LangVersion", "Nullable", "ImplicitUsings", "TreatWarningsAsErrors", "EnforceCodeStyleInBuild" }.Select(name => props.Element(name)!.Value));
+        var props = XDocument.Parse(Content("Directory.Build.props")).Root.Element("PropertyGroup");
+        return string.Join('|', new[] { "TargetFramework", "LangVersion", "Nullable", "ImplicitUsings", "TreatWarningsAsErrors", "EnforceCodeStyleInBuild" }.Select(name => props.Element(name).Value));
     }
 
     bool CentralPackageManagement()
@@ -111,7 +113,7 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     string SolutionSemantics()
     {
         var solution = XDocument.Parse(Content("MyApp.slnx"));
-        var paths = string.Join('|', solution.Root!.Elements("Project").Select(project => project.Attribute("Path")!.Value));
+        var paths = string.Join('|', solution.Root.Elements("Project").Select(project => project.Attribute("Path").Value));
         return $"{paths}|{solution.ToString().Contains("Guid", StringComparison.OrdinalIgnoreCase)}";
     }
 
@@ -121,7 +123,7 @@ public class when_creating_the_current_scaffold : a_current_scaffold
         return string.Join(
             '|',
             project.Descendants("PackageVersion")
-                .Select(reference => $"{reference.Attribute("Include")!.Value}={reference.Attribute("Version")!.Value}")
+                .Select(reference => $"{reference.Attribute("Include").Value}={reference.Attribute("Version").Value}")
                 .Order(StringComparer.Ordinal));
     }
 
@@ -135,6 +137,9 @@ public class when_creating_the_current_scaffold : a_current_scaffold
             $"Cratis.Chronicle={_profile.CratisChroniclePackageVersion}",
             $"Cratis.Chronicle.AspNetCore={_profile.CratisChroniclePackageVersion}",
             $"Cratis.Chronicle.Testing={_profile.CratisChroniclePackageVersion}",
+            $"Cratis.Choreography={Scaffolding.ScaffoldPackageVersions.Choreography}",
+            $"Cratis.Choreography.Chronicle={Scaffolding.ScaffoldPackageVersions.ChoreographyChronicle}",
+            $"Cratis.Screenplay={Scaffolding.ScaffoldPackageVersions.Screenplay}",
             $"Cratis.Screenplay.Matching={Scaffolding.ScaffoldPackageVersions.ScreenplayMatching}",
             $"Cratis.Specifications={_profile.CratisSpecificationsPackageVersion}",
             $"Cratis.Specifications.XUnit={_profile.CratisSpecificationsXUnitPackageVersion}",
@@ -152,7 +157,7 @@ public class when_creating_the_current_scaffold : a_current_scaffold
         var project = XDocument.Parse(Content("MyApp.csproj"));
         var debug = project.Descendants("ItemGroup").Where(group => group.Attribute("Condition")?.Value == "'$(Configuration)' == 'Debug'").ToArray();
         return debug.Length == 1 &&
-               debug[0].Elements("PackageReference").Select(reference => reference.Attribute("Include")!.Value).Order(StringComparer.Ordinal).SequenceEqual(
+               debug[0].Elements("PackageReference").Select(reference => reference.Attribute("Include").Value).Order(StringComparer.Ordinal).SequenceEqual(
                    new[]
                    {
                        "Cratis.Arc.Chronicle.Testing",
@@ -167,17 +172,17 @@ public class when_creating_the_current_scaffold : a_current_scaffold
                    }.Order(StringComparer.Ordinal)) &&
                !project.Descendants("ItemGroup").Where(group => group.Attribute("Condition") is null)
                    .SelectMany(group => group.Elements("PackageReference"))
-                   .Select(reference => reference.Attribute("Include")!.Value).Intersect(["xunit", "Microsoft.NET.Test.Sdk", "Cratis.Specifications"], StringComparer.Ordinal).Any();
+                   .Select(reference => reference.Attribute("Include").Value).Intersect(["xunit", "Microsoft.NET.Test.Sdk", "Cratis.Specifications"], StringComparer.Ordinal).Any();
     }
 
     string DebugProperty(string name) => XDocument.Parse(Content("MyApp.csproj")).Descendants("PropertyGroup")
-        .Single(group => group.Attribute("Condition")?.Value == "'$(Configuration)' == 'Debug'").Element(name)!.Value;
+        .Single(group => group.Attribute("Condition")?.Value == "'$(Configuration)' == 'Debug'").Element(name).Value;
 
     string UnconditionalProperty(string name) => XDocument.Parse(Content("MyApp.csproj")).Descendants("PropertyGroup")
-        .Single(group => group.Attribute("Condition") is null).Element(name)!.Value;
+        .Single(group => group.Attribute("Condition") is null).Element(name).Value;
 
     string ReleaseCompileRemove() => XDocument.Parse(Content("MyApp.csproj")).Descendants("ItemGroup")
-        .Single(group => group.Attribute("Condition")?.Value == "'$(Configuration)' != 'Debug'").Element("Compile")!.Attribute("Remove")!.Value;
+        .Single(group => group.Attribute("Condition")?.Value == "'$(Configuration)' != 'Debug'").Element("Compile").Attribute("Remove").Value;
 
     string ProgramSemantics()
     {

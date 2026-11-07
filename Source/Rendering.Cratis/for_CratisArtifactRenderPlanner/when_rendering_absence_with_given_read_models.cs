@@ -34,7 +34,8 @@ public class when_rendering_absence_with_given_read_models : Specification
     [Fact] void should_compile_without_errors() => string.Join(Environment.NewLine, RenderedOutput.Errors(_files)).ShouldEqual(string.Empty);
     [Fact] void should_compile_without_warnings() => string.Join(Environment.NewLine, RenderedOutput.Warnings(_files)).ShouldEqual(string.Empty);
     [Fact] async Task should_preserve_the_other_seed_and_remove_the_named_seed() => await when_rendering_read_model_absence.RunProjected(when_rendering_read_model_absence.LoadWithArtifacts(_files));
-    [Fact] async Task should_fail_absence_for_a_surviving_seed()
+    [Fact]
+    async Task should_fail_absence_for_a_surviving_seed()
     {
         var plan = invoice_model.Plan(invoice_model.Compile(Source.Replace("InvoiceView for \"third\"", "InvoiceView for \"second\"", StringComparison.Ordinal)
             .Replace("        then readmodel InvoiceView\n          invoiceId = \"second\"\n          description = \"Second\"\n", string.Empty, StringComparison.Ordinal)));
@@ -46,7 +47,8 @@ public class when_rendering_absence_with_given_read_models : Specification
         Assert.IsType<global::Xunit.Sdk.XunitException>(Assert.IsType<TargetInvocationException>(failure).InnerException, exactMatch: false);
     }
 
-    [Fact] void should_refuse_partial_seeds()
+    [Fact]
+    void should_refuse_partial_seeds()
     {
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("InvoiceModel"));
         var source = Source.Replace("          description = \"Second\"\n", string.Empty, StringComparison.Ordinal);

@@ -44,6 +44,7 @@ public sealed partial class CratisBackendApplicationScaffold
             <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
           </PropertyGroup>
           <ItemGroup>
+            <PackageVersion Include="Cratis.Screenplay" Version="{{ScaffoldPackageVersions.Screenplay}}" />
             <PackageVersion Include="Cratis.Screenplay.Matching" Version="{{ScaffoldPackageVersions.ScreenplayMatching}}" />
             <PackageVersion Include="Cratis" Version="{{profile.CratisPackageVersion}}" />
             <PackageVersion Include="Cratis.Arc.Chronicle.Testing" Version="{{profile.CratisArcChronicleTestingPackageVersion}}" />
@@ -51,13 +52,17 @@ public sealed partial class CratisBackendApplicationScaffold
             <PackageVersion Include="Cratis.Chronicle" Version="{{profile.CratisChroniclePackageVersion}}" />
             <PackageVersion Include="Cratis.Chronicle.AspNetCore" Version="{{profile.CratisChroniclePackageVersion}}" />
             <PackageVersion Include="Cratis.Chronicle.Testing" Version="{{profile.CratisChroniclePackageVersion}}" />
+            <PackageVersion Include="Cratis.Choreography" Version="{{ScaffoldPackageVersions.Choreography}}" />
+            <PackageVersion Include="Cratis.Choreography.Chronicle" Version="{{ScaffoldPackageVersions.ChoreographyChronicle}}" />
             <PackageVersion Include="Cratis.Specifications" Version="{{profile.CratisSpecificationsPackageVersion}}" />
             <PackageVersion Include="Cratis.Specifications.XUnit" Version="{{profile.CratisSpecificationsXUnitPackageVersion}}" />
             <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="{{ScaffoldPackageVersions.TelemetryAbstractions}}" />
             <PackageVersion Include="Microsoft.Identity.Web" Version="{{ScaffoldPackageVersions.IdentityWeb}}" />
             <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="{{profile.MicrosoftNetTestSdkPackageVersion}}" />
             <PackageVersion Include="NSubstitute" Version="{{profile.NSubstitutePackageVersion}}" />
-            <!-- Transitive security pin for Microsoft.Identity.Web.TokenCache; referenced by no project. -->
+            <!-- Pkcs is pinned transitively for Microsoft.Identity.Web.TokenCache; referenced by no project.
+                 System.Security.Cryptography.Xml is part of the ASP.NET Core shared framework, so it is pruned
+                 and serviced by the ASP.NET Core 10.0.x runtime. -->
             <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="{{ScaffoldPackageVersions.CryptographyPkcs}}" />
             <PackageVersion Include="xunit" Version="{{profile.XunitPackageVersion}}" />
             <PackageVersion Include="xunit.runner.visualstudio" Version="{{profile.XunitRunnerVisualStudioPackageVersion}}" />
@@ -92,6 +97,9 @@ public sealed partial class CratisBackendApplicationScaffold
           </PropertyGroup>
           <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
             <IsTestProject>true</IsTestProject>
+            <!-- Stage reads specification outcomes by their fully qualified test names, so the runner must keep them
+                 rather than the readable display names. -->
+            <CratisSpecificationsReadableNames>false</CratisSpecificationsReadableNames>
           </PropertyGroup>
           <ItemGroup>
             <Content Remove="package.json" />
@@ -106,6 +114,8 @@ public sealed partial class CratisBackendApplicationScaffold
             <PackageReference Include="Cratis.Arc.MongoDB" />
             <PackageReference Include="Cratis.Chronicle" />
             <PackageReference Include="Cratis.Chronicle.AspNetCore" />
+            <PackageReference Include="Cratis.Choreography" />
+            <PackageReference Include="Cratis.Choreography.Chronicle" />
             <PackageReference Include="Microsoft.Identity.Web" />
           </ItemGroup>
           <ItemGroup Condition="'$(Configuration)' == 'Debug'">

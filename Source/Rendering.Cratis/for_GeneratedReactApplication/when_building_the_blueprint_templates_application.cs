@@ -70,7 +70,7 @@ public class when_building_the_blueprint_templates_application(when_building_the
                 directory = directory.Parent;
             }
 
-            return directory!.FullName;
+            return directory.FullName;
         }
 
         async Task Establish()
@@ -79,7 +79,7 @@ public class when_building_the_blueprint_templates_application(when_building_the
             var loaded = await SemanticModelLoader.LoadFromPathAsync(folder, null, "Workspaces");
             var compilation = new PlayFileCompiler().CompileFolder(folder).Result;
             Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-            var scene = new ScreenplaySceneVisitor().Visit(compilation.Value!);
+            var scene = new ScreenplaySceneVisitor().Visit(compilation.Value);
 
             var options = new CratisRenderingOptions("Workspaces", "Workspaces");
             var profile = CratisRendering.CreateProfile("Workspaces", options, scene, null, null, null);
@@ -94,7 +94,7 @@ public class when_building_the_blueprint_templates_application(when_building_the
 
             var kept = Environment.GetEnvironmentVariable(KeepVariable);
             _keep = !string.IsNullOrWhiteSpace(kept);
-            _application = _keep ? Path.GetFullPath(kept!) : SpecTemporaryRoot.NewPath("stage-blueprint-templates");
+            _application = _keep ? Path.GetFullPath(kept) : SpecTemporaryRoot.NewPath("stage-blueprint-templates");
             if (_keep && Directory.Exists(_application))
             {
                 Directory.Delete(_application, recursive: true);
@@ -104,7 +104,7 @@ public class when_building_the_blueprint_templates_application(when_building_the
             foreach (var artifact in plan.Artifacts)
             {
                 var path = Path.Combine(_application, artifact.RelativePath.Replace('/', Path.DirectorySeparatorChar));
-                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
                 File.WriteAllBytes(path, [.. artifact.Bytes]);
             }
         }

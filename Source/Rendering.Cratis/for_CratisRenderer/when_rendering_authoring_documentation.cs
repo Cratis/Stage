@@ -24,7 +24,7 @@ public class when_rendering_authoring_documentation : Specification
             StringComparison.Ordinal);
         var compilation = new ScreenplayCompiler().Compile(source);
         Assert.True(compilation.Success, string.Join("; ", compilation.Diagnostics));
-        var application = compilation.Value!;
+        var application = compilation.Value;
         var set = new ApplicationSet([application]);
         var slices = application.Modules.Single().Features.Single().Slices.ToArray();
         _command = new StateChangeSliceRenderer().Render(new LocatedSlice(slices[0], ["Projects", "Registration"]), set, "Projects").Content;

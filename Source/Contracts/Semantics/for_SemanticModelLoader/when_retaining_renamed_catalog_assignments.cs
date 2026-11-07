@@ -41,14 +41,14 @@ public class when_retaining_renamed_catalog_assignments : given.a_release_baseli
     void should_retain_every_actual_compiler_assignment()
     {
         Assert.True(_loaded.Success, string.Join("; ", _loaded.Diagnostics));
-        Assert.NotEmpty(_loaded.Loaded!.SemanticIdentities);
+        Assert.NotEmpty(_loaded.Loaded.SemanticIdentities);
         Assert.True(_workspace.IdentityCatalog.Semantics.SequenceEqual(_loaded.Loaded.SemanticIdentities));
     }
 
     [Fact]
     void should_keep_the_persisted_id_and_exact_renamed_address_together()
     {
-        var assignment = _loaded.Loaded!.SemanticIdentities.Single(item => item.Id == _originalIdentity);
+        var assignment = _loaded.Loaded.SemanticIdentities.Single(item => item.Id == _originalIdentity);
         Assert.Equal(_renamed, assignment.Address);
         Assert.Equal("RecordedRenamed", assignment.Address.Name);
         Assert.DoesNotContain(_loaded.Loaded.SemanticIdentities, item => item.Address.Kind == SemanticKind.EventContract && item.Address.Name == "Recorded");

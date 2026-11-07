@@ -51,8 +51,8 @@ internal static class requirement_concept_order_cases
                     when Check
                       id = "{{vector.Id}}"
                       zeta = "{{vector.Zeta}}"
-                      alpha = {{vector.Alpha}}
-                      extra = {{vector.Extra}}
+                      {{(global::Cratis.Stage.Conformance.Specs.given.StructuredValueText.Assignment("alpha", vector.Alpha.ToString(System.Globalization.CultureInfo.InvariantCulture), 22))}}
+                      {{(global::Cratis.Stage.Conformance.Specs.given.StructuredValueText.Assignment("extra", vector.Extra.ToString(System.Globalization.CultureInfo.InvariantCulture), 22))}}
                     {{(vector.Message is null ? "then returns \"one\"" : $"then error \"{vector.Message}\"")}}
             """);
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("RequirementConceptOrder"));
@@ -60,7 +60,7 @@ internal static class requirement_concept_order_cases
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("requirement-concept-order"), "requirement-concept-order", "RequirementConceptOrder.play", source);
         var compilation = new SemanticModelCompiler().Compile("RequirementConceptOrder", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
 
         // Authored fixtures reject explicit null literals; pin the optional typed ESM contract.
         return ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, model.Application with
@@ -72,7 +72,7 @@ internal static class requirement_concept_order_cases
                     Slices = [.. feature.Slices.Select(slice => slice with
                     {
                         Specifications = [.. slice.Specifications.Select(specification => specification.Name == "OptionalAbsent"
-                            ? specification with { When = specification.When! with { Values = [.. specification.When.Values.Select(value => slice.Commands.Single().Properties.Single(property => property.Id == value.TargetProperty).Name == "extra" ? value with { Value = SemanticValue.Null } : value)] } }
+                            ? specification with { When = specification.When with { Values = [.. specification.When.Values.Select(value => slice.Commands.Single().Properties.Single(property => property.Id == value.TargetProperty).Name == "extra" ? value with { Value = SemanticValue.Null } : value)] } }
                             : specification)]
                     })]
                 })]

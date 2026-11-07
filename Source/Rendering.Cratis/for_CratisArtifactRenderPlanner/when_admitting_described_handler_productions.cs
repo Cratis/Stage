@@ -27,7 +27,7 @@ public class when_admitting_described_handler_productions : Specification
 
     void Because()
     {
-        var plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model, []).Plan!, new(ArtifactRenderScopeKind.Application, _model.Application.Id), new("Described", "Described"));
+        var plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model, []).Plan, new(ArtifactRenderScopeKind.Application, _model.Application.Id), new("Described", "Described"));
         _diagnostics = [.. plan.Diagnostics.Where(diagnostic => diagnostic.Artifact == _commandId)];
     }
 

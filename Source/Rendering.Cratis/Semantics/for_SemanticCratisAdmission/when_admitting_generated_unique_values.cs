@@ -19,7 +19,7 @@ public class when_admitting_generated_unique_values : Specification
     void Because()
     {
         var model = an_invite_code_model.Model();
-        _plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Invites", "Invites"));
+        _plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Invites", "Invites"));
     }
 
     [Fact] void should_admit_the_pinned_constraint_histories() => _plan.Success.ShouldBeTrue();
@@ -40,7 +40,7 @@ public class when_admitting_generated_unique_values : Specification
         var source = an_invite_code_model.Source[..an_invite_code_model.Source.IndexOf("      specification Collision", StringComparison.Ordinal)]
             .Replace("generate nanoid 6 alphabet \"AB\"", "generate " + strategy, StringComparison.Ordinal);
         var model = invoice_model.Compile(source);
-        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Invites", "Invites"));
+        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Invites", "Invites"));
         plan.Success.ShouldBeTrue();
     }
 }

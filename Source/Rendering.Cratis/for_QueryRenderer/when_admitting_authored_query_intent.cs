@@ -34,30 +34,30 @@ public class when_admitting_authored_query_intent
     void should_reject_a_symbolic_file_performer_for_every_query_shape()
     {
         var query = Compile("performer\n  file ../QueryPerformers/Invoices.cs");
-        RejectEveryShape(query, UnsupportedQueryIntentReason.FilePerformer, query.Performer!.File!.Location);
+        RejectEveryShape(query, UnsupportedQueryIntentReason.FilePerformer, query.Performer.File.Location);
     }
 
     [Fact]
     void should_reject_inline_behavior_without_parsing_or_exposing_it()
     {
         var query = Compile("performer\n  ```csharp\n  return Array.Empty<InvoiceSummary>().AsQueryable();\n  ```");
-        RejectEveryShape(query, UnsupportedQueryIntentReason.InlinePerformer, query.Performer!.Code!.Location);
+        RejectEveryShape(query, UnsupportedQueryIntentReason.InlinePerformer, query.Performer.Code.Location);
     }
 
     [Fact]
     void should_fail_closed_for_a_performer_with_neither_attachment()
     {
         var query = Compile("performer\n  file Missing.cs");
-        query = query with { Performer = query.Performer! with { File = null } };
-        RejectEveryShape(query, UnsupportedQueryIntentReason.UnsupportedPerformer, query.Performer!.Location);
+        query = query with { Performer = query.Performer with { File = null } };
+        RejectEveryShape(query, UnsupportedQueryIntentReason.UnsupportedPerformer, query.Performer.Location);
     }
 
     [Fact]
     void should_fail_closed_for_a_performer_with_both_attachments()
     {
         var query = Compile("performer\n  file Missing.cs");
-        query = query with { Performer = query.Performer! with { Code = new CodeBlockSyntax("csharp", "not even C#", SourceLocation.Start) } };
-        RejectEveryShape(query, UnsupportedQueryIntentReason.UnsupportedPerformer, query.Performer!.Location);
+        query = query with { Performer = query.Performer with { Code = new CodeBlockSyntax("csharp", "not even C#", SourceLocation.Start) } };
+        RejectEveryShape(query, UnsupportedQueryIntentReason.UnsupportedPerformer, query.Performer.Location);
     }
 
     [Fact]
@@ -129,6 +129,6 @@ public class when_admitting_authored_query_intent
         var result = new NativeScreenplayCompiler().Compile(source);
         Assert.True(result.Success, string.Join(Environment.NewLine, result.Diagnostics));
         result.Diagnostics.ShouldBeEmpty();
-        return result.Value!.Modules.Single().Features.Single().Slices.Single().Queries.Single();
+        return result.Value.Modules.Single().Features.Single().Slices.Single().Queries.Single();
     }
 }

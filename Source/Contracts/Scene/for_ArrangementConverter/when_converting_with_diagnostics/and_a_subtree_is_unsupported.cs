@@ -24,7 +24,7 @@ public class and_a_subtree_is_unsupported : Specification
             new ArrangementContainerSyntax(ArrangementContainerKind.Row, [unsupported, new ArrangementSlotSyntax("content", location)], location));
         var diagnostics = new ConversionDiagnostics();
 
-        var result = (FlowArrangement)ArrangementConverter.Convert(syntax, diagnostics, "Shell")!;
+        var result = (FlowArrangement)ArrangementConverter.Convert(syntax, diagnostics, "Shell");
 
         ((FlowContainer)result.Root).Children.Count.ShouldEqual(1);
         diagnostics.All.Count.ShouldEqual(1);

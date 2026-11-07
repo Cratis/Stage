@@ -31,22 +31,3 @@ public class with_forwarded_identity : Specification
 
     void Destroy() => _provider.Dispose();
 }
-
-public class with_forwarded_identity_only : Specification
-{
-    ServiceProvider _provider = null!;
-
-    void Because()
-    {
-        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Stage:Sandbox:ForwardedIdentity"] = "true" }).Build();
-        var services = new ServiceCollection();
-        services.AddOptions<ArcOptions>();
-        SandboxIdentityOptions.Configure(services, configuration);
-        _provider = services.BuildServiceProvider();
-    }
-
-    [Fact] void should_trust_the_identity_authproxy_forwards() => _provider.GetRequiredService<IOptions<ArcOptions>>().Value.TrustForwardedIdentityHeaders.ShouldBeTrue();
-    [Fact] void should_not_play_a_persona() => _provider.GetRequiredService<SandboxIdentityOptions>().Enabled.ShouldBeFalse();
-
-    void Destroy() => _provider.Dispose();
-}

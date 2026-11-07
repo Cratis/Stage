@@ -89,6 +89,12 @@ public static class ReadModelConverter
         string slicePath,
         ConversionDiagnostics diagnostics) => ConvertCore(slice, schema, eventPropertyTypes, eventProperties, slicePath, diagnostics);
 
+    static ProjectionDefinition? ApplyPassivity(ProjectionDefinition? projection, SliceSyntax slice, string name)
+    {
+        var passive = slice.ReadModels?.FirstOrDefault(readModel => readModel.Name == name)?.IsPassive == true;
+        return projection is not null && passive ? projection with { IsActive = false } : projection;
+    }
+
     static ReadModelDefinition? ConvertCore(
         SliceSyntax slice,
         SchemaSynthesizer schema,
@@ -132,6 +138,7 @@ public static class ReadModelConverter
         if (projection is not null)
         {
             definition = diagnostics is null ? ProjectionConverter.Convert(projection) : ProjectionConverter.Convert(projection, diagnostics, slicePath);
+            definition = ApplyPassivity(definition, slice, name);
         }
 
         return new ReadModelDefinition(

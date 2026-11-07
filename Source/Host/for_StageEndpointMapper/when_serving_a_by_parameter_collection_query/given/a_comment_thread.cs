@@ -25,14 +25,14 @@ public class a_comment_thread : for_StageEndpointMapper.given.a_routed_model
         var slice = RouteModels.Query("WorkItemComments", "CommentView");
         slice = slice with
         {
-            ReadModel = slice.ReadModel! with
+            ReadModel = slice.ReadModel with
             {
                 Schema = """{"type":"object","properties":{"commentId":{"type":"string"},"workItemId":{"type":"string"},"text":{"type":"string"}}}""",
                 Queries = [new ReadModelQueryDefinition("CommentsForWorkItem", "workItemId", true)]
             }
         };
 
-        _readModelDocuments[slice.ReadModel!.Id.ToString()] =
+        _readModelDocuments[slice.ReadModel.Id.ToString()] =
         [
             JsonSerializer.Serialize(new { id = "11111111-1111-1111-1111-111111111111", commentId = "11111111-1111-1111-1111-111111111111", workItemId = ParentA, text = CommentForA }),
             JsonSerializer.Serialize(new { id = "33333333-3333-3333-3333-333333333333", commentId = "33333333-3333-3333-3333-333333333333", workItemId = ParentB, text = CommentForB })
@@ -46,6 +46,6 @@ public class a_comment_thread : for_StageEndpointMapper.given.a_routed_model
         using var document = JsonDocument.Parse(_response.Body);
         var data = document.RootElement.GetProperty("data");
 
-        return [.. data.EnumerateArray().Select(instance => instance.GetProperty("text").GetString()!)];
+        return [.. data.EnumerateArray().Select(instance => instance.GetProperty("text").GetString())];
     }
 }

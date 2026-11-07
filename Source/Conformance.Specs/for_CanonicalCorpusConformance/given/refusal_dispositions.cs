@@ -8,6 +8,9 @@ public static class refusal_dispositions
 {
     public static readonly refusal_fingerprint InvalidGeneration = new("STAGE-ESM-019", null, "sem1:25bdf5d2a8f97601c41d6bc30d4da1d2fd4123e1ebf894d79f96b9103b85caf4");
 
+    const string ImplementationBodyCode = "STAGE-IMPL-003";
+    const int BodyExecutionIssue = 891;
+
     // Each entry allows only the exact vector/surface/fingerprint combinations listed here.
     static readonly (string[] Vectors, conformance_surface Surface, refusal_fingerprint[] Fingerprints)[] _allowedByDesign =
     [
@@ -29,7 +32,21 @@ public static class refusal_dispositions
         (["GenerationFixturesCorpus.V21", "GenerationFixturesCorpus.V21R2"], conformance_surface.Host, [new("STAGE-ESM-028", "command", "sem1:cb7e91a776653c53ea020a87d6d589bb82d105ed85303402d8081ebf9d62a964")]),
 
         // ESM v29 add/subtract by a product whose factors are not both properties of the event: Chronicle's projection engine adds one event property.
-        (["EsmGoldenVectors.V29"], conformance_surface.Renderer, [new("STAGE-ESM-050", null, "sem1:569083a6f62ce80edfc569cac4c7b0cfa3985680155539e45d7e1cfc180f5016")])
+        (["EsmGoldenVectors.V29"], conformance_surface.Renderer, [new("STAGE-ESM-050", null, "sem1:569083a6f62ce80edfc569cac4c7b0cfa3985680155539e45d7e1cfc180f5016")]),
+
+        // ESM v36 golden vector: state machines and workflows whose trigger, join or schedule shape Stage does not render.
+        (["EsmGoldenVectors.V36"], conformance_surface.Host,
+        [
+            new("STAGE-LIFECYCLE-001", "stateMachine", "InvoiceLifecycle"),
+            new("STAGE-LIFECYCLE-001", "workflow", "Collect")
+        ]),
+        (["EsmGoldenVectors.V36"], conformance_surface.Renderer,
+        [
+            new("STAGE-LIFECYCLE-001", null, "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6"),
+            new("STAGE-LIFECYCLE-005", null, "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6"),
+            new("STAGE-LIFECYCLE-007", null, "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6"),
+            new("STAGE-LIFECYCLE-010", null, "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6")
+        ])
     ];
 
     public static IReadOnlyList<string> Problems(string vector, conformance_surface surface, expected_conformance_cell expected, conformance_observation actual)
@@ -100,6 +117,18 @@ public static class refusal_dispositions
             if (record.Issue == 500 && fingerprint.Code != "STAGE-ESM-011")
             {
                 Add($"issue-500-only-tracks-STAGE-ESM-011({fingerprint})");
+            }
+
+            // #513 is closed out as a tracking issue: bodies are tracked by #891 (execution) and #316 (rendering).
+            if (record.Issue == 513)
+            {
+                Add($"issue-513-is-not-a-tracking-issue({fingerprint})");
+            }
+
+            // Implementation bodies are refused per artifact until Stage#891 executes them; no other issue tracks that code.
+            if (fingerprint.Code == ImplementationBodyCode && record.Issue is { } issue && issue != BodyExecutionIssue)
+            {
+                Add($"issue-{issue}-tracks-STAGE-IMPL-003({fingerprint})");
             }
         }
 

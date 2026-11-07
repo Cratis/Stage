@@ -28,5 +28,5 @@ public class with_unrouted : a_routed_plan
     [Fact] void should_pass_for_an_unrouted_command() => _unroutedPassed.ShouldBeTrue();
     [Fact] void should_fail_for_a_routed_command_like_the_reference() => AssertParity(false);
     [Fact] void should_omit_the_route_from_an_unrouted_report() => _unroutedRouteAbsent.ShouldBeTrue();
-    [Fact] void should_report_the_route_even_when_the_expectation_fails() => _result.Trace!.Facts.Single().Route.ShouldNotBeNull();
+    [Fact] void should_report_the_route_even_when_the_expectation_fails() => _result.Trace.Facts.Single().Route.ShouldNotBeNull();
 }

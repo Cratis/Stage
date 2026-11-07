@@ -13,9 +13,11 @@ public class when_creating_global_usings : a_current_scaffold
 
     void Because() => _content = Content("GlobalUsings.cs");
 
-    [Fact] void should_emit_exactly_the_four_global_usings_in_ordinal_order() => _content.ShouldEqual(
+    [Fact]
+    void should_emit_exactly_the_four_global_usings_in_ordinal_order() => _content.ShouldEqual(
         "global using Cratis.Arc.MongoDB;\nglobal using Cratis.Chronicle.Keys;\nglobal using MongoDB.Driver;\nglobal using System.Reactive.Subjects;\n");
     [Fact] void should_declare_no_namespace() => _content.ShouldNotContain("namespace");
-    [Fact] void should_not_depend_on_the_root_namespace() => Content("GlobalUsings.cs").ShouldEqual(
+    [Fact]
+    void should_not_depend_on_the_root_namespace() => Content("GlobalUsings.cs").ShouldEqual(
         Text(new Scaffolding.CratisBackendApplicationScaffold().Create(Scaffolding.CratisBackendApplicationScaffoldRequest.Create("Other", "Other", "Acme.Other", _profile)).Single(input => PathOf(input) == "GlobalUsings.cs")));
 }

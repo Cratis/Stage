@@ -34,6 +34,7 @@ public class when_scaffold_spelling_removes_the_last_alias_use : Specification
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable)
                 .WithSpecificDiagnosticOptions(
                 [
+
                     // The SDK suppresses these by default: a package built against an older framework assembly version
                     // (MongoDB.Driver against System.Linq.Expressions 6.0) binds to the one the host provides.
                     new KeyValuePair<string, ReportDiagnostic>("CS1701", ReportDiagnostic.Suppress),
@@ -49,7 +50,7 @@ public class when_scaffold_spelling_removes_the_last_alias_use : Specification
     void should_bind_to_the_framework_type_instead_of_the_local_model()
     {
         var field = _tree.GetRoot().DescendantNodes().OfType<FieldDeclarationSyntax>().Single();
-        var symbol = (IFieldSymbol)_compilation.GetSemanticModel(_tree).GetDeclaredSymbol(field.Declaration.Variables.Single())!;
+        var symbol = (IFieldSymbol)_compilation.GetSemanticModel(_tree).GetDeclaredSymbol(field.Declaration.Variables.Single());
         Assert.True(SymbolEqualityComparer.Default.Equals(symbol.Type.OriginalDefinition, _compilation.GetTypeByMetadataName("System.Reactive.Subjects.Subject`1")));
     }
 }

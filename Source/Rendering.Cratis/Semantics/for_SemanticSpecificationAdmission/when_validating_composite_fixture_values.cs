@@ -79,7 +79,7 @@ public class when_validating_composite_fixture_values : Specification
                   specification Checking
                     when Check
                       id = "one"
-                      value = {{value}}
+                      {{Structured("value", value, 10)}}
                     {{(rejection ? "then error \"Rejected\"" : "then returns \"one\"")}}
             """);
         if (explicitNullMembers)
@@ -88,11 +88,14 @@ public class when_validating_composite_fixture_values : Specification
             var feature = module.Features.Single();
             var slice = feature.Slices.Single();
             var specification = slice.Specifications.Single();
-            var when = specification.When!;
+            var when = specification.When;
             var changed = specification with
             {
-                When = when with { Values = [.. when.Values.Select(property => property.Value is SemanticCompositeValue or SemanticArrayValue
-                    ? property with { Value = WithNullMembers(property.Value) } : property)] }
+                When = when with
+                {
+                    Values = [.. when.Values.Select(property => property.Value is SemanticCompositeValue or SemanticArrayValue
+                    ? property with { Value = WithNullMembers(property.Value) } : property)]
+                }
             };
             model = ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, model.Application with
             {
@@ -101,7 +104,7 @@ public class when_validating_composite_fixture_values : Specification
         }
 
         var options = new CratisRenderingOptions("Inputs", "Inputs");
-        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
         var context = new SemanticApplicationContext(request, options);
         var diagnostics = new List<ArtifactRenderDiagnostic>();
         SemanticSpecificationAdmission.Validate(context, context.SelectedSlices().Single().Slice, diagnostics);
@@ -116,4 +119,6 @@ public class when_validating_composite_fixture_values : Specification
         SemanticArrayValue array => SemanticValue.Array([.. array.Values.Select(WithNullMembers)]),
         _ => SemanticValue.Null
     };
+
+    static string Structured(string property, string value, int indent) => global::Cratis.Stage.Rendering.Cratis.given.StructuredValueText.Assignment(property, value, indent);
 }

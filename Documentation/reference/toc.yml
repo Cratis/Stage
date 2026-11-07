@@ -2,6 +2,8 @@
   href: projects.md
 - name: URLs of a running Stage
   href: urls.md
+- name: Published applications and export
+  href: published-applications.md
 - name: Scene UI render plans
   href: render-plans.md
 - name: Concept compliance rendering
@@ -12,16 +14,22 @@
   href: custom-packages.md
 - name: How the Stage renders a model
   href: stage-rendering.md
+- name: Cratis renderer compatibility
+  href: renderer-compatibility.md
 - name: Generated values and command responses
   href: generated-values-rendering.md
 - name: Event reaction rendering
   href: reaction-rendering.md
+- name: State machines and workflows
+  href: state-machines-and-workflows.md
 - name: Event-source routing
   href: event-source-routing.md
 - name: Protected reads rendering
   href: protected-reads-rendering.md
 - name: Authentication rendering
   href: authentication-rendering.md
+- name: Graph rendering
+  href: graph-rendering.md
 - name: Onboarding rendering
   href: onboarding-rendering.md
 - name: Plan artifacts from Screenplay sources

@@ -24,7 +24,8 @@ public class when_preserving_literal_bytes_in_member_bodies : Specification
     [Fact] void should_preserve_raw_multiline_literal_indentation_during_import_rewriting() => _rewritten.ShouldContain("        var raw = \"\"\"\n            first\n                global::System.Text.RegularExpressions.Regex // { }\n            last\n        \"\"\";\n");
     [Fact] void should_preserve_escaped_quotes_comment_text_and_braces_during_import_rewriting() => _rewritten.ShouldContain("        var escaped = \"\\\"quoted\\\" // /* */ { global::System.Text.RegularExpressions.Regex }\";\n");
     [Fact] void should_still_rewrite_the_generated_type_outside_the_authored_body() => _rewritten.ShouldContain("    public Regex Pattern() => null!;\n");
-    [Fact] void should_preserve_the_complete_authored_body_during_file_finalization() => _finalized.ShouldEqual(
+    [Fact]
+    void should_preserve_the_complete_authored_body_during_file_finalization() => _finalized.ShouldEqual(
         "using System.Text.RegularExpressions;\n\nnamespace Shop.Common;\n\n" +
         "public class Draft\n" +
         "{\n" +

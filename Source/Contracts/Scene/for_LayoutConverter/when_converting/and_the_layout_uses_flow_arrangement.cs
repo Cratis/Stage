@@ -52,5 +52,5 @@ public class and_the_layout_uses_flow_arrangement : Specification
     [Fact] void should_leave_grow_unset_on_the_non_growing_slot_leaf() => Row.Children[0].Grow.ShouldBeNull();
     [Fact] void should_carry_the_row_container_kind() => Row.Kind.ShouldEqual(FlowContainerKind.Row);
 
-    FlowRow Row => (FlowRow)((FlowArrangement)_result.Arrangement!).Root;
+    FlowRow Row => (FlowRow)((FlowArrangement)_result.Arrangement).Root;
 }

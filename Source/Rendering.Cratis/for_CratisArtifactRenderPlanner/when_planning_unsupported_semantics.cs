@@ -47,10 +47,10 @@ public class when_planning_unsupported_semantics : a_register_project_render_req
         var compilation = new SemanticModelCompiler().Compile(
             "Projects",
             SemanticDocumentSet.Create([document], catalog));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var command = model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.Name == "RegisterProject").Commands.Single();
         _hasUnallocatedDestination = command.Destination is null && command.Produces.Single().Destination is null;
-        var executionPlan = SemanticExecutionPlan.Compile(model).Plan!;
+        var executionPlan = SemanticExecutionPlan.Compile(model).Plan;
         var request = new ArtifactRenderRequest(
             model,
             executionPlan,

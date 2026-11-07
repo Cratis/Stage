@@ -33,7 +33,7 @@ public class with_reaction_boundaries_beside_another_slices_publication : Specif
         if (!rejectSecond)
         {
             var accepted = (SemanticAccepted)reference.Execution;
-            actual.Trace!.Facts.Select(fact => fact.EventContract).ShouldEqual(accepted.Facts.Select(fact => fact.EventContract.ToString()));
+            actual.Trace.Facts.Select(fact => fact.EventContract).ShouldEqual(accepted.Facts.Select(fact => fact.EventContract.ToString()));
             var names = accepted.Facts.Select(fact => plan.Events[fact.EventContract].Name).ToArray();
             names.ShouldEqual(["Started", "First", "Second"]);
         }

@@ -15,6 +15,20 @@ internal sealed record EsmSupport(
     ImmutableArray<(LanguageVersion Language, SemanticVersion Semantics)> Audited,
     EsmVersionRange Accepts)
 {
+    /// <summary>
+    /// Gets the audited pairs whose newer constructs the ledger still checks one by one: a model of such a pair is admitted, but a populated
+    /// member the ledger gates (for instance the ESM v37 clock constructs inside a v38 model) is refused like a member of an unaudited pair.
+    /// </summary>
+    internal ImmutableArray<(LanguageVersion Language, SemanticVersion Semantics)> MemberScanned { get; init; } = [];
+
+    /// <summary>
+    /// Gets whether the populated members of a model of this pair are checked against the ledger.
+    /// </summary>
+    /// <param name="language">The language version.</param>
+    /// <param name="semantic">The semantic version.</param>
+    /// <returns>True when the pair is audited and member scanned.</returns>
+    internal bool ScansMembers(LanguageVersion language, SemanticVersion semantic) => MemberScanned.Contains((language, semantic));
+
     internal EsmVersionStanding Classify(LanguageVersion language, SemanticVersion semantic)
     {
         if (Audited.Contains((language, semantic))) return EsmVersionStanding.Audited;

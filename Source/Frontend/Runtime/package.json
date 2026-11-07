@@ -26,22 +26,24 @@
     "test": "vitest run"
   },
   "peerDependencies": {
-    "@cratis/arc": "22.146.0",
-    "@cratis/arc.react": "22.146.0",
-    "@cratis/components": "4.38.1",
-    "@cratis/fundamentals": "7.27.0",
-    "@cratis/scene.blueprint.default": "4.86.0",
-    "@cratis/scene.components": "4.86.0",
-    "@cratis/scene.engine": "4.86.0",
-    "@cratis/scene.model": "4.86.0",
-    "@cratis/scene.primereact": "4.86.0",
-    "@cratis/scene.react": "4.86.0",
-    "@primereact/ui": "11.2.0",
-    "@primeuix/themes": "3.0.1",
-    "lucide-react": "1.52.0",
-    "primereact": "11.2.0",
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
+    "@cratis/arc": "22.168.0",
+    "@cratis/arc.react": "22.168.0",
+    "@cratis/components": "4.40.0",
+    "@cratis/fundamentals": "7.33.1",
+    "@cratis/scene.blueprint.default": "4.88.0",
+    "@cratis/scene.components": "4.88.0",
+    "@cratis/scene.engine": "4.88.0",
+    "@cratis/scene.model": "4.88.0",
+    "@cratis/scene.primereact": "4.88.0",
+    "@cratis/scene.react": "4.88.0",
+    "@cratis/showrunner.notes": "1.0.0",
+    "@cratis/showrunner.notes.react": "1.0.0",
+    "@primereact/ui": "11.2.2",
+    "@primeuix/themes": "3.1.0",
+    "lucide-react": "1.68.0",
+    "primereact": "11.2.2",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
     "vite": "8.3.5"
   },
   "peerDependenciesMeta": {
@@ -51,15 +53,15 @@
     "primereact": { "optional": true }
   },
   "devDependencies": {
-    "@primereact/core": "11.2.0",
+    "@primereact/core": "11.2.2",
     "@testing-library/react": "16.3.3",
-    "@types/node": "26.6.4",
+    "@types/node": "26.6.6",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
-    "@vitejs/plugin-react": "6.1.1",
-    "jsdom": "30.1.2",
-    "react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.2.1",
+    "jsdom": "30.1.3",
+    "react-dom": "19.3.1",
     "typescript": "6.0.3",
-    "vitest": "5.0.3"
+    "vitest": "5.1.0"
   }
 }

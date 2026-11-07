@@ -38,6 +38,7 @@ internal static class WarmHost
         _ = StageHostModeSelection.Read(builder.Configuration, args, engine, warmMode: true);
         var routeOptions = StageHttpRouteOptions.FromConfiguration(builder.Configuration);
         builder.AddStageCratis(eventStore, programIdentifier: $"Cratis Stage ({eventStore})", routeOptions: routeOptions);
+        builder.AddStageOrleans();
         builder.Services.AddSingleton<StageEventStoreName>(eventStore);
         builder.Services.Configure<ForwardedHeadersOptions>(options =>
         {

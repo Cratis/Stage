@@ -14,7 +14,7 @@ internal static class SemanticTypedContextRenderer
 {
     internal static RenderedFile Render(SemanticTypedContextDescriptor descriptor, SemanticApplicationContext context)
     {
-        var name = WrapperName(descriptor);
+        var name = context.ContextNames.ContextWrapper(descriptor);
         var builder = context.CodeBuilder().Namespace(context.TypedContextsNamespace);
         var definitions = descriptor.Types.ToDictionary(definition => definition.Id);
         foreach (var definition in definitions.Values)
@@ -111,7 +111,7 @@ internal static class SemanticTypedContextRenderer
                 if (query.Argument is null) throw Rejected($"Shape '{id}' names a query without arguments.");
                 var expected = new SemanticContextProperty(query.Argument.Name, query.Argument.Id, query.Argument.Type);
                 if (properties.Length != 1 || properties[0] != expected) throw Rejected($"Shape '{id}' differs from query arguments.");
-                var localName = LocalShapeName(descriptor, memberName);
+                var localName = context.ContextNames.ContextShape(descriptor, memberName);
                 localShapes.Add(id, (localName, [.. properties]));
                 return localName;
             }
@@ -144,13 +144,6 @@ internal static class SemanticTypedContextRenderer
             return reference.IsOptional ? $"{type}?" : type;
         }
     }
-
-    internal static string WrapperName(SemanticTypedContextDescriptor descriptor) => $"TypedContext_{Suffix(descriptor)}";
-
-    internal static string LocalShapeName(SemanticTypedContextDescriptor descriptor, string memberName) => $"{WrapperName(descriptor)}_{Identifiers.ToPascalCase(memberName)}Shape";
-
-    internal static string Suffix(SemanticTypedContextDescriptor descriptor) =>
-        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{descriptor.RequirementId}:{descriptor.OperationId}")))[..16];
 
     static bool SameProperties(System.Collections.Immutable.ImmutableArray<SemanticContextProperty> actual, System.Collections.Immutable.ImmutableArray<SemanticProperty> expected) =>
         !actual.IsDefault && actual.Length == expected.Length && actual.Zip(expected).All(pair =>

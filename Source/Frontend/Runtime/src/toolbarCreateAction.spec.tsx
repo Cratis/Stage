@@ -27,23 +27,25 @@ const routes = { commands: { PlanShipment: '/api/plan' }, queries: { AllShipment
 const rows = [{ orderId: '7d1c8f3a-0000-4000-8000-000000000001', consignee: 'Fjordline' }, { orderId: '7d1c8f3a-0000-4000-8000-000000000002', consignee: 'Norsk Fisk' }];
 const typedOrder = '9a9a9a9a-0000-4000-8000-000000000009';
 
-async function renderShipments(actionProperties: Record<string, unknown> = {}) {
-    registerStageCommands(routes);
+async function renderShipments(actionProperties: Record<string, unknown> = {}, plain = false, screenRows = rows, schema = planShipment) {
+    const activeRoutes = { ...routes, commandSchemas: { PlanShipment: schema } };
+    registerStageCommands(activeRoutes);
     registerTestQueries(routes.queries);
     const fetched = vi.fn((_: RequestInfo | URL, init?: RequestInit) => init?.method === 'POST'
         ? Promise.resolve({ ok: true, json: async () => commandResult() })
-        : Promise.resolve({ ok: true, json: async () => queryResult({ data: rows }) }));
+        : Promise.resolve({ ok: true, json: async () => queryResult({ data: screenRows }) }));
     vi.stubGlobal('fetch', fetched);
     globalThis.location.hash = '#/Shipments';
     const table = element('shipments', 'core:table', { query: 'AllShipments', typeName: 'ShipmentRow' }, { columns: [element('consignee', 'core:column', { property: 'consignee', label: 'Consignee' })] });
-    const item = element('plan', 'core:toolbarItem', { name: 'plan', kind: 'Action', label: 'Add shipment', target: 'PlanShipment', ...actionProperties });
+    const item = element('plan', plain ? 'core:action' : 'core:toolbarItem', { name: 'plan', kind: 'Action', label: 'Add shipment', target: 'PlanShipment', command: 'PlanShipment', ...actionProperties });
+    const Action = plain ? stageComponents['core:action'] : StageToolbarItem;
     await act(async () => {
-        render(<StageDataProvider routes={routes} locale='en' locales={['en']} screen='Shipments'>
-            <StageToolbarItem element={item} slots={{}} />
+        render(<StageDataProvider routes={activeRoutes} locale='en' locales={['en']} screen='Shipments'>
+            <Action element={item} slots={{}} />
             <RegisteredTable element={table} slots={{}} />
         </StageDataProvider>);
     });
-    await screen.findByText('Fjordline');
+    if (screenRows.length > 0) await screen.findByText('Fjordline');
     return fetched;
 }
 
@@ -60,6 +62,23 @@ async function submit(fetched: Awaited<ReturnType<typeof renderShipments>>) {
 
 describe('a toolbar action that creates an entity beside a list carrying a related identifier', () => {
     afterEach(() => { vi.unstubAllGlobals(); globalThis.localStorage?.clear(); });
+
+    it('opens a route-only plain creation on an empty list despite an advisory row hint', async () => {
+        const fetched = await renderShipments({ rowAction: true }, true, []);
+        expect((screen.getByRole('button', { name: 'Add shipment' }) as HTMLButtonElement).disabled).toBe(false);
+        expect(await submit(fetched)).toEqual({ orderId: typedOrder, carrier: 'Posten' });
+    });
+
+    it('does not take an existing row identity for a route-only plain creation', async () => {
+        const fetched = await renderShipments({ rowAction: true }, true);
+        fireEvent.click(screen.getByText('Norsk Fisk'));
+        expect(await submit(fetched)).toEqual({ orderId: typedOrder, carrier: 'Posten' });
+    });
+
+    it('does not promote an explicit negative schema through a stale creation hint', async () => {
+        await renderShipments({ createsEntity: true, rowAction: true }, true, rows, planShipment.replace('"x-creates":true', '"x-creates":false'));
+        await waitFor(() => expect((screen.getByRole('button', { name: 'Add shipment' }) as HTMLButtonElement).disabled).toBe(true));
+    });
 
     it('is enabled without selecting a row', async () => {
         await renderShipments();

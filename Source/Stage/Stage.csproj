@@ -21,6 +21,7 @@
         <PackageReference Include="Cratis" />
         <PackageReference Include="Cratis.Fundamentals" />
         <PackageReference Include="Cratis.Arc.MongoDB" />
+        <PackageReference Include="Cratis.Arc.Neo4j" />
         <!--
             The Chronicle client packages are referenced directly, not left to arrive transitively through the Cratis
             meta-package: central package management only pins direct references, so without these the client ships at
@@ -37,6 +38,7 @@
         <!-- Share the executor's value-shape rule and renderer predicates without referencing the Testing executor. -->
         <Compile Include="../Specifications/Commands/SemanticValueShapeAdmission.cs" Link="Semantics/Admission/SemanticValueShapeAdmission.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/Projections/SemanticScopedProjectionSupport.cs" Link="Semantics/Admission/SemanticScopedProjectionSupport.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/Projections/SemanticKeyedRootJoinOrdering.cs" Link="Semantics/Admission/SemanticKeyedRootJoinOrdering.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/Projections/SemanticProjectionProducts.cs" Link="Semantics/Admission/SemanticProjectionProducts.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/Projections/SemanticFlatProjectionSupport.cs" Link="Semantics/Admission/SemanticFlatProjectionSupport.cs" />
         <Compile Include="../Rendering.Cratis/Naming/GeneratedPascalCase.cs" Link="Semantics/Admission/GeneratedPascalCase.cs" />

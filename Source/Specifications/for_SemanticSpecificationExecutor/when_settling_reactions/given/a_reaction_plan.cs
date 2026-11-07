@@ -61,9 +61,9 @@ public class a_reaction_plan : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("reaction"), "reaction", "Reaction.play", source);
         var compilation = new SemanticModelCompiler().Compile("Reactions", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var compiled = SemanticExecutionPlan.Compile(compilation.Value!.Model);
+        var compiled = SemanticExecutionPlan.Compile(compilation.Value.Model);
         Assert.NotNull(compiled.Plan);
-        _plan = compiled.Plan!;
+        _plan = compiled.Plan;
     }
 
     protected async Task Execute()

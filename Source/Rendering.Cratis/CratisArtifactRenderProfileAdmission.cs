@@ -133,6 +133,12 @@ static class CratisArtifactRenderProfileAdmission
             return false;
         }
 
+        if (!PassiveReadModelsInput.TryRead(profile, model, out _))
+        {
+            mismatch = "The Cratis profile carries malformed, stale, duplicate or unsupported passive read-model metadata.";
+            return false;
+        }
+
         var domains = profile.Inputs.Where(input => input.Name == DomainPlacementInput.Name).ToArray();
         if (domains.Length > 1 || (domains.Length == 1 &&
             (!DomainPlacementInput.TryRead(domains[0], out var domain) || DomainPlacementInput.IsReserved(domain, expected))))

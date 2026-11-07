@@ -34,17 +34,17 @@ internal static class optional_concept_command_rule_cases
                   specification {{vector.Name}}Absent
                     when Check{{vector.Name}}
                       id = "one"
-                      value = {{vector.Valid}}
+                      {{(global::Cratis.Stage.Conformance.Specs.given.StructuredValueText.Assignment("value", vector.Valid, 22))}}
                     then returns "one"
                   specification {{vector.Name}}Valid
                     when Check{{vector.Name}}
                       id = "one"
-                      value = {{vector.Valid}}
+                      {{(global::Cratis.Stage.Conformance.Specs.given.StructuredValueText.Assignment("value", vector.Valid, 22))}}
                     then returns "one"
                   specification {{vector.Name}}Invalid
                     when Check{{vector.Name}}
                       id = "one"
-                      value = {{vector.Invalid}}
+                      {{(global::Cratis.Stage.Conformance.Specs.given.StructuredValueText.Assignment("value", vector.Invalid, 22))}}
                     then error "{{vector.Message}}"
             """);
         var source = "concept Count : Int\nconcept Amount : Decimal\nconcept Flag : Bool\nmodule Inputs\n  feature Optional\n" + string.Join('\n', slices);
@@ -52,7 +52,7 @@ internal static class optional_concept_command_rule_cases
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("optional-rules"), "optional-rules", "OptionalRules.play", source);
         var compilation = new SemanticModelCompiler().Compile("OptionalRules", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
 
         // Authored fixtures reject explicit null literals. Exercise the optional typed ESM contract.
         return ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, model.Application with
@@ -64,7 +64,7 @@ internal static class optional_concept_command_rule_cases
                     Slices = [.. feature.Slices.Select(slice => slice with
                     {
                         Specifications = [.. slice.Specifications.Select(specification => specification.Name.EndsWith("Absent", StringComparison.Ordinal)
-                            ? specification with { When = specification.When! with { Values = [.. specification.When.Values.Select(value => slice.Commands.Single().Properties.Single(property => property.Id == value.TargetProperty).Name == "value" ? value with { Value = SemanticValue.Null } : value)] } }
+                            ? specification with { When = specification.When with { Values = [.. specification.When.Values.Select(value => slice.Commands.Single().Properties.Single(property => property.Id == value.TargetProperty).Name == "value" ? value with { Value = SemanticValue.Null } : value)] } }
                             : specification)]
                     })]
                 })]

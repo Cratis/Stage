@@ -19,8 +19,8 @@ public class with_generated_concept_conversions
 {
     const string ConstructedBody = "return new ChangeRequest(TalkId: new global::Projects.Common.TalkId(Guid.Parse(context.Key)), Reason: context.Event.Reason, RequestedAt: context.Event.RequestedAt);";
 
-    public static TheoryData<AdmittedConceptBody> AdmittedBodies => new()
-    {
+    public static TheoryData<AdmittedConceptBody> AdmittedBodies =>
+    [
         new() { Self = false, Primitive = "String", Body = "return new ChangeRequest(context.Key, context.Key, context.Event.RequestedAt);" },
         new() { Self = true, Primitive = "String", Body = "return new ChangeRequest(context.Key, context.Key, context.Event.RequestedAt);" },
         new() { Self = false, Primitive = "String", Body = "return new ChangeRequest(TalkId: context.Key, Reason: context.Key, RequestedAt: context.Event.RequestedAt);" },
@@ -37,7 +37,7 @@ public class with_generated_concept_conversions
         new() { Self = true, Primitive = "String", Body = "Reason reason = context.Key.Length > 0 ? null : \"text\"; return new ChangeRequest(TalkId: context.Key, Reason: reason, RequestedAt: context.Event.RequestedAt);" },
         new() { Self = false, Primitive = "String", Body = "string? s = null; string text = s!; global::Projects.Common.Reason r = text; return new ChangeRequest(TalkId: context.Key, Reason: r, RequestedAt: context.Event.RequestedAt);" },
         new() { Self = true, Primitive = "String", Body = "string? s = null; string text = s!; Reason r = text; return new ChangeRequest(TalkId: context.Key, Reason: r, RequestedAt: context.Event.RequestedAt);" }
-    };
+    ];
 
     [Theory]
     [MemberData(nameof(AdmittedBodies))]
@@ -66,13 +66,13 @@ public class with_generated_concept_conversions
         Assert.Contains(synthetic.BoundSymbols, identity => identity.Contains("Projects.Common.TalkId.op_Implicit", StringComparison.Ordinal));
     }
 
-    public static TheoryData<RefusedConceptOperation> RefusedOperations => new()
-    {
+    public static TheoryData<RefusedConceptOperation> RefusedOperations =>
+    [
         new() { Prefix = "string text = context.State.Reason;", Code = "STAGE-ESM-019", Message = "CS0029", ValueHint = true },
         new() { Prefix = "_ = context.State.Reason == \"text\";", Code = "STAGE-ESM-022", Message = "Symbol 'Projects.Common.Reason.operator ==", ValueHint = false },
         new() { Prefix = "global::Projects.Common.Reason reason = null;", Code = "STAGE-ESM-022", Message = "Conversion to 'Projects.Common.Reason?' is outside the pure allowlist.", ValueHint = false },
         new() { Prefix = "global::Projects.Common.Reason reason = default(string);", Code = "STAGE-ESM-022", Message = "Conversion to 'Projects.Common.Reason' is outside the pure allowlist.", ValueHint = false }
-    };
+    ];
 
     [Theory]
     [MemberData(nameof(RefusedOperations))]
@@ -95,17 +95,17 @@ public class with_generated_concept_conversions
     [Fact]
     public async Task should_admit_explicit_value_reads_instead_of_concept_to_primitive_conversion()
     {
-        var body = "string text = context.State.Reason.Value; " + ConstructedBody;
+        const string body = "string text = context.State.Reason.Value; " + ConstructedBody;
         var loaded = await when_rendering_a_pure_reducer.Load(with_a_body.Model(body, performer: false));
         var plan = when_rendering_a_pure_reducer.Plan(loaded);
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
     }
 
-    public static TheoryData<PeerConceptOperator> PeerOperators => new()
-    {
+    public static TheoryData<PeerConceptOperator> PeerOperators =>
+    [
         new() { Name = "Peer", Namespace = "Projects.Peers" },
         new() { Name = "Reason", Namespace = "Projects.Peers.Common" }
-    };
+    ];
 
     [Theory]
     [MemberData(nameof(PeerOperators))]
@@ -124,7 +124,7 @@ public class with_generated_concept_conversions
         var compilation = RenderedOutput.CreateCompilation(files).AddSyntaxTrees(CSharpSyntaxTree.ParseText(
             $"namespace {peerNamespace} {{ public record {name}(string Value) {{ public static implicit operator {name}(string value) => new(value); }} }}"));
         Assert.DoesNotContain(compilation.GetDiagnostics(), diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
-        var peer = compilation.GetTypeByMetadataName($"{peerNamespace}.{name}")!;
+        var peer = compilation.GetTypeByMetadataName($"{peerNamespace}.{name}");
         var method = Assert.Single(peer.GetMembers("op_Implicit").OfType<IMethodSymbol>());
         Assert.False(PureTransitionAdmission.IsGeneratedConceptConversion(method, PureTransitionAdmission.GeneratedConceptSymbols(context, compilation)));
         var verdict = PureTransitionAdmission.AnalyzeRendered(compilation, path, loaded.TypedContextDescriptors.Single(), context);
@@ -142,7 +142,7 @@ public class with_generated_concept_conversions
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         var compilation = RenderedOutput.CreateCompilation(Files(plan));
         var trusted = PureTransitionAdmission.GeneratedConceptSymbols(context, compilation);
-        var operators = trusted.Keys.SelectMany(concept => concept.BaseType!.GetMembers().OfType<IMethodSymbol>())
+        var operators = trusted.Keys.SelectMany(concept => concept.BaseType.GetMembers().OfType<IMethodSymbol>())
             .Where(method => method.MethodKind == MethodKind.Conversion).ToArray();
         Assert.NotEmpty(operators);
         Assert.All(operators, method => Assert.False(PureTransitionAdmission.IsGeneratedConceptConversion(method, trusted)));
@@ -153,7 +153,7 @@ public class with_generated_concept_conversions
     {
         const string safeBody = "return new ReducerTotal(Sku: context.Event.Sku, Stock: new global::Projects.Common.StockQuantity(0));";
         const string refusedBody = "global::Projects.Common.StockQuantity stock = context.Event.Quantity; return new ReducerTotal(Sku: context.Event.Sku, Stock: stock);";
-        var source = when_executing_running_totals_of_concept_values.Source + "\n" + """
+        const string source = when_executing_running_totals_of_concept_values.Source + "\n" + """
                 slice StateView ReducedDemand
                   readmodel ReducerTotal
                     sku Sku key
@@ -178,8 +178,8 @@ public class with_generated_concept_conversions
             : file);
         var compilation = RenderedOutput.CreateCompilation(files);
         Assert.DoesNotContain(compilation.GetDiagnostics(), diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
-        var target = compilation.GetTypeByMetadataName("Projects.Common.StockQuantity")!;
-        var method = Assert.Single(target.GetMembers("op_Implicit").OfType<IMethodSymbol>().Where(candidate => candidate.Parameters[0].Type.Name == "Quantity"));
+        var target = compilation.GetTypeByMetadataName("Projects.Common.StockQuantity");
+        var method = Assert.Single(target.GetMembers("op_Implicit").OfType<IMethodSymbol>(), candidate => candidate.Parameters[0].Type.Name == "Quantity");
         Assert.False(PureTransitionAdmission.IsGeneratedConceptConversion(method, PureTransitionAdmission.GeneratedConceptSymbols(context, compilation)));
         var rendered = PureTransitionAdmission.AnalyzeRendered(compilation, path, loaded.TypedContextDescriptors.Single(), context);
         Assert.False(rendered.Accepted);
@@ -251,7 +251,9 @@ public class with_generated_concept_conversions
 
     static SemanticApplicationContext Context(LoadedSemanticModel loaded, bool self)
     {
-        var request = new ArtifactRenderRequest(loaded.Model, loaded.Plan,
+        var request = new ArtifactRenderRequest(
+            loaded.Model,
+            loaded.Plan,
             self ? CratisRendering.CreateNewApplicationProfile("Projects", new("Projects", "Projects")) : CratisRendering.CreateProfile("Projects", new("Projects", "Projects")),
             new(ArtifactRenderScopeKind.Application, loaded.Model.Application.Id))
         {
@@ -263,8 +265,13 @@ public class with_generated_concept_conversions
     static PureTransitionAdmission.Verdict Analyze(string body, LoadedSemanticModel loaded, SemanticApplicationContext context)
     {
         var reducer = context.Reducers.Single();
-        return PureTransitionAdmission.Analyze(body, context, context.ReadModels[reducer.ReadModel],
-            context.Events[reducer.Transitions.Single().EventContract], loaded.TypedContextDescriptors.Single(), loaded.ImplementationRequirements.Single());
+        return PureTransitionAdmission.Analyze(
+            body,
+            context,
+            context.ReadModels[reducer.ReadModel],
+            context.Events[reducer.Transitions.Single().EventContract],
+            loaded.TypedContextDescriptors.Single(),
+            loaded.ImplementationRequirements.Single());
     }
 
     static string ReducerPath(ArtifactRenderPlan plan, bool self) => plan.Artifacts.Single(artifact =>

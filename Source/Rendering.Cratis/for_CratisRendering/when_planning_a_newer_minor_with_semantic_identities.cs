@@ -15,8 +15,8 @@ public class when_planning_a_newer_minor_with_semantic_identities : given.a_sour
     ArtifactRenderPlan Plan(bool strict)
     {
         var model = _loaded.Model;
-        typeof(ExecutableSemanticModel).GetField("<LanguageVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(model, new LanguageVersion(32, 1));
-        typeof(ExecutableSemanticModel).GetField("<SemanticVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(model, new SemanticVersion(32, 1));
+        typeof(ExecutableSemanticModel).GetField("<LanguageVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(model, new LanguageVersion(32, 1));
+        typeof(ExecutableSemanticModel).GetField("<SemanticVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(model, new SemanticVersion(32, 1));
         var projects = model.Application.Modules.Single(module => module.Name == "Projects");
         var request = new ArtifactRenderRequest(
             model,

@@ -10,6 +10,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_redelivering_a_captured_event;
 
+[PerFactSpecificationLifecycle]
 public class with_overlapping_deliveries : given.a_captured_delivery
 {
     void Because() => Render();

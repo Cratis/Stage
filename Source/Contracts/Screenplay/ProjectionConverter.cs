@@ -136,6 +136,7 @@ public static class ProjectionConverter
 
                         context.Every = context.Every with
                         {
+                            IncludeChildren = every.IncludeChildren,
                             Properties = [.. merged.Select(_ => new PropertyMapping(_.Key, _.Value))],
                             AutoMap = every.AutoMap == AutoMapMode.Inherit ? context.Every.AutoMap : Resolve(every.AutoMap, rootAutoMap)
                         };

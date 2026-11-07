@@ -18,7 +18,7 @@ public class and_a_command_changes_the_read_model : live_projects
     async Task Because()
     {
         _result = await Perform("LiveProjects");
-        var emissions = Observe((IObservable<IEnumerable<Api.DynamicReadModel>>)_result!, out _subscription);
+        var emissions = Observe((IObservable<IEnumerable<Api.DynamicReadModel>>)_result, out _subscription);
         _current = await Next(emissions);
         await Register("project-1", "Screenplay");
         _updated = await Next(emissions);
@@ -26,7 +26,7 @@ public class and_a_command_changes_the_read_model : live_projects
 
     void Destroy() => _subscription.Dispose();
 
-    [Fact] void should_answer_with_an_observable_of_the_collection() => _result!.GetType().GetInterfaces().ShouldContain(typeof(ISubject<>).MakeGenericType(typeof(IEnumerable<>).MakeGenericType(_performer.ReadModelType)));
+    [Fact] void should_answer_with_an_observable_of_the_collection() => _result.GetType().GetInterfaces().ShouldContain(typeof(ISubject<>).MakeGenericType(typeof(IEnumerable<>).MakeGenericType(_performer.ReadModelType)));
     [Fact] void should_emit_the_current_result_first() => _current.ShouldBeEmpty();
     [Fact] void should_emit_the_new_result_after_the_command() => Names(_updated).ShouldContainOnly("project-1");
 }

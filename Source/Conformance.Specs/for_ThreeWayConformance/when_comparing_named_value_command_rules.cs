@@ -30,7 +30,7 @@ public class when_comparing_named_value_command_rules(when_comparing_named_value
 
         async Task Because()
         {
-            var plan = SemanticExecutionPlan.Compile(named_value_command_cases.Compile()).Plan!;
+            var plan = SemanticExecutionPlan.Compile(named_value_command_cases.Compile()).Plan;
             var probes = plan.Specifications.Values.Select(specification =>
             {
                 var reference = new SemanticSpecificationRunner().Run(plan, specification.Id);
@@ -39,7 +39,7 @@ public class when_comparing_named_value_command_rules(when_comparing_named_value
                     ? rejected.ValidationFailures.Select(failure => new[] { failure.Message, failure.Severity.ToString() }).ToArray()
                     : [];
                 Assert.Equal(specification.Name.EndsWith("Invalid", StringComparison.Ordinal), failures.Length > 0);
-                var command = plan.Commands[specification.When!.Command];
+                var command = plan.Commands[specification.When.Command];
                 var input = specification.When.Values.Single(value => command.Properties.Single(property => property.Id == value.TargetProperty).Name == "value").Value;
                 var member = input is SemanticTextValue text ? Identifiers.ToPascalCase(text.Value) : null;
                 return $$"""
@@ -50,7 +50,10 @@ public class when_comparing_named_value_command_rules(when_comparing_named_value
                         var enumType = Nullable.GetUnderlyingType(valueType) ?? valueType;
                         string? member = {{JsonSerializer.Serialize(member)}};
                         var value = member is null ? null : Enum.Parse(enumType, member);
+                        // Untyped scenarios cannot select decision reads automatically: https://github.com/Cratis/Arc/issues/3669
+                        #pragma warning disable CS0618
                         using var scenario = new Cratis.Arc.Testing.Commands.CommandScenario<object>().UseDecisionReads();
+                        #pragma warning restore CS0618
                         var result = await scenario.Execute(constructor.Invoke(["one", value, Enum.Parse(enumType, "InReview")]));
                         Assert.False(result.HasExceptions, string.Join("; ", result.ExceptionMessages));
                         var expected = System.Text.Json.JsonSerializer.Deserialize<string[][]>({{JsonSerializer.Serialize(JsonSerializer.Serialize(failures))}})!;

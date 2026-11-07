@@ -19,8 +19,8 @@ public class when_refusing_mixed_exact_number_versions
     public void should_refuse_without_emitting_artifacts(int language, int semantic)
     {
         var model = invoice_model.Compile(an_exact_number_model.Source);
-        typeof(ExecutableSemanticModel).GetField("<LanguageVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(model, new LanguageVersion((uint)language, 0));
-        typeof(ExecutableSemanticModel).GetField("<SemanticVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(model, new SemanticVersion((uint)semantic, 0));
+        typeof(ExecutableSemanticModel).GetField("<LanguageVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(model, new LanguageVersion((uint)language, 0));
+        typeof(ExecutableSemanticModel).GetField("<SemanticVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(model, new SemanticVersion((uint)semantic, 0));
         var plan = invoice_model.Plan(model);
         plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly("STAGE-ESM-016");
         plan.Artifacts.ShouldBeEmpty();

@@ -57,10 +57,10 @@ public class with_one_trigger : for_SemanticAutomationArtifactRenderer.given.an_
         source.ShouldContain("OnceOnly");
         source.ShouldNotContain("IdempotencyKey");
         var assembly = RenderedOutput.Load(Files());
-        var type = assembly.GetType("Reactions.Work.Processing.FollowUp.Worker")!;
+        var type = assembly.GetType("Reactions.Work.Processing.FollowUp.Worker");
         var handler = type.GetMethods().Single(method => method.Name == "Started");
-        var started = Activator.CreateInstance(assembly.GetType("Reactions.Work.Processing.FollowUp.Started")!, "one");
-        var effects = ((IEnumerable<object>)handler.Invoke(Activator.CreateInstance(type), [started, EventContext.EmptyWithEventSourceId("trigger")])!).ToArray();
+        var started = Activator.CreateInstance(assembly.GetType("Reactions.Work.Processing.FollowUp.Started"), "one");
+        var effects = ((IEnumerable<object>)handler.Invoke(Activator.CreateInstance(type), [started, EventContext.EmptyWithEventSourceId("trigger")])).ToArray();
         effects.Take(2).Cast<EventForEventSourceId>().Select(effect => effect.Event.GetType().Name).ShouldEqual(["Recorded", "Audited"]);
         effects.Take(2).Cast<EventForEventSourceId>().Select(effect => effect.EventSourceId.Value).ShouldEqual(["one", "audit"]);
         effects.Skip(2).Select(effect => effect.GetType().Name).ShouldEqual(["Complete", "Notify"]);

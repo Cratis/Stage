@@ -81,7 +81,7 @@ public class live_projects : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("projects"), "projects", "Projects.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         compilation.Success.ShouldBeTrue();
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         _register = plan.Commands.Values.Single(command => command.Name == "RegisterProject");
         _tag = plan.Commands.Values.Single(command => command.Name == "TagProject");
         _log = new();

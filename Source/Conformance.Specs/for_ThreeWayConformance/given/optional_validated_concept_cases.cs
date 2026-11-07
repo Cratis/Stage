@@ -40,17 +40,17 @@ internal static class optional_validated_concept_cases
                       specification {{vector.Item1}}Absent
                         when Check{{vector.Item1}}
                           id = "one"
-                          value = {{vector.Item2}}
+                          {{(global::Cratis.Stage.Conformance.Specs.given.StructuredValueText.Assignment("value", vector.Item2, 26))}}
                         then returns "one"
                       specification {{vector.Item1}}Valid
                         when Check{{vector.Item1}}
                           id = "one"
-                          value = {{vector.Item2}}
+                          {{(global::Cratis.Stage.Conformance.Specs.given.StructuredValueText.Assignment("value", vector.Item2, 26))}}
                         then returns "one"
                       specification {{vector.Item1}}Invalid
                         when Check{{vector.Item1}}
                           id = "one"
-                          value = {{vector.Item3}}
+                          {{(global::Cratis.Stage.Conformance.Specs.given.StructuredValueText.Assignment("value", vector.Item3, 26))}}
                         then error "{{vector.Item4}}"
                 """);
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("OptionalInputs"));
@@ -58,7 +58,7 @@ internal static class optional_validated_concept_cases
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("optional-inputs"), "optional-inputs", "OptionalInputs.play", source);
         var compilation = new SemanticModelCompiler().Compile("OptionalInputs", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
 
         // Authored command fixtures reject explicit null literals. Exercise the optional typed ESM contract.
         return ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, model.Application with
@@ -70,7 +70,7 @@ internal static class optional_validated_concept_cases
                     Slices = [.. feature.Slices.Select(slice => slice with
                     {
                         Specifications = [.. slice.Specifications.Select(specification => specification.Name.EndsWith("Absent", StringComparison.Ordinal)
-                            ? specification with { When = specification.When! with { Values = [.. specification.When.Values.Select(value => slice.Commands.Single().Properties.Single(property => property.Id == value.TargetProperty).Name == "value" ? value with { Value = SemanticValue.Null } : value)] } }
+                            ? specification with { When = specification.When with { Values = [.. specification.When.Values.Select(value => slice.Commands.Single().Properties.Single(property => property.Id == value.TargetProperty).Name == "value" ? value with { Value = SemanticValue.Null } : value)] } }
                             : specification)]
                     })]
                 })]

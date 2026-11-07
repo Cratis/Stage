@@ -33,11 +33,11 @@ public class when_rendering_snake_case_query_authorization : Specification
             .Select(artifact => new RenderedFile(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
         var assembly = RenderedOutput.Load(sources);
         var query = model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.Queries.Length == 1).Queries.Single();
-        _policy = (IAuthorizationPolicy)Activator.CreateInstance(assembly.GetTypes().Single(type => type.Name == policy_names.ClassOf(model, query.Id)))!;
-        _method = assembly.GetTypes().Single(type => type.Name == "InvoiceSummary").GetMethod("InvoiceById")!;
+        _policy = (IAuthorizationPolicy)Activator.CreateInstance(assembly.GetTypes().Single(type => type.Name == policy_names.ClassOf(model, query.Id)));
+        _method = assembly.GetTypes().Single(type => type.Name == "InvoiceSummary").GetMethod("InvoiceById");
         var id = assembly.GetTypes().Single(type => type.Name == "InvoiceId");
-        _mine = Activator.CreateInstance(id, "mine")!;
-        _victim = Activator.CreateInstance(id, "victim")!;
+        _mine = Activator.CreateInstance(id, "mine");
+        _victim = Activator.CreateInstance(id, "victim");
     }
 
     [Fact] void should_bind_the_policy_to_the_actual_method_parameter() => _method.GetParameters()[^1].Name.ShouldEqual("invoiceId");

@@ -19,7 +19,7 @@ public class outcome_vectors : Specification
         var identity = ApplicationIdentity.Create("OutcomeVectors");
         var application = new SemanticApplication(SemanticId.Create(SemanticAddress.ForApplication(identity)), "OutcomeVectors", [], [], []);
         var model = ExecutableSemanticModel.Create(LanguageVersion.V1, SemanticVersion.V1, application);
-        _request = new(model, SemanticExecutionPlan.Compile(model).Plan!, ArtifactRenderProfile.Create("contract", "1", "vectors", "1", []), new(ArtifactRenderScopeKind.Application, application.Id));
+        _request = new(model, SemanticExecutionPlan.Compile(model).Plan, ArtifactRenderProfile.Create("contract", "1", "vectors", "1", []), new(ArtifactRenderScopeKind.Application, application.Id));
     }
 
     protected static SemanticId Id(int value) => SemanticId.Parse($"sem1:{value.ToString("x64", CultureInfo.InvariantCulture)}");

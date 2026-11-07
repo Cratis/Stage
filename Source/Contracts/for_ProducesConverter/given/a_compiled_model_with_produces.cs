@@ -64,6 +64,6 @@ public class a_compiled_model_with_produces : Specification
     {
         _model = EventModelLoader.LoadFromSource(Source);
         _produces = _model.Collections[0].Modules[0].Features[0].Slices
-            .Single(slice => slice.Name == "RegisterInvoice").Command!.Produces;
+            .Single(slice => slice.Name == "RegisterInvoice").Command.Produces;
     }
 }

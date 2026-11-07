@@ -30,7 +30,7 @@ internal static partial class SemanticSpecificationAdmission
         SemanticSlice slice,
         ICollection<ArtifactRenderDiagnostic> diagnostics)
     {
-        foreach (var specification in SemanticOpaqueBodyDependencies.WithoutUncontrolledClockSpecifications(SemanticCommandBodyAdmission.WithoutBodySpecifications(WithoutReactionCascades(context, slice, diagnostics), context, diagnostics), context, diagnostics))
+        foreach (var specification in WithoutDivergentRootJoins(SemanticOpaqueBodyDependencies.WithoutUncontrolledClockSpecifications(SemanticCommandBodyAdmission.WithoutBodySpecifications(WithoutReactionCascades(context, slice, diagnostics), context, diagnostics), context, diagnostics), context, diagnostics))
         {
             if (TryRefuseUnboundEventMetadata(context, specification, diagnostics))
             {
@@ -67,6 +67,28 @@ internal static partial class SemanticSpecificationAdmission
 
     internal static bool TriggerValuesMatch(SemanticApplicationContext context, SemanticSpecification specification, SemanticCommand command) =>
         CommandValuesMatch(context, specification, command);
+
+    static bool TryRefuseDeniedOperation(SemanticApplicationContext context, SemanticSpecification specification, ICollection<ArtifactRenderDiagnostic> diagnostics)
+    {
+        if (context.DeniedOperations.Count == 0) return false;
+
+        foreach (var command in InvokedCommands(context, specification).Where(context.DeniedOperations.ContainsKey).Distinct())
+        {
+            diagnostics.Add(new("STAGE-ESM-011", ArtifactRenderDiagnosticSeverity.Error, $"Specification '{specification.Name}' cannot render: command '{context.Commands[command].Name}' denies every invocation (STAGE-DEGRADE-002).", specification.Id));
+            return true;
+        }
+        return false;
+    }
+
+    static IEnumerable<SemanticId> InvokedCommands(SemanticApplicationContext context, SemanticSpecification specification)
+    {
+        if (specification.When is { } when) return [when.Command];
+        if (specification.WhenAppended is null && specification.WhenRedelivered is null) return [];
+
+        var active = ReactionCandidates(context, specification)
+            .Where(candidate => specification.ThenNoEvents || specification.WhenRedelivered is not null || candidate.Fires).ToArray();
+        return active.Length == 1 ? active[0].Trigger.Invokes.Select(invocation => invocation.Command) : [];
+    }
 
     static bool TryRefuseUnboundEventMetadata(SemanticApplicationContext context, SemanticSpecification specification, ICollection<ArtifactRenderDiagnostic> diagnostics)
     {
@@ -131,7 +153,7 @@ internal static partial class SemanticSpecificationAdmission
     static bool CanRenderSpecification(SemanticApplicationContext context, SemanticSpecification specification, bool reactionInvocation = false, bool foreignInvocationExpectations = false) =>
         HasRenderableQueryExpectations(context, specification) && (CanRenderQueryOnly(context, specification) ||
                 (HasRenderableCallerAndCommand(context, specification, out var command, reactionInvocation) &&
-                    HasRenderableGivenEvents(context, specification) && GivenKeysMatchProjectedProperties(context, specification) &&
+                    HasRenderableOrderedGivenEvents(context, specification) && GivenKeysMatchProjectedProperties(context, specification) &&
                     !AssertsUncontrolledOccurrence(context.Application, specification, command!) &&
                     !GivenEventsViolateConstraints(context, specification) && CanSeedProjectedAbsence(context, specification) &&
                     CommandValuesMatch(context, specification, command!) &&
@@ -155,6 +177,10 @@ internal static partial class SemanticSpecificationAdmission
     {
         foreach (var specification in WithRenderableGeneratedValues(context, slice.Specifications.Select(specification => specification.WithPinnedActionValues()), diagnostics))
         {
+            if (TryRefuseDeniedOperation(context, specification, diagnostics))
+            {
+                continue;
+            }
             if (CommandTriggersReaction(context, specification))
             {
                 if (SemanticReactionCascade.IsRejectedByTrigger(context, specification))
@@ -182,6 +208,7 @@ internal static partial class SemanticSpecificationAdmission
 
     static void ValidateCascade(SemanticApplicationContext context, SemanticReactionCascade cascade, ICollection<ArtifactRenderDiagnostic> diagnostics)
     {
+        if (TryRefuseDeniedOperation(context, cascade.Reaction, diagnostics)) return;
         ValidateReactionAppend(context, cascade.Reaction, diagnostics);
         if (cascade.Trigger is { } trigger && !CanRenderSpecification(context, trigger))
         {
@@ -329,7 +356,7 @@ internal static partial class SemanticSpecificationAdmission
 
         if (!specification.GivenReadModels.IsEmpty)
         {
-            return "Given read-model state replaces projected state before the action in the reference world. Chronicle's scenario seed serves lookup interception but cannot initialize each projected instance for subsequent command events; only a query-only lookup of one complete seeded record is supported.";
+            return "Given read-model state requires complete non-null scalar records with identifiers matching their keys and independent projections. Seeded command reads, reducers and query combinations are not supported; a query-only lookup of one complete seeded record is supported.";
         }
 
         if (specification.GivenEvents.Any(fact => MissingObservableSource(context, fact)))

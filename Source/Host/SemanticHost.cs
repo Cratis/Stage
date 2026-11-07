@@ -17,6 +17,7 @@ using Cratis.Stage.Lifecycles;
 using Cratis.Stage.Runtime;
 using Cratis.Stage.Semantics;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Scalar.AspNetCore;
 
 namespace Cratis.Stage.Host;
@@ -38,6 +39,8 @@ internal static class SemanticHost
                 : Path.Combine(builder.Environment.ContentRootPath, "cratis-stage.json"),
             optional: true,
             reloadOnChange: true);
+        var development = StageDevelopment.Decide(published is null, builder.Configuration);
+        StageDevelopment.Inform(builder.Services, builder.Environment, development);
         var routeOptions = StageHttpRouteOptions.FromConfiguration(builder.Configuration);
         var bodySettings = SemanticBodyWorkerOptions.From(builder.Configuration);
         var bodies = loaded is null ? null : await SemanticBodyWorkerHosting.Start(loaded, modelPath, bodySettings, notes);
@@ -50,6 +53,11 @@ internal static class SemanticHost
         }
 
         builder.AddStageOrleans();
+        if (published is null && SandboxUsersOptions.Read(builder.Configuration, development).Enabled)
+        {
+            builder.Services.Replace(ServiceDescriptor.Singleton(provider => SandboxUsers.Load(modelPath, provider.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(SandboxUsers).FullName!))));
+        }
+
         builder.Services.AddSingleton(new StageEventStoreName(eventStore));
         if (surface is not null)
         {

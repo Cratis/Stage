@@ -38,7 +38,7 @@ public class with_authored_screen_partitions : a_partitioned_screen_plan
     // Recomputed for Arc 22.166.0: the scaffold emits the matching backend and frontend pins.
     // Recomputed for Chronicle 19.129.0: the scaffold emits the matching package pins and development image tag.
     // Recomputed for Screenplay 5.10.0, Arc 22.168.0 and the main merge: the scaffold emits the matching pins, and npm Arc, Components and Scene at the published releases.
-    const string Before = "7d5a3569c133a6ff2521d1c807b58c076a0c2543ea77f36b4953a1775946dc2a";
+    const string Before = "4e4c9b1f1732464a7c75647f08baefc4124ad688f0aa0701c01704eff87fac6a";
 
     void Because() => _application = AppPlan(_profile);
 

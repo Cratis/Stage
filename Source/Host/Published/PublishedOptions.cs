@@ -30,7 +30,12 @@ internal sealed record PublishedOptions(
 
     internal const string DefaultPackagePath = "/stage/package";
     internal const string TrustedProxyMode = "TrustedProxy";
+    internal const string OidcMode = "Oidc";
     internal const string Section = "Stage:Published";
+
+    internal bool UsesOidc => string.Equals(AuthenticationMode, OidcMode, StringComparison.OrdinalIgnoreCase);
+    internal bool UsesTrustedProxy => string.Equals(AuthenticationMode, TrustedProxyMode, StringComparison.OrdinalIgnoreCase);
+    internal OidcPublishedOptions? Oidc { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether explicit Chronicle credentials are configured.
@@ -55,7 +60,10 @@ internal sealed record PublishedOptions(
             bool.TryParse(published["Notes:Enabled"], out var enabled) ? enabled : null,
             published["Chronicle:ClientId"],
             Secret(published, "Chronicle:ClientSecret"),
-            published["EventStore"] is { Length: > 0 } eventStore ? eventStore.Trim() : null);
+            published["EventStore"] is { Length: > 0 } eventStore ? eventStore.Trim() : null)
+        {
+            Oidc = new OidcPublishedOptions(configuration)
+        };
     }
 
     /// <summary>
@@ -82,12 +90,17 @@ internal sealed record PublishedOptions(
         {
             problems.Add($"No authentication is configured. Set {Section}:Authentication:Mode to {TrustedProxyMode}; a published application never runs without sign-in.");
         }
-        else if (!string.Equals(AuthenticationMode, TrustedProxyMode, StringComparison.OrdinalIgnoreCase))
+        else if (!UsesTrustedProxy && !UsesOidc)
         {
-            problems.Add($"Authentication mode '{AuthenticationMode}' is not supported. The only supported mode is {TrustedProxyMode}.");
+            problems.Add($"Authentication mode '{AuthenticationMode}' is not supported. Supported modes are {TrustedProxyMode} and Oidc.");
         }
 
-        if (TrustedProxies.Count == 0)
+        if (UsesOidc)
+        {
+            problems.AddRange(Oidc?.Problems() ?? ["Oidc authentication configuration is missing."]);
+        }
+
+        if (!UsesOidc && TrustedProxies.Count == 0)
         {
             problems.Add($"No trusted proxy is configured. Set {Section}:TrustedProxies to the address or CIDR network of the sign-in proxy (for a proxy in the same pod, 127.0.0.1 and ::1).");
         }

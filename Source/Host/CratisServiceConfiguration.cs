@@ -40,7 +40,7 @@ public static class CratisServiceConfiguration
         if (published is not null)
         {
             // The sign-in proxy in front of the host sets the principal headers; Arc reads them only when told to trust them.
-            builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?> { ["Cratis:Arc:TrustForwardedIdentityHeaders"] = "true" });
+            builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?> { ["Cratis:Arc:TrustForwardedIdentityHeaders"] = published.UsesTrustedProxy.ToString() });
         }
 
         builder.AddCratis(
@@ -117,6 +117,10 @@ public static class CratisServiceConfiguration
         {
             // Personas are a play-session device. A published application only ever sees the real principal.
             builder.Services.AddSingleton(new SandboxIdentityOptions(false));
+            if (published.UsesOidc)
+            {
+                PublishedAuthentication.Configure(builder.Services, published);
+            }
         }
 
         builder.Services.AddSingleton<Action<ChronicleTelemetryOptions>>(_ => { });

@@ -173,10 +173,15 @@ not enabled, Arc does not serve its commands and queries.
 
 ### Authentication
 
+`Stage:Published:Authentication:Mode` selects `TrustedProxy` or `Oidc`. Missing or invalid authentication configuration
+refuses startup with exit code `78`. Sandbox personas are disabled in both modes. AuthProxy remains available.
+
+#### TrustedProxy
+
 The application sits behind a sign-in proxy that the publisher deploys in the same pod, in front of Stage. The proxy
 signs users in with the application's identity providers and forwards each request with Arc's Microsoft Identity
 Platform principal headers (`x-ms-client-principal`, `x-ms-client-principal-id`, `x-ms-client-principal-name`,
-`x-ms-client-principal-idp`). Stage does not run OIDC itself.
+`x-ms-client-principal-idp`). Set the mode to `TrustedProxy` and configure `Stage:Published:TrustedProxies`.
 
 - Arc is told to trust those headers. A request without a principal is unauthenticated, and the model's policies
   (`require authenticated`, roles, claims) are enforced against the real principal.
@@ -184,6 +189,25 @@ Platform principal headers (`x-ms-client-principal`, `x-ms-client-principal-id`,
   them, so a caller who reaches the host directly cannot present itself as someone else.
 - Sandbox personas are off, and the sandbox's header stripping does not run.
 - Forwarded-header trust (`X-Forwarded-Host`, `-Proto`, `-Prefix`) is limited to the same trusted proxies.
+
+#### Oidc
+
+Set `Stage:Published:Authentication:Mode=Oidc` to sign users in inside Stage with Microsoft Entra ID. Configure
+`Cratis:Authentication:PublicOrigin` and `Cratis:Authentication:EntraId:TenantId`, `ClientId` and `ClientCredentials`.
+The Entra section also accepts `Instance`, `Audience`, `CallbackPath` and `SignedOutCallbackPath`, using the same keys as
+[sign-in with Entra ID](../guides/sign-in-with-entra-id.md). Supply credentials through deployment secrets, never in the package.
+The public origin must be HTTPS (HTTP is allowed only on loopback), with no credentials, path, query or fragment.
+Redirects are pinned to this origin, not the request's Host header.
+
+Interactive navigation challenges Entra; fetches receive `401`. Sessions use secure, HttpOnly, SameSite=Lax cookies.
+Service callers use JWT bearer authentication; any Authorization header selects bearer authentication and never falls
+back to a session cookie. Cookie requests with unsafe methods and WebSocket upgrades require an Origin matching the
+configured public origin. Principal and persona headers are stripped before authentication. Arc policies use the signed-in
+principal, not forwarded identity headers. Static files and `/stage/status` also require sign-in. Only GET/HEAD `/healthz`
+is exempt from the perimeter; this does not add a health endpoint.
+
+Trusted proxies are optional in this mode. Without them no forwarded headers are trusted; when configured, only those
+addresses may forward Host, Proto and Prefix. The deployment must still restrict direct access to Stage.
 
 ### Chronicle
 
@@ -197,7 +221,7 @@ The host refuses Chronicle connections with `auth=none`, including mounted conne
 `Stage:Published:Chronicle:ClientId` and `ClientSecret` must both be explicitly configured. The kernel's well-known
 built-in development client remains a fallback only for loopback connections. Mounted connection strings still win,
 but pass the same startup guard; refusal exits with code `78` without printing the connection string.
-Published sign-in is validated through `Stage:Published:Authentication:Mode=TrustedProxy` and trusted proxies,
+Published sign-in is validated through `Stage:Published:Authentication:Mode` and the selected mode's configuration,
 not the sandbox-only `Stage:Sandbox:ForwardedIdentity` flag.
 
 ### Routes

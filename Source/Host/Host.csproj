@@ -38,6 +38,7 @@
         <PackageReference Include="Scalar.AspNetCore" />
         <PackageReference Include="Yarp.ReverseProxy" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+        <PackageReference Include="Microsoft.Identity.Web" ExcludeAssets="analyzers" />
         <PackageReference Include="Cratis.OpenTelemetry" />
     </ItemGroup>
 

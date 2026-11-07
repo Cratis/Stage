@@ -53,12 +53,14 @@ internal static class SemanticHost
             optional: true,
             reloadOnChange: true);
         var mode = hostMode ?? StageHostModeSelection.Read(builder.Configuration, args, StageRuntimeEngine.Semantic);
+        var authentication = mode == StageHostMode.Published ? published ?? PublishedOptions.From(builder.Configuration) : null;
+        authentication?.EnsureComplete();
         var routeOptions = StageHttpRouteOptions.FromConfiguration(builder.Configuration);
         var bodySettings = SemanticBodyWorkerOptions.From(builder.Configuration);
         var bodies = loaded is null ? null : await SemanticBodyWorkerHosting.Start(loaded, modelPath, bodySettings, notes);
         var admission = CreateAdmission(loaded, bodies, issues);
         var surface = loaded is not null && issues.Count == 0 ? StageHttpSurface.Create(loaded.Model, routeOptions) : null;
-        builder.AddStageCratis(eventStore, $"Cratis Stage ({eventStore})", routeOptions, published);
+        builder.AddStageCratis(eventStore, $"Cratis Stage ({eventStore})", routeOptions, authentication);
         if (surface is not null)
         {
             StageLifecycleHosting.Add(builder.Services, loaded!.Plan);
@@ -100,7 +102,7 @@ internal static class SemanticHost
             options.ForwardedHeaders = ForwardedHeaders.XForwardedHost | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedPrefix;
             options.KnownIPNetworks.Clear();
             options.KnownProxies.Clear();
-            foreach (var network in published?.Networks() ?? [])
+            foreach (var network in authentication?.Networks() ?? [])
             {
                 options.KnownIPNetworks.Add(new System.Net.IPNetwork(network.Prefix, network.Length));
             }
@@ -110,14 +112,25 @@ internal static class SemanticHost
         {
             // Before anything can serve or authenticate: tooling paths answer 404.
             app.UseToolingRefusal();
-            if (published is not null)
+            if (authentication!.UsesTrustedProxy)
             {
-                app.UseTrustedProxyPrincipalGuard(published.Networks());
+                app.UseTrustedProxyPrincipalGuard(authentication.Networks());
             }
         }
 
-        app.UseSandboxIdentityHeaders();
-        app.UseForwardedHeaders();
+        if (authentication?.UsesOidc == true)
+        {
+            PublishedAuthentication.Use(app, authentication);
+            if (authentication.TrustedProxies.Count > 0)
+            {
+                app.UseForwardedHeaders();
+            }
+        }
+        else
+        {
+            app.UseSandboxIdentityHeaders();
+            app.UseForwardedHeaders();
+        }
         app.UseDefaultFiles();
         app.UseStaticFiles(StageStaticFileOptions.Create());
         app.UseRouting();

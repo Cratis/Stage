@@ -13,6 +13,7 @@ namespace Cratis.Stage.Host;
 internal static class SemanticSpecificationRuns
 {
     internal const string Route = "/stage/semantic/specifications/run";
+    const string GraphKind = "Graph";
     static readonly SemaphoreSlim _processGate = new(1, 1);
 
     internal static void Map(WebApplication app, SemanticExecutionPlan plan, string modelPath) =>
@@ -116,7 +117,23 @@ internal static class SemanticSpecificationRuns
             Select(module.Features, scopes.Count == 0 || scopes.Contains(plan.Model.Application.Id) || scopes.Contains(module.Id));
         }
         expected.UnionWith(scopes.Where(scope => !known.Contains(scope)).Select(scope => scope.ToString()));
-        return report.Results.All(record => record is not null) && report.Results.Count == expected.Count && expected.SetEquals(report.Results.Select(record => record.SpecificationId)) &&
+        if (report.Results.Any(record => record is null)) return false;
+
+        // A graph specification asserts the graph rather than a slice, so the reference graph runner reports it under its own identity. Each such
+        // record must be one the model declares and appear once; an unscoped run must report all of them. Which of them a scope selects is
+        // the runner's to decide, so a record is held to the model and not to a second copy of the selection.
+        var graphIdentities = plan.Model.Application.GraphSpecifications.IsDefaultOrEmpty
+            ? []
+            : plan.Model.Application.GraphSpecifications.Select(specification => $"{plan.Model.Application.Id}/{GraphKind}/{specification.Owner}/{specification.Name}").ToHashSet();
+        var graphRecords = report.Results.Where(record => record.SliceKind == GraphKind).ToArray();
+        if (graphRecords.Any(record => !graphIdentities.Contains(record.SpecificationId)) || graphRecords.Select(record => record.SpecificationId).Distinct().Count() != graphRecords.Length ||
+            (scopes.Count == 0 && graphRecords.Length != graphIdentities.Count))
+        {
+            return false;
+        }
+
+        var sliceRecords = report.Results.Where(record => record.SliceKind != GraphKind).ToArray();
+        return sliceRecords.Length == expected.Count && expected.SetEquals(sliceRecords.Select(record => record.SpecificationId)) &&
             report.Results.All(record => Enum.IsDefined(record.Outcome) && record.Failures is not null &&
                 (record.Outcome != SemanticSpecificationOutcome.Unsupported || record.Unsupported is { Details.Length: > 0 }));
 

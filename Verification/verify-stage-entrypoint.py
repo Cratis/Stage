@@ -125,4 +125,5 @@ sys.exit(int(os.environ["STAGE_TEST_EXIT"]))
 
 
 if __name__ == "__main__":
+    subprocess.run(["node", "Source/Host/for_entrypoint_published/input_paths.mjs"], check=True)
     unittest.main(verbosity=2)

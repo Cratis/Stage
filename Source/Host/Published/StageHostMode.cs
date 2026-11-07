@@ -33,20 +33,15 @@ internal static class StageHostModeSelection
     /// <exception cref="PublishedModeRefused">The configured mode is not one of Sandbox or Published.</exception>
     internal static StageHostMode Read(string[] args, IConfiguration configuration)
     {
-        if (args.Contains(PublishedArgument, StringComparer.Ordinal))
-        {
-            return StageHostMode.Published;
-        }
-
         var configured = configuration[ModeKey];
-        if (string.IsNullOrWhiteSpace(configured))
+        var mode = configured switch
         {
-            return StageHostMode.Sandbox;
-        }
-
-        return Enum.TryParse<StageHostMode>(configured.Trim(), ignoreCase: true, out var mode)
-            ? mode
-            : throw new PublishedModeRefused([$"Stage:Mode '{configured}' is not supported. Use Sandbox or Published."]);
+            null => StageHostMode.Sandbox,
+            var value when value.Equals("Sandbox", StringComparison.OrdinalIgnoreCase) => StageHostMode.Sandbox,
+            var value when value.Equals("Published", StringComparison.OrdinalIgnoreCase) => StageHostMode.Published,
+            _ => throw new PublishedModeRefused([$"Stage:Mode '{configured}' is not supported. Use Sandbox or Published."])
+        };
+        return args.Contains(PublishedArgument, StringComparer.Ordinal) ? StageHostMode.Published : mode;
     }
 
     /// <summary>
@@ -65,6 +60,6 @@ internal static class StageHostModeSelection
                 : Path.Combine(AppContext.BaseDirectory, "cratis-stage.json"),
             optional: true)
         .AddEnvironmentVariables()
-        .AddCommandLine(args)
+        .AddCommandLine(Host.StageHostModeSelection.ConfigurationArguments(args))
         .Build();
 }

@@ -736,3 +736,27 @@ Both Dockerfiles expect a prebuilt `dotnet publish` output, so build them throug
 It publishes the host and the specification runner, then builds both images from the repository root. The host
 image is tagged `cratis/studio-stage:latest` by default; `STAGE_IMAGE`, `STAGE_TAG`, `SPECRUNNER_IMAGE`,
 `SPECRUNNER_TAG`, `VERSION`, `COMMIT` and `PLATFORM` override the defaults.
+
+## Published mode (preview)
+
+Stage defaults to Sandbox mode. Opt in to Published mode with `Stage:Mode=Published` in configuration,
+`STAGE_MODE=Published` in the environment, or the `--published` host argument. Mode names are case-insensitive;
+unknown names and `--published` combined with explicitly configured Sandbox mode refuse startup.
+
+Published mode requires the semantic engine and `Stage:Sandbox:ForwardedIdentity=true`. Run behind AuthProxy
+so only its forwarded principal reaches Stage. Test personas are disabled even when `Stage:Sandbox:Identity`
+is enabled. Warm hosting (`--warm` or `STAGE_WARM`) and the EventModel engine are refused.
+
+OpenAPI, Scalar, the Workbench proxy, the read-model browser, model loading, semantic admission and specification
+execution endpoints are not mapped. Application APIs, `/.cratis/*`, scene, route, locale, string, package and status
+endpoints, static files and the application SPA fallback remain available.
+
+The entrypoint still requires complete `PublishedOptions`: under `Stage:Published`, a persistent MongoDB
+`Storage:ConnectionString` (or `Storage:ConnectionStringFile`), `Authentication:Mode=TrustedProxy`, and explicit
+`TrustedProxies` addresses or CIDR networks; plus non-wildcard, top-level `AllowedHosts`. It also requires a valid
+exported application package at `Stage:Published:PackagePath` (default `/stage/package`); the mode flag alone
+is not sufficient. If Chronicle credentials are supplied under `Stage:Published`, both `Chronicle:ClientId`
+and `Chronicle:ClientSecret` (or `Chronicle:ClientSecretFile`) are required.
+
+Published mode restricts forwarded-header and principal trust to the configured proxies, but does not restrict
+kernel network access. It is not a complete production deployment configuration.

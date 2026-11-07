@@ -40,7 +40,7 @@ public static class CratisServiceConfiguration
         if (published is not null)
         {
             // The sign-in proxy in front of the host sets the principal headers; Arc reads them only when told to trust them.
-            builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?> { ["Cratis:Arc:TrustForwardedIdentityHeaders"] = "true" });
+            builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?> { ["Cratis:Arc:TrustForwardedIdentityHeaders"] = published.UsesTrustedProxy.ToString() });
         }
 
         builder.AddCratis(
@@ -86,9 +86,7 @@ public static class CratisServiceConfiguration
                 // Applied to whatever address is already configured rather than restating it, so pointing a Stage
                 // at a different kernel through cratis-stage.json keeps working.
                 // A runtime that mounted the connection string of the kernel to use (it carries a secret, so it is a file) wins, as supplied.
-                options.ConnectionString = SandboxRuntimeConventions.MountedConnectionString(Environment.GetEnvironmentVariable) ??
-                    ConnectionFor(new ChronicleConnectionStringBuilder(options.ConnectionString.ToString()), published)
-                        .ToConnectionString();
+                options.ConnectionString = ResolveConnection(options.ConnectionString, SandboxRuntimeConventions.MountedConnectionString(Environment.GetEnvironmentVariable), published);
 
                 // Give the Chronicle client's initial handshake more headroom than the 5 second default — the
                 // bundled kernel competes for CPU with the host at container startup.
@@ -121,6 +119,10 @@ public static class CratisServiceConfiguration
             builder.Services.AddSingleton(new SandboxIdentityOptions(false));
             builder.Services.AddSingleton(new SandboxUsersOptions(false));
             builder.Services.AddSingleton(SandboxUsers.None);
+            if (published.UsesOidc)
+            {
+                PublishedAuthentication.Configure(builder.Services, published);
+            }
         }
 
         builder.Services.AddSingleton<Action<ChronicleTelemetryOptions>>(_ => { });
@@ -131,6 +133,20 @@ public static class CratisServiceConfiguration
         return builder;
     }
 
+    static ChronicleConnectionString ResolveConnection(ChronicleConnectionString configured, ChronicleConnectionString? mounted, PublishedOptions? published)
+    {
+        if (published is not null)
+        {
+            KernelConnectionGuard.EnsureAllowed(mounted?.ToString() ?? configured.ToString(), published, finalConnection: mounted is not null);
+        }
+        var connection = mounted ?? ConnectionFor(new ChronicleConnectionStringBuilder(configured.ToString()), published).ToConnectionString();
+        if (published is not null)
+        {
+            KernelConnectionGuard.EnsureAllowed(connection.ToString(), published);
+        }
+        return connection;
+    }
+
     static ChronicleConnectionStringBuilder ConnectionFor(ChronicleConnectionStringBuilder connection, PublishedOptions? published)
     {
         if (published is null)
@@ -139,7 +155,7 @@ public static class CratisServiceConfiguration
         }
 
         // A published kernel runs with authentication on. Without configured credentials the client presents the kernel's
-        // built-in client, which is only acceptable because the kernel is reachable from this pod alone.
+        // built-in client, which is only acceptable over loopback, checked by KernelConnectionGuard.
         return published.HasChronicleCredentials
             ? connection.WithCredentials(published.ChronicleClientId!, published.ChronicleClientSecret!)
             : connection.WithDevelopmentCredentials();

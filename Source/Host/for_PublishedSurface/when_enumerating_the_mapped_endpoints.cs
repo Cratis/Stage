@@ -24,6 +24,7 @@ public class when_enumerating_the_mapped_endpoints
         // What the published host maps itself. Tooling is mapped nowhere; this is the same set SemanticHost maps when published.
         SemanticHost.MapStatus(app, () => new StageStatus("ready", null, null));
         ModelReferencesEndpoint.Map(app, _manifest, false);
+        StagePackageEndpoints.Map(app);
         app.MapGet("/api/orders", () => "ok");
         extra?.Invoke(app);
         app.MapFallback(() => Results.Text("page"));
@@ -68,8 +69,8 @@ public class when_enumerating_the_mapped_endpoints
     [InlineData("/stage/load")]
     [InlineData("/stage/semantic/admission")]
     [InlineData("/stage/semantic/specifications/run")]
-    [InlineData("/stage/packages")]
-    [InlineData("/stage/packages/files/x.js")]
+    [InlineData("/stage/lifecycles")]
+    [InlineData("/stage/lifecycles/workflows/review/subjects/1/approvals/approve")]
     public async Task should_answer_404_for_tooling(string path)
     {
         await using var app = await PublishedApp();
@@ -81,6 +82,7 @@ public class when_enumerating_the_mapped_endpoints
     [Theory]
     [InlineData("/stage/status")]
     [InlineData("/stage/model-references")]
+    [InlineData("/stage/packages")]
     [InlineData("/api/orders")]
     [InlineData("/orders/42")]
     public async Task should_serve_the_application(string path)

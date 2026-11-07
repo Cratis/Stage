@@ -12,7 +12,7 @@ internal static class PublishedSurface
 {
     /// <summary>
     /// The route prefixes of tooling: API reference, Workbench proxy, read-model browser, model loading, admission,
-    /// specification runs and the package endpoints.
+    /// specification runs and lifecycle approval tooling. Approved runtime package assets are not tooling.
     /// </summary>
     internal static readonly string[] ToolingPrefixes =
     [
@@ -23,7 +23,7 @@ internal static class PublishedSurface
         "/stage/read-models",
         "/stage/load",
         "/stage/semantic",
-        "/stage/packages"
+        "/stage/lifecycles"
     ];
 
     internal static bool IsTooling(string route)

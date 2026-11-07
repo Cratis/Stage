@@ -6,6 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 
+mkdirSync(resolve('.ai-work/s2-s3'), { recursive: true });
 const root = mkdtempSync(resolve('.ai-work/s2-s3/published-entrypoint-'));
 const entrypoint = resolve('Source/Host/entrypoint-published.sh');
 const secret = 'mongodb://synthetic-storage:27017/published';

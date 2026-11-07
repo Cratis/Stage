@@ -11,6 +11,10 @@ internal static class KernelConnectionGuard
     internal static void EnsureAllowed(string connectionString, PublishedOptions published, bool finalConnection = true)
     {
         var connection = AuthenticatedAddress(connectionString);
+        if (finalConnection && new ChronicleConnectionString(connectionString).AuthenticationMode == AuthenticationMode.None)
+        {
+            throw new PublishedModeRefused(["The published Chronicle connection must not disable authentication."]);
+        }
         if (connection.IsLoopback)
         {
             return;

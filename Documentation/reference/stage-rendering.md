@@ -701,7 +701,7 @@ ESM v29 (Screenplay decision 0098) adds three constructs the semantic engines ha
 - `add`/`subtract <property> by <a> * <b>` in a projection is run by the executor and the Host (Play) with exact decimal arithmetic, then converted to the type of the total like any operand. The renderer lowers it, because Chronicle's projection engine adds one event property: the event record carries the product as a computed, serialized member (`public decimal UnitPriceTimesQuantity { get; init; } = (decimal)UnitPrice.Value * (decimal)Quantity.Value;`, whole numbers multiply `checked`) and the projection adds or subtracts that member. It is admitted in a `from` block when both factors are required whole or decimal properties of the event and the total holds the same kind of number (a decimal total for a decimal product, a whole total when both factors are whole); anything else (a `join` or `every` block, an optional factor, a literal factor, a total of another number type, a member name the event already has) is refused with `STAGE-ESM-050`, naming the projection and the reason. Events must be appended through the generated event types for the member to be present. Converting such a projection for Chronicle (`ProjectionConverter`) still reports `STAGE-PROJECTION-004` at the mapping instead of converting the sum of one factor, and the specification runner's per-run Chronicle projection does not run it.
 - A concept mapped to another concept over the same primitive needs no special handling: both are the same primitive at run time and in generated code.
 
-An application toolbar button declared in a layout's or module's `navigation topbar` region (decision 0098) is carried as Scene's `NavigationButton` (Cratis/Scene#215): its slice as the qualified id the structure knows, its emphasis and icon, and its `authorize` requirement as the policy expression it was written as. The region draws it after the items and opens the slice's task dialog over the current page; a module's buttons follow the items' inherit, extend and override rules. The converter no longer reports `STAGE-SCENE-NAV-001`.
+An application toolbar button declared in a layout's `topbarActions` outlet or a module's refinement of it (decision 0098) is carried as an `OutletButton` of the `topbarButtons` outlet Scene draws beside the topbar (Cratis/Scene#215): its slice as the qualified id the structure knows, its emphasis and icon, and its `authorize` requirement as the policy expression it was written as. The region draws it after the items and opens the slice's task dialog over the current page; a module's buttons follow the items' inherit, extend and override rules. The converter no longer reports `STAGE-SCENE-NAV-001`.
 
 ESM v30 adds two more: a command whose `produces ... for <property>` names a required scalar property other than its identifier appends to several event sources (run and rendered like any command), and `given generated <Command>.<property> = <value>` pins the generated value of a command a reaction invokes. The executor feeds each invocation the next value pinned for its command and property in authored order, and the generated reaction specification carries the pinned value as the generated fixture of the invoked command. An invocation with nothing pinned stays `Unsupported`.
 
@@ -963,10 +963,10 @@ The topbar, sidebar, breadcrumb, footer and settings panel are the blueprint's o
 where the current screen is, the topbar carries the blueprint's theme switcher (unless `option showThemeSwitcher false` or a pinned colour scheme removes it) and, when the model declares more than one locale,
 a locale picker, and the menu is one of two things.
 
-### Navigation regions
+### Navigation outlets
 
-A model that declares `navigation topbar` and `navigation sidebar` (in the layout, and per module with `inherits`, `extends` or
-`overrides`) gets the shell's own regions: the blueprint's topbar and sidebar draw the **effective navigation** of the module
+A model that declares `outlet topbar of navigation` and `outlet sidebar of navigation` (in the layout, and per module with
+`outlet <name> inherits|extends|overrides`) gets the shell's own regions: the blueprint's topbar and sidebar draw the **effective navigation** of the module
 the user is in (Scene's `effectiveNavigation`; the Stage keeps no navigation tree of its own). Going to another module swaps the
 sidebar, the item of the page is marked (`aria-current`) in both regions, an item renders into the slot it names, and an item
 that targets a module opens the module's first feature. The Stage tells Scene which screen each feature opened (`screenFor`: the
@@ -1057,7 +1057,7 @@ template wrapper and the flow arrangement view the Stage used to keep are Scene'
 
 ### Authored navigation hierarchy
 
-A model that declares no navigation regions keeps what it always had. When a feature declares `contribute to Navigation` entries, the menu is the application hierarchy the model wrote
+A model that declares no navigation outlets keeps what it always had. When a feature declares `contribute to Navigation` entries, the menu is the application hierarchy the model wrote
 instead of a flat list of screen names: a group for the module and for each feature, nested as deep as the model
 nests features, with each entry under the feature that contributed it and ordered by its `order`. An entry links to
 the screen it opens; the current screen is marked, and the breadcrumb shows the groups leading to it. A feature's
@@ -1088,10 +1088,11 @@ runs them. Destinations resolve through Scene: a `core:outlet` renders the scree
 scope, a dialog destination opens the authored dialog template and closing it goes back, and an address that stands for an
 outlet destination restores the whole composition (the list with its details beside it), not just the details.
 
-A `toolbar` renders as `core:toolbar` with a `core:toolbarItem` for each item. An `action` item announces its command with
-its parameters read from the screen; a `navigate` or `dialog` item carries the destination it opens (`navigate` to the screen,
-or the dialog template) and executes it through the host. An item's `presentation` is honoured: `mode` is `icon`, `text` or
-`both`, and every other hint (`placement`, `density`, ...) is exposed to themes as a `data-scene-presentation-<name>` attribute.
+A `toolbar` renders as the outlet of actions it places (`core:outletItems`), with an outlet button for each item and button. A
+`navigate` or `dialog` item opens the destination it carries (`navigate` to the screen, or the dialog template) through the host,
+and Scene draws it. A button that names a slice opens the slice's task dialog and an `action` item opens its command's form; the
+Stage draws those. An item's `presentation` hints are not carried: Scene 5's outlet buttons have none. Opening a toolbar
+button's destination does not yet change the address; routed slots and URL state are the next step (Cratis/Stage#1007).
 
 Themes are the blueprint's (`Scene Default Light` and `Scene Default Dark`). The active theme's colour scheme is
 mirrored onto the document root so PrimeReact overlays, which are portalled to `body`, follow it.

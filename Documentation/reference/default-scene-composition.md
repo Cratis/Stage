@@ -19,17 +19,36 @@ The default screen belongs to the application and is not copied into each slice 
 `ScreenplaySceneVisitor` carries authored navigation, toolbar buttons and template references into the Scene
 model. Scene validates these constructs; Stage reports the findings described below.
 
-`navigation topbar|sidebar` in the first declared `layout` becomes the application's `NavigationRegion`s and
-its `ApplicationLogo`. A `module` block becomes a `ModuleNavigation` with a `NavigationRegionMode` of `inherits`,
-`extends` or `overrides`. Without a block, the module has no entry. Scene treats that missing region as inheriting
-and computes its items through `EffectiveNavigation`; Stage does not compute them.
+Each `outlet <name> of navigation` in the first declared `layout` becomes one of the application's navigation
+outlets, and the topbar's `logo` its `ApplicationLogo`. The layout's actions outlet that holds a navigation outlet's
+buttons (`topbarActions`) becomes the outlet Scene draws beside it (`topbarButtons`). A module's
+`outlet <name> inherits|extends|overrides` of a navigation outlet becomes an `OutletRefinement` of its
+`ModuleNavigation`, with the items it adds and the ids it `hide`s, and its `contribute to` with items an
+`OutletContribution`. A module that changes no navigation outlet has no entry. Scene computes the items through
+`EffectiveNavigation`; Stage does not compute them.
 
-Each item keeps its id, title (a `$strings.<key>` token as written), icon, `slot` and nested items. Its `target`
-becomes a `DestinationReference` naming the module and dotted feature path. `contribute to` remains a separate
-mechanism and converts as before. An application with no declared region serializes without a `navigation`
-member, leaving its plan digest unchanged.
+Each navigation item keeps its id, title (a `$strings.<key>` token as written), icon, `slot` and nested items. Its
+`target` becomes a `DestinationReference` naming the module and dotted feature path. An application with no
+navigation outlet serializes without a `navigation` member, leaving its plan digest unchanged.
 
-A toolbar declaration, `button <id> title "..." slice <Slice> emphasis <e> icon <i>`, becomes a `core:toolbarItem` of kind `Action` carrying `slice`, `emphasis` and `icon`, the shape Scene's `ToolbarButtons.FromItem` reads. The slice is written as the qualified id (`Module.Feature.Slice`) the structure knows, so a suffix such as `Orders.PlaceOrder` resolves the same way in the engine as in the compiler.
+A slot keeps its role (`page`, `pane` or `panel`), `routed` and the parameter it is `routed by`, `primary` and
+`optional`; an unwritten word stays unstated. Every other outlet a layout, screen template or dialog template
+declares becomes a Scene `Outlet` with its kind (actions, filters, tabs, stats), the slot it is `in`, what it acts
+on (`for item|for screen`) and its `default` items. A module's, feature's or slice screen's refinements and
+contributions of those outlets become the outlet levels Scene's `OutletChains.Of` and `EffectiveOutlets.Resolve`
+resolve through (`SceneApplication.OutletLevels`); Stage does not resolve them itself. A screen's `fits` keeps its
+order.
+
+A button, `button <id> title "..." slice <Slice> emphasis <e> icon <i>`, becomes an `OutletButton` carrying its
+hook: the slice as the qualified id (`Module.Feature.Slice`) the structure knows, so a suffix such as
+`Orders.PlaceOrder` resolves the same way in the engine as in the compiler; the built-in it `runs` (`close`,
+`submit` or `refresh`); where it `opens` (a bare `runs` is `none`, run directly); `before` or `after`; `enabled
+when`, `confirm` and `authorize`. A screen's toolbar becomes the `core:outletItems` element that places an outlet of
+actions, named as the toolbar (`toolbar` when it names none). A dialog template's `outlet actions of actions` is the
+outlet Scene draws the dialog's buttons from.
+
+`show <Screen> by <param> from <element>.selection` and a form field's `choose from` picker are not translated yet
+and are refused with `STAGE-SCENE-UI-001` rather than dropped.
 
 `template <Name>` and `template blueprint <Blueprint> <Name> [version "<range>"]` become `SceneApplication.TemplateReferences`, each a Scene `TemplateReference` (source, id, blueprint, version range) with the scope it was assigned at. The template's category and the slice kinds of a `scopes slice` template travel in its `TemplateMetadata`. An application with no assignment serializes without a `templateReferences` member.
 

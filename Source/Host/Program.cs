@@ -61,7 +61,7 @@ if (hostMode == StageHostMode.Published)
         var publishedOptions = PublishedOptions.From(earlyConfiguration);
         publishedOptions.EnsureComplete();
         var package = PublishedPackage.Read(publishedOptions.PackagePath);
-        await SemanticHost.Run(args, package.ModelPath, package, publishedOptions);
+        await SemanticHost.Run(args, package.ModelPath, package, publishedOptions, hostMode);
     }
     catch (Exception refused) when (refused is PublishedModeRefused or StageHostModeRefused)
     {
@@ -89,7 +89,7 @@ if (warmMode)
 
 if (engine == StageRuntimeEngine.Semantic)
 {
-    await SemanticHost.Run(args, modelPath!);
+    await SemanticHost.Run(args, modelPath!, hostMode: hostMode);
     return;
 }
 

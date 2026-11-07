@@ -15,7 +15,7 @@ public class when_requested_as_published : given.a_host_configuration
         _settings["Stage:Sandbox:ForwardedIdentity"] = "true";
     }
 
-    void Because() => _mode = Read();
+    void Because() => _error = Catch.Exception(() => Read());
 
-    [Fact] void should_override_the_configured_sandbox_mode() => _mode.ShouldEqual(StageHostMode.Published);
+    [Fact] void should_refuse_startup() => _error.ShouldBeOfExactType<StageHostModeRefused>();
 }

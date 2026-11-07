@@ -15,9 +15,9 @@ public class a_semantic_host : for_SemanticHost.given.a_model_path
 
     async Task Establish() => await File.WriteAllTextAsync(_path, Cratis.Stage.Api.for_SceneSynthesizer.given.a_scene_model.Source);
 
-    private protected async Task BuildHost(Published.PublishedPackage? package = null, Published.PublishedOptions? published = null)
+    private protected async Task BuildHost(Published.PublishedPackage? package = null, Published.PublishedOptions? published = null, StageHostMode? hostMode = null)
     {
-        (_app, var initialize) = await SemanticHost.Build(_arguments, _path, package, published);
+        (_app, var initialize) = await SemanticHost.Build(_arguments, _path, package, published, hostMode);
         _refused = initialize is null;
         _patterns = [.. ((IEndpointRouteBuilder)_app).DataSources.SelectMany(source => source.Endpoints).OfType<RouteEndpoint>().Select(endpoint => endpoint.RoutePattern.RawText!)];
         _readModelPage = new DefaultHttpContext { RequestServices = _app.Services };

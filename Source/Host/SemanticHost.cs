@@ -23,9 +23,9 @@ namespace Cratis.Stage.Host;
 
 internal static class SemanticHost
 {
-    internal static async Task Run(string[] args, string modelPath, PublishedPackage? package = null, PublishedOptions? published = null)
+    internal static async Task Run(string[] args, string modelPath, PublishedPackage? package = null, PublishedOptions? published = null, StageHostMode? hostMode = null)
     {
-        var (app, initialize) = await Build(args, modelPath, package, published);
+        var (app, initialize) = await Build(args, modelPath, package, published, hostMode);
         if (initialize is null)
         {
             await app.RunAsync();
@@ -37,7 +37,7 @@ internal static class SemanticHost
         await app.WaitForShutdownAsync();
     }
 
-    internal static async Task<(WebApplication App, Func<Task>? Initialize)> Build(string[] args, string modelPath, PublishedPackage? package = null, PublishedOptions? published = null)
+    internal static async Task<(WebApplication App, Func<Task>? Initialize)> Build(string[] args, string modelPath, PublishedPackage? package = null, PublishedOptions? published = null, StageHostMode? hostMode = null)
     {
         var issues = new List<StageUnsupportedIssue>();
         var notes = new List<SemanticModelLoadDiagnostic>();
@@ -52,7 +52,7 @@ internal static class SemanticHost
                 : Path.Combine(builder.Environment.ContentRootPath, "cratis-stage.json"),
             optional: true,
             reloadOnChange: true);
-        var mode = StageHostModeSelection.Read(builder.Configuration, args, StageRuntimeEngine.Semantic);
+        var mode = hostMode ?? StageHostModeSelection.Read(builder.Configuration, args, StageRuntimeEngine.Semantic);
         var routeOptions = StageHttpRouteOptions.FromConfiguration(builder.Configuration);
         var bodySettings = SemanticBodyWorkerOptions.From(builder.Configuration);
         var bodies = loaded is null ? null : await SemanticBodyWorkerHosting.Start(loaded, modelPath, bodySettings, notes);

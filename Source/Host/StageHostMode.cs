@@ -31,7 +31,15 @@ internal static class StageHostModeSelection
     static StageHostMode SelectedMode(IConfiguration configuration, string[] arguments)
     {
         var configured = ConfiguredMode(configuration);
-        return arguments.Contains("--published", StringComparer.Ordinal) ? StageHostMode.Published : configured;
+        if (configured == StageHostMode.Published || !arguments.Contains("--published", StringComparer.Ordinal))
+        {
+            return configured;
+        }
+        if (configuration["Stage:Mode"] is not null || configuration["STAGE_MODE"] is not null)
+        {
+            throw new StageHostModeRefused("--published conflicts with explicitly configured Sandbox mode.");
+        }
+        return StageHostMode.Published;
     }
 
     static StageHostMode ConfiguredMode(IConfiguration configuration) =>

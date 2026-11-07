@@ -15,6 +15,7 @@ public class with_an_admitted_model : given.a_semantic_host
 
     [Fact] void should_admit_the_model() => _refused.ShouldBeFalse();
     [Fact] void should_only_map_the_runtime_stage_routes() => _patterns.Where(pattern => pattern.StartsWith("/stage/", StringComparison.Ordinal)).ShouldContainOnly(["/stage/status", "/stage/packages", "/stage/scene", "/stage/routes", "/stage/locales", "/stage/strings/{locale}"]);
+    [Fact] void should_not_map_any_tooling() => Published.PublishedSurface.ToolingRoutes(((Microsoft.AspNetCore.Routing.IEndpointRouteBuilder)_app).DataSources.SelectMany(source => source.Endpoints)).ShouldBeEmpty();
     [Fact] void should_not_map_the_read_model_page() => _patterns.ShouldNotContain("/read-models");
     [Fact] void should_not_redirect_to_the_read_model_page() => _readModelPage.Response.StatusCode.ShouldEqual(StatusCodes.Status404NotFound);
     [Fact] void should_not_map_openapi() => _patterns.Any(pattern => pattern.Contains("openapi", StringComparison.OrdinalIgnoreCase)).ShouldBeFalse();

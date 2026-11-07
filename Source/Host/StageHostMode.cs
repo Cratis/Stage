@@ -13,19 +13,25 @@ internal static class StageHostModeSelection
 {
     internal static string[] ConfigurationArguments(string[] arguments) => [.. arguments.Where(argument => argument != "--published")];
 
+    internal static IConfiguration EarlyConfiguration(string[] arguments) => Published.StageHostModeSelection.EarlyConfiguration(arguments);
+
+    internal static StageHostMode Read(string[] arguments, IConfiguration configuration) => SelectedMode(configuration, arguments);
+
     internal static StageHostMode Read(IConfiguration configuration, string[] arguments, StageRuntimeEngine engine, bool warmMode = false)
     {
-        var mode = ConfiguredMode(configuration);
-        if (arguments.Contains("--published", StringComparer.Ordinal))
-        {
-            mode = StageHostMode.Published;
-        }
+        var mode = SelectedMode(configuration, arguments);
         if (mode == StageHostMode.Published)
         {
             RequirePublishedConfiguration(configuration, arguments, engine, warmMode);
         }
 
         return mode;
+    }
+
+    static StageHostMode SelectedMode(IConfiguration configuration, string[] arguments)
+    {
+        var configured = ConfiguredMode(configuration);
+        return arguments.Contains("--published", StringComparer.Ordinal) ? StageHostMode.Published : configured;
     }
 
     static StageHostMode ConfiguredMode(IConfiguration configuration) =>

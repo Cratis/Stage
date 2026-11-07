@@ -106,11 +106,14 @@ internal static class SemanticHost
             }
         });
         var app = builder.Build();
-        if (published is not null)
+        if (mode == StageHostMode.Published)
         {
-            // Before anything can serve or authenticate: tooling paths answer 404, and only the sign-in proxy's principal counts.
+            // Before anything can serve or authenticate: tooling paths answer 404.
             app.UseToolingRefusal();
-            app.UseTrustedProxyPrincipalGuard(published.Networks());
+            if (published is not null)
+            {
+                app.UseTrustedProxyPrincipalGuard(published.Networks());
+            }
         }
 
         app.UseSandboxIdentityHeaders();
@@ -137,6 +140,10 @@ internal static class SemanticHost
         if (surface is null)
         {
             MapRefusedHost(app, issues, notes.Count > 0 ? notes : null, mode);
+            if (mode == StageHostMode.Published)
+            {
+                PublishedSurface.EnsureNoTooling(app);
+            }
             return (app, null);
         }
 
@@ -159,7 +166,7 @@ internal static class SemanticHost
         app.UseWebSockets();
         app.MapControllers();
         StageEndpointMapper.Map(app, surface);
-        if (published is null)
+        if (mode == StageHostMode.Sandbox)
         {
             app.UseSandboxIdentity(modelPath, loaded.Model, surface);
         }

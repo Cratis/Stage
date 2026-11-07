@@ -117,6 +117,8 @@ public static class CratisServiceConfiguration
         {
             // Personas are a play-session device. A published application only ever sees the real principal.
             builder.Services.AddSingleton(new SandboxIdentityOptions(false));
+            builder.Services.AddSingleton(new SandboxUsersOptions(false));
+            builder.Services.AddSingleton(SandboxUsers.None);
             if (published.UsesOidc)
             {
                 PublishedAuthentication.Configure(builder.Services, published);

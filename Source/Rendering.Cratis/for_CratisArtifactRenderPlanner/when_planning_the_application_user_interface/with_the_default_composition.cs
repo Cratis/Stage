@@ -38,7 +38,7 @@ public class with_the_default_composition : a_register_project_render_request
     // Recomputed for Arc 22.166.0: the scaffold emits the matching backend and frontend pins.
     // Recomputed for Chronicle 19.129.0: the scaffold emits the matching package pins and development image tag.
     // Recomputed for Screenplay 5.10.0, Arc 22.168.0 and the main merge: the scaffold emits the matching pins, and npm Arc, Components and Scene at the published releases.
-    const string Before = "31b67b0fbff74001f0becb7154e6422a15b94fa6159573f00a064a4099210783";
+    const string Before = "6477d1edb2b3fe5afaabd9f404a61bcaa9cd2250c2a002d7463e77fc8d98b481";
 
     ArtifactRenderPlan _plan = null!;
 

@@ -8,7 +8,10 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisRendering.when_planning_screen
 
 public class with_inherited_contributions : given.a_partitioned_screen_plan
 {
-    protected override string ModelSource => Source.Replace("module Projects\n", "module Projects\n  contribute to Navigation\n    label \"Shared navigation\"\n    navigate to StaticOverview\n", StringComparison.Ordinal);
+    // Screenplay 6: a contribution goes to an outlet a layout declares.
+    protected override string ModelSource =>
+        "layout AppShell\n  category Shell\n  navigation panel\n  content page routed primary\n  outlet Navigation of navigation in navigation\n\n" +
+        Source.Replace("module Projects\n", "module Projects\n  contribute to Navigation\n    label \"Shared navigation\"\n    navigate to StaticOverview\n", StringComparison.Ordinal);
 
     void Because() => _application = AppPlan(_profile);
 

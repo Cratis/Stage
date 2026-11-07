@@ -19,22 +19,33 @@ public class when_refusing_unsupported_ui_syntax : Specification
         Directory.CreateDirectory(_directory);
     }
 
-    // A Scene dialog template declares no outlets, so an outlet on one has nowhere to go and is refused.
+    // Showing a screen by another component's selection is a binding Stage does not translate yet, so it is refused rather than dropped.
     [Fact]
     public void should_refuse_before_returning_a_host_scene()
     {
         const string source = """
             module Work
-              dialog template EditItem
-                body
-                outlet details
+              screen template Split
+                category List
+                main
+                detail pane
               feature Items
                 slice StateView Details
                   readmodel Item
+                    id Uuid
                     status String
                   query ItemDetails => Item[]
+                  query ItemById => Item optional
+                    by id Uuid
                   screen Details
-                    data Item[] via query ItemDetails
+                    template Split
+                      main
+                        table items
+                          column status
+                      detail
+                        show ItemDetail by id from items.selection
+                  screen ItemDetail
+                    data Item via query ItemById by id
             """;
 
         // Host loads presentation from source separately; the admitted backend model has no screens.
@@ -51,8 +62,8 @@ public class when_refusing_unsupported_ui_syntax : Specification
         var error = Catch.Exception(() => SemanticHostScene.Load(path, plan.Model));
         error.ShouldBeOfExactType<UnsupportedUiSyntax>();
         error.Message.ShouldContain(UnsupportedUiSyntax.DiagnosticCode);
-        ((UnsupportedUiSyntax)error).Member.ShouldEqual("DialogTemplateSyntax.Outlets");
-        ((UnsupportedUiSyntax)error).Location.Line.ShouldEqual(2);
+        ((UnsupportedUiSyntax)error).Member.ShouldEqual("ScreenShowSyntax");
+        ((UnsupportedUiSyntax)error).Location.Line.ShouldEqual(20);
     }
 
     void Destroy() => Directory.Delete(_directory, recursive: true);

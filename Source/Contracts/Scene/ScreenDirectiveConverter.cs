@@ -38,6 +38,31 @@ public static class ScreenDirectiveConverter
     public const string DefaultToolbarOutlet = "toolbar";
 
     /// <summary>
+    /// The Scene component a slot is drawn with.
+    /// </summary>
+    public const string SlotComponent = "core:slot";
+
+    /// <summary>
+    /// The property of a slot that names the screen it shows for a selection (<c language="screenplay">show &lt;Screen&gt;</c>).
+    /// </summary>
+    public const string ShowsProperty = "shows";
+
+    /// <summary>
+    /// The property of a slot that names the parameter the screen it shows is keyed by (<c language="screenplay">by &lt;param&gt;</c>).
+    /// </summary>
+    public const string ShowsByProperty = "showsBy";
+
+    /// <summary>
+    /// The property of a slot that names the table or component whose selection it shows (<c language="screenplay">from &lt;element&gt;.selection</c>).
+    /// </summary>
+    public const string ShowsFromProperty = "showsFrom";
+
+    /// <summary>
+    /// The property of a slot that holds the id of the element whose selection it shows, resolved within the screen.
+    /// </summary>
+    public const string ShowsFromElementProperty = "showsFromElement";
+
+    /// <summary>
     /// Converts a sequence of sibling <see cref="ScreenplaySyntax.ScreenDirectiveSyntax"/> into
     /// <see cref="SceneElements.SceneElement"/>s.
     /// </summary>
@@ -142,6 +167,7 @@ public static class ScreenDirectiveConverter
             ScreenplaySyntax.ScreenSummarySyntax summary => ConvertSummary(summary, id),
             ScreenplaySyntax.ScreenToolbarSyntax toolbar => ConvertToolbar(toolbar, id, scope),
             ScreenplaySyntax.ScreenComponentSyntax component => ConvertComponent(component, id, scope),
+            ScreenplaySyntax.ScreenShowSyntax show => ConvertShow(show, id),
             ScreenplaySyntax.ScreenCodeSyntax code => SceneElementFactory.Component(id, "core:code", new Dictionary<string, object?>
             {
                 ["language"] = code.Code.Language,
@@ -356,6 +382,16 @@ public static class ScreenDirectiveConverter
             new Dictionary<string, IReadOnlyList<SceneElements.SceneElement>> { ["fields"] = fields });
     }
 
+    // `show <Screen> by <param> from <element>.selection` is the slot it stands in, showing another screen for the selected row. The
+    // slot's name, role and routing come from the template the screen fills (TemplateSlotPlacement), which this converter does not see.
+    static SceneElements.ExternalComponent ConvertShow(ScreenplaySyntax.ScreenShowSyntax show, string id) =>
+        SceneElementFactory.Component(id, SlotComponent, new Dictionary<string, object?>
+        {
+            [ShowsProperty] = show.Screen,
+            [ShowsByProperty] = show.By,
+            [ShowsFromProperty] = show.Element,
+        });
+
     static string Kind(ScreenplaySyntax.ScreenDirectiveSyntax directive, ConversionDiagnostics? diagnostics) =>
         directive switch
         {
@@ -370,6 +406,7 @@ public static class ScreenDirectiveConverter
             ScreenplaySyntax.ScreenToolbarSyntax => "toolbar",
             ScreenplaySyntax.ScreenComponentSyntax => "component",
             ScreenplaySyntax.ScreenCodeSyntax => "code",
+            ScreenplaySyntax.ScreenShowSyntax => "show",
             _ => diagnostics is null ? throw new UnknownScreenDirective(directive.GetType().Name) : "unsupported",
         };
 }

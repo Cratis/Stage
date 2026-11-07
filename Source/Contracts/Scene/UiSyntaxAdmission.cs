@@ -15,9 +15,9 @@ namespace Cratis.Stage.Contracts.Scene;
 /// screen contributions, template slot content and picker metadata, grid/grow/span arrangements, and a
 /// <c>navigate</c> directive's route, slot and parameters (as a Scene <c>DestinationReference</c>), and a navigation
 /// contribution's id, icon, presentation, group and destination. Since Screenplay 6 and Scene 5 a dialog template's
-/// <c>outlet actions of actions</c> is a Scene outlet and is translated. Two Screenplay 6 members are not translated yet and are
-/// refused rather than dropped: <c>show &lt;Screen&gt; by &lt;param&gt; from &lt;element&gt;.selection</c> (a binding between components) and a
-/// form field's <c>choose from query</c> picker.
+/// <c>outlet actions of actions</c> is a Scene outlet and is translated, and so is <c>show &lt;Screen&gt; by &lt;param&gt; from
+/// &lt;element&gt;.selection</c> (the slot it stands in, see <see cref="TemplateSlotPlacement"/>). A form field's <c>choose from query</c>
+/// picker is not translated yet - Scene 5's form field has no place for it - and is refused rather than dropped.
 /// </remarks>
 public sealed class UiSyntaxAdmission : ScreenplaySyntaxWalker
 {
@@ -48,7 +48,6 @@ public sealed class UiSyntaxAdmission : ScreenplaySyntaxWalker
 
     static (string? Member, string Path) Refused(SyntaxNode node) => node switch
     {
-        ScreenShowSyntax show => ("ScreenShowSyntax", show.Screen),
         FormFieldSyntax { Choices: not null } field => ("FormFieldSyntax.Choices", field.Property),
         _ => (null, string.Empty)
     };

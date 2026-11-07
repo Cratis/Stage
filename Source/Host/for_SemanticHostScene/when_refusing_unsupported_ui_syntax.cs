@@ -19,33 +19,29 @@ public class when_refusing_unsupported_ui_syntax : Specification
         Directory.CreateDirectory(_directory);
     }
 
-    // Showing a screen by another component's selection is a binding Stage does not translate yet, so it is refused rather than dropped.
+    // A form field's picker is not translated yet - Scene's form field has no place for it - so it is refused rather than dropped.
     [Fact]
     public void should_refuse_before_returning_a_host_scene()
     {
         const string source = """
             module Work
-              screen template Split
-                category List
-                main
-                detail pane
+              form ItemForm for Assign
+                field owner
+                  choose from query AllOwners show name
               feature Items
-                slice StateView Details
-                  readmodel Item
-                    id Uuid
-                    status String
-                  query ItemDetails => Item[]
-                  query ItemById => Item optional
-                    by id Uuid
-                  screen Details
-                    template Split
-                      main
-                        table items
-                          column status
-                      detail
-                        show ItemDetail by id from items.selection
-                  screen ItemDetail
-                    data Item via query ItemById by id
+                slice StateChange Assign
+                  command Assign
+                    id Uuid identifier
+                    owner Uuid
+                    produces Assigned
+                      for id
+                  event Assigned
+                    owner Uuid
+                slice StateView Owners
+                  readmodel OwnerRow
+                    id Uuid key
+                    name String
+                  query AllOwners => OwnerRow[]
             """;
 
         // Host loads presentation from source separately; the admitted backend model has no screens.
@@ -62,8 +58,8 @@ public class when_refusing_unsupported_ui_syntax : Specification
         var error = Catch.Exception(() => SemanticHostScene.Load(path, plan.Model));
         error.ShouldBeOfExactType<UnsupportedUiSyntax>();
         error.Message.ShouldContain(UnsupportedUiSyntax.DiagnosticCode);
-        ((UnsupportedUiSyntax)error).Member.ShouldEqual("ScreenShowSyntax");
-        ((UnsupportedUiSyntax)error).Location.Line.ShouldEqual(20);
+        ((UnsupportedUiSyntax)error).Member.ShouldEqual("FormFieldSyntax.Choices");
+        ((UnsupportedUiSyntax)error).Location.Line.ShouldEqual(3);
     }
 
     void Destroy() => Directory.Delete(_directory, recursive: true);

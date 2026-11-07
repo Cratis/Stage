@@ -21,10 +21,10 @@ public class when_refusing_new_ui_members : Specification
         error.Message.ShouldContain(UnsupportedUiSyntax.DiagnosticCode);
     }
 
-    // Showing a screen by another component's selection (Screenplay 6) is a binding Stage does not translate yet.
+    // Showing a screen by another component's selection (Screenplay 6) is the slot it stands in (TemplateSlotPlacement).
     [Fact]
-    public void should_refuse_showing_a_screen_by_a_selection() =>
-        Catch.Exception(() => new UiSyntaxAdmission().VisitNode(new ScreenShowSyntax("Details", "id", "list", SourceLocation.Start))).ShouldBeOfExactType<UnsupportedUiSyntax>();
+    public void should_admit_showing_a_screen_by_a_selection() =>
+        Catch.Exception(() => new UiSyntaxAdmission().VisitNode(new ScreenShowSyntax("Details", "id", "list", SourceLocation.Start))).ShouldBeNull();
 
     // Members the Scene converters translate, or the canonical screen composition corpus admits.
     [Theory]

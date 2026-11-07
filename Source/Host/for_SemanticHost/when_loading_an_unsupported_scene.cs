@@ -20,27 +20,23 @@ public class when_loading_an_unsupported_scene : given.a_model_path
     {
         const string screen = """
             module Confirmations
-              screen template Split
-                category List
-                main
-                detail pane
+              form ReviewForm for Review
+                field reviewer
+                  choose from query AllReviewers show name
               feature Reviews
-                slice StateView Reviews
-                  readmodel Review
-                    id Uuid
-                    status String
-                  query AllReviews => Review[]
-                  query ReviewById => Review optional
-                    by id Uuid
-                  screen Reviews
-                    template Split
-                      main
-                        table reviews
-                          column status
-                      detail
-                        show ReviewDetail by id from reviews.selection
-                  screen ReviewDetail
-                    data Review via query ReviewById by id
+                slice StateChange Review
+                  command Review
+                    id Uuid identifier
+                    reviewer Uuid
+                    produces ReviewRecorded
+                      for id
+                  event ReviewRecorded
+                    reviewer Uuid
+                slice StateView Reviewers
+                  readmodel ReviewerRow
+                    id Uuid key
+                    name String
+                  query AllReviewers => ReviewerRow[]
             """;
         await File.WriteAllTextAsync(_path, Cratis.Stage.Api.for_SceneSynthesizer.given.a_scene_model.Source + "\n" + screen);
         var issues = new List<StageUnsupportedIssue>();
@@ -61,7 +57,7 @@ public class when_loading_an_unsupported_scene : given.a_model_path
         issue.Artifact.ShouldEqual("model");
         const string diagnosticCode = UnsupportedUiSyntax.DiagnosticCode;
         issue.Details.ShouldContain(diagnosticCode);
-        issue.Details.ShouldContain("ScreenShowSyntax");
+        issue.Details.ShouldContain("FormFieldSyntax.Choices");
 
         await using var app = WebApplication.CreateBuilder().Build();
         SemanticHost.MapRefused(app, issues, engine);

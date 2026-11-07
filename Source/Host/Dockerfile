@@ -68,6 +68,7 @@ RUN chmod +x /stage/entrypoint-stage.sh /stage/entrypoint-published.sh
 # 9090 is the Stage API. 35000 is the Chronicle kernel's single HTTP endpoint — gRPC (HTTP/2) plus the Chronicle
 # Workbench, its API and OAuth (HTTP/1.1, TLS) — so a play session can be inspected in the Workbench. Those two are
 # all a caller needs; the kernel's remaining ports (Orleans clustering) stay internal.
+# Published mode: 35000 must stay internal to the pod (no Service port; enforce NetworkPolicy).
 EXPOSE 9090 35000
 
 # Override the entrypoint to run both Chronicle and Stage. A container started with Stage__Mode=Published (the

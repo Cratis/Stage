@@ -188,10 +188,17 @@ Platform principal headers (`x-ms-client-principal`, `x-ms-client-principal-id`,
 ### Chronicle
 
 The kernel in the container uses the configured MongoDB, has authentication enabled, and has its API and Workbench
-features off. Data survives a restart. Do not publish port `35000`; the application image exposes only `9090`.
+features off. Data survives a restart. Publish only `9090`. The shared base image declares `35000` for sandbox use,
+but in published mode the deployment must keep it internal to the pod: no Service port or host port, and a NetworkPolicy
+that prevents other pods reaching it. This release does not bind the kernel to loopback itself; no supported bind
+setting has been confirmed from the pinned kernel source. Pod isolation, not a loopback bind, is the boundary.
 
-The host presents the kernel's built-in client unless `Stage:Published:Chronicle:ClientId` and `ClientSecret` are
-configured, and this release does not bind the kernel to loopback itself, so the pod's network must keep `35000` internal.
+The host refuses Chronicle connections with `auth=none`, including mounted connection strings. Outside loopback,
+`Stage:Published:Chronicle:ClientId` and `ClientSecret` must both be explicitly configured. The kernel's well-known
+built-in development client remains a fallback only for loopback connections. Mounted connection strings still win,
+but pass the same startup guard; refusal exits with code `78` without printing the connection string.
+Published sign-in is validated through `Stage:Published:Authentication:Mode=TrustedProxy` and trusted proxies,
+not the sandbox-only `Stage:Sandbox:ForwardedIdentity` flag.
 
 ### Routes
 

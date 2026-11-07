@@ -15,7 +15,7 @@ public class with_conflicting_mode_providers : given.a_semantic_host
     async Task Establish()
     {
         await File.WriteAllTextAsync(Path.Combine(_directory, "cratis-stage.json"), """{"Stage":{"Mode":"Sandbox"}}""");
-        _arguments = ["--contentRoot", _directory, "--Stage:Mode=Published", "--Stage:Sandbox:ForwardedIdentity=true"];
+        _arguments = ["--contentRoot", _directory, "--Stage:Mode=Published", "--Stage:Published:Storage:ConnectionString=mongodb://storage:27017", "--Stage:Published:Authentication:Mode=TrustedProxy", "--Stage:Published:TrustedProxies:0=127.0.0.1", "--AllowedHosts=app.example.com"];
     }
 
     async Task Because()

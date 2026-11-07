@@ -17,7 +17,8 @@ public class a_semantic_host : for_SemanticHost.given.a_model_path
 
     private protected async Task BuildHost(Published.PublishedPackage? package = null, Published.PublishedOptions? published = null, StageHostMode? hostMode = null)
     {
-        (_app, var initialize) = await SemanticHost.Build(_arguments, _path, package, published, hostMode);
+        string[] arguments = [.. _arguments, "--Stage:Published:Storage:ConnectionString=mongodb://storage:27017", "--Stage:Published:Authentication:Mode=TrustedProxy", "--Stage:Published:TrustedProxies:0=127.0.0.1", "--AllowedHosts=app.example.com"];
+        (_app, var initialize) = await SemanticHost.Build(arguments, _path, package, published, hostMode);
         _refused = initialize is null;
         _patterns = [.. ((IEndpointRouteBuilder)_app).DataSources.SelectMany(source => source.Endpoints).OfType<RouteEndpoint>().Select(endpoint => endpoint.RoutePattern.RawText!)];
         _readModelPage = new DefaultHttpContext { RequestServices = _app.Services };

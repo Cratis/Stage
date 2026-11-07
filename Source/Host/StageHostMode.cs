@@ -60,9 +60,10 @@ internal static class StageHostModeSelection
         {
             throw new StageHostModeRefused("Published mode does not support --engine=eventmodel. Use the semantic engine.");
         }
-        if (!configuration.GetValue<bool>("Stage:Sandbox:ForwardedIdentity"))
+        var problems = Published.PublishedOptions.From(configuration).Problems();
+        if (problems.Count > 0)
         {
-            throw new StageHostModeRefused("Published mode requires Stage:Sandbox:ForwardedIdentity=true and requests forwarded by AuthProxy.");
+            throw new StageHostModeRefused(string.Join(Environment.NewLine, problems));
         }
     }
 

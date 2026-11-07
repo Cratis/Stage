@@ -7,7 +7,13 @@ namespace Cratis.Stage.Host.for_StageHostMode.given;
 
 public class a_host_configuration : Specification
 {
-    protected readonly Dictionary<string, string?> _settings = [];
+    protected readonly Dictionary<string, string?> _settings = new()
+    {
+        ["Stage:Published:Storage:ConnectionString"] = "mongodb://storage:27017",
+        ["Stage:Published:Authentication:Mode"] = "TrustedProxy",
+        ["Stage:Published:TrustedProxies:0"] = "127.0.0.1",
+        ["AllowedHosts"] = "app.example.com"
+    };
     protected string[] _arguments = [];
     private protected StageRuntimeEngine _engine = StageRuntimeEngine.Semantic;
     private protected StageHostMode _mode;

@@ -60,6 +60,9 @@ public class when_starting_with_the_shared_executor : Specification
 
         // Keep production discovery; replace only the transport to the external kernel.
         var client = Substitute.For<IChronicleClient>();
+
+        // Chronicle's host lifecycle reads the client's options when the host starts, so a substituted client carries real ones.
+        client.Options.Returns(new ChronicleClientOptions { EventStore = "SpecificationHost" });
         var eventStore = Substitute.For<IEventStore>();
         client.GetEventStore(Arg.Any<EventStoreName>(), Arg.Any<EventStoreNamespaceName?>()).Returns(eventStore);
         builder.Services.AddSingleton(client);

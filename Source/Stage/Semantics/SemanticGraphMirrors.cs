@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using System.Text.Json.Nodes;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
@@ -129,11 +130,11 @@ public static class SemanticGraphMirrors
                     var @event = EventTypeOf(plan, handler.Event);
                     if (handler.Removes)
                     {
-                        target.RemovedWith[@event] = new() { Key = Expression(plan, handler, handler.Key), Detach = handler.Detach };
+                        target.RemovedWith[@event] = new() { Key = Expression(plan, handler, handler.Key), Detach = handler.Detach, ForEach = ForEach(plan, handler) };
                     }
                     else
                     {
-                        target.From[@event] = new() { Key = Expression(plan, handler, handler.Key), Properties = Properties(plan, handler, graph.Nodes.Single(node => node.Label == element.Name).Properties.Single(property => property.IsKey).Name) };
+                        target.From[@event] = new() { Key = Expression(plan, handler, handler.Key), ForEach = ForEach(plan, handler), Properties = Properties(plan, handler, graph.Nodes.Single(node => node.Label == element.Name).Properties.Single(property => property.IsKey).Name) };
                     }
                 }
             }
@@ -149,11 +150,11 @@ public static class SemanticGraphMirrors
                     var identity = handler.Identity is null ? null : Expression(plan, handler, handler.Identity);
                     if (handler.Removes)
                     {
-                        target.RemovedWith[@event] = new() { SourceKey = source, TargetKey = end, Identity = identity };
+                        target.RemovedWith[@event] = new() { SourceKey = source, TargetKey = end, Identity = identity, ForEach = ForEach(plan, handler) };
                     }
                     else
                     {
-                        target.From[@event] = new() { SourceKey = source, TargetKey = end, Identity = identity, Properties = Properties(plan, handler, graph.Edges.Single(edge => edge.Type == element.Name).IdentifiedBy) };
+                        target.From[@event] = new() { SourceKey = source, TargetKey = end, Identity = identity, ForEach = ForEach(plan, handler), Properties = Properties(plan, handler, graph.Edges.Single(edge => edge.Type == element.Name).IdentifiedBy) };
                     }
                 }
             }
@@ -199,13 +200,36 @@ public static class SemanticGraphMirrors
         {
             null or SemanticProjectionEventSourceIdentity => EventSourceIdExpression,
             SemanticProjectionEventContextValue context => $"$eventContext({context.Path})",
-            SemanticProjectionEventProperty property => string.Join('.', property.Path.Select(step => PropertyName(plan, handler, step))),
+            SemanticProjectionEventProperty property => PropertyPath(plan, handler, property.Path),
             _ => throw new UnsupportedSemanticGraph("A graph projection value has no equivalent in the kernel's graph projection.")
         };
 
-    static string PropertyName(SemanticExecutionPlan plan, SemanticGraphHandler handler, SemanticId id) =>
-        plan.Events[handler.Event].Properties.SingleOrDefault(property => property.Id == id)?.Name
-            ?? throw new UnsupportedSemanticGraph("A graph projection reads an event property the event does not have.");
+    // The collection a handler runs once per item of, as the kernel names it: a property of the event itself.
+    static string? ForEach(SemanticExecutionPlan plan, SemanticGraphHandler handler) =>
+        handler.ForEach is null ? null : PropertyPath(plan, handler, [handler.ForEach.Value]);
+
+    // A path starts at a property of the event; each further step is a property of the composite type the step before it holds, which is how an item of an iterated collection is addressed.
+    static string PropertyPath(SemanticExecutionPlan plan, SemanticGraphHandler handler, ImmutableArray<SemanticId> path)
+    {
+        var properties = plan.Events[handler.Event].Properties;
+        var names = new List<string>();
+        SemanticProperty? current = null;
+        foreach (var step in path)
+        {
+            if (current is not null)
+            {
+                var type = plan.Model.Application.Types.SingleOrDefault(candidate => current.Type.Kind == SemanticTypeReferenceKind.CompositeType && candidate.Id == current.Type.Target)
+                    ?? throw new UnsupportedSemanticGraph("A graph projection steps into a property that is not a composite type.");
+                properties = type.Properties;
+            }
+
+            current = properties.SingleOrDefault(property => property.Id == step)
+                ?? throw new UnsupportedSemanticGraph("A graph projection reads an event property the event does not have.");
+            names.Add(current.Name);
+        }
+
+        return string.Join('.', names);
+    }
 }
 
 /// <summary>

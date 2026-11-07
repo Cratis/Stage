@@ -160,8 +160,16 @@ public static class ScreenConverter
         return new SceneScreens.Screen(screen.Name, layoutName, slotContent, forms, [.. contributions, .. own], screenTemplate)
         {
             Behaviors = [.. inherited, .. attached],
-            Path = [.. path]
+            Path = [.. path],
+            Fits = Fits(screen)
         };
+    }
+
+    // Where the screen fits (`fits pane, drawer`), in the order written: placement takes the first fit the page has free.
+    static List<SceneScreens.ScreenFit>? Fits(ScreenplaySyntax.ScreenSyntax screen)
+    {
+        var fits = screen.Fits.Select(fit => Enum.Parse<SceneScreens.ScreenFit>(fit.ToString())).ToList();
+        return fits.Count > 0 ? fits : null;
     }
 
     static (string? ScreenTemplate, IReadOnlyDictionary<string, IReadOnlyList<SceneElements.SceneElement>> SlotContent) ConvertContent(

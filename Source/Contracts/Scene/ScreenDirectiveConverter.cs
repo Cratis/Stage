@@ -5,6 +5,7 @@ using Cratis.Screenplay.Diagnostics;
 using SceneCommon = Cratis.Scene.Model.Common;
 using SceneElements = Cratis.Scene.Model.Elements;
 using SceneInteractions = Cratis.Scene.Model.Interactions;
+using SceneOutlets = Cratis.Scene.Model.Outlets;
 using ScreenplaySyntax = Cratis.Screenplay.Syntax;
 
 namespace Cratis.Stage.Contracts.Scene;
@@ -26,6 +27,16 @@ namespace Cratis.Stage.Contracts.Scene;
 /// </remarks>
 public static class ScreenDirectiveConverter
 {
+    /// <summary>
+    /// The Scene component that draws an outlet where a screen places it.
+    /// </summary>
+    public const string OutletItemsComponent = "core:outletItems";
+
+    /// <summary>
+    /// The outlet a screen's toolbar draws when it names none.
+    /// </summary>
+    public const string DefaultToolbarOutlet = "toolbar";
+
     /// <summary>
     /// Converts a sequence of sibling <see cref="ScreenplaySyntax.ScreenDirectiveSyntax"/> into
     /// <see cref="SceneElements.SceneElement"/>s.
@@ -147,50 +158,44 @@ public static class ScreenDirectiveConverter
         return null;
     }
 
+    // A screen's toolbar is the outlet of actions it places (Scene 5's core:outletItems): its name names the outlet, `toolbar` when it
+    // names none, and every item and button is an outlet button. A button keeps its hook - the qualified slice, where it opens, what it
+    // acts on, when it is enabled. A navigate or dialog item opens its destination; an action item names its command. An outlet button
+    // takes a command's inputs from the slice, so the parameters an action item passes are reported as omitted.
     static SceneElements.ExternalComponent ConvertToolbar(ScreenplaySyntax.ScreenToolbarSyntax toolbar, string id, BehaviorScope scope)
     {
-        var items = toolbar.Items.Select((item, index) => (SceneElements.SceneElement)SceneElementFactory.Component(
-            $"{id}.{index}-item",
-            "core:toolbarItem",
-            new Dictionary<string, object?>
-            {
-                ["name"] = item.Name,
-                ["kind"] = item.Kind.ToString(),
-                ["target"] = item.Target,
-                ["label"] = item.Label,
-                ["icon"] = item.Icon,
-                ["parameters"] = item.Parameters.ToDictionary(parameter => parameter.Name, parameter => ScreenplayRichSyntax.Binding(parameter.Binding), StringComparer.Ordinal),
-                [SceneElementProperties.Destination] = ToolbarDestination(item),
-                ["presentation"] = item.Presentation.ToDictionary(presentation => presentation.Name, presentation => presentation.Value, StringComparer.Ordinal),
-            }.WithConfirm(item.Confirm).WithSubject(item.Subject, []))).ToList();
-
-        // A button invokes a State Change slice: Scene's toolbar button is a core:toolbarItem of kind Action with a slice and an
-        // emphasis, read back by the engine's ToolbarButtons.FromItem. The slice is written as the qualified id the structure knows.
-        items.AddRange(toolbar.Buttons.Select((button, index) => (SceneElements.SceneElement)SceneElementFactory.Component(
-            $"{id}.{index}-button",
-            "core:toolbarItem",
-            new Dictionary<string, object?>
-            {
-                ["name"] = button.Id,
-                ["kind"] = nameof(ScreenplaySyntax.ToolbarItemKind.Action),
-                ["label"] = button.Title,
-                ["slice"] = button.Slice is null ? null : StructureConverter.QualifiedSlice(scope.Structure, button.Slice),
-                ["emphasis"] = button.Emphasis?.ToString().ToLowerInvariant(),
-                ["icon"] = button.Icon,
-            }.WithConfirm(button.Confirm))));
-
-        return SceneElementFactory.Component(id, "core:toolbar", new Dictionary<string, object?> { ["name"] = toolbar.Name }, new Dictionary<string, IReadOnlyList<SceneElements.SceneElement>> { ["items"] = items });
-    }
-
-    // A confirmation is written only when the item asks one, so a toolbar that never asks keeps the Scene it always produced.
-    static Dictionary<string, object?> WithConfirm(this Dictionary<string, object?> properties, string? confirm)
-    {
-        if (confirm is not null)
+        var items = new List<SceneOutlets.OutletItem>();
+        foreach (var item in toolbar.Items)
         {
-            properties["confirm"] = confirm;
+            if (item.Kind == ScreenplaySyntax.ToolbarItemKind.Action && item.Parameters.Any() && scope.Diagnostics is { } diagnostics)
+            {
+                diagnostics.Report(new("STAGE-SCENE-TOOLBAR-001", DiagnosticSeverity.Warning, "toolbar action parameters", $"{id}.{item.Name}", item.Location, $"The parameters of the toolbar action '{item.Name}' were omitted: an outlet button takes its command's inputs from the slice."));
+            }
+
+            items.Add(new SceneOutlets.OutletButton
+            {
+                Id = item.Name,
+                Title = item.Label ?? item.Name,
+                Icon = item.Icon,
+                Command = item.Kind == ScreenplaySyntax.ToolbarItemKind.Action ? item.Target : null,
+                NavigateTo = ToolbarDestination(item),
+                Subject = OutletConverter.SubjectOf(item.Subject),
+                EnabledWhen = item.EnabledWhen is null ? null : OutletConverter.ConditionText(item.EnabledWhen),
+                Confirm = item.Confirm
+            });
         }
 
-        return properties;
+        items.AddRange(toolbar.Buttons.Select(button => OutletConverter.Button(button, scope.Structure)));
+
+        return SceneElementFactory.Component(
+            id,
+            OutletItemsComponent,
+            new Dictionary<string, object?>
+            {
+                ["name"] = string.IsNullOrEmpty(toolbar.Name) ? DefaultToolbarOutlet : toolbar.Name,
+                ["kind"] = "actions",
+                ["items"] = items
+            });
     }
 
     // The explicit subject of an action (Screenplay decision 0110) is carried as Stage-local scene properties until Scene ships a typed

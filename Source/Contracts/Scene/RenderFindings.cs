@@ -48,7 +48,7 @@ public static class RenderFindings
     /// <param name="application">The translated <see cref="SceneApplication"/>.</param>
     /// <returns>The findings, if any.</returns>
     /// <remarks>
-    /// The rules are Scene's: <c language="csharp">NavigationRegionDiagnostics</c> and <c language="csharp">ToolbarButtonValidation</c> run unmodified over the
+    /// The rules are Scene's: <c language="csharp">NavigationOutletDiagnostics</c> and <c language="csharp">ToolbarButtonValidation</c> run unmodified over the
     /// <see cref="SceneApplication.Structure"/> built from the compiled model, so a finding here is the one the designer reports.
     /// The slot names a navigation item may render into are the slots of the layouts the document declares.
     /// </remarks>
@@ -71,11 +71,11 @@ public static class RenderFindings
             yield return finding;
         }
 
-        var buttons = ComponentReferences.Elements(application)
-            .OfType<SceneElements.ExternalComponent>()
-            .Where(component => component.ComponentName == "core:toolbarItem")
-            .Select(component => ToolbarButtons.FromItem(component.Id, component.Properties))
-            .OfType<SceneToolbar.ToolbarButton>()
+        // A hook button names a slice; a button that names no slice, command, destination or built-in does nothing, which the
+        // engine's validation reports.
+        var buttons = application.OutletButtons()
+            .Where(button => button.BuiltIn is null && button.Command is null && button.NavigateTo is null)
+            .Select(button => new SceneToolbar.ToolbarButton(button.Id, button.Title, button.Slice, button.Emphasis, button.Icon))
             .ToList();
         foreach (var diagnostic in ToolbarButtonValidation.Validate(index, new SceneToolbar.Toolbar(buttons)))
         {

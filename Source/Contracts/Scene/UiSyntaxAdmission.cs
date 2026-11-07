@@ -40,15 +40,16 @@ public sealed class UiSyntaxAdmission : ScreenplaySyntaxWalker
     public override void VisitNode(SyntaxNode node)
     {
         new Screenplay.ActionSubjectSyntaxAdmission().VisitNode(node);
-        (string? Member, string Path) refused = node switch
-        {
-            ScreenShowSyntax show => ("ScreenShowSyntax", show.Screen),
-            FormFieldSyntax { Choices: not null } field => ("FormFieldSyntax.Choices", field.Property),
-            _ => (null, string.Empty)
-        };
-        var (member, path) = refused;
+        var (member, path) = Refused(node);
         if (member is null) return;
         if (_diagnostics is null) throw new UnsupportedUiSyntax(member, node.Location);
         _diagnostics.Report(new(UnsupportedUiSyntax.DiagnosticCode, DiagnosticSeverity.Error, member, path, node.Location, $"Unsupported {member} was omitted from '{path}'."));
     }
+
+    static (string? Member, string Path) Refused(SyntaxNode node) => node switch
+    {
+        ScreenShowSyntax show => ("ScreenShowSyntax", show.Screen),
+        FormFieldSyntax { Choices: not null } field => ("FormFieldSyntax.Choices", field.Property),
+        _ => (null, string.Empty)
+    };
 }

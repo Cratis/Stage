@@ -33,9 +33,13 @@ public class when_the_topbar_declares_application_toolbar_buttons : given.a_tran
               command PlaceOrder
                 orderId Uuid identifier
                 produces OrderPlaced
+                  for orderId
                   orderId = orderId
               event OrderPlaced
                 orderId Uuid
+              screen PlaceOrder
+                fits dialog
+                action PlaceOrder
         """;
 
     void Because() => Translate(Shell);

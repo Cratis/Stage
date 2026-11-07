@@ -23,11 +23,11 @@ public class when_auditing_the_route_surface : Specification
                 .Select(property => $"{type.Name}.{property.Name}"))
             .Order(StringComparer.Ordinal);
 
-        // Application collections are traversed by the walker. Screen navigation belongs to UiSyntaxAdmission,
+        // Application collections are traversed by the walker. Screen navigation and routed slots belong to UiSyntaxAdmission,
         // not event routing. Concurrency dimensions describe append scope, not a named route selection.
         // Production and possible-event streams are traversed as CommandStreamSyntax; observer filters are refused by ReactionIdentitySyntaxAdmission.
         // Every other owner below has explicit route detection in EventRouteSyntaxAdmission.
-        string.Join(' ', actual).ShouldEqual("ApplicationSyntax.EventSources CommandStreamSyntax.Stream CommandStreamSyntax.StreamId CommandStreamSyntax.StreamIdParts CommandSyntax.Stream CommandSyntax.StreamCandidates ConcurrencySyntax.EventStreamId ConcurrencySyntax.EventStreamType EventSourceSyntax.Streams EventStreamSyntax.StreamId EventStreamSyntax.StreamIdParts ObserverFilterSyntax.Stream PossibleEventSyntax.Stream ProducesSyntax.Stream ScreenNavigateSyntax.Route SpecificationEventSyntax.NoStream SpecificationEventSyntax.Stream SpecificationExampleSyntax.NoStream SpecificationExampleSyntax.Stream SpecificationRedeliverySyntax.NoStream SpecificationRedeliverySyntax.Stream SpecificationStreamSyntax.Stream SpecificationStreamSyntax.StreamId SpecificationStreamSyntax.StreamIdParts");
+        string.Join(' ', actual).ShouldEqual("ApplicationSyntax.EventSources CommandStreamSyntax.Stream CommandStreamSyntax.StreamId CommandStreamSyntax.StreamIdParts CommandSyntax.Stream CommandSyntax.StreamCandidates ConcurrencySyntax.EventStreamId ConcurrencySyntax.EventStreamType EventSourceSyntax.Streams EventStreamSyntax.StreamId EventStreamSyntax.StreamIdParts ObserverFilterSyntax.Stream PossibleEventSyntax.Stream ProducesSyntax.Stream ScreenNavigateSyntax.Route SlotSyntax.Routed SlotSyntax.RoutedBy SpecificationEventSyntax.NoStream SpecificationEventSyntax.Stream SpecificationExampleSyntax.NoStream SpecificationExampleSyntax.Stream SpecificationRedeliverySyntax.NoStream SpecificationRedeliverySyntax.Stream SpecificationStreamSyntax.Stream SpecificationStreamSyntax.StreamId SpecificationStreamSyntax.StreamIdParts");
     }
 
     [Fact]

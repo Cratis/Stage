@@ -3,6 +3,7 @@
 
 using Cratis.Scene.Model.Elements;
 using Cratis.Scene.Model.Guards;
+using Cratis.Scene.Model.Outlets;
 using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Syntax;
 using Cratis.Specifications;
@@ -17,23 +18,23 @@ public class and_an_action_names_its_subject : Specification
             [new ScreenActionSyntax("RegisterOrder", null, null, SourceLocation.Start) { Subject = subject, Inputs = inputs }],
             "screen").Single();
 
-    static ExternalComponent ToolbarItem(ScreenActionSubjectKind? subject)
+    static OutletButton ToolbarItem(ScreenActionSubjectKind? subject)
     {
         var toolbar = new ScreenToolbarSyntax(
             "main",
             [new ToolbarItemSyntax("register", ToolbarItemKind.Action, "RegisterOrder", SourceLocation.Start) { Subject = subject }],
             SourceLocation.Start);
         var element = (ExternalComponent)ScreenDirectiveConverter.Convert([toolbar], "screen").Single();
-        return (ExternalComponent)element.Slots["items"].Single();
+        return ((IEnumerable<OutletItem>)element.Properties["items"]!).Cast<OutletButton>().Single();
     }
 
     [Theory]
-    [InlineData(ScreenActionSubjectKind.Item, "item")]
-    [InlineData(ScreenActionSubjectKind.Screen, "screen")]
-    public void should_carry_the_subject_of_a_plain_action_and_a_toolbar_item(ScreenActionSubjectKind subject, string expected)
+    [InlineData(ScreenActionSubjectKind.Item, "item", OutletSubject.Item)]
+    [InlineData(ScreenActionSubjectKind.Screen, "screen", OutletSubject.Screen)]
+    public void should_carry_the_subject_of_a_plain_action_and_a_toolbar_item(ScreenActionSubjectKind subject, string expected, OutletSubject outlet)
     {
         PlainAction(subject).Properties["actionSubject"].ShouldEqual(expected);
-        ToolbarItem(subject).Properties["actionSubject"].ShouldEqual(expected);
+        ToolbarItem(subject).Subject.ShouldEqual(outlet);
     }
 
     [Fact]
@@ -49,10 +50,9 @@ public class and_an_action_names_its_subject : Specification
     public void should_write_neither_key_when_the_subject_is_omitted()
     {
         var input = new InteractionArgumentSyntax("itemId", "item.rowId", SourceLocation.Start);
-        foreach (var element in new[] { PlainAction(null, input), ToolbarItem(null) })
-        {
-            Assert.False(element.Properties.ContainsKey("actionSubject"));
-            Assert.False(element.Properties.ContainsKey("subjectInputs"));
-        }
+        var element = PlainAction(null, input);
+        Assert.False(element.Properties.ContainsKey("actionSubject"));
+        Assert.False(element.Properties.ContainsKey("subjectInputs"));
+        ToolbarItem(null).Subject.ShouldBeNull();
     }
 }

@@ -54,7 +54,6 @@ public class when_refusing_new_ui_members : Specification
     [InlineData(typeof(FeatureSyntax), "Outlets")]
     [InlineData(typeof(ScreenSyntax), "Outlets")]
     [InlineData(typeof(ScreenSyntax), "Fits")]
-    [InlineData(typeof(ContributionSyntax), "Items")]
     [InlineData(typeof(SlotSyntax), "Role")]
     [InlineData(typeof(SlotSyntax), "RoutedBy")]
     [InlineData(typeof(ToolbarButtonSyntax), "Opens")]

@@ -60,6 +60,20 @@ It checks the whole application before emitting any artifacts. The syntax render
 `STAGE-CRATIS-COMPLIANCE-001` for protected event-source identities. Use an unmarked UUID surrogate
 identity and keep the protected natural value as a separate property; do not remove its classification.
 
+### How secret concepts are stored
+
+A rendered application puts `[Encrypted]` on a secret concept, with an `EncryptionScope` argument when the
+declared scope is namespace or global, and `[NotAudited]` beside it. The sandbox schema carries the same
+intent as Chronicle `security` metadata on the property: `EncryptedSubject`, `EncryptedNamespace` or
+`EncryptedGlobal`, following the declared scope. Chronicle therefore encrypts the value in the event log.
+Chronicle decrypts the value when it feeds projections, so a secret copied into a read model is stored there
+as readable data and its queries return it.
+
+For that reason a read model property whose type is a secret concept, on a read model that a projection or
+reducer populates, produces the warning `STAGE-ESM-069` naming the concept, read model and property. The
+warning is advisory: the model is still admitted and the rendered output is unchanged. Personal-data concepts
+(including `pii secret`, which renders as personal data only) and concepts without compliance do not produce it.
+
 In v13 the data subject is the event's event source. Explicit subject lineage is not rendered
 ([Stage #28](https://github.com/Cratis/Stage/issues/28)); Screenplay refuses personal or subject-scoped
 secret values together with an explicit event `subject` mark.

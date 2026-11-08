@@ -96,6 +96,11 @@ internal static class SemanticVersionFeatures
     internal const string ProtectedIdentity = "STAGE-ESM-040";
 
     /// <summary>
+    /// The code for a read model property that a projection or reducer populates with a secret concept.
+    /// </summary>
+    internal const string SecretReadModelProperty = "STAGE-ESM-069";
+
+    /// <summary>
     /// The code for checksum validation and other validation rules the legacy renderer cannot preserve.
     /// </summary>
     internal const string UnsupportedValidation = "STAGE-ESM-042";

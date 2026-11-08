@@ -220,10 +220,11 @@ these figures, so wait for the status instead of sleeping for a fixed time.
 To wait for a settled session with one request, pass `wait` (in seconds) to the status endpoint:
 
 ```bash title="Terminal: wait for the session"
-curl --retry-connrefused --retry 60 --retry-delay 1 -fsS 'http://localhost:9090/stage/status?wait=120'
+curl --retry-all-errors --retry 60 --retry-delay 1 -fsS 'http://localhost:9090/stage/status?wait=120'
 ```
 
-The retry flags cover the phases before port `9090` accepts connections. Once it does, the host holds the request
+The retry flags (curl 7.71 or later) cover the phases before port `9090` accepts connections, including the
+empty reply a Docker port proxy can give while nothing listens behind it. Once it does, the host holds the request
 while the state is `loading` and answers as soon as the state changes or the wait elapses, with the same JSON and
 HTTP 200 as a request without `wait`. Read `state` in the response:
 

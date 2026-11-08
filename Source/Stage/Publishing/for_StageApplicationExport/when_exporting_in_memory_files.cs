@@ -31,5 +31,7 @@ public class when_exporting_in_memory_files : given.an_exportable_model
     [Fact] void should_carry_the_model_files() => Encoding.UTF8.GetString(_package.Files["model/shop.play"]).ShouldEqual(Secured);
     [Fact] void should_carry_a_dockerfile() => Encoding.UTF8.GetString(_package.Files["Dockerfile"]).ShouldContain($"FROM cratis/stage:{StageRuntimeVersion.Current}");
     [Fact] void should_digest_the_model_files() => _package.Manifest.ModelDigest.ShouldEqual(PackageDigest.Of(_package.Files.Where(file => file.Key.StartsWith("model/", StringComparison.Ordinal)).Select(file => new KeyValuePair<string, byte[]>(file.Key["model/".Length..], file.Value))));
+    [Fact] void should_list_no_sinks() => _package.Manifest.Sinks.ShouldBeEmpty();
+    [Fact] void should_write_an_empty_sink_list() => _package.ManifestJson.ShouldContain("\"sinks\": []");
     [Fact] void should_give_identical_manifests_for_identical_input() => _second.ManifestJson.ShouldEqual(_package.ManifestJson);
 }

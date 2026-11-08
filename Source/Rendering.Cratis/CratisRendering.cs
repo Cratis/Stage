@@ -245,9 +245,19 @@ public static partial class CratisRendering
     /// <param name="profile">The resolved profile.</param>
     /// <param name="compilation">The compilation whose documents declare the authentication and onboarding.</param>
     /// <param name="physicalModelRoot">The folder holding the <c language="text">.play</c> files on disk, which the images of the onboarding emails are read from; omitted, there are none.</param>
-    /// <returns>The profile carrying realization and explicit passive identities, or unchanged when none are declared.</returns>
+    /// <returns>The profile carrying realization, explicit passive identities and named sinks, or unchanged when none are declared.</returns>
     public static ArtifactRenderProfile WithRealization(ArtifactRenderProfile profile, SemanticCompilation compilation, string? physicalModelRoot = null) =>
-        WithPassiveReadModels(WithRealization(profile, ApplicationRealization.From(compilation, physicalModelRoot)), compilation);
+        WithSinks(WithPassiveReadModels(WithRealization(profile, ApplicationRealization.From(compilation, physicalModelRoot)), compilation), compilation);
+
+    /// <summary>
+    /// Adds the named sinks of the same compilation, and the read models and graphs that choose one, to the hashed render profile.
+    /// Portable ESM bytes do not carry sinks; profiles without this input store everything in the default sinks.
+    /// </summary>
+    /// <param name="profile">The resolved profile.</param>
+    /// <param name="compilation">The compilation carrying the sink declarations and directives.</param>
+    /// <returns>The profile with canonical sink metadata, or unchanged when none was authored.</returns>
+    public static ArtifactRenderProfile WithSinks(ArtifactRenderProfile profile, SemanticCompilation compilation) =>
+        SinksInput.With(profile, RealizedSinks.From(compilation));
 
     /// <summary>
     /// Adds explicitly passive read-model identities from the same compilation to the hashed render profile.

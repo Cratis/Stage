@@ -17,6 +17,7 @@ internal static class CratisScaffoldArtifacts
     {
         var realization = applicationName is null ? null : ApplicationRealizationInput.From(profile);
         var strings = StringsCatalogInput.From(profile);
+        var sinks = applicationName is not null && SinksInput.TryRead(profile, null, out var declared) ? declared : Contracts.Semantics.RealizedSinks.None;
         var sceneName = $"cratis-scaffold:text:{SceneCompositionInput.RelativePath}";
         foreach (var input in profile.Inputs.Where(input => input.Name != sceneName && !CratisScaffoldProtocolInputs.Contains(input.Name)))
         {
@@ -35,7 +36,8 @@ internal static class CratisScaffoldArtifacts
 
             planned = realization is null ? planned : RealizationScaffold.Patch(planned, realization, rootNamespace);
             planned = contractsFolder is null ? planned : EventContractsScaffold.Patch(planned, contractsFolder);
-            yield return usesGraphs && applicationName is not null ? GraphScaffold.Patch(planned, applicationName) : planned;
+            planned = usesGraphs && applicationName is not null ? GraphScaffold.Patch(planned, applicationName) : planned;
+            yield return SinksScaffold.Patch(planned, sinks);
         }
 
         if (realization is not null)

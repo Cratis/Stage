@@ -296,6 +296,12 @@ internal static class SemanticStateViewArtifactRenderer
         {
             builder.Attribute("global::Cratis.Chronicle.ReadModels.Passive");
         }
+
+        // Screenplay refuses a sink on a passive read model (PLAY0935), as Chronicle's CHR0069 refuses [Sink] with [Passive].
+        if (context.SinkOf(readModel.Id) is { } sink)
+        {
+            builder.Attribute($"global::Cratis.Chronicle.Sinks.Sink({CSharpCodeBuilder.StringLiteral(sink)})");
+        }
     }
 
     // A performer owns the result; retain the route and shape whether its body is available or not.

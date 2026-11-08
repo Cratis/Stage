@@ -9,7 +9,7 @@ import {
     DestinationKind, LogoKind, type ApplicationStructure, type DestinationReference, type DialogTemplate, type Form, type InstanceContribution, type Layout,
     type EffectiveConfiguration, type NavigationModel, type SceneElement, type Screen, type ScreenTemplate, type Theme, type UiProfile, type ExposureDeclaration,
 } from '@cratis/scene.model';
-import type { CommandOutcome, EffectiveNavItem, InteractionFinding, PackageCatalog } from '@cratis/scene.engine';
+import type { CommandOutcome, EffectiveNavItem, InteractionFinding, OutletLevel, PackageCatalog } from '@cratis/scene.engine';
 import { resolveStringsInElement } from '@cratis/scene.engine';
 import {
     IconAdapterProvider,
@@ -18,8 +18,7 @@ import {
     SliceCommandFieldsProvider,
     SliceInvokerProvider,
     createBrowserDispatcher,
-    createBrowserSceneHistory,
-    createHashSceneHistory,
+    SceneRouterProvider,
     useOptionalSceneNavigation,
     useSceneNavigation,
     type ComponentRegistry,
@@ -70,6 +69,8 @@ import { knownSlicesOf, screenContribution, useStageNotes, type StageNotesState 
 import { ScreenSlice, StageStructureProvider } from './stageStructure';
 import { withoutSeededSlots } from './withoutSeededSlots';
 import { asDialogScreens } from './stageDialogScreens';
+import { StageRouteShapeContext, createStageSceneRouting, stageRouteShapeOf, useStageSceneRouter } from './stageSceneRouting';
+import { StageOutletsScope } from './stageOutlets';
 import { stageIconAdapters } from './stageIcons';
 import './app.css';
 
@@ -91,6 +92,9 @@ export interface StageSceneApplication {
 
     /** The JSON schema of every modeled command, by name, which a toolbar slice's task dialog reads its fields from. */
     commandSchemas?: Record<string, string>;
+
+    /** The outlets the modules, features and slices refine or contribute to, from the top down. */
+    outletLevels?: OutletLevel[];
     responseContracts?: StageResponseContracts;
 }
 
@@ -292,15 +296,21 @@ interface StageApplicationProps {
  * the commands the screens run against.
  */
 function StageApplication({ scene, registry, routing, routeState, strings, packageCatalog, screenTemplates, isVisible }: StageApplicationProps) {
-    const history = useMemo(() => {
+    const routeShape = useMemo(() => stageRouteShapeOf(scene), [scene]);
+    const sceneRouting = useMemo(() => {
         useStageRouting(routing);
-        if (routing === 'hash') return createHashSceneHistory();
+        if (routing === 'path') {
+            // An address written the earlier way (`/#/TalkList`) keeps working: it becomes the regular route it stands for.
+            const legacy = /^#\/(.+)$/.exec(globalThis.location.hash);
+            if (legacy) globalThis.history.replaceState(null, '', `/${legacy[1]}`);
+        }
 
-        // An address written the earlier way (`/#/TalkList`) keeps working: it becomes the regular route it stands for.
-        const legacy = /^#\/(.+)$/.exec(globalThis.location.hash);
-        if (legacy) globalThis.history.replaceState(null, '', `/${legacy[1]}`);
-        return createBrowserSceneHistory(window, '/');
-    }, [routing]);
+        // One address for the navigation host's screens and for the routed slots, tabs and filters on them.
+        return createStageSceneRouting(window, routing, routeShape);
+    }, [routing, routeShape]);
+    useEffect(() => () => sceneRouting.dispose(), [sceneRouting]);
+    const router = useStageSceneRouter(sceneRouting);
+    const history = sceneRouting.history;
     const [prefersDark, setPrefersDark] = useState(systemPrefersDark);
     const notes = useStageNotes();
     const initial = scene.screens[0]?.name ?? '';
@@ -357,7 +367,12 @@ function StageApplication({ scene, registry, routing, routeState, strings, packa
         />
     );
 
-    return notes.enabled ? <NotesProvider enabled knownSlices={knownSlicesOf(scene.structure)}>{host}</NotesProvider> : host;
+    const routed = (
+        <StageRouteShapeContext.Provider value={routeShape}>
+            <SceneRouterProvider router={router}>{host}</SceneRouterProvider>
+        </StageRouteShapeContext.Provider>
+    );
+    return notes.enabled ? <NotesProvider enabled knownSlices={knownSlicesOf(scene.structure)}>{routed}</NotesProvider> : routed;
 }
 
 interface StageScopeProps {
@@ -421,7 +436,9 @@ function StageScope({ scene, notes, routeState, strings, navigation, themes, she
                 <StageApplicationContext scene={scene} screen={navigation.primaryScreen} notes={notes} />
                 <StageDataProvider routes={routeState.routes} routesReady={routeState.ready} parameters={navigation.currentParameters} locale={strings.locale} locales={strings.locales} screen={navigation.primaryScreen ?? scene.screens[0]?.name ?? ''}>
                     <StageInteractions activity={activity} notesEnabled={notes.enabled} routesReady={routeState.ready} scene={scene} setActivity={setActivity} strings={strings}>
-                        <StageStructureProvider structure={scene.structure} screens={scene.screens}>{children}</StageStructureProvider>
+                        <StageStructureProvider structure={scene.structure} screens={scene.screens}>
+                            <StageOutletsScope source={scene} screen={navigation.primaryScreen}>{children}</StageOutletsScope>
+                        </StageStructureProvider>
                     </StageInteractions>
                 </StageDataProvider>
             </LayoutThemeProvider>

@@ -28,7 +28,7 @@ public class and_the_template_declares_slots_and_an_arrangement : Specification
 
         _syntax = new(
             "RegisterInvoiceDialog",
-            [new SlotSyntax("body", null, SourceLocation.Start), new SlotSyntax("actions", null, SourceLocation.Start)],
+            [new SlotSyntax("body", SourceLocation.Start), new SlotSyntax("actions", SourceLocation.Start)],
             SourceLocation.Start,
             new ArrangementSyntax(ArrangementMode.Flow, SourceLocation.Start, root, [], null));
     }

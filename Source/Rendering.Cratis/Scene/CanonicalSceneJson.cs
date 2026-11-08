@@ -110,11 +110,11 @@ public static class CanonicalSceneJson
             }
         }
 
-        // The same holds for navigation: an application that declares no region and no module navigation serializes as it did
-        // before navigation regions existed.
+        // The same holds for navigation: an application that declares no navigation outlet and no module navigation serializes as
+        // it did before navigation existed.
         if (application[CompositionNames.Navigation] is JsonObject navigation &&
             navigation["application"] is JsonObject { } applicationNavigation &&
-            applicationNavigation["regions"] is JsonArray { Count: 0 } &&
+            applicationNavigation["outlets"] is null or JsonArray { Count: 0 } &&
             applicationNavigation["logo"] is null &&
             navigation["modules"] is JsonArray { Count: 0 })
         {

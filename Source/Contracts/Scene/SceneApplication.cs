@@ -6,6 +6,7 @@ using SceneElements = Cratis.Scene.Model.Elements;
 using SceneExposure = Cratis.Scene.Model.Exposure;
 using SceneLayouts = Cratis.Scene.Model.Layouts;
 using SceneNavigation = Cratis.Scene.Model.Navigation;
+using SceneOutlets = Cratis.Scene.Model.Outlets;
 using SceneProfiles = Cratis.Scene.Model.Profiles;
 using SceneSampleData = Cratis.Scene.Model.SampleData;
 using SceneScreens = Cratis.Scene.Model.Screens;
@@ -49,9 +50,17 @@ public record SceneApplication(
     public IReadOnlyList<SceneExposure.InstanceContribution> InstanceContributions { get; init; } = [];
 
     /// <summary>
-    /// Gets the application's topbar and sidebar and what each module inherits, extends or overrides. Empty when the document declares no region.
+    /// Gets the application's navigation outlets and what each module refines or contributes to them. Empty when the document declares no
+    /// navigation outlet.
     /// </summary>
     public SceneNavigation.NavigationModel Navigation { get; init; } = new(new SceneNavigation.ApplicationNavigation([]), []);
+
+    /// <summary>
+    /// Gets the outlet levels of the modules, features and slice screens that refine or contribute to an outlet - the host's levels Scene's
+    /// engine resolves an outlet through (see <see cref="StageOutletChains"/>). Null when no level changes an outlet.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<Cratis.Scene.Engine.Outlets.OutletLevel>? OutletLevels { get; init; }
 
     /// <summary>
     /// Gets the modules, features and slices (with each slice's kind) that navigation targets and toolbar buttons resolve against.
@@ -101,7 +110,37 @@ public record SceneApplication(
     public bool ReferencesSlices =>
         Screens.Any(screen => screen.SlotContent.Values.Any(HasSliceButton) || screen.Contributions.Any(contribution => HasSliceButton([contribution.Content]))) ||
         ScreenTemplates.Any(template => template.Content is { } content && content.Values.Any(HasSliceButton)) ||
-        DialogTemplates.Any(template => template.Content is { } content && content.Values.Any(HasSliceButton));
+        DialogTemplates.Any(template => template.Content is { } content && content.Values.Any(HasSliceButton)) ||
+        SliceButtons().Any();
+
+    /// <summary>
+    /// Gets every outlet button that names a slice (see <see cref="OutletButtons"/>).
+    /// </summary>
+    /// <returns>The <see cref="SceneOutlets.OutletButton"/>s that name a slice, including those in groups.</returns>
+    public IEnumerable<SceneOutlets.OutletButton> SliceButtons() => OutletButtons().Where(button => button.Slice is { Length: > 0 });
+
+    /// <summary>
+    /// Gets every outlet button: the defaults of the outlets the layouts, templates and navigation declare, what module, feature and slice
+    /// levels add to them, and the items of the outlets screens place.
+    /// </summary>
+    /// <returns>The <see cref="SceneOutlets.OutletButton"/>s, including those in groups.</returns>
+    public IEnumerable<SceneOutlets.OutletButton> OutletButtons()
+    {
+        var declared = Layouts.SelectMany(layout => layout.Outlets ?? [])
+            .Concat(ScreenTemplates.SelectMany(template => template.Outlets ?? []))
+            .Concat(DialogTemplates.SelectMany(template => template.Outlets ?? []))
+            .Concat(Navigation.Application.Outlets)
+            .SelectMany(outlet => outlet.Defaults);
+        var refined = (OutletLevels ?? [])
+            .SelectMany(level => ItemsOf(level.Refinements, level.Contributions))
+            .Concat(Navigation.Modules.SelectMany(module => ItemsOf(module.Refinements, module.Contributions)));
+        var placed = Screens.SelectMany(screen => screen.SlotContent.Values.SelectMany(PlacedItems))
+            .Concat(ScreenTemplates.SelectMany(template => (template.Content?.Values ?? []).SelectMany(PlacedItems)))
+            .Concat(DialogTemplates.SelectMany(template => (template.Content?.Values ?? []).SelectMany(PlacedItems)));
+        return declared.Concat(refined).Concat(placed)
+            .SelectMany(item => item is SceneOutlets.OutletGroup group ? group.Items : [item])
+            .OfType<SceneOutlets.OutletButton>();
+    }
 
     /// <summary>
     /// Gets this application as a running Stage serves it: without sample data (spec SD6). Packs, the blueprint packs it names and the profile's
@@ -114,6 +153,15 @@ public record SceneApplication(
         BlueprintSampleDataPacks = [],
         UiProfiles = [.. UiProfiles.Select(profile => profile with { SampleData = null })]
     };
+
+    static IEnumerable<SceneOutlets.OutletItem> ItemsOf(IReadOnlyList<SceneOutlets.OutletRefinement>? refinements, IReadOnlyList<SceneOutlets.OutletContribution>? contributions) =>
+        (refinements ?? []).SelectMany(refinement => refinement.Items ?? []).Concat((contributions ?? []).SelectMany(contribution => contribution.Items));
+
+    // The items of the outlets a screen or template places with core:outletItems, wherever they sit.
+    static IEnumerable<SceneOutlets.OutletItem> PlacedItems(IReadOnlyList<SceneElements.SceneElement> elements) =>
+        elements.OfType<SceneElements.ExternalComponent>().SelectMany(component =>
+            (component.ComponentName == ScreenDirectiveConverter.OutletItemsComponent && component.Properties.TryGetValue("items", out var items) && items is IEnumerable<SceneOutlets.OutletItem> outletItems ? outletItems : [])
+                .Concat(component.Slots.Values.SelectMany(PlacedItems)));
 
     static bool HasSliceButton(IReadOnlyList<SceneElements.SceneElement> elements) =>
         elements.Any(element => element is SceneElements.ExternalComponent component &&

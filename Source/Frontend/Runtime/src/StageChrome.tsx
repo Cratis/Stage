@@ -4,16 +4,14 @@
 import { writeThemeChoice } from './stageThemeChoice';
 import { createContext, useContext, type ReactNode } from 'react';
 import type { ComponentRegistry, RegisteredComponentProps } from '@cratis/scene.react';
-import { SceneElementView, SceneNavigationContextInternal, useSceneOutlets, useSceneTheme } from '@cratis/scene.react';
+import { SceneNavigationContextInternal, useSceneTheme } from '@cratis/scene.react';
 import { useEffect } from 'react';
 import { ColorScheme, useLayoutConfig, defaultBlueprintThemes } from '@cratis/scene.blueprint.default';
 import { NotesButton } from '@cratis/showrunner.notes.react';
 import { screenHash, stageLocaleComponent, stageNotesComponent, stageNavigationTreeComponent, stageThemeToggleComponent } from './blueprint';
 import { opensElsewhere, type NavigationNode } from './navigationTree';
-import { useStageData } from './stageData';
 import { externalRouteHref } from './externalRouteHref';
-import { ScreenSlice } from './stageStructure';
-import { StageScreenTables } from './stageScreenTables';
+import { StageSlot } from './stageSlot';
 
 /** What the Stage's own components need that the document itself does not carry. */
 export interface StageChromeState {
@@ -154,34 +152,7 @@ function NavigationEntryLink({ node, screen, activeScreen }: { node: NavigationN
     );
 }
 
-/**
- * The `core:outlet` the Stage renders: the screen the Scene navigation host placed in the named outlet, drawn
- * inside the Stage's own data scope so its queries, selections and commands work as they do on a primary screen.
- *
- * Scene's own outlet renders the placed screen in a scope of its own, which cannot see what the Stage resolves
- * queries and selections with, so the Stage draws the same region itself - including the `Close` button of an outlet the host
- * put in a slot the shell declares (`slot side`).
- */
-export function StageOutlet({ element }: RegisteredComponentProps) {
-    const name = typeof element.properties.name === 'string' ? element.properties.name : '';
-    const navigation = useContext(SceneNavigationContextInternal);
-    const outlets = useSceneOutlets();
-    const data = useStageData();
-    const placed = navigation?.outlets[name];
-    const screen = placed && outlets ? outlets.screens[placed] : undefined;
-    const closable = element.properties.closable === true;
-
-    return (
-        <div data-scene-outlet={name} data-scene-outlet-screen={placed}>
-            {closable && placed && (
-                <div className='scene-outlet-bar'>
-                    <button type='button' className='scene-outlet-close' aria-label='Close' onClick={() => navigation?.closeOutlet(name)}>Close</button>
-                </div>
-            )}
-            {screen && outlets && <ScreenSlice screen={placed}><StageScreenTables element={screen}><SceneElementView element={screen} registry={outlets.registry} resolveBinding={data.resolveBinding} /></StageScreenTables></ScreenSlice>}
-        </div>
-    );
-}
+export { StageSlot };
 
 /** What the last interaction did, or could not do. */
 export function StageActivity() {
@@ -218,5 +189,5 @@ export const stageChromeComponents: ComponentRegistry = {
     [stageThemeToggleComponent]: StageThemeToggle,
     [stageNavigationTreeComponent]: StageNavigationTree,
     [stageActivityComponent]: StageActivity,
-    'core:outlet': StageOutlet,
+    'core:slot': StageSlot,
 };

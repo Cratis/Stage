@@ -11,20 +11,14 @@ import { registerTestCommand } from './testing/commands';
 const element = (id: string, componentName: string, properties: Record<string, unknown> = {}, slots: Record<string, unknown[]> = {}) =>
     ({ id, name: id, componentName, properties, slots });
 
-// The shape the Screenplay converter emits: a toolbar of `core:toolbarItem`s, each carrying its destination and presentation.
-const toolbar = element('toolbar', 'core:toolbar', { name: 'main' }, {
+// The shape the Screenplay converter emits: the screen places an outlet of actions (`core:outletItems`) whose buttons carry where they open.
+const toolbar = element('toolbar', 'core:outletItems', {
+    name: 'main',
+    kind: 'actions',
     items: [
-        element('toolbar.0-item', 'core:toolbarItem', {
-            name: 'details', kind: 'Navigate', target: 'InvoiceDetails', label: 'Details', icon: 'info', parameters: {},
-            destination: { screen: 'InvoiceDetails', outlet: 'detail', kind: 'outlet', routeParameterBindings: {} },
-            presentation: { mode: 'icon' },
-        }),
-        element('toolbar.2-item', 'core:toolbarItem', { name: 'register', kind: 'Action', target: 'RegisterInvoice', label: 'Register invoice', parameters: {}, presentation: {} }),
-        element('toolbar.1-item', 'core:toolbarItem', {
-            name: 'help', kind: 'Dialog', target: 'HelpDialog', label: 'Help', parameters: {},
-            destination: { kind: 'dialog', dialog: 'HelpDialog', routeParameterBindings: {} },
-            presentation: { placement: 'primary' },
-        }),
+        { kind: 'button', id: 'details', title: 'Details', icon: 'info', navigateTo: { screen: 'InvoiceDetails', slot: 'detail', kind: 'slot', routeParameterBindings: {} } },
+        { kind: 'button', id: 'register', title: 'Register invoice', command: 'RegisterInvoice' },
+        { kind: 'button', id: 'help', title: 'Help', navigateTo: { kind: 'dialog', dialog: 'HelpDialog', routeParameterBindings: {} } },
     ],
 });
 
@@ -54,7 +48,7 @@ const scene = {
                 navigationContribution('Invoices', 'InvoiceList', {}, ['Invoicing', 'Browsing']),
                 navigationContribution('Help', 'InvoiceList', { icon: 'help', presentation: 'icon', destination: { dialog: 'HelpDialog', kind: 'dialog', routeParameterBindings: {} } }, ['Invoicing']),
             ],
-            slotContent: { content: [element('list-title', 'core:title', { text: 'Invoice list' }), toolbar, element('detail-outlet', 'core:outlet', { name: 'detail' })] },
+            slotContent: { content: [element('list-title', 'core:title', { text: 'Invoice list' }), toolbar, element('detail-outlet', 'core:slot', { name: 'detail' })] },
         },
         {
             name: 'InvoiceDetails',
@@ -91,17 +85,18 @@ describe('when the application is hosted by the Scene navigation host', () => {
         render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
 
         const bar = await screen.findByRole('toolbar', { name: 'main' });
-        expect(Array.from(bar.querySelectorAll('[data-scene-toolbar-item]')).map(item => item.getAttribute('data-scene-toolbar-item'))).toEqual(['details', 'register', 'help']);
+        // Scene draws the buttons that open a destination; the Stage draws the one that runs a command.
+        expect(Array.from(bar.querySelectorAll('[data-scene-outlet-item], [data-scene-toolbar-item]'))
+            .map(item => item.getAttribute('data-scene-outlet-item') ?? item.getAttribute('data-scene-toolbar-item'))).toEqual(['details', 'register', 'help']);
     });
 
-    it('should honour a toolbar item\'s presentation', async () => {
+    // Scene 5 outlet buttons carry no presentation hints (they were cosmetic and are dropped); the icon a button names is drawn.
+    it('should draw the icon a toolbar button names', async () => {
         stubScene();
         render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
 
         const details = await screen.findByRole('button', { name: 'Details' });
-        expect(details.textContent).toBe('');
-        expect(details.getAttribute('data-scene-mode')).toBe('icon');
-        expect(screen.getByRole('button', { name: 'Help' }).getAttribute('data-scene-presentation-placement')).toBe('primary');
+        expect(details.querySelector('[data-scene-icon-name="info"]')).not.toBeNull();
     });
 
     it('should render a command item as the Stage\'s command action rather than a dead control', async () => {
@@ -121,7 +116,7 @@ describe('when the application is hosted by the Scene navigation host', () => {
 
         expect(await screen.findByRole('heading', { name: 'Details screen' })).toBeDefined();
         expect(screen.getByRole('heading', { name: 'Invoice list' })).toBeDefined();
-        expect(document.querySelector('[data-scene-outlet="detail"]')?.getAttribute('data-scene-outlet-screen')).toBe('InvoiceDetails');
+        expect(document.querySelector('[data-scene-slot="detail"]')?.getAttribute('data-scene-slot-screen')).toBe('InvoiceDetails');
     });
 
     it('should open a toolbar dialog through the host and close it again', async () => {
@@ -168,16 +163,6 @@ describe('when the application is hosted by the Scene navigation host', () => {
         const nav = await screen.findByRole('navigation', { name: 'Navigation' });
         const browsing = within(nav).getByText('Browsing').closest('li')!;
         expect(within(browsing).getAllByRole('link').map(link => link.textContent)).toEqual(['Invoices', 'Details screen']);
-    });
-
-    it('should restore the composition an outlet destination\'s address stands for', async () => {
-        globalThis.history.replaceState(null, '', '#/InvoiceDetails');
-        stubScene();
-        render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
-
-        // The toolbar opens InvoiceDetails in the `detail` outlet, so that address is the list with the details beside it.
-        expect(await screen.findByRole('heading', { name: 'Details screen' })).toBeDefined();
-        expect(screen.getByRole('heading', { name: 'Invoice list' })).toBeDefined();
     });
 
     it('should deep link to a screen no destination places in an outlet', async () => {

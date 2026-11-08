@@ -47,14 +47,14 @@ public static class ScreenTemplateConverter
         new(
             template.Name,
             template.FitsSlot,
-            SlotConverter.Convert(template.Slots),
+            SlotConverter.Convert(template.Slots, template.RecursiveSlots),
             diagnostics is null ? ArrangementConverter.Convert(template.Arrangement) : ArrangementConverter.Convert(template.Arrangement, diagnostics, template.Name),
             CompositionConverter.Content(template.Name, template.Content, behaviors, diagnostics),
             template.DisplayName,
             template.Description)
         {
             Metadata = WithRootRole(template, CompositionConverter.Metadata(template.TemplateType, template.Category, template.RestrictsScopes, template.Scopes, template.SliceKinds, diagnostics, template.Name, template.Location)),
-            Outlets = [.. template.Outlets.Select(outlet => new SceneScreens.Outlet(outlet.Name))]
+            Outlets = OutletConverter.Declarations(template.Outlets, behaviors?.Structure)
         };
 
     // A screen template that declares `scopes application` and fits no slot can be the application's shell - Screenplay's validator

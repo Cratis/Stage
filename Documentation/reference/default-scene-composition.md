@@ -19,17 +19,72 @@ The default screen belongs to the application and is not copied into each slice 
 `ScreenplaySceneVisitor` carries authored navigation, toolbar buttons and template references into the Scene
 model. Scene validates these constructs; Stage reports the findings described below.
 
-`navigation topbar|sidebar` in the first declared `layout` becomes the application's `NavigationRegion`s and
-its `ApplicationLogo`. A `module` block becomes a `ModuleNavigation` with a `NavigationRegionMode` of `inherits`,
-`extends` or `overrides`. Without a block, the module has no entry. Scene treats that missing region as inheriting
-and computes its items through `EffectiveNavigation`; Stage does not compute them.
+Each `outlet <name> of navigation` in the first declared `layout` becomes one of the application's navigation
+outlets, and the topbar's `logo` its `ApplicationLogo`. The layout's actions outlet that holds a navigation outlet's
+buttons (`topbarActions`) becomes the outlet Scene draws beside it (`topbarButtons`). A module's
+`outlet <name> inherits|extends|overrides` of a navigation outlet becomes an `OutletRefinement` of its
+`ModuleNavigation`, with the items it adds and the ids it `hide`s, and its `contribute to` with items an
+`OutletContribution`. A module that changes no navigation outlet has no entry. Scene computes the items through
+`EffectiveNavigation`; Stage does not compute them.
 
-Each item keeps its id, title (a `$strings.<key>` token as written), icon, `slot` and nested items. Its `target`
-becomes a `DestinationReference` naming the module and dotted feature path. `contribute to` remains a separate
-mechanism and converts as before. An application with no declared region serializes without a `navigation`
-member, leaving its plan digest unchanged.
+Each navigation item keeps its id, title (a `$strings.<key>` token as written), icon, `slot` and nested items. Its
+`target` becomes a `DestinationReference` naming the module and dotted feature path. An application with no
+navigation outlet serializes without a `navigation` member, leaving its plan digest unchanged.
 
-A toolbar declaration, `button <id> title "..." slice <Slice> emphasis <e> icon <i>`, becomes a `core:toolbarItem` of kind `Action` carrying `slice`, `emphasis` and `icon`, the shape Scene's `ToolbarButtons.FromItem` reads. The slice is written as the qualified id (`Module.Feature.Slice`) the structure knows, so a suffix such as `Orders.PlaceOrder` resolves the same way in the engine as in the compiler.
+A slot keeps its role (`page`, `pane` or `panel`), `routed` and the parameter it is `routed by`, `primary` and
+`optional`; an unwritten word stays unstated. Every other outlet a layout, screen template or dialog template
+declares becomes a Scene `Outlet` with its kind (actions, filters, tabs, stats), the slot it is `in`, what it acts
+on (`for item|for screen`) and its `default` items. A module's, feature's or slice screen's refinements and
+contributions of those outlets become the outlet levels Scene's `OutletChains.Of` and `EffectiveOutlets.Resolve`
+resolve through (`SceneApplication.OutletLevels`); Stage does not resolve them itself. A screen's `fits` keeps its
+order.
+
+A button, `button <id> title "..." slice <Slice> emphasis <e> icon <i>`, becomes an `OutletButton` carrying its
+hook: the slice as the qualified id (`Module.Feature.Slice`) the structure knows, so a suffix such as
+`Orders.PlaceOrder` resolves the same way in the engine as in the compiler; the built-in it `runs` (`close`,
+`submit` or `refresh`); where it `opens` (a bare `runs` is `none`, run directly); `before` or `after`; `enabled
+when`, `confirm` and `authorize`. A screen's toolbar becomes the `core:outletItems` element that places an outlet of
+actions, named as the toolbar (`toolbar` when it names none). A toolbar item's `presentation placement` (or
+`emphasis`) of `primary`, `secondary` or `quiet` is its button's emphasis. An outlet button has nowhere to carry any
+other presentation value or the parameters of an action item, so those are reported as omitted
+(`STAGE-SCENE-TOOLBAR-002` and `STAGE-SCENE-TOOLBAR-001`, warnings). A dialog template's `outlet actions of actions`
+is the outlet Scene draws the dialog's buttons from.
+
+Scene draws an outlet where a `core:outletItems` element places it and a slot where a `core:slot` element stands, and
+a screen's own content replaces a template's seed for a slot. So each screen that fills a screen template gets what
+the template declares for its slots: an outlet drawn `in` a slot becomes a `core:outletItems` element at the start of
+that slot (unless the screen already places an outlet of that name, such as its toolbar), and a routed slot the
+screen leaves empty becomes a `core:slot` with its name, role, routing and optionality. A slot an outlet of tabs owns
+is filled by the tabs, and a panel is never routed, so neither gets one. Navigation outlets are drawn by the shell.
+
+`show <Screen> by <param> from <element>.selection` becomes the `core:slot` of the template slot it stands in, with
+that slot's role and routing, `shows`, `showsBy`, `showsFrom` and `showsFromElement` (the id of the table or component
+whose selection it shows). A form field's `choose from` picker is not translated yet - Scene 5's form field has no
+place for it - and is refused with `STAGE-SCENE-UI-001` rather than dropped.
+
+## Addresses of routed slots, tabs and filters
+
+The running application gives Scene's renderer its own router (`SceneRouterProvider`), so what a routed slot shows,
+the tab chosen in an outlet of tabs that owns a routed slot, and - when the page slot is routed - the filters' values
+are in the address and come back on a reload or from a shared link:
+
+```text
+/ProductCatalog/@detail/NK-101/@detail.detailTabs/pricing?q=kettle&status=onSale
+```
+
+After the screen's own part comes a group per routed slot: `@<slot>`, its route values in the order it is routed by,
+then the segment of a slice opened in it (`@detail/NK-101/set-product-price`). A chosen tab follows the slot its
+outlet owns as `@<slot>.<outlet>/<tab>`. A filter writes the query parameter it `sets` (or its id), beside the
+screen's own parameters. With hash routing the same address follows `#/`.
+
+Opening a screen in a routed slot and choosing a tab are history entries, so back and forward move through them. A
+filter replaces the current entry. A dialog or drawer opened over the page keeps the address and is not a history
+entry, and a panel is never routed. Going to another screen leaves the slots, tabs and filters of the one it left.
+
+A hook that runs its slice directly (`runs`), or opens it in a drawer or a slot, is placed by Scene: it asks its
+`confirm` first, waits for its item and its `enabled when`, and issues the command with the command's identifier from
+the item through the Stage's slice invoker, which refreshes the queries on the page. Opening in a routed slot
+changes the address.
 
 `template <Name>` and `template blueprint <Blueprint> <Name> [version "<range>"]` become `SceneApplication.TemplateReferences`, each a Scene `TemplateReference` (source, id, blueprint, version range) with the scope it was assigned at. The template's category and the slice kinds of a `scopes slice` template travel in its `TemplateMetadata`. An application with no assignment serializes without a `templateReferences` member.
 

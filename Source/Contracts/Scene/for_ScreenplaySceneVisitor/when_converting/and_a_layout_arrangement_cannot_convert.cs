@@ -16,7 +16,7 @@ public class and_a_layout_arrangement_cannot_convert : Specification
     {
         var location = new SourceLocation(4, 5, "shell.play");
         var arrangement = new ArrangementSyntax(ArrangementMode.Flow, location, new ArrangementContainerSyntax((ArrangementContainerKind)99, [], location));
-        var layout = new LayoutSyntax("Shell", [new SlotSyntax("content", null, location)], location, arrangement);
+        var layout = new LayoutSyntax("Shell", [new SlotSyntax("content", location)], location, arrangement);
         var application = new ApplicationSyntax([], [], [], [], location) { Layouts = [layout, layout with { Name = "Other", Arrangement = null }] };
         _result = new ScreenplaySceneVisitor().Convert(application);
     }

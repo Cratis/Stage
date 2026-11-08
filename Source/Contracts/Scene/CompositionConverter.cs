@@ -139,13 +139,13 @@ public static class CompositionConverter
     /// Converts a navigation directive into the Scene destination it names.
     /// </summary>
     /// <param name="navigate">The navigation syntax.</param>
-    /// <returns>The Scene destination: target screen, route override, outlet and route parameter bindings.</returns>
+    /// <returns>The Scene destination: target screen, route override, slot and route parameter bindings.</returns>
     public static SceneCommon.DestinationReference Destination(ScreenplaySyntax.ScreenNavigateSyntax navigate) =>
         new(
             Screen: navigate.Screen,
-            Outlet: navigate.Outlet,
+            Slot: navigate.Slot,
             Route: navigate.Route,
-            Kind: navigate.Outlet is null ? null : SceneCommon.DestinationKind.Outlet,
+            Kind: navigate.Slot is null ? null : SceneCommon.DestinationKind.Slot,
             RouteParameterBindings: RouteParameters(navigate));
 
     static bool AdmitOperation(string operation, ScreenplaySyntax.ExposedPropertySyntax property, string path, ConversionDiagnostics diagnostics)

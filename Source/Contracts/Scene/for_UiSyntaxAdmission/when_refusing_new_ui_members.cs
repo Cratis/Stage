@@ -11,15 +11,20 @@ namespace Cratis.Stage.Contracts.Scene.for_UiSyntaxAdmission;
 
 public class when_refusing_new_ui_members : Specification
 {
-    // A Scene dialog template declares no outlets.
+    // A form field's picker (Screenplay 6) is not translated yet.
     [Theory]
-    [InlineData(typeof(DialogTemplateSyntax), "Outlets")]
+    [InlineData(typeof(FormFieldSyntax), "Choices")]
     public void should_refuse_instead_of_dropping_the_authored_member(Type type, string member)
     {
         var error = Catch.Exception(() => new UiSyntaxAdmission().VisitNode(Authored(type, member)));
         error.ShouldBeOfExactType<UnsupportedUiSyntax>();
         error.Message.ShouldContain(UnsupportedUiSyntax.DiagnosticCode);
     }
+
+    // Showing a screen by another component's selection (Screenplay 6) is the slot it stands in (TemplateSlotPlacement).
+    [Fact]
+    public void should_admit_showing_a_screen_by_a_selection() =>
+        Catch.Exception(() => new UiSyntaxAdmission().VisitNode(new ScreenShowSyntax("Details", "id", "list", SourceLocation.Start))).ShouldBeNull();
 
     // Members the Scene converters translate, or the canonical screen composition corpus admits.
     [Theory]
@@ -42,6 +47,17 @@ public class when_refusing_new_ui_members : Specification
     [InlineData(typeof(ScreenTemplateSyntax), "TemplateType")]
     [InlineData(typeof(ScreenTemplateSyntax), "Exposes")]
     [InlineData(typeof(ScreenTemplateSyntax), "Outlets")]
+    [InlineData(typeof(ScreenTemplateSyntax), "RecursiveSlots")]
+    [InlineData(typeof(DialogTemplateSyntax), "Outlets")]
+    [InlineData(typeof(LayoutSyntax), "RecursiveSlots")]
+    [InlineData(typeof(ModuleSyntax), "Outlets")]
+    [InlineData(typeof(FeatureSyntax), "Outlets")]
+    [InlineData(typeof(ScreenSyntax), "Outlets")]
+    [InlineData(typeof(ScreenSyntax), "Fits")]
+    [InlineData(typeof(SlotSyntax), "Role")]
+    [InlineData(typeof(SlotSyntax), "RoutedBy")]
+    [InlineData(typeof(ToolbarButtonSyntax), "Opens")]
+    [InlineData(typeof(ToolbarButtonSyntax), "Runs")]
     [InlineData(typeof(DialogTemplateSyntax), "Category")]
     [InlineData(typeof(DialogTemplateSyntax), "TemplateType")]
     [InlineData(typeof(DialogTemplateSyntax), "Exposes")]
@@ -51,10 +67,10 @@ public class when_refusing_new_ui_members : Specification
     [InlineData(typeof(ScreenComponentSyntax), "Exposes")]
     [InlineData(typeof(ScreenComponentSyntax), "Presentation")]
     [InlineData(typeof(ScreenComponentSyntax), "Icon")]
-    [InlineData(typeof(ScreenComponentSyntax), "Outlets")]
+    [InlineData(typeof(ScreenComponentSyntax), "Slots")]
     [InlineData(typeof(ScreenToolbarSyntax), "Items")]
     [InlineData(typeof(ScreenNavigateSyntax), "Route")]
-    [InlineData(typeof(ScreenNavigateSyntax), "Outlet")]
+    [InlineData(typeof(ScreenNavigateSyntax), "Slot")]
     [InlineData(typeof(ScreenNavigateSyntax), "Parameters")]
     [InlineData(typeof(ScreenSyntax), "Contributions")]
     [InlineData(typeof(ApplicationSyntax), "Exposures")]

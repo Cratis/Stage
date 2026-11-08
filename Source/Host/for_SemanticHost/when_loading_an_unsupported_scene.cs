@@ -20,9 +20,24 @@ public class when_loading_an_unsupported_scene : given.a_model_path
     {
         const string screen = """
             module Confirmations
-              dialog template ConfirmProject
-                body
-                outlet details
+              form ReviewForm for Review
+                field reviewer
+                  choose from query AllReviewers show name
+              feature Reviews
+                slice StateChange Review
+                  command Review
+                    id Uuid identifier
+                    reviewer Uuid
+                    produces ReviewRecorded
+                      for id
+                      reviewer = reviewer
+                  event ReviewRecorded
+                    reviewer Uuid
+                slice StateView Reviewers
+                  readmodel ReviewerRow
+                    id Uuid key
+                    name String
+                  query AllReviewers => ReviewerRow[]
             """;
         await File.WriteAllTextAsync(_path, Cratis.Stage.Api.for_SceneSynthesizer.given.a_scene_model.Source + "\n" + screen);
         var issues = new List<StageUnsupportedIssue>();
@@ -43,7 +58,7 @@ public class when_loading_an_unsupported_scene : given.a_model_path
         issue.Artifact.ShouldEqual("model");
         const string diagnosticCode = UnsupportedUiSyntax.DiagnosticCode;
         issue.Details.ShouldContain(diagnosticCode);
-        issue.Details.ShouldContain("DialogTemplateSyntax.Outlets");
+        issue.Details.ShouldContain("FormFieldSyntax.Choices");
 
         await using var app = WebApplication.CreateBuilder().Build();
         SemanticHost.MapRefused(app, issues, engine);

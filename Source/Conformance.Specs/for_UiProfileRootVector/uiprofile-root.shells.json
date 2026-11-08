@@ -4,7 +4,7 @@
     "kind": "layout",
     "source": "own",
     "origin": "root",
-    "primaryOutlet": "content",
+    "primarySlot": "content",
     "options": {
       "showFooter": true
     },
@@ -15,7 +15,7 @@
     "kind": "screenTemplate",
     "source": "own",
     "origin": "root",
-    "primaryOutlet": "content",
+    "primarySlot": "content",
     "options": {},
     "diagnostics": []
   },
@@ -24,7 +24,7 @@
     "kind": "layout",
     "source": "blueprint",
     "origin": "blueprintDefault",
-    "primaryOutlet": "content",
+    "primarySlot": "content",
     "options": {},
     "diagnostics": [
       "rootTemplateVersionNotSatisfied"

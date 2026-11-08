@@ -53,10 +53,13 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     // Scene 4.86.0 originally added empty onSubmit arrays to the two authored forms.
     // Re-frozen for Cratis/Stage#209 on Scene 4.86.0: native Close (-34 bytes) and double-click alternatives (-273 bytes).
     // Train 11 carries their authored submit navigation: +156 bytes for details and +153 for list.
-    [Fact] void should_pin_the_authored_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("16e71ed659eac083ba4faf3479098d01b426222869ada359b91ee9c826ff2f8d");
+    // Re-frozen for Screenplay 6 and Scene 5: the toolbar is an outlet of compact buttons, the navigation outlets and the structure are carried.
+    // Re-frozen for Scene 5.1.0: the icon-only toolbar item carries "display":"icon" (+17 bytes).
+    [Fact] void should_pin_the_authored_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("613791f7e8caa4eb46babdafa8ab77b4f5f6d582695c082a404aaabbb8fcc97f");
 
     // Re-frozen after train 11: the restored native guards plus the two authored submit continuations (23693 + 309 bytes).
-    [Fact] void should_pin_the_authored_scene_length() => _bytes.Length.ShouldEqual(24002);
+    [Fact] void should_pin_the_authored_scene_length() => _bytes.Length.ShouldEqual(23952);
+    [Fact] void should_show_the_icon_only_toolbar_item_as_its_icon() => Encoding.UTF8.GetString(_bytes).ShouldContain("\"display\":\"icon\"");
     [Fact] void should_carry_the_guarded_close_action() => Encoding.UTF8.GetString(_bytes).ShouldContain("\"alternatives\"");
     [Fact]
     void should_carry_the_guarded_double_click_branches()
@@ -118,7 +121,9 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     // Re-frozen after train 11: submit continuations, response contracts/reference schemas and bundled runtime changes;
     // generated documentation/specification imports, Entra host artifacts/wiring/dependencies and Yarn preapprovals.
     // Re-captured by execution for train 11 merge (#209/#857 with #925): native guards on Scene 4.87.0 and merged scaffold/runtime output.
-    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(_qualified)).ShouldEqual("2663da6b89427c786d8a808c8f9fba50ba192c14358aee3c6bf4995a512c07cd");
+    // Re-frozen for Screenplay 6 and Scene 5: only the scene and the WorkItemList screen fragment change.
+    // Re-frozen for Scene 5.1.0: only the scene and the WorkItemList screen fragment change (the icon-only toolbar item).
+    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(_qualified)).ShouldEqual("2d01cf833d87c85cb1b38c67d6aa33abeafa6725db31e3946ee55f848e634c34");
 
     // Re-frozen when the license header became the caller's choice and specifications moved into the application project.
     // Re-frozen for #424: generated C# uses short type names and using directives above the namespace.
@@ -129,14 +134,17 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     // Re-frozen after train 11: submit continuations, response contracts/reference schemas and bundled runtime changes;
     // generated documentation/specification imports, Entra host artifacts/wiring/dependencies and Yarn preapprovals.
     // Re-captured by execution for train 11 merge (#209/#857 with #925): native guards on Scene 4.87.0 and merged scaffold/runtime output.
-    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("9ebfe3d942458bc09b20d971ec5ab7f45d254d477186cda7a33c93dffa30c97d");
+    // Re-frozen for Screenplay 6 and Scene 5: only the scene and the WorkItemList screen fragment change.
+    // Re-frozen for Scene 5.1.0: only the scene and the WorkItemList screen fragment change (the icon-only toolbar item).
+    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("fbca6b5a71fecce13aeaf3f9287a20d2302a50e686af821142b26e8fd74ed60f");
 
     // The #209 restoration removed 34 details bytes and 273 list bytes on Scene 4.86.0.
     // Train 11 adds the authored submit navigation: details 9773 -> 9929; list 6402 -> 6555; comments is unchanged.
+    // Screenplay 6 and Scene 5: the list's toolbar is an outlet of compact buttons, 6555 -> 5670.
     [Fact] void should_pin_the_screen_fragments() => string.Join('\n', _plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal)).Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}")).ShouldEqual("""
         Workspaces/Tracking/WorkItemComments/Screens.scene.json acd7f05ae339201f3867044a5a7ae3e7f3501e0ae90aac9b9742fa24cc0b98da 2270
         Workspaces/Tracking/WorkItemDetails/Screens.scene.json c8a74e3f707a26878d1e3edcfe7348bd18e7df5dd9d199625abc5a018c96d36a 9929
-        Workspaces/Tracking/WorkItemList/Screens.scene.json f849abdf5408d218df994e1c4ccbe4df6daf59ae8f988a8f6015d24aca1c2417 6555
+        Workspaces/Tracking/WorkItemList/Screens.scene.json ae527ba9604dad7cb784ab3fbd63fe05b81290ec07f9058c986224811947edb6 5687
         """);
 
     static IEnumerable<PlannedArtifact> Legacy(IEnumerable<PlannedArtifact> artifacts) => SeparateSpecificationsLayout.RestoreWithLicenseHeader(artifacts, ApplicationName, ApplicationName)

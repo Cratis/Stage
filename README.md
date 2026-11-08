@@ -239,6 +239,15 @@ The standalone generated frontend pins Scene 4.2.0 for explicit command inputs, 
 prove browser command submission or readback. This playback frontend is distinct from a standalone generated
 application and does not imply complete modeled UI or authorization support.
 
+Screenplay 6 slots and outlets translate into Scene 5. A slot keeps its role (`page`, `pane` or `panel`) and whether
+it is `routed [by <param>]`; an outlet (actions, filters, tabs, stats or navigation) keeps its defaults, refinements
+and contributions, and a hook keeps where it `opens` (`runs` directly, a dialog, a drawer or a slot). In the running
+application a routed slot is a route segment, so opening a screen in it changes the address and a reload or a shared
+link restores it; the chosen tab of the slot an outlet of tabs owns is a segment, and the filters of a routed page are
+query parameters. Opening a screen in a routed slot and choosing a tab are history entries that back and forward move
+through, a filter replaces the current entry, and dialogs, drawers and panels never change the address. A `runs` hook issues its command with the resolved inputs, honors `confirm`, and refreshes the
+page's queries. See [Default Scene composition](Documentation/reference/default-scene-composition.md).
+
 ### Specification runner — model-level verification
 
 `cratis/stage-specrunner` is a run-to-completion job. It compiles the `.play` files, checks the modeled

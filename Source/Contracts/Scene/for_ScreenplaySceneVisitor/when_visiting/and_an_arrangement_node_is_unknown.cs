@@ -18,7 +18,7 @@ public class and_an_arrangement_node_is_unknown : Specification
     {
         var location = new SourceLocation(8, 5, "shell.play");
         var arrangement = new ArrangementSyntax(ArrangementMode.Flow, location, new UnknownNode(location));
-        var layout = new LayoutSyntax("Shell", [new SlotSyntax("content", null, location)], location, arrangement);
+        var layout = new LayoutSyntax("Shell", [new SlotSyntax("content", location)], location, arrangement);
         var laterArrangement = arrangement with { Root = new ArrangementContainerSyntax((ArrangementContainerKind)999, [], location) };
         var application = new ApplicationSyntax([], [], [], [], location) { Layouts = [layout, layout with { Name = "Later", Arrangement = laterArrangement }] };
         _legacyError = Catch.Exception(() => ArrangementConverter.Convert(arrangement));

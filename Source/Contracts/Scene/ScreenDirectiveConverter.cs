@@ -5,6 +5,8 @@ using Cratis.Screenplay.Diagnostics;
 using SceneCommon = Cratis.Scene.Model.Common;
 using SceneElements = Cratis.Scene.Model.Elements;
 using SceneInteractions = Cratis.Scene.Model.Interactions;
+using SceneOutlets = Cratis.Scene.Model.Outlets;
+using SceneToolbar = Cratis.Scene.Model.Toolbar;
 using ScreenplaySyntax = Cratis.Screenplay.Syntax;
 
 namespace Cratis.Stage.Contracts.Scene;
@@ -26,6 +28,41 @@ namespace Cratis.Stage.Contracts.Scene;
 /// </remarks>
 public static class ScreenDirectiveConverter
 {
+    /// <summary>
+    /// The Scene component that draws an outlet where a screen places it.
+    /// </summary>
+    public const string OutletItemsComponent = "core:outletItems";
+
+    /// <summary>
+    /// The outlet a screen's toolbar draws when it names none.
+    /// </summary>
+    public const string DefaultToolbarOutlet = "toolbar";
+
+    /// <summary>
+    /// The Scene component a slot is drawn with.
+    /// </summary>
+    public const string SlotComponent = "core:slot";
+
+    /// <summary>
+    /// The property of a slot that names the screen it shows for a selection (<c language="screenplay">show &lt;Screen&gt;</c>).
+    /// </summary>
+    public const string ShowsProperty = "shows";
+
+    /// <summary>
+    /// The property of a slot that names the parameter the screen it shows is keyed by (<c language="screenplay">by &lt;param&gt;</c>).
+    /// </summary>
+    public const string ShowsByProperty = "showsBy";
+
+    /// <summary>
+    /// The property of a slot that names the table or component whose selection it shows (<c language="screenplay">from &lt;element&gt;.selection</c>).
+    /// </summary>
+    public const string ShowsFromProperty = "showsFrom";
+
+    /// <summary>
+    /// The property of a slot that holds the id of the element whose selection it shows, resolved within the screen.
+    /// </summary>
+    public const string ShowsFromElementProperty = "showsFromElement";
+
     /// <summary>
     /// Converts a sequence of sibling <see cref="ScreenplaySyntax.ScreenDirectiveSyntax"/> into
     /// <see cref="SceneElements.SceneElement"/>s.
@@ -131,6 +168,7 @@ public static class ScreenDirectiveConverter
             ScreenplaySyntax.ScreenSummarySyntax summary => ConvertSummary(summary, id),
             ScreenplaySyntax.ScreenToolbarSyntax toolbar => ConvertToolbar(toolbar, id, scope),
             ScreenplaySyntax.ScreenComponentSyntax component => ConvertComponent(component, id, scope),
+            ScreenplaySyntax.ScreenShowSyntax show => ConvertShow(show, id),
             ScreenplaySyntax.ScreenCodeSyntax code => SceneElementFactory.Component(id, "core:code", new Dictionary<string, object?>
             {
                 ["language"] = code.Code.Language,
@@ -147,50 +185,68 @@ public static class ScreenDirectiveConverter
         return null;
     }
 
+    // A screen's toolbar is the outlet of actions it places (Scene 5's core:outletItems): its name names the outlet, `toolbar` when it
+    // names none, and every item and button is an outlet button. A button keeps its hook - the qualified slice, where it opens, what it
+    // acts on, when it is enabled. A navigate or dialog item opens its destination; an action item names its command. An outlet button
+    // takes a command's inputs from the slice, so the parameters an action item passes are reported as omitted. A `placement` (or
+    // `emphasis`) presentation of primary, secondary or quiet is the button's emphasis, and a `mode` presentation of icon, title or
+    // iconAndTitle is what the button shows (its title stays the accessible name); an outlet button has nowhere to carry any other
+    // presentation value, so those are reported as omitted too.
     static SceneElements.ExternalComponent ConvertToolbar(ScreenplaySyntax.ScreenToolbarSyntax toolbar, string id, BehaviorScope scope)
     {
-        var items = toolbar.Items.Select((item, index) => (SceneElements.SceneElement)SceneElementFactory.Component(
-            $"{id}.{index}-item",
-            "core:toolbarItem",
-            new Dictionary<string, object?>
-            {
-                ["name"] = item.Name,
-                ["kind"] = item.Kind.ToString(),
-                ["target"] = item.Target,
-                ["label"] = item.Label,
-                ["icon"] = item.Icon,
-                ["parameters"] = item.Parameters.ToDictionary(parameter => parameter.Name, parameter => ScreenplayRichSyntax.Binding(parameter.Binding), StringComparer.Ordinal),
-                [SceneElementProperties.Destination] = ToolbarDestination(item),
-                ["presentation"] = item.Presentation.ToDictionary(presentation => presentation.Name, presentation => presentation.Value, StringComparer.Ordinal),
-            }.WithConfirm(item.Confirm).WithSubject(item.Subject, []))).ToList();
-
-        // A button invokes a State Change slice: Scene's toolbar button is a core:toolbarItem of kind Action with a slice and an
-        // emphasis, read back by the engine's ToolbarButtons.FromItem. The slice is written as the qualified id the structure knows.
-        items.AddRange(toolbar.Buttons.Select((button, index) => (SceneElements.SceneElement)SceneElementFactory.Component(
-            $"{id}.{index}-button",
-            "core:toolbarItem",
-            new Dictionary<string, object?>
-            {
-                ["name"] = button.Id,
-                ["kind"] = nameof(ScreenplaySyntax.ToolbarItemKind.Action),
-                ["label"] = button.Title,
-                ["slice"] = button.Slice is null ? null : StructureConverter.QualifiedSlice(scope.Structure, button.Slice),
-                ["emphasis"] = button.Emphasis?.ToString().ToLowerInvariant(),
-                ["icon"] = button.Icon,
-            }.WithConfirm(button.Confirm))));
-
-        return SceneElementFactory.Component(id, "core:toolbar", new Dictionary<string, object?> { ["name"] = toolbar.Name }, new Dictionary<string, IReadOnlyList<SceneElements.SceneElement>> { ["items"] = items });
-    }
-
-    // A confirmation is written only when the item asks one, so a toolbar that never asks keeps the Scene it always produced.
-    static Dictionary<string, object?> WithConfirm(this Dictionary<string, object?> properties, string? confirm)
-    {
-        if (confirm is not null)
+        var items = new List<SceneOutlets.OutletItem>();
+        foreach (var item in toolbar.Items)
         {
-            properties["confirm"] = confirm;
+            if (item.Kind == ScreenplaySyntax.ToolbarItemKind.Action && item.Parameters.Any() && scope.Diagnostics is { } diagnostics)
+            {
+                diagnostics.Report(new("STAGE-SCENE-TOOLBAR-001", DiagnosticSeverity.Warning, "toolbar action parameters", $"{id}.{item.Name}", item.Location, $"The parameters of the toolbar action '{item.Name}' were omitted: an outlet button takes its command's inputs from the slice."));
+            }
+
+            SceneToolbar.ToolbarEmphasis? emphasis = null;
+            SceneOutlets.OutletButtonDisplay? display = null;
+            foreach (var presentation in item.Presentation)
+            {
+                if (emphasis is null && EmphasisOf(presentation) is { } authored)
+                {
+                    emphasis = authored;
+                    continue;
+                }
+
+                if (display is null && DisplayOf(presentation) is { } shown)
+                {
+                    display = shown;
+                    continue;
+                }
+
+                scope.Diagnostics?.Report(new("STAGE-SCENE-TOOLBAR-002", DiagnosticSeverity.Warning, "toolbar item presentation", $"{id}.{item.Name}", presentation.Location, $"The presentation '{presentation.Name}' of the toolbar item '{item.Name}' was omitted: an outlet button carries only its emphasis (placement primary, secondary or quiet) and what it shows (mode icon, title or iconAndTitle)."));
+            }
+
+            items.Add(new SceneOutlets.OutletButton
+            {
+                Id = item.Name,
+                Title = item.Label ?? item.Name,
+                Icon = item.Icon,
+                Command = item.Kind == ScreenplaySyntax.ToolbarItemKind.Action ? item.Target : null,
+                NavigateTo = ToolbarDestination(item),
+                Subject = OutletConverter.SubjectOf(item.Subject),
+                EnabledWhen = item.EnabledWhen is null ? null : OutletConverter.ConditionText(item.EnabledWhen),
+                Confirm = item.Confirm,
+                Emphasis = emphasis,
+                Display = display
+            });
         }
 
-        return properties;
+        items.AddRange(toolbar.Buttons.Select(button => OutletConverter.Button(button, scope.Structure)));
+
+        return SceneElementFactory.Component(
+            id,
+            OutletItemsComponent,
+            new Dictionary<string, object?>
+            {
+                ["name"] = string.IsNullOrEmpty(toolbar.Name) ? DefaultToolbarOutlet : toolbar.Name,
+                ["kind"] = "actions",
+                ["items"] = items
+            });
     }
 
     // The explicit subject of an action (Screenplay decision 0110) is carried as Stage-local scene properties until Scene ships a typed
@@ -214,6 +270,29 @@ public static class ScreenDirectiveConverter
 
     // Where a navigate or dialog item opens, so a renderer executes it through the same destination model every other
     // navigation uses. An action item opens nothing.
+    static SceneToolbar.ToolbarEmphasis? EmphasisOf(ScreenplaySyntax.PresentationValueSyntax presentation) =>
+        presentation.Name.Equals("placement", StringComparison.OrdinalIgnoreCase) || presentation.Name.Equals("emphasis", StringComparison.OrdinalIgnoreCase)
+            ? presentation.Value.ToLowerInvariant() switch
+            {
+                "primary" => SceneToolbar.ToolbarEmphasis.Primary,
+                "secondary" => SceneToolbar.ToolbarEmphasis.Secondary,
+                "quiet" => SceneToolbar.ToolbarEmphasis.Quiet,
+                _ => null
+            }
+            : null;
+
+    // What a toolbar item's outlet button shows: a `mode` presentation of icon, title or iconAndTitle.
+    static SceneOutlets.OutletButtonDisplay? DisplayOf(ScreenplaySyntax.PresentationValueSyntax presentation) =>
+        presentation.Name.Equals("mode", StringComparison.OrdinalIgnoreCase)
+            ? presentation.Value.ToLowerInvariant() switch
+            {
+                "icon" => SceneOutlets.OutletButtonDisplay.Icon,
+                "title" => SceneOutlets.OutletButtonDisplay.Title,
+                "iconandtitle" => SceneOutlets.OutletButtonDisplay.IconAndTitle,
+                _ => null
+            }
+            : null;
+
     static SceneCommon.DestinationReference? ToolbarDestination(ScreenplaySyntax.ToolbarItemSyntax item)
     {
         var parameters = item.Parameters.ToDictionary(parameter => parameter.Name, parameter => ScreenplayRichSyntax.Binding(parameter.Binding), StringComparer.Ordinal);
@@ -242,9 +321,9 @@ public static class ScreenDirectiveConverter
             properties[property.Property] = property.Binding is null ? ScreenplayRichSyntax.ComponentPropertyValue(property) : ScreenplayRichSyntax.Binding(property.Binding);
         }
 
-        var slots = component.Outlets.ToDictionary(
-            outlet => outlet.Name,
-            outlet => Convert(outlet.Directives, $"{stableId}.{outlet.Name}", scope),
+        var slots = component.Slots.ToDictionary(
+            slot => slot.Name,
+            slot => Convert(slot.Directives, $"{stableId}.{slot.Name}", scope),
             StringComparer.Ordinal);
 
         return SceneElementFactory.Component(stableId, component.Component, properties, slots) with
@@ -351,6 +430,16 @@ public static class ScreenDirectiveConverter
             new Dictionary<string, IReadOnlyList<SceneElements.SceneElement>> { ["fields"] = fields });
     }
 
+    // `show <Screen> by <param> from <element>.selection` is the slot it stands in, showing another screen for the selected row. The
+    // slot's name, role and routing come from the template the screen fills (TemplateSlotPlacement), which this converter does not see.
+    static SceneElements.ExternalComponent ConvertShow(ScreenplaySyntax.ScreenShowSyntax show, string id) =>
+        SceneElementFactory.Component(id, SlotComponent, new Dictionary<string, object?>
+        {
+            [ShowsProperty] = show.Screen,
+            [ShowsByProperty] = show.By,
+            [ShowsFromProperty] = show.Element,
+        });
+
     static string Kind(ScreenplaySyntax.ScreenDirectiveSyntax directive, ConversionDiagnostics? diagnostics) =>
         directive switch
         {
@@ -365,6 +454,7 @@ public static class ScreenDirectiveConverter
             ScreenplaySyntax.ScreenToolbarSyntax => "toolbar",
             ScreenplaySyntax.ScreenComponentSyntax => "component",
             ScreenplaySyntax.ScreenCodeSyntax => "code",
+            ScreenplaySyntax.ScreenShowSyntax => "show",
             _ => diagnostics is null ? throw new UnknownScreenDirective(directive.GetType().Name) : "unsupported",
         };
 }

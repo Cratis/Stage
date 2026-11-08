@@ -46,12 +46,13 @@ public static class DialogTemplateConverter
     public static SceneScreens.DialogTemplate Convert(ScreenplaySyntax.DialogTemplateSyntax template, BehaviorScope? behaviors, ConversionDiagnostics? diagnostics) =>
         new(
             template.Name,
-            SlotConverter.Convert(template.Slots),
+            SlotConverter.Convert(template.Slots, template.RecursiveSlots),
             diagnostics is null ? ArrangementConverter.Convert(template.Arrangement) : ArrangementConverter.Convert(template.Arrangement, diagnostics, template.Name),
             CompositionConverter.Content(template.Name, template.Content, behaviors, diagnostics),
             template.DisplayName,
             template.Description)
         {
-            Metadata = CompositionConverter.Metadata(template.TemplateType, template.Category, template.RestrictsScopes, template.Scopes, template.SliceKinds, diagnostics, template.Name, template.Location)
+            Metadata = CompositionConverter.Metadata(template.TemplateType, template.Category, template.RestrictsScopes, template.Scopes, template.SliceKinds, diagnostics, template.Name, template.Location),
+            Outlets = OutletConverter.Declarations(template.Outlets, behaviors?.Structure)
         };
 }

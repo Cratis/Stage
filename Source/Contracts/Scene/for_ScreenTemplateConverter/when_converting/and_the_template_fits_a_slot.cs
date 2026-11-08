@@ -41,7 +41,7 @@ public class and_the_template_fits_a_slot : Specification
 
         _syntax = new(
             "MasterDetail",
-            [new SlotSyntax("sidebar", null, SourceLocation.Start), new SlotSyntax("main", null, SourceLocation.Start)],
+            [new SlotSyntax("sidebar", SourceLocation.Start), new SlotSyntax("main", SourceLocation.Start)],
             SourceLocation.Start,
             FitsSlot: "content",
             new ArrangementSyntax(ArrangementMode.Flow, SourceLocation.Start, root, [stackedOverride], null));

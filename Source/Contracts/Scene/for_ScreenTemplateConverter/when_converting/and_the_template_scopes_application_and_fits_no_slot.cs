@@ -26,7 +26,7 @@ public class and_the_template_scopes_application_and_fits_no_slot : Specificatio
         _slotted = ScreenTemplateConverter.Convert(Template("Inset", fitsSlot: "content", scopes: ["application"]));
     }
 
-    static ScreenTemplateSyntax Template(string name, string? fitsSlot, string[] scopes) => new(name, [new SlotSyntax("content", null, SourceLocation.Start)], SourceLocation.Start)
+    static ScreenTemplateSyntax Template(string name, string? fitsSlot, string[] scopes) => new(name, [new SlotSyntax("content", SourceLocation.Start)], SourceLocation.Start)
     {
         FitsSlot = fitsSlot,
         RestrictsScopes = true,

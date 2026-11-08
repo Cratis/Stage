@@ -1,22 +1,27 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import type { ApplicationStructure, NavigationModel, Screen } from '@cratis/scene.model';
+import { ScreenFit, type ApplicationStructure, type NavigationModel, type Screen } from '@cratis/scene.model';
 import type { EffectiveNavItem } from '@cratis/scene.engine';
 import { resolveStringsValue } from '@cratis/scene.engine';
 import type { SceneNavigationModel } from '@cratis/scene.react';
 
-/** Whether the model declares navigation regions of its own - the application's or a module's. */
+/**
+ * Whether the model declares navigation items of its own - an application navigation outlet that lists items, or a module's refinement
+ * or contribution. An outlet that lists nothing only says where navigation goes: the entries the screens authored stay the menu.
+ */
 export function declaresRegions(navigation: NavigationModel | undefined): boolean {
-    return (navigation?.application.regions.length ?? 0) > 0 || (navigation?.modules.length ?? 0) > 0;
+    return (navigation?.application.outlets.some(outlet => outlet.defaults.length > 0) ?? false) || (navigation?.modules.length ?? 0) > 0;
 }
 
 /**
  * The screen a navigation item opens: the screen declared in the feature the item resolves to (a screen's `path` is the modules and
  * features it was declared in), the first screen declared beneath it, or the screen named like the feature - which is how the
- * application structure names a feature's screen.
+ * application structure names a feature's screen. Only a screen that fits a page is a place to go: one that fits only a dialog, drawer,
+ * pane or panel is opened by an action, never navigated to.
  */
-export function stageScreenFor(screens: Screen[]): (item: EffectiveNavItem) => string | undefined {
+export function stageScreenFor(allScreens: Screen[]): (item: EffectiveNavItem) => string | undefined {
+    const screens = allScreens.filter(fitsPage);
     const byPath = new Map<string, string>();
     for (const screen of screens) {
         const key = (screen.path ?? []).join('.');
@@ -33,6 +38,11 @@ export function stageScreenFor(screens: Screen[]): (item: EffectiveNavItem) => s
     };
 }
 
+/** Whether a screen can be a page: it lists no fits, or page is one of them. */
+function fitsPage(screen: Screen): boolean {
+    return screen.fits === undefined || screen.fits.length === 0 || screen.fits.includes(ScreenFit.Page);
+}
+
 /** The module a screen was declared in - the first of its `path` - which decides whose sidebar the page shows. */
 export function stageModuleOf(screens: Screen[]): (screen: string | undefined) => string | undefined {
     return screen => screens.find(candidate => candidate.name === screen)?.path?.[0];
@@ -47,7 +57,7 @@ export function stageNavigationModel(
     isVisible?: (item: EffectiveNavItem) => boolean,
     dictionary?: Record<string, string>,
 ): SceneNavigationModel {
-    const navigation = scene.navigation ?? { application: { regions: [] }, modules: [] };
+    const navigation: NavigationModel = scene.navigation ?? { application: { outlets: [] }, modules: [] };
     return {
         structure: scene.structure ?? { modules: [] },
         navigation: dictionary ? withStringsResolved(navigation, dictionary) : navigation,

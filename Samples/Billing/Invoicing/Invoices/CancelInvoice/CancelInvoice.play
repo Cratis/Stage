@@ -21,3 +21,7 @@ module Invoicing
         invoiceId InvoiceId
         reason String
         cancelledAt DateTime
+
+      screen CancelInvoice
+        fits dialog
+        action CancelInvoice

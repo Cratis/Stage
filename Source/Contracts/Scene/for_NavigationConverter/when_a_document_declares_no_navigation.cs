@@ -10,7 +10,7 @@ public class when_a_document_declares_no_navigation : given.a_translated_applica
 {
     void Because() => Translate(Model);
 
-    [Fact] void should_have_no_application_regions() => _application.Navigation.Application.Regions.ShouldBeEmpty();
+    [Fact] void should_have_no_application_outlets() => _application.Navigation.Application.Outlets.ShouldBeEmpty();
     [Fact] void should_have_no_logo() => _application.Navigation.Application.Logo.ShouldBeNull();
     [Fact] void should_have_no_module_navigation() => _application.Navigation.Modules.ShouldBeEmpty();
 }

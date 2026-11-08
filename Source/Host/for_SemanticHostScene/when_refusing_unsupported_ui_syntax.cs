@@ -19,22 +19,29 @@ public class when_refusing_unsupported_ui_syntax : Specification
         Directory.CreateDirectory(_directory);
     }
 
-    // A Scene dialog template declares no outlets, so an outlet on one has nowhere to go and is refused.
+    // A form field's picker is not translated yet - Scene's form field has no place for it - so it is refused rather than dropped.
     [Fact]
     public void should_refuse_before_returning_a_host_scene()
     {
         const string source = """
             module Work
-              dialog template EditItem
-                body
-                outlet details
+              form ItemForm for Assign
+                field owner
+                  choose from query AllOwners show name
               feature Items
-                slice StateView Details
-                  readmodel Item
-                    status String
-                  query ItemDetails => Item[]
-                  screen Details
-                    data Item[] via query ItemDetails
+                slice StateChange Assign
+                  command Assign
+                    id Uuid identifier
+                    owner Uuid
+                    produces Assigned
+                      for id
+                  event Assigned
+                    owner Uuid
+                slice StateView Owners
+                  readmodel OwnerRow
+                    id Uuid key
+                    name String
+                  query AllOwners => OwnerRow[]
             """;
 
         // Host loads presentation from source separately; the admitted backend model has no screens.
@@ -51,8 +58,8 @@ public class when_refusing_unsupported_ui_syntax : Specification
         var error = Catch.Exception(() => SemanticHostScene.Load(path, plan.Model));
         error.ShouldBeOfExactType<UnsupportedUiSyntax>();
         error.Message.ShouldContain(UnsupportedUiSyntax.DiagnosticCode);
-        ((UnsupportedUiSyntax)error).Member.ShouldEqual("DialogTemplateSyntax.Outlets");
-        ((UnsupportedUiSyntax)error).Location.Line.ShouldEqual(2);
+        ((UnsupportedUiSyntax)error).Member.ShouldEqual("FormFieldSyntax.Choices");
+        ((UnsupportedUiSyntax)error).Location.Line.ShouldEqual(3);
     }
 
     void Destroy() => Directory.Delete(_directory, recursive: true);

@@ -4,7 +4,8 @@
 import { registeredQuery } from './queryExecutor';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ExternalComponent, SceneElement } from '@cratis/scene.model';
-import { CoreSliceDialog, CoreToolbarItem, SliceDialogView, coreComponents, sliceDialogParameters, useOptionalSceneNavigation } from '@cratis/scene.react';
+import { CoreOutletItems, CoreSliceDialog, OutletView, SliceDialogView, coreComponents, outletOfElement, sliceDialogParameters, useOptionalSceneNavigation, useSceneOutlets } from '@cratis/scene.react';
+import { Opens, OutletKind, type OutletButton, type OutletItem } from '@cratis/scene.model';
 import type { InteractionHandlers } from '@cratis/scene.react';
 import type { ComponentType, ReactNode } from 'react';
 import { Button } from '@cratis/components/Common';
@@ -22,6 +23,7 @@ import { registeredCommand } from './commandExecutor';
 import { navigateToScreen } from './stageNavigation';
 import { isGuardedAction, StageSceneGuardedAction as StageGuardedAction } from './stageData';
 import { useRowInteractions } from './stageRowInteractions';
+import { useStageFilterArguments } from './stageSceneRouting';
 import { StageConfirmDialog } from './StageConfirmDialog';
 import { stageConfirmDialogComponent } from './stageDialogScreens';
 import { StageKanbanBoard, kanbanBoardKey } from './stageItemChange';
@@ -122,7 +124,11 @@ export function StageTable({ element, slots }: RegisteredProps) {
     const data = useStageData();
     const queryName = text(element, 'query', text(element, 'typeName', element.id));
     const route = (text(element, 'query') ? data.routes?.queries?.[text(element, 'query')] : undefined) ?? text(element, 'route');
-    const queryArguments = useMemo(() => queryArgumentsFor(element, data), [data, element]);
+    const filters = useStageFilterArguments(text(element, 'query') || undefined);
+    const queryArguments = useMemo(() => {
+        const own = queryArgumentsFor(element, data);
+        return { ...own, values: { ...filters, ...own.values } };
+    }, [data, element, filters]);
     const { rows, error, loading, awaitingCommand } = useStageQuery({ scope: element.id, name: queryName, route: route || undefined, arguments: queryArguments.values, ready: queryArguments.ready });
     const columns = columnsFor(element, rows);
     const navigateTo = text(element, 'navigateOnRowClickToScreen');
@@ -410,16 +416,101 @@ function StageSliceDialogContent(props: Partial<RegisteredProps>) {
     );
 }
 
+/** The component the Stage draws an outlet button that names a slice or a command with. */
+export const stageToolbarItemComponent = 'core:toolbarItem';
+
+/** The properties a Stage toolbar item reads, taken from an outlet button. */
+interface ToolbarItemProps extends RegisteredProps {
+    /** What Scene draws for the button when the Stage has nothing of its own to add; the button alone when not given. */
+    fallback?: ReactNode;
+}
+
+/** The outlet button a Stage toolbar item stands for, as Scene draws it on its own. */
+function SceneButtonOf({ element }: { element: ExternalComponent }) {
+    const button: OutletButton = {
+        kind: 'button',
+        id: text(element, 'name', element.id),
+        title: text(element, 'label', text(element, 'name', element.id)),
+        ...(text(element, 'slice') ? { slice: text(element, 'slice') } : {}),
+        ...(text(element, 'icon') ? { icon: text(element, 'icon') } : {}),
+    } as OutletButton;
+    const outlet = outletOfElement(element.id, { name: element.id, kind: OutletKind.Actions, items: [button] }, undefined);
+    return outlet ? <OutletView outlet={outlet} elementId={element.id} /> : null;
+}
+
 /**
- * A toolbar item. An item that opens a destination is Scene's own - the Scene navigation host executes it - and so is one that names
- * a slice: it opens the slice's task dialog, which submits through the Stage's slice invoker to the route the Stage registered for
- * its command. An item that executes a command by name is the Stage's command action, so it opens the command's form and posts it
- * to that route, instead of only announcing that the command is wanted.
+ * An outlet a screen places (`core:outletItems`, what a Screenplay toolbar became in Scene 5). Scene resolves the outlet and draws
+ * every kind but actions; of an outlet of actions, Scene draws the buttons that open a destination or run a built-in, and the Stage
+ * draws the ones that name a slice or a command, so they reach this running application: a slice button that waits for a row, and a
+ * command button that opens the command's form and posts it to the route the Stage registered. A group is Scene's.
  */
-function StageToolbarItem(props: RegisteredProps) {
+function StageOutletItems(props: RegisteredProps) {
+    const { element } = props;
+    const context = useSceneOutlets();
+    const outlet = useMemo(() => outletOfElement(element.id, element.properties, context), [context, element.id, element.properties]);
+    if (!outlet || outlet.kind !== OutletKind.Actions || !outlet.items.some(entry => toolbarItemOf(element.id, entry.item))) return <CoreOutletItems {...props} />;
+
+    return (
+        <div className='stage-toolbar' role='toolbar' aria-label={outlet.name} data-scene-id={element.id} data-scene-outlet={outlet.name}>
+            {segmentsOf(outlet.items, entry => toolbarItemOf(element.id, entry.item)).map(segment => {
+                // A run of buttons Scene draws is one unnamed group, so the outlet stays the one toolbar a person reaches by its name.
+                const scene = (entries: typeof outlet.items) =>
+                    <OutletView key={entries[0].item.id} outlet={{ ...outlet, name: '', items: entries }} item={element.properties.item} elementId={`${element.id}.${entries[0].item.id}`} />;
+                return segment.stage
+                    ? <StageToolbarItem key={segment.entries[0].item.id} element={segment.stage} slots={{}} interactions={props.interactions} fallback={scene(segment.entries)} />
+                    : scene(segment.entries);
+            })}
+        </div>
+    );
+}
+
+/** Splits the items of an outlet into the runs Scene draws and the single items the Stage draws, in order. */
+function segmentsOf<TEntry>(entries: TEntry[], stageItemOf: (entry: TEntry) => ExternalComponent | undefined): { entries: TEntry[]; stage?: ExternalComponent }[] {
+    const segments: { entries: TEntry[]; stage?: ExternalComponent }[] = [];
+    for (const entry of entries) {
+        const stage = stageItemOf(entry);
+        const last = segments.at(-1);
+        if (stage) segments.push({ entries: [entry], stage });
+        else if (last && !last.stage) last.entries.push(entry);
+        else segments.push({ entries: [entry] });
+    }
+    return segments;
+}
+
+/** The toolbar item the Stage draws for an outlet button that names a slice or a command, or undefined for one Scene draws. */
+function toolbarItemOf(owner: string, item: OutletItem): ExternalComponent | undefined {
+    if (item.kind !== 'button') return undefined;
+    const button = item as OutletButton;
+    if (button.navigateTo || button.builtIn !== undefined || (!button.slice && !button.command)) return undefined;
+    // A hook that runs its slice directly, or opens it in a drawer or a slot, is placed by Scene: it asks the confirmation, waits for
+    // the item and its `enabled when`, issues the command through the Stage's slice invoker, and opens a routed slot through the router.
+    if (button.opens === Opens.None || button.opens === Opens.Drawer || button.opens === Opens.Slot) return undefined;
+    return {
+        id: `${owner}.${button.id}`,
+        componentName: stageToolbarItemComponent,
+        properties: {
+            name: button.id,
+            kind: 'Action',
+            label: button.title,
+            ...(button.slice ? { slice: button.slice } : {}),
+            ...(button.command ? { target: button.command, command: button.command } : {}),
+            ...(button.emphasis ? { emphasis: button.emphasis } : {}),
+            ...(button.icon ? { icon: button.icon } : {}),
+            ...(button.confirm ? { confirm: button.confirm } : {}),
+            ...(button.subject ? { actionSubject: button.subject } : {}),
+        },
+        slots: {},
+    } as unknown as ExternalComponent;
+}
+
+/**
+ * A toolbar item that names a slice opens the slice's task dialog, which submits through the Stage's slice invoker to the route the
+ * Stage registered for its command. An item that executes a command by name is the Stage's command action, so it opens the command's
+ * form and posts it to that route, instead of only announcing that the command is wanted.
+ */
+function StageToolbarItem(props: ToolbarItemProps) {
     const { element } = props;
     if (text(element, 'slice') !== '') return <StageToolbarSliceButton {...props} />;
-    if (text(element, 'kind').toLowerCase() !== 'action') return <CoreToolbarItem {...props} />;
     return <StageToolbarCommand {...props} />;
 }
 
@@ -429,7 +520,7 @@ function StageToolbarItem(props: RegisteredProps) {
  * dialog then acts on that row instead of asking for a key nobody can know. A command whose key no row of the screen carries is not held back.
  * The command is the one the button names, or the last segment of its slice when it does not name one.
  */
-function StageToolbarSliceButton(props: RegisteredProps) {
+function StageToolbarSliceButton(props: ToolbarItemProps) {
     const { element } = props;
     const { routes, parameters } = useStageData();
     const slice = text(element, 'slice');
@@ -438,7 +529,7 @@ function StageToolbarSliceButton(props: RegisteredProps) {
     const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
     const { selectableRows, selectedRows } = useScreenRows();
     const awaiting = createsEntity(schema ?? '') ? [] : identifiersAwaitingSelection(properties, parameters, selectedRows, selectableRows);
-    if (awaiting.length === 0) return <CoreToolbarItem {...props} />;
+    if (awaiting.length === 0) return <>{props.fallback ?? <SceneButtonOf element={element} />}</>;
 
     const label = text(element, 'label', text(element, 'name', element.id));
     return (
@@ -502,7 +593,8 @@ export const stageComponents: Record<string, ComponentType<RegisteredProps>> = {
     'core:table': StageTable,
     'core:action': StageAction,
     'core:guarded-action': StageGuardedAction,
-    'core:toolbarItem': StageToolbarItem,
+    'core:outletItems': StageOutletItems,
+    [stageToolbarItemComponent]: StageToolbarItem as ComponentType<RegisteredProps>,
     'core:sliceDialog': StageSliceDialog as ComponentType<RegisteredProps>,
     [stageCommandFormComponent]: StageCommandForm,
     [stageConfirmDialogComponent]: StageConfirmDialog,

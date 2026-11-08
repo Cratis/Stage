@@ -16,7 +16,7 @@ public class and_the_template_declares_no_fits_slot : Specification
 
     void Establish() => _syntax = new(
         "Dashboard",
-        [new SlotSyntax("main", null, SourceLocation.Start)],
+        [new SlotSyntax("main", SourceLocation.Start)],
         SourceLocation.Start);
 
     void Because() => _result = ScreenTemplateConverter.Convert(_syntax);

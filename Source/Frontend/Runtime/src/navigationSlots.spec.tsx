@@ -25,10 +25,13 @@ const scene = {
         { id: 'KnowledgeBase', name: 'KnowledgeBase', features: [], slices: [] },
     ] }] },
     navigation: {
-        application: { regions: [{ region: 'topbar', items: [{ id: 'support', title: 'Support', target: { module: 'Support' } }] }] },
-        modules: [{ module: 'Support', regions: [{ region: 'sidebar', mode: 'override', items: [
-            { id: 'tickets', title: 'Tickets', target: { module: 'Support', feature: 'Tickets' } },
-            { id: 'kb', title: 'Knowledge base', target: { module: 'Support', feature: 'KnowledgeBase' }, slot: 'side' },
+        application: { outlets: [
+            { name: 'topbar', kind: 'navigation', defaults: [{ kind: 'navigation', id: 'support', title: 'Support', target: { module: 'Support' } }] },
+            { name: 'sidebar', kind: 'navigation', defaults: [] },
+        ] },
+        modules: [{ module: 'Support', refinements: [{ outlet: 'sidebar', mode: 'overrides', items: [
+            { kind: 'navigation', id: 'tickets', title: 'Tickets', target: { module: 'Support', feature: 'Tickets' } },
+            { kind: 'navigation', id: 'kb', title: 'Knowledge base', target: { module: 'Support', feature: 'KnowledgeBase' }, slot: 'side' },
         ] }] }],
     },
     screens: [screenOf('TicketList', ['Support', 'Tickets'], 'Tickets page'), screenOf('ArticleScreen', ['Support', 'KnowledgeBase'], 'Knowledge base page')],
@@ -38,8 +41,8 @@ const respond = (payload: unknown) => Promise.resolve({ ok: true, status: 200, j
 const sidebar = () => screen.findByRole('navigation', { name: 'Sidebar' });
 
 const active = async () => Array.from((await sidebar()).querySelectorAll('[aria-current]')).map(item => item.textContent?.trim());
-const primary = () => document.querySelector('[data-scene-outlet="primary"]')!;
-const side = () => document.querySelector('[data-scene-outlet="side"]')!;
+const primary = () => document.querySelector('[data-scene-slot="primary"]')!;
+const side = () => document.querySelector('[data-scene-slot="side"]')!;
 const renderStage = () => render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
 
 describe('when a navigation item names the slot it renders into', () => {
@@ -68,7 +71,7 @@ describe('when a navigation item names the slot it renders into', () => {
         await waitFor(() => expect(side().textContent).toContain('Knowledge base page'));
         expect(primary().getAttribute('data-scene-screen')).toBe('TicketList');
         expect(primary().textContent).toContain('Tickets page');
-        expect(document.querySelector('.layout-wrapper > .layout-side [data-scene-outlet="side"]')).not.toBeNull();
+        expect(document.querySelector('.layout-wrapper > .layout-side [data-scene-slot="side"]')).not.toBeNull();
     });
 
     it('should mark both items active, and only the page once the pane is closed', async () => {

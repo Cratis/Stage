@@ -188,7 +188,7 @@ public static class RenderPlanner
     static (string? Name, SceneLayouts.Layout? Layout) ShellLayout(SceneShell.EffectiveShell shell) => shell.Source switch
     {
         SceneShell.ShellSource.Blueprint => (shell.Name, null),
-        _ => (shell.Name, shell.Layout ?? new SceneLayouts.Layout(shell.Name, [.. shell.Outlets.Select(outlet => new SceneLayouts.Slot(outlet))]))
+        _ => (shell.Name, shell.Layout ?? new SceneLayouts.Layout(shell.Name, [.. shell.Slots.Select(slot => new SceneLayouts.Slot(slot))]))
     };
 
     static (string? Name, SceneLayouts.Layout? Layout) SelectLayout(

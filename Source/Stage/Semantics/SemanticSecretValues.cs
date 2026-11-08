@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using Cratis.Screenplay.Semantics;
+using Cratis.Stage.Rendering.Cratis.Naming;
 
 namespace Cratis.Stage.Semantics;
 
@@ -44,10 +45,17 @@ internal static class SemanticSecretValues
     {
         (_, SemanticScalarCommandResponse scalar) when IsSecret(scalar.Type, application) => null,
         (Dictionary<string, object?> record, SemanticRecordCommandResponse fields) => record
-            .Where(entry => !fields.Fields.Any(field => string.Equals(field.Name, entry.Key, StringComparison.OrdinalIgnoreCase) && IsSecret(field.Type, application)))
+            .Where(entry => !fields.Fields.Any(field => string.Equals(ResponseKey(field.Name), entry.Key, StringComparison.Ordinal) && IsSecret(field.Type, application)))
             .ToDictionary(entry => entry.Key, entry => entry.Value),
         _ => response
     };
+
+    /// <summary>
+    /// Gets the key a record response field is serialized under.
+    /// </summary>
+    /// <param name="name">The authored field name.</param>
+    /// <returns>The response key.</returns>
+    internal static string ResponseKey(string name) => JsonNamingPolicy.CamelCase.ConvertName(GeneratedPascalCase.From(name));
 
     static bool Carries(SemanticTypeReference type, SemanticApplication application, HashSet<SemanticId> visited) =>
         IsSecret(type, application) ||

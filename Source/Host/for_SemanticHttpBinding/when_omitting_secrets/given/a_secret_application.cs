@@ -33,9 +33,9 @@ public class a_secret_application : a_routed_model
         MapSemanticModel(EventModelLoader.LoadFromSource(Source), plan.Plan, appender);
     }
 
-    protected async Task Post(string command, string payload)
+    protected async Task Post(string command, string payload, string suffix = "")
     {
-        var response = await Request("POST", $"/api/m/f/{command}/{command}", payload);
+        var response = await Request("POST", $"/api/m/f/{command}/{command}{suffix}", payload);
         _status = response.Status;
         _body = response.Body;
         using var document = JsonDocument.Parse(response.Body);
@@ -46,6 +46,10 @@ public class a_secret_application : a_routed_model
         concept Username : String
         concept Password : String secret
         concept Note : String
+        concept PersonalSecret : String pii secret
+        concept StrongPassword : String secret
+          validate
+            min 20 message "Password is too short"
         policy PublicAccess
           require anonymous
         type Credentials
@@ -71,6 +75,38 @@ public class a_secret_application : a_routed_model
                 authorize PublicAccess
                 produces event Enrolled
                   username Username = username
+            slice StateChange Protect
+              command Protect
+                name String identifier
+                token PersonalSecret
+                authorize PublicAccess
+                produces event Protected
+                  name String = name
+            slice StateChange ReturnSecret
+              command ReturnSecret
+                name String identifier
+                password Password
+                authorize PublicAccess
+                produces event SecretReturned
+                  name String = name
+                returns password
+            slice StateChange ReturnRecord
+              command ReturnRecord
+                name String identifier
+                password Password
+                authorize PublicAccess
+                produces event RecordReturned
+                  name String = name
+                returns
+                  name = name
+                  pass_word = password
+            slice StateChange Strict
+              command Strict
+                name String identifier
+                password StrongPassword
+                authorize PublicAccess
+                produces event StrictRegistered
+                  name String = name
             slice StateChange Rename
               command Rename
                 name String identifier

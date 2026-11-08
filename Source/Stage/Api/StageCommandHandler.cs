@@ -136,7 +136,9 @@ public sealed class StageCommandHandler(
         var valuesJson = JsonSerializer.Serialize(values);
         problems.AddRange(StageRuleEvaluator.Evaluate(definition.Rules, valuesJson)
             .Where(violation => !missing.Contains(violation.PropertyName))
-            .Select(violation => (violation.PropertyName, violation.Message)));
+            .Select(violation => (violation.PropertyName, StageSecretValues.IsSecretProperty(definition.Schema, violation.PropertyName)
+                ? $"'{violation.PropertyName}' is invalid."
+                : violation.Message)));
 
         if (problems.Count == 0)
         {

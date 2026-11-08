@@ -50,7 +50,7 @@ internal static class SemanticCommandOutcome
     static object? Response(SemanticExecutionResponse response) => response switch
     {
         SemanticScalarExecutionResponse scalar => SemanticJsonValues.ToObject(scalar.Value),
-        SemanticRecordExecutionResponse record => record.Fields.ToDictionary(field => JsonNamingPolicy.CamelCase.ConvertName(GeneratedPascalCase.From(field.Name)), field => SemanticJsonValues.ToObject(field.Value)),
+        SemanticRecordExecutionResponse record => record.Fields.ToDictionary(field => SemanticSecretValues.ResponseKey(field.Name), field => SemanticJsonValues.ToObject(field.Value)),
         _ => throw new UnsupportedSemanticValue("The command response cannot be represented as JSON.")
     };
 

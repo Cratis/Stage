@@ -12,10 +12,8 @@ namespace Cratis.Stage.Api;
 /// </summary>
 internal static class StageSecretValues
 {
-    // A concept declared with the sensitive marker is the secret of the schema form; a personal-data marker on the same
-    // concept takes precedence, exactly as it does when the concept is rendered.
+    // A concept declared with the sensitive marker is the secret of the schema form, whatever else it is marked with.
     const string SecretMarker = "sensitive";
-    const string PersonalMarker = "pii";
 
     /// <summary>
     /// Omits every secret-typed property, at any depth, from a command payload that is echoed back.
@@ -43,6 +41,32 @@ internal static class StageSecretValues
         }
     }
 
+    /// <summary>
+    /// Gets whether a top-level property of the command is typed as a secret concept, so that nothing derived from its
+    /// value - the value itself or its length - may reach a message.
+    /// </summary>
+    /// <param name="schema">The command's JSON schema.</param>
+    /// <param name="property">The property name.</param>
+    /// <returns>True when the property is secret.</returns>
+    internal static bool IsSecretProperty(string schema, string property)
+    {
+        if (string.IsNullOrWhiteSpace(schema))
+        {
+            return false;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(schema);
+            return document.RootElement.TryGetProperty("properties", out var properties) && properties.ValueKind == JsonValueKind.Object &&
+                properties.EnumerateObject().Any(candidate => string.Equals(candidate.Name, property, StringComparison.OrdinalIgnoreCase) && IsSecret(candidate.Value));
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
     static bool IsSecret(JsonElement node)
     {
         if (node.ValueKind != JsonValueKind.Object)
@@ -51,8 +75,7 @@ internal static class StageSecretValues
         }
 
         if (node.TryGetProperty(SchemaSynthesizer.ConceptAttributesKeyword, out var attributes) && attributes.ValueKind == JsonValueKind.Object &&
-            attributes.EnumerateObject().Any(attribute => string.Equals(attribute.Name, SecretMarker, StringComparison.OrdinalIgnoreCase)) &&
-            !attributes.EnumerateObject().Any(attribute => string.Equals(attribute.Name, PersonalMarker, StringComparison.OrdinalIgnoreCase)))
+            attributes.EnumerateObject().Any(attribute => string.Equals(attribute.Name, SecretMarker, StringComparison.OrdinalIgnoreCase)))
         {
             return true;
         }
@@ -80,24 +103,32 @@ internal static class StageSecretValues
             {
                 result[name] = value;
             }
-            else if (!IsSecret(property.Value.Value))
+            else if (!IsSecret(property.Value.Value) && Value(value, property.Value.Value) is { } kept)
             {
-                result[name] = Value(value, property.Value.Value);
+                result[name] = kept;
             }
         }
 
         return result;
     }
 
-    static JsonElement Value(JsonElement value, JsonElement schema)
+    // The schema of a self-recursive type is cut to a bare object, so what it could hold is unknown: such a value is
+    // dropped (null) rather than echoed, as is any list containing one.
+    static JsonElement? Value(JsonElement value, JsonElement schema)
     {
         if (value.ValueKind == JsonValueKind.Array && schema.TryGetProperty("items", out var items))
         {
-            return JsonSerializer.SerializeToElement(value.EnumerateArray().Select(item => Value(item, items)).ToArray());
+            var kept = value.EnumerateArray().Select(item => Value(item, items)).ToArray();
+            return kept.Any(item => item is null) ? null : JsonSerializer.SerializeToElement(kept);
         }
 
-        return value.ValueKind == JsonValueKind.Object && schema.ValueKind == JsonValueKind.Object && schema.TryGetProperty("properties", out _)
+        if (value.ValueKind != JsonValueKind.Object || schema.ValueKind != JsonValueKind.Object)
+        {
+            return value;
+        }
+
+        return schema.TryGetProperty("properties", out _)
             ? JsonSerializer.SerializeToElement(Members(value.EnumerateObject().Select(member => (member.Name, member.Value)), schema))
-            : value;
+            : null;
     }
 }

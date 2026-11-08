@@ -47,8 +47,41 @@ when`, `confirm` and `authorize`. A screen's toolbar becomes the `core:outletIte
 actions, named as the toolbar (`toolbar` when it names none). A dialog template's `outlet actions of actions` is the
 outlet Scene draws the dialog's buttons from.
 
-`show <Screen> by <param> from <element>.selection` and a form field's `choose from` picker are not translated yet
-and are refused with `STAGE-SCENE-UI-001` rather than dropped.
+Scene draws an outlet where a `core:outletItems` element places it and a slot where a `core:slot` element stands, and
+a screen's own content replaces a template's seed for a slot. So each screen that fills a screen template gets what
+the template declares for its slots: an outlet drawn `in` a slot becomes a `core:outletItems` element at the start of
+that slot (unless the screen already places an outlet of that name, such as its toolbar), and a routed slot the
+screen leaves empty becomes a `core:slot` with its name, role, routing and optionality. A slot an outlet of tabs owns
+is filled by the tabs, and a panel is never routed, so neither gets one. Navigation outlets are drawn by the shell.
+
+`show <Screen> by <param> from <element>.selection` becomes the `core:slot` of the template slot it stands in, with
+that slot's role and routing, `shows`, `showsBy`, `showsFrom` and `showsFromElement` (the id of the table or component
+whose selection it shows). A form field's `choose from` picker is not translated yet - Scene 5's form field has no
+place for it - and is refused with `STAGE-SCENE-UI-001` rather than dropped.
+
+## Addresses of routed slots, tabs and filters
+
+The running application gives Scene's renderer its own router (`SceneRouterProvider`), so what a routed slot shows,
+the tab chosen in an outlet of tabs that owns a routed slot, and - when the page slot is routed - the filters' values
+are in the address and come back on a reload or from a shared link:
+
+```text
+/ProductCatalog/@detail/NK-101/@detail.detailTabs/pricing?q=kettle&status=onSale
+```
+
+After the screen's own part comes a group per routed slot: `@<slot>`, its route values in the order it is routed by,
+then the segment of a slice opened in it (`@detail/NK-101/set-product-price`). A chosen tab follows the slot its
+outlet owns as `@<slot>.<outlet>/<tab>`. A filter writes the query parameter it `sets` (or its id), beside the
+screen's own parameters. With hash routing the same address follows `#/`.
+
+Opening a screen in a routed slot and choosing a tab are history entries, so back and forward move through them. A
+filter replaces the current entry. A dialog or drawer opened over the page keeps the address and is not a history
+entry, and a panel is never routed. Going to another screen leaves the slots, tabs and filters of the one it left.
+
+A hook that runs its slice directly (`runs`), or opens it in a drawer or a slot, is placed by Scene: it asks its
+`confirm` first, waits for its item and its `enabled when`, and issues the command with the command's identifier from
+the item through the Stage's slice invoker, which refreshes the queries on the page. Opening in a routed slot
+changes the address.
 
 `template <Name>` and `template blueprint <Blueprint> <Name> [version "<range>"]` become `SceneApplication.TemplateReferences`, each a Scene `TemplateReference` (source, id, blueprint, version range) with the scope it was assigned at. The template's category and the slice kinds of a `scopes slice` template travel in its `TemplateMetadata`. An application with no assignment serializes without a `templateReferences` member.
 

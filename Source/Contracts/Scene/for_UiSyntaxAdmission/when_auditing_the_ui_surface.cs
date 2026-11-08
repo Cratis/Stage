@@ -14,14 +14,15 @@ public class when_auditing_the_ui_surface : Specification
     // member must make an explicit render/refuse decision rather than silently extending this list.
     // ReactionProductionMode and CommandReadMode are refused before legacy rendering/execution with STAGE-ESM-043 and STAGE-ESM-044.
     // StateMachines and Workflows (Screenplay 5.1.0) have no UI node: they reach Stage through the executable semantic model, where the runtime and the renderer decide.
+    // Users (Screenplay 5.11.0, decision 0141) are development and test identities: the sandbox host reads them from the source to offer to Lens (SandboxUsers), and no rendered application carries them.
     // StickyNotes are Studio canvas notes: authoring metadata outside the executable model, so Stage neither renders nor refuses them.
     // TimeZone (Screenplay 4.247.0, decisions 0106/0107) never reaches Stage: the Screenplay binder refuses an application time zone (Cratis/Screenplay#824).
     // Context (Screenplay 5.3.1) is refused by the binder with PLAY0268 before Stage consumes it.
     // Graphs, GraphProjections and GraphQueries (Screenplay 5.7.0 and 5.8.0) render from the executable semantic model; the legacy syntax path refuses them with STAGE-ESM-067 (GraphSyntaxAdmission).
     // Nested sample-data rows (SampleDataFieldSyntax.Rows, SampleDataValueKind.Rows) are sample data for the Scene preview, which Stage does not render.
     // Screenplay 6: slots, outlets, fits and hooks are translated (SlotConverter, OutletConverter, OutletLevelConverter, ScreenConverter).
-    // RetiredForms is source-span metadata of the Screenplay 5 forms the compiler refuses; it never reaches Stage. Users are the people a
-    // model declares for previews and enablement; Stage does not render them. ScreenShowSyntax is the slot it stands in
+    // RetiredForms is source-span metadata of the Screenplay 5 forms the compiler refuses; it never reaches Stage.
+    // ScreenShowSyntax is the slot it stands in
     // (TemplateSlotPlacement); FormFieldSyntax.Choices is refused by UiSyntaxAdmission until Scene's form field can carry it.
     [Theory]
     [InlineData(typeof(ApplicationSyntax), "Authentication Behaviors CommandReadMode Concepts Context Domain EventSources Examples Exposures FileImports Identity Imports InstanceContributions Layouts Modules Onboarding Personas Policies Purposes ReactionProductionMode RetiredForms SampleDataPacks Seeds SourceOptions StateMachines StickyNotes Systems Templates Themes TimeZone Triggers Types UiProfiles Users Workflows")]

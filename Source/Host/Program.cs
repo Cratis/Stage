@@ -15,6 +15,9 @@ using Cratis.Stage.Runtime;
 using Microsoft.AspNetCore.HttpOverrides;
 using Scalar.AspNetCore;
 
+using StageHostMode = Cratis.Stage.Host.StageHostMode;
+using StageHostModeSelection = Cratis.Stage.Host.StageHostModeSelection;
+
 CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
 CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
 CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
@@ -28,7 +31,19 @@ if (args.Length > 0 && args[0] == "export")
 
 var engine = StageRuntimeEngineSelection.Read(args);
 var earlyConfiguration = StageHostModeSelection.EarlyConfiguration(args);
-if (StageHostModeSelection.Read(args, earlyConfiguration) == StageHostMode.Published)
+StageHostMode hostMode;
+try
+{
+    hostMode = StageHostModeSelection.Read(args, earlyConfiguration);
+}
+catch (StageHostModeRefused refused)
+{
+    await Console.Error.WriteLineAsync(refused.Message);
+    Environment.Exit(78);
+    return;
+}
+
+if (hostMode == StageHostMode.Published)
 {
     try
     {
@@ -42,12 +57,13 @@ if (StageHostModeSelection.Read(args, earlyConfiguration) == StageHostMode.Publi
             throw new PublishedModeRefused(["Published mode runs the semantic engine only."]);
         }
 
+        _ = StageHostModeSelection.Read(earlyConfiguration, args, engine);
         var publishedOptions = PublishedOptions.From(earlyConfiguration);
         publishedOptions.EnsureComplete();
         var package = PublishedPackage.Read(publishedOptions.PackagePath);
-        await SemanticHost.Run(args, package.ModelPath, package, publishedOptions);
+        await SemanticHost.Run(args, package.ModelPath, package, publishedOptions, hostMode);
     }
-    catch (PublishedModeRefused refused)
+    catch (Exception refused) when (refused is PublishedModeRefused or StageHostModeRefused)
     {
         await Console.Error.WriteLineAsync(refused.Message);
         Environment.Exit(78);
@@ -73,7 +89,7 @@ if (warmMode)
 
 if (engine == StageRuntimeEngine.Semantic)
 {
-    await SemanticHost.Run(args, modelPath!);
+    await SemanticHost.Run(args, modelPath!, hostMode: hostMode);
     return;
 }
 
@@ -89,7 +105,7 @@ if (model is not null)
     _ = StageChronicleDefinitions.Build(model, EventSequenceId.Log);
 }
 var eventStore = ContainerEventStoreName.Resolve();
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(StageHostModeSelection.ConfigurationArguments(args));
 
 builder.Configuration.AddJsonFile(
     Environment.GetEnvironmentVariable("STAGE_CONFIG") is { Length: > 0 } configuredPath
@@ -97,6 +113,8 @@ builder.Configuration.AddJsonFile(
         : Path.Combine(builder.Environment.ContentRootPath, "cratis-stage.json"),
     optional: true,
     reloadOnChange: true);
+
+_ = StageHostModeSelection.Read(builder.Configuration, args, engine);
 
 // Admit modeled ownership before AddCratis, DI/provider resolution, type emission, any endpoint mapping,
 // or Chronicle connection. Use one startup snapshot for planning, mapping, and discovery.

@@ -32,7 +32,7 @@ Nothing needs to be discovered by hand — start at the Scalar reference and cli
 | `/workbench`                                                  | yes     | not mapped                                        |
 | `/read-models`, `/stage/read-models`                          | yes     | not mapped                                        |
 | `/stage/load`, `/stage/semantic/*` (admission, specification runs) | yes | not mapped                                      |
-| `/stage/packages`                                             | yes     | not mapped                                        |
+| `/stage/packages`                                             | yes     | yes (runtime metadata)                            |
 
 ## Start here
 

@@ -24,21 +24,7 @@ internal static class SandboxPersona
     internal static ClaimsPrincipal Create(PersonaSyntax persona, string displayName, ApplicationSyntax application, ILogger logger) =>
         Principal(persona, displayName, CallerFor(persona, application, logger));
 
-    static ClaimsPrincipal Principal(PersonaSyntax persona, string displayName, SpecificationCallerSyntax? caller)
-    {
-        var subject = $"persona:{persona.Name}";
-        var claims = new List<Claim>
-        {
-            new(ClaimTypes.NameIdentifier, subject),
-            new("sub", subject),
-            new(ClaimTypes.Name, displayName)
-        };
-        claims.AddRange((caller?.Roles ?? []).Select(role => new Claim(ClaimTypes.Role, role)));
-        claims.AddRange((caller?.Claims ?? []).Select(claim => new Claim(claim.Type, claim.Value)));
-        return new ClaimsPrincipal(new ClaimsIdentity(claims, "stage-persona"));
-    }
-
-    static SpecificationCallerSyntax? CallerFor(PersonaSyntax persona, ApplicationSyntax application, ILogger logger)
+    internal static SpecificationCallerSyntax? CallerFor(PersonaSyntax persona, ApplicationSyntax application, ILogger logger)
     {
         var supported = new List<string>();
         SpecificationCallerSyntax? caller = null;
@@ -58,6 +44,20 @@ internal static class SandboxPersona
         }
 
         return caller;
+    }
+
+    static ClaimsPrincipal Principal(PersonaSyntax persona, string displayName, SpecificationCallerSyntax? caller)
+    {
+        var subject = $"persona:{persona.Name}";
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, subject),
+            new("sub", subject),
+            new(ClaimTypes.Name, displayName)
+        };
+        claims.AddRange((caller?.Roles ?? []).Select(role => new Claim(ClaimTypes.Role, role)));
+        claims.AddRange((caller?.Claims ?? []).Select(claim => new Claim(claim.Type, claim.Value)));
+        return new ClaimsPrincipal(new ClaimsIdentity(claims, "stage-persona"));
     }
 
     static bool RequiresAnonymous(PolicyConditionSyntax? condition) => condition switch

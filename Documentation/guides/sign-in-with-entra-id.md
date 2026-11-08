@@ -21,6 +21,9 @@ identifies the browser page's origin. The host rejects a missing or different or
 Start with an application you already render and run. [Customize a rendered application](customize-rendered-application.md)
 explains where configuration and your own code belong.
 
+For the in-process published host, select `Stage:Published:Authentication:Mode=Oidc` and use the same authentication
+keys below. See [published application authentication](../reference/published-applications.md#authentication).
+
 ## Before you start
 
 - An Entra ID app registration for the application, with a credential the host can use to redeem the sign-in code. A

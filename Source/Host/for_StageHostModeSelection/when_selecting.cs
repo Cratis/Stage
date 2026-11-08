@@ -17,4 +17,12 @@ public class when_selecting
     [Fact] void should_ignore_case() => StageHostModeSelection.Read([], Configuration("published")).ShouldEqual(StageHostMode.Published);
     [Fact] void should_select_sandbox_explicitly() => StageHostModeSelection.Read([], Configuration("Sandbox")).ShouldEqual(StageHostMode.Sandbox);
     [Fact] void should_refuse_an_unknown_mode() => Assert.Throws<PublishedModeRefused>(() => StageHostModeSelection.Read([], Configuration("Staging")));
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("1")]
+    [InlineData("2")]
+    [InlineData("")]
+    [InlineData("Staging")]
+    void should_refuse_invalid_configuration_even_with_the_published_argument(string mode) => Assert.Throws<PublishedModeRefused>(() => StageHostModeSelection.Read(["--published"], Configuration(mode)));
 }

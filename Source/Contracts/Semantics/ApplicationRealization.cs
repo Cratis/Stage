@@ -107,7 +107,16 @@ public sealed record ApplicationRealization(
     public ImmutableSortedDictionary<string, ImmutableArray<byte>> Images { get; init; } = ImmutableSortedDictionary.Create<string, ImmutableArray<byte>>(StringComparer.Ordinal);
 
     /// <summary>
-    /// Gets whether the model asks for nothing a rendered application has to realize.
+    /// Gets the named sinks the model declares and the read models and graphs that choose one.
+    /// </summary>
+    /// <remarks>
+    /// Sinks travel apart from the authentication and onboarding realization: they do not make <see cref="IsEmpty"/> false, and a
+    /// renderer carries them in an input of their own, so a model without sinks keeps the bytes it always had.
+    /// </remarks>
+    public RealizedSinks Sinks { get; init; } = RealizedSinks.None;
+
+    /// <summary>
+    /// Gets whether the model asks for no authentication or onboarding a rendered application has to realize.
     /// </summary>
     public bool IsEmpty => Providers.IsDefaultOrEmpty && Onboarding is null;
 
@@ -123,16 +132,17 @@ public sealed record ApplicationRealization(
     /// <returns>The <see cref="ApplicationRealization"/>.</returns>
     public static ApplicationRealization From(SemanticCompilation compilation, string? modelRoot = null)
     {
-        if (compilation.Environment.Keys.IsEmpty)
+        var sinks = RealizedSinks.From(compilation);
+        var realization = None;
+        if (!compilation.Environment.Keys.IsEmpty)
         {
-            return None;
+            var parsed = new PlayFileCompiler().CompileFolder(compilation.Documents.Documents.Select(document => new PlayFileContent(document.DisplayPath, document.Text)));
+            realization = parsed.Result.Success
+                ? From(parsed.Result.Value!, compilation.Environment, compilation.Documents.AttachmentContents, modelRoot)
+                : None;
         }
 
-        var parsed = new PlayFileCompiler().CompileFolder(compilation.Documents.Documents.Select(document => new PlayFileContent(document.DisplayPath, document.Text)));
-
-        return parsed.Result.Success
-            ? From(parsed.Result.Value!, compilation.Environment, compilation.Documents.AttachmentContents, modelRoot)
-            : None;
+        return sinks.IsEmpty ? realization : realization with { Sinks = sinks };
     }
 
     /// <summary>

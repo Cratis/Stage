@@ -62,6 +62,7 @@ internal static class SemanticGraphArtifactRenderer
         builder.Attribute($"{Graphs}.GraphAttribute({CSharpCodeBuilder.StringLiteral(graph.Name)})")
             .Attribute($"{Graphs}.NodeAttribute")
             .Attribute(NoAutoMap);
+        RenderSink(builder, context, graph);
         foreach (var handler in handlers)
         {
             var @event = types.EventType(context.Events[handler.Event]);
@@ -71,6 +72,15 @@ internal static class SemanticGraphArtifactRenderer
         var parameters = node.Properties.Select(property => Parameter(property, handlers, types, context, isIdentity: false)).ToArray();
         builder.Line($"public record {name}({string.Join(", ", parameters)});");
         return new(Path.Combine(SemanticGraphNaming.Folder(context, graph), $"{name}.cs"), builder.ToString()) { Sources = [context.Application.Id] };
+    }
+
+    // Every element of one graph names the same sink, as Chronicle requires of a graph's records.
+    static void RenderSink(CSharpCodeBuilder builder, SemanticApplicationContext context, SemanticGraph graph)
+    {
+        if (context.Sinks.ForGraph(graph.Name) is { } sink)
+        {
+            builder.Attribute($"global::Cratis.Chronicle.Sinks.Sink({CSharpCodeBuilder.StringLiteral(sink)})");
+        }
     }
 
     static RenderedFile RenderEdge(SemanticApplicationContext context, SemanticGraph graph, SemanticGraphEdge edge, SemanticGraphHandler[] handlers)
@@ -88,6 +98,7 @@ internal static class SemanticGraphArtifactRenderer
         builder.Attribute($"{Graphs}.GraphAttribute({CSharpCodeBuilder.StringLiteral(graph.Name)})")
             .Attribute($"{Graphs}.EdgeAttribute({CSharpCodeBuilder.StringLiteral(edge.Type)})")
             .Attribute(NoAutoMap);
+        RenderSink(builder, context, graph);
         foreach (var handler in handlers)
         {
             var @event = types.EventType(context.Events[handler.Event]);

@@ -46,6 +46,7 @@ internal sealed partial class SemanticApplicationContext
         Domain = DomainPlacementInput.From(request.Profile);
         PassiveReadModelsInput.TryRead(request.Profile, request.Model, out var passiveReadModels);
         PassiveReadModels = passiveReadModels;
+        Sinks = Realization.SinksInput.TryRead(request.Profile, request.Model, out var sinks) ? sinks : Contracts.Semantics.RealizedSinks.None;
         Strings = StringsCatalogInput.From(request.Profile);
         ReducerConventionInput.TryRead(request.Profile, Application.Name, out var reducerConvention);
         ReducerConvention = reducerConvention;
@@ -105,6 +106,11 @@ internal sealed partial class SemanticApplicationContext
 
     /// <summary>Gets the explicitly passive identities admitted from the hashed profile input.</summary>
     public ImmutableHashSet<SemanticId> PassiveReadModels { get; }
+
+    /// <summary>
+    /// Gets the named sinks admitted from the hashed profile input, and the read models and graphs that choose one.
+    /// </summary>
+    public Contracts.Semantics.RealizedSinks Sinks { get; }
 
     /// <summary>
     /// Gets the destination-independent application namespace.
@@ -368,6 +374,11 @@ internal sealed partial class SemanticApplicationContext
     /// <param name="readModelId">The read-model identity.</param>
     /// <returns>Whether it was explicitly marked passive.</returns>
     internal bool IsPassive(SemanticId readModelId) => PassiveReadModels.Contains(readModelId);
+
+    /// <summary>Gets the named sink a read model stores to.</summary>
+    /// <param name="readModelId">The read-model identity.</param>
+    /// <returns>The sink name, or <see langword="null"/> for the default sink.</returns>
+    internal string? SinkOf(SemanticId readModelId) => Sinks.ForReadModel(readModelId);
 
     // A flat projection the flat rendering cannot take is expressed as the scope that says the same, so one admission and one renderer decide.
     internal void ScopeFlatProjections()

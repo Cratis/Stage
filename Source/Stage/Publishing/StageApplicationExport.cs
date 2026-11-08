@@ -5,6 +5,7 @@ using System.Collections.ObjectModel;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Semantics;
 
 namespace Cratis.Stage.Publishing;
@@ -99,7 +100,10 @@ public static partial class StageApplicationExport
             digest,
             request.NotesEnabled,
             authentication,
-            references);
+            references)
+        {
+            Sinks = [.. loaded.Realization.Sinks.Declarations.Select(sink => new PackageSink(sink.Name, sink.Kind == SemanticSinkKind.Graphs ? PackageSink.Graphs : PackageSink.ReadModels))]
+        };
 
         var manifestJson = PackageManifestJson.Write(manifest);
         var all = new SortedDictionary<string, byte[]>(StringComparer.Ordinal)

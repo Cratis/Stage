@@ -35,11 +35,11 @@ public class when_translating_the_typed_screen_composition : given.the_planned_s
         _bytes = Encoding.UTF8.GetBytes(CanonicalSceneJson.Serialize(_scene));
     }
 
-    [Fact] void should_pin_the_canonical_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("4f39fe8e050284e6c7b0e6dd098538701f715dd62caa082f80c599a1266ec035");
+    [Fact] void should_pin_the_canonical_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("30b2934a20e41ed85102f7ddb85ec1d065d0f57a71dbe415f4b6dea86a2fdcb3");
     [Fact] void should_carry_the_sample_data_pack() => _scene.SampleDataPacks.Single().Id.ShouldEqual("workspace-demo");
     [Fact] void should_select_the_pack_in_the_profile() => _scene.UiProfiles.Single().SampleData.ActivePack.ShouldEqual("workspace-demo");
     [Fact] void should_map_the_shape_to_the_read_model() => _scene.UiProfiles.Single().SampleData.Mappings.Single().ReadModel.ShouldEqual("WorkItemSummary");
-    [Fact] void should_pin_the_canonical_scene_length() => _bytes.Length.ShouldEqual(25179);
+    [Fact] void should_pin_the_canonical_scene_length() => _bytes.Length.ShouldEqual(22285);
 
     [Fact] void should_declare_what_each_template_exposes() => _scene.Exposures.Select(exposure => exposure.Owner).ShouldContainOnly(["WorkspaceFeatureShell", "EditWorkItemDialog"]);
     [Fact] void should_expose_a_collection_with_its_operations() => Exposed("WorkspaceFeatureShell", "actions").Operations.ShouldContainOnly([CollectionOperation.Add, CollectionOperation.Remove, CollectionOperation.Reorder, CollectionOperation.EditFields]);

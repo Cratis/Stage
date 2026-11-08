@@ -6,9 +6,12 @@ import type { EffectiveNavItem } from '@cratis/scene.engine';
 import { resolveStringsValue } from '@cratis/scene.engine';
 import type { SceneNavigationModel } from '@cratis/scene.react';
 
-/** Whether the model declares navigation regions of its own - the application's or a module's. */
+/**
+ * Whether the model declares navigation items of its own - an application navigation outlet that lists items, or a module's refinement
+ * or contribution. An outlet that lists nothing only says where navigation goes: the entries the screens authored stay the menu.
+ */
 export function declaresRegions(navigation: NavigationModel | undefined): boolean {
-    return (navigation?.application.outlets.length ?? 0) > 0 || (navigation?.modules.length ?? 0) > 0;
+    return (navigation?.application.outlets.some(outlet => outlet.defaults.length > 0) ?? false) || (navigation?.modules.length ?? 0) > 0;
 }
 
 /**

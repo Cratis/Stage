@@ -11,6 +11,9 @@ namespace Cratis.Stage.Specifications;
 
 internal static class SemanticRunReactionExpressions
 {
+    // "O" plus ISO 8601 with Z or an offset and no or 1-7 fractional digits; a value without an offset keeps matching "O" as before.
+    static readonly string[] _dateTimeFormats = ["O", "yyyy-MM-dd'T'HH:mm:ssK", "yyyy-MM-dd'T'HH:mm:ss.FFFFFFFK"];
+
     static readonly Dictionary<SemanticComparisonOperator, Func<decimal, decimal, bool>> _orderings = new()
     {
         [SemanticComparisonOperator.GreaterThan] = (left, right) => left > right,
@@ -61,7 +64,8 @@ internal static class SemanticRunReactionExpressions
             return;
         }
         var concept = ConceptOf(plan, type);
-        if (!IsCompatible(value, concept?.Primitive ?? type.Primitive)) throw new InvalidSemanticContract($"A {description} is incompatible with its target type.");
+        var primitive = concept?.Primitive ?? type.Primitive;
+        if (!IsCompatible(value, primitive)) throw new InvalidSemanticContract(IncompatibleMessage(description, primitive, value));
         if (!IsDeclaredValue(concept, value)) throw new InvalidSemanticContract($"A {description} targets an enumeration concept but is not a declared value.");
     }
 
@@ -89,6 +93,12 @@ internal static class SemanticRunReactionExpressions
     static SemanticConcept? ConceptOf(SemanticExecutionPlan plan, SemanticTypeReference type) =>
         type.Kind == SemanticTypeReferenceKind.Concept ? plan.Model.Application.Concepts.Single(concept => concept.Id == type.Target) : null;
 
+    // Never interpolate the submitted value: a property can be marked secret.
+    static string IncompatibleMessage(string description, SemanticPrimitiveType primitive, SemanticValue value) =>
+        primitive == SemanticPrimitiveType.DateTime && value is SemanticTextValue
+            ? $"A {description} expects an ISO 8601 date and time such as 2031-03-10T10:00:00Z."
+            : $"A {description} is incompatible with its target type.";
+
     static bool IsCompatible(SemanticValue value, SemanticPrimitiveType primitive) => value switch
     {
         SemanticTextValue text => TextMatches(text.Value, primitive),
@@ -105,7 +115,7 @@ internal static class SemanticRunReactionExpressions
         SemanticPrimitiveType.Text => true,
         SemanticPrimitiveType.Uuid => Guid.TryParseExact(value, "D", out var uuid) && uuid.ToString("D", CultureInfo.InvariantCulture) == value,
         SemanticPrimitiveType.Date => DateOnly.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _),
-        SemanticPrimitiveType.DateTime => DateTimeOffset.TryParseExact(value, "O", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out _),
+        SemanticPrimitiveType.DateTime => DateTimeOffset.TryParseExact(value, _dateTimeFormats, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out _),
         _ => false
     };
 

@@ -12,7 +12,10 @@ namespace Cratis.Stage.Api;
 /// </summary>
 internal static class StageSecretValues
 {
-    const string SecretMarker = "secret";
+    // A concept declared with the sensitive marker is the secret of the schema form; a personal-data marker on the same
+    // concept takes precedence, exactly as it does when the concept is rendered.
+    const string SecretMarker = "sensitive";
+    const string PersonalMarker = "pii";
 
     /// <summary>
     /// Omits every secret-typed property, at any depth, from a command payload that is echoed back.
@@ -48,7 +51,8 @@ internal static class StageSecretValues
         }
 
         if (node.TryGetProperty(SchemaSynthesizer.ConceptAttributesKeyword, out var attributes) && attributes.ValueKind == JsonValueKind.Object &&
-            attributes.EnumerateObject().Any(attribute => string.Equals(attribute.Name, SecretMarker, StringComparison.OrdinalIgnoreCase)))
+            attributes.EnumerateObject().Any(attribute => string.Equals(attribute.Name, SecretMarker, StringComparison.OrdinalIgnoreCase)) &&
+            !attributes.EnumerateObject().Any(attribute => string.Equals(attribute.Name, PersonalMarker, StringComparison.OrdinalIgnoreCase)))
         {
             return true;
         }

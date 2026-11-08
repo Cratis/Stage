@@ -747,14 +747,16 @@ async function assertAuthoredToolbarAndHierarchy(page, result) {
         return;
     }
 
-    const create = toolbar.locator('[data-scene-toolbar-item="create"]');
-    const mode = await create.getAttribute('data-scene-mode').catch(() => null);
+    // A screen toolbar is a Scene outlet of actions: each item is a button that names its outlet item.
+    const create = toolbar.locator('[data-scene-outlet-item="create"]');
+    const icon = await create.locator('[data-scene-icon-name]').getAttribute('data-scene-icon-name').catch(() => null);
     const text = (await create.textContent().catch(() => null))?.trim();
     const name = await create.getAttribute('aria-label').catch(() => null);
-    if (mode === 'icon' && text === '' && name === 'New work item') record(result, 'browser.toolbar.presentation.iconOnly', 'passed', `mode ${mode}, accessible name ${name}`);
-    else block(result, 'browser.toolbar.presentation.iconOnly', `expected an icon-only item named "New work item", saw mode ${mode}, text "${text}", name ${name}`);
+    if (icon === 'add' && text === '' && name === 'New work item') record(result, 'browser.toolbar.presentation.iconOnly', 'passed', `icon ${icon}, accessible name ${name}`);
+    else block(result, 'browser.toolbar.presentation.iconOnly', `expected an icon-only item named "New work item", saw icon ${icon}, text "${text}", name ${name}`);
 
-    const placement = await toolbar.locator('[data-scene-toolbar-item="refresh"]').getAttribute('data-scene-presentation-placement').catch(() => null);
+    // The authored placement hint is the outlet button's emphasis.
+    const placement = await toolbar.locator('[data-scene-outlet-item="refresh"]').getAttribute('data-scene-emphasis').catch(() => null);
     if (placement === 'secondary') record(result, 'browser.toolbar.presentation.hint', 'passed', placement);
     else block(result, 'browser.toolbar.presentation.hint', `expected the placement hint "secondary", saw ${placement}`);
 

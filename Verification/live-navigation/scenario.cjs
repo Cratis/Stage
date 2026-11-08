@@ -63,7 +63,7 @@ function check(name, actual, expected) {
         await second.goto(link);
         await second.waitForSelector('.layout-topbar');
         check('a deep link restores the module sidebar', (await second.locator('nav[aria-label="Sidebar"] a, nav[aria-label="Sidebar"] button').allInnerTexts()).map(text => text.trim()), ['Orders', 'Customers']);
-        check('a deep link restores the page', (await second.locator('[data-scene-outlet="primary"] h1').allInnerTexts()).includes('Orders'), true);
+        check('a deep link restores the page', (await second.locator('[data-scene-slot="primary"] h1').allInnerTexts()).includes('Orders'), true);
 
         await page.locator('nav[aria-label="Sidebar"]').getByText('Customers').click();
         await page.waitForFunction(() => location.pathname === '/CustomerScreen');

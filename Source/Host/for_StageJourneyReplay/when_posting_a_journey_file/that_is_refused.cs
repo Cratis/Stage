@@ -20,11 +20,13 @@ public class that_is_refused : a_replay_endpoint
     (int Status, string Body) _first;
     (int Status, string Body) _loading;
     (int Status, string Body) _unsupported;
+    (int Status, string Body) _plainText;
 
     protected override Task<HttpResponseMessage> Respond(HttpRequestMessage request) => _held.Task;
 
     async Task Because()
     {
+        _plainText = await Request(OneJourney, contentType: "text/plain");
         _invalid = await Request("""{ "schema": "stage-journey/v2", "journeys": [] }""");
         _unknownJourney = await Request(OneJourney, "?journey=other");
         _tooLarge = await Request(new string(' ', StageJourneyFile.MaxBodyBytes + 1));
@@ -41,6 +43,7 @@ public class that_is_refused : a_replay_endpoint
 
     static JsonElement Problem((int Status, string Body) response) => JsonDocument.Parse(response.Body).RootElement;
 
+    [Fact] void should_refuse_a_body_that_is_not_json() => _plainText.Status.ShouldEqual(StatusCodes.Status415UnsupportedMediaType);
     [Fact] void should_refuse_an_invalid_file() => _invalid.Status.ShouldEqual(StatusCodes.Status400BadRequest);
     [Fact] void should_list_every_problem() => Problem(_invalid).GetProperty("errors").EnumerateArray().Select(error => error.GetString()).ShouldContainOnly(["schema: must be 'stage-journey/v1'", "journeys: must be a non-empty array"]);
     [Fact] void should_name_the_capability() => Problem(_invalid).GetProperty("capability").GetString().ShouldEqual("Journey");

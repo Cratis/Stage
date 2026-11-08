@@ -793,7 +793,8 @@ curl -X POST http://localhost:9090/stage/semantic/journeys/replay \
     -H 'Content-Type: application/json' --data-binary @journeys.json
 ```
 
-Add `?journey=<name>` (repeatable) to replay only the named journeys.
+The body must be sent as `application/json`; any other content type is refused with 415. Add `?journey=<name>`
+(repeatable) to replay only the named journeys.
 
 A step names exactly one `command` or `query`, as a qualified `Namespace.Name` or a simple name. A command takes
 its body as `input`; a query takes flat string, number or boolean `arguments`, sent as the query string. A query

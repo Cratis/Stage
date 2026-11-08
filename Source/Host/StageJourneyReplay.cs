@@ -38,6 +38,7 @@ internal static class StageJourneyReplay
     static async Task<IResult> Replay(HttpContext context, ReplayHost host)
     {
         var aborted = context.RequestAborted;
+        if (!context.Request.HasJsonContentType()) return Problem("The journey file must be sent as application/json.", StatusCodes.Status415UnsupportedMediaType);
         if (context.Request.ContentLength > StageJourneyFile.MaxBodyBytes) return TooLarge();
         var text = await ReadBounded(context.Request.Body, aborted);
         if (text is null) return TooLarge();

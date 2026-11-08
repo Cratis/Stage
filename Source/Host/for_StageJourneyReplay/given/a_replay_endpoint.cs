@@ -44,7 +44,7 @@ public class a_replay_endpoint : Specification
         _request = pipeline.Build();
     }
 
-    protected async Task<(int Status, string Body)> Request(string body, string query = "")
+    protected async Task<(int Status, string Body)> Request(string body, string query = "", string contentType = "application/json")
     {
         await using var requestBody = new MemoryStream(Encoding.UTF8.GetBytes(body));
         await using var responseBody = new MemoryStream();
@@ -54,7 +54,7 @@ public class a_replay_endpoint : Specification
         context.Request.Method = "POST";
         context.Request.Path = StageJourneyReplay.Route;
         context.Request.QueryString = new QueryString(query);
-        context.Request.ContentType = "application/json";
+        context.Request.ContentType = contentType;
         context.Request.ContentLength = requestBody.Length;
         context.Request.Body = requestBody;
         context.Response.Body = responseBody;

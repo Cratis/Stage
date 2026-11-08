@@ -88,6 +88,13 @@ public static class CratisServiceConfiguration
                 // A runtime that mounted the connection string of the kernel to use (it carries a secret, so it is a file) wins, as supplied.
                 options.ConnectionString = ResolveConnection(options.ConnectionString, SandboxRuntimeConventions.MountedConnectionString(Environment.GetEnvironmentVariable), published);
 
+                // A published kernel on PostgreSQL or SQL Server has no MongoDB to project into; the read models the client registers
+                // (Notes') follow the storage engine so they land in the same database. Stage's own modeled read models name their sink.
+                if (published is not null)
+                {
+                    options.DefaultSinkTypeId = published.ReadModelSinkTypeId;
+                }
+
                 // Give the Chronicle client's initial handshake more headroom than the 5 second default — the
                 // bundled kernel competes for CPU with the host at container startup.
                 options.ConnectTimeout = 30;

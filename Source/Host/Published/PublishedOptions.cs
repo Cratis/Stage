@@ -1,13 +1,15 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Chronicle.Sinks;
+
 namespace Cratis.Stage.Host.Published;
 
 /// <summary>
 /// The deployment configuration of a published host, bound from <c language="shell">Stage:Published</c>.
 /// </summary>
 /// <param name="PackagePath">The folder holding the exported application package, or a <c language="shell">.tar.gz</c> archive of it.</param>
-/// <param name="StorageConnectionString">The MongoDB connection string for Chronicle and its read models.</param>
+/// <param name="StorageConnectionString">The connection string of the database the bundled Chronicle kernel stores its events and read models in.</param>
 /// <param name="AuthenticationMode">How callers are authenticated.</param>
 /// <param name="TrustedProxies">The addresses or CIDR networks whose forwarded headers and principal are trusted.</param>
 /// <param name="AllowedHosts">The host names the application answers to.</param>
@@ -32,10 +34,46 @@ internal sealed record PublishedOptions(
     internal const string TrustedProxyMode = "TrustedProxy";
     internal const string OidcMode = "Oidc";
     internal const string Section = "Stage:Published";
+    internal const string MongoDBStorage = "MongoDB";
+    internal const string PostgreSqlStorage = "PostgreSql";
+    internal const string MsSqlStorage = "MsSql";
+
+    /// <summary>
+    /// Gets the storage types the bundled Chronicle kernel can be started with, in the spelling the kernel documents.
+    /// </summary>
+    internal static readonly IReadOnlyList<string> StorageTypes = [MongoDBStorage, PostgreSqlStorage, MsSqlStorage];
 
     internal bool UsesOidc => string.Equals(AuthenticationMode, OidcMode, StringComparison.OrdinalIgnoreCase);
     internal bool UsesTrustedProxy => string.Equals(AuthenticationMode, TrustedProxyMode, StringComparison.OrdinalIgnoreCase);
     internal OidcPublishedOptions? Oidc { get; init; }
+
+    /// <summary>
+    /// Gets the configured storage type, as given, or <see langword="null"/> for the default (<c language="shell">MongoDB</c>).
+    /// </summary>
+    internal string? StorageType { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the runtime mounted the connection of an external Chronicle kernel
+    /// (<c language="shell">CRATIS_CHRONICLE_CONNECTION_STRING_FILE</c>), so no kernel is bundled and no storage is configured here.
+    /// </summary>
+    internal bool UsesExternalKernel { get; init; }
+
+    /// <summary>
+    /// Gets the storage type in the kernel's spelling, or <see langword="null"/> when the configured one is not supported.
+    /// </summary>
+    internal string? CanonicalStorageType => string.IsNullOrWhiteSpace(StorageType)
+        ? MongoDBStorage
+        : StorageTypes.FirstOrDefault(type => string.Equals(type, StorageType.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// Gets a value indicating whether Chronicle stores in a SQL database (PostgreSQL or SQL Server).
+    /// </summary>
+    internal bool UsesSqlStorage => string.Equals(CanonicalStorageType, PostgreSqlStorage, StringComparison.Ordinal) || string.Equals(CanonicalStorageType, MsSqlStorage, StringComparison.Ordinal);
+
+    /// <summary>
+    /// Gets the sink the client registers read models with, so they land in the database the kernel stores in.
+    /// </summary>
+    internal SinkTypeId ReadModelSinkTypeId => UsesSqlStorage ? WellKnownSinkTypes.SQL : WellKnownSinkTypes.MongoDB;
 
     /// <summary>
     /// Gets a value indicating whether explicit Chronicle credentials are configured.
@@ -46,8 +84,9 @@ internal sealed record PublishedOptions(
     /// Reads the options. Secrets can be given directly or as the path of a mounted secret file.
     /// </summary>
     /// <param name="configuration">The host configuration.</param>
+    /// <param name="environment">Reads an environment variable, or <see langword="null"/> for the process environment.</param>
     /// <returns>The options, not yet validated.</returns>
-    internal static PublishedOptions From(IConfiguration configuration)
+    internal static PublishedOptions From(IConfiguration configuration, Func<string, string?>? environment = null)
     {
         var published = configuration.GetSection(Section);
         var proxies = published.GetSection("TrustedProxies").Get<string[]>() ?? [];
@@ -62,7 +101,9 @@ internal sealed record PublishedOptions(
             Secret(published, "Chronicle:ClientSecret"),
             published["EventStore"] is { Length: > 0 } eventStore ? eventStore.Trim() : null)
         {
-            Oidc = new OidcPublishedOptions(configuration)
+            Oidc = new OidcPublishedOptions(configuration),
+            StorageType = published["Storage:Type"],
+            UsesExternalKernel = SandboxRuntimeConventions.HasMountedConnectionString(environment ?? Environment.GetEnvironmentVariable)
         };
     }
 
@@ -81,9 +122,14 @@ internal sealed record PublishedOptions(
     internal IReadOnlyList<string> Problems()
     {
         var problems = new List<string>();
-        if (string.IsNullOrWhiteSpace(StorageConnectionString))
+        if (CanonicalStorageType is null)
         {
-            problems.Add($"No persistent storage is configured. Set {Section}:Storage:ConnectionString (or {Section}:Storage:ConnectionStringFile to a mounted secret) to a MongoDB connection string.");
+            problems.Add($"Storage type '{StorageType}' is not supported. Set {Section}:Storage:Type to one of {string.Join(", ", StorageTypes)}.");
+        }
+
+        if (!UsesExternalKernel && string.IsNullOrWhiteSpace(StorageConnectionString))
+        {
+            problems.Add($"No persistent storage is configured. Set {Section}:Storage:ConnectionString (or {Section}:Storage:ConnectionStringFile to a mounted secret) to a connection string for the {Section}:Storage:Type database ({CanonicalStorageType ?? MongoDBStorage} by default), or mount the connection of an external Chronicle kernel with {SandboxRuntimeConventions.ConnectionStringFile}.");
         }
 
         if (string.IsNullOrWhiteSpace(AuthenticationMode))

@@ -22,10 +22,12 @@ public class when_auditing_the_ui_surface : Specification
     // Nested sample-data rows (SampleDataFieldSyntax.Rows, SampleDataValueKind.Rows) are sample data for the Scene preview, which Stage does not render.
     // Screenplay 6: slots, outlets, fits and hooks are translated (SlotConverter, OutletConverter, OutletLevelConverter, ScreenConverter).
     // RetiredForms is source-span metadata of the Screenplay 5 forms the compiler refuses; it never reaches Stage.
+    // Sinks (Screenplay 6.4.0, decision 0146) are realization metadata: Stage reads them from SemanticCompilation.Sinks, ReadModelSinks and GraphSinks, never from this syntax.
+    // DesignSystems (Screenplay 6.4.0) are UI configuration the binder defers from the executable model (PLAY0269); Scene has no design system yet, so Stage neither renders nor refuses them.
     // ScreenShowSyntax is the slot it stands in
     // (TemplateSlotPlacement); FormFieldSyntax.Choices is refused by UiSyntaxAdmission until Scene's form field can carry it.
     [Theory]
-    [InlineData(typeof(ApplicationSyntax), "Authentication Behaviors CommandReadMode Concepts Context Domain EventSources Examples Exposures FileImports Identity Imports InstanceContributions Layouts Modules Onboarding Personas Policies Purposes ReactionProductionMode RetiredForms SampleDataPacks Seeds SourceOptions StateMachines StickyNotes Systems Templates Themes TimeZone Triggers Types UiProfiles Users Workflows")]
+    [InlineData(typeof(ApplicationSyntax), "Authentication Behaviors CommandReadMode Concepts Context DesignSystems Domain EventSources Examples Exposures FileImports Identity Imports InstanceContributions Layouts Modules Onboarding Personas Policies Purposes ReactionProductionMode RetiredForms SampleDataPacks Seeds Sinks SourceOptions StateMachines StickyNotes Systems Templates Themes TimeZone Triggers Types UiProfiles Users Workflows")]
     [InlineData(typeof(ModuleSyntax), "Authorize Behaviors Contributions DependsOn Description DialogTemplates Documentation Examples Features FileImports Forms IsPlacement Name Outlets Purposes RetiredForms ScreenTemplates Templates UsedBehaviors")]
     [InlineData(typeof(FeatureSyntax), "Authorize Behaviors Contributions DependsOn Description Documentation Examples Features FileImports IsPlacement Name Outlets Purposes RetiredForms Slices Templates UsedBehaviors")]
     [InlineData(typeof(SliceSyntax), "Captures Commands Constraints Description DescriptionLocation DescriptionRawLength Direction Documentation EffectiveDirection Events Examples File GraphProjections GraphQueries Graphs Name Operations Projections Purposes Queries Reactions ReadModels Reducers Screens Specifications Templates Type")]

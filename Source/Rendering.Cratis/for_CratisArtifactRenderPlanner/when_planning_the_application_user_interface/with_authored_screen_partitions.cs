@@ -40,7 +40,8 @@ public class with_authored_screen_partitions : a_partitioned_screen_plan
     // Recomputed for Screenplay 5.10.0, Arc 22.168.0 and the main merge: the scaffold emits the matching pins, and npm Arc, Components and Scene at the published releases.
     // Recomputed for Chronicle 19.142.0 and Arc 22.176.0 on Screenplay 6.0.0 and Scene 5.0.0: the pins (Directory.Packages.props, docker-compose.yml, package.json) and any Scene 5 outlet shapes in the scene.
     // Recomputed for the Scene 5.1.0 pins.
-    const string Before = "ebe8fde48d424cd339eb11104b025e8e703e2592419ed10e00385cc30ad84160";
+    // Recomputed for Chronicle 19.144.0 and Screenplay 6.4.0: only the scaffold pins change.
+    const string Before = "30e243c36d01a3010d7d14e04ff7bd147f8f0f663dd234df1548779bad0c1cf6";
 
     void Because() => _application = AppPlan(_profile);
 

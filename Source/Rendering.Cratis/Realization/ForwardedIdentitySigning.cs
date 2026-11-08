@@ -27,6 +27,17 @@ internal static class ForwardedIdentitySigning
     /// </summary>
     internal const string AuthProxySecretKey = "forwardedIdentity.authProxy.secretBase64";
 
+    /// <summary>
+    /// The configuration path <see cref="ArcSecretKey"/> sets in the application.
+    /// </summary>
+    internal const string ArcSecretConfiguration = "Cratis:Arc:ForwardedIdentity:Keys:0:SecretBase64";
+
+    /// <summary>
+    /// The configuration path <see cref="AuthProxySecretKey"/> sets in AuthProxy. Stage does not name the service AuthProxy routes to
+    /// the application, so the path keeps the <c language="csharp">&lt;name&gt;</c> placeholder of the AuthProxy documentation.
+    /// </summary>
+    internal const string AuthProxySecretConfiguration = "Cratis:AuthProxy:Services:<name>:ForwardedIdentity:SecretBase64";
+
     // AuthProxy accepts a key id of at most 64 characters; the longest suffix ('-api' on the audience) is four,
     // so both the key id and the audience stay within 64.
     const int MaximumNameLength = 60;

@@ -72,7 +72,29 @@ public sealed record RealizedOnboarding(
 /// </summary>
 /// <param name="Key">The key.</param>
 /// <param name="Secret">Whether the value is a secret.</param>
-public sealed record RealizedEnvironmentKey(string Key, bool Secret);
+public sealed record RealizedEnvironmentKey(string Key, bool Secret)
+{
+    /// <summary>
+    /// The target <see cref="Target"/> value for a key that configures the rendered application.
+    /// </summary>
+    public const string ApplicationTarget = "application";
+
+    /// <summary>
+    /// The target <see cref="Target"/> value for a key that configures the AuthProxy in front of the rendered application.
+    /// </summary>
+    public const string AuthProxyTarget = "authProxy";
+
+    /// <summary>
+    /// Gets the process the key configures, <see cref="ApplicationTarget"/> or <see cref="AuthProxyTarget"/>; null when it is not known.
+    /// </summary>
+    public string? Target { get; init; }
+
+    /// <summary>
+    /// Gets the full .NET configuration path, in colon form, the key sets; null when it is not known.
+    /// The environment variable is that path with every <c language="csharp">:</c> replaced by <c language="csharp">__</c>.
+    /// </summary>
+    public string? Configuration { get; init; }
+}
 
 /// <summary>
 /// The parts of a Screenplay application that are realization metadata: they never enter the executable semantic model,

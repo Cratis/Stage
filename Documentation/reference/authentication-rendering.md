@@ -88,6 +88,26 @@ The renderer never writes a secret. `.runtime/environment.json` declares two mor
 | `forwardedIdentity.arc.secretBase64` | `Cratis__Arc__ForwardedIdentity__Keys__0__SecretBase64` for the application. |
 | `forwardedIdentity.authProxy.secretBase64` | `Cratis__AuthProxy__Services__<name>__ForwardedIdentity__SecretBase64` for AuthProxy. |
 
+Each entry of `.runtime/environment.json` has this shape:
+
+```json
+{
+  "key": "forwardedIdentity.arc.secretBase64",
+  "secret": true,
+  "target": "application",
+  "configuration": "Cratis:Arc:ForwardedIdentity:Keys:0:SecretBase64"
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `key` | The name of the value in the model. |
+| `secret` | Whether the value is a secret. |
+| `target` | The process the key configures: `application` for the rendered application, `authProxy` for the AuthProxy in front of it. |
+| `configuration` | The full .NET configuration path, in colon form, the value must become. |
+
+The environment variable for a configuration path is the path with every `:` replaced by `__`, so `Cratis:Arc:ForwardedIdentity:Keys:0:SecretBase64` is `Cratis__Arc__ForwardedIdentity__Keys__0__SecretBase64`. `target` and `configuration` are written only for keys whose configuration Stage knows, which today is the two keys above; the authentication provider and onboarding keys carry only `key` and `secret`. Stage does not name the AuthProxy service that routes to the application, so the `configuration` of `forwardedIdentity.authProxy.secretBase64` keeps the `<name>` placeholder, which the runtime replaces with that service name.
+
 Both hold the same value: the standard base64 of exactly 32 random bytes, for example from `openssl rand -base64 32`. Keep it in a secret store and never commit it. Use a separate key for every audience.
 
 Stage renders only AuthProxy's `Cratis:AuthProxy:Application` contract, so configure the sending side of AuthProxy yourself:

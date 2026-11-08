@@ -167,8 +167,25 @@ public static class RuntimeConfigurationFiles
         Serialize(new JsonObject
         {
             ["application"] = applicationName,
-            ["keys"] = new JsonArray([.. EnvironmentKeys(realization, signedForwardedIdentity).Select(key => (JsonNode)new JsonObject { ["key"] = key.Key, ["secret"] = key.Secret })])
+            ["keys"] = new JsonArray([.. EnvironmentKeys(realization, signedForwardedIdentity).Select(EnvironmentEntry)])
         });
+
+    // The target and configuration are written only when known.
+    static JsonObject EnvironmentEntry(RealizedEnvironmentKey key)
+    {
+        var entry = new JsonObject { ["key"] = key.Key, ["secret"] = key.Secret };
+        if (key.Target is not null)
+        {
+            entry["target"] = key.Target;
+        }
+
+        if (key.Configuration is not null)
+        {
+            entry["configuration"] = key.Configuration;
+        }
+
+        return entry;
+    }
 
     // Only the names of the secrets of signed forwarded identity are declared; the runtime supplies their value.
     static ImmutableArray<RealizedEnvironmentKey> EnvironmentKeys(ApplicationRealization realization, bool signedForwardedIdentity)
@@ -178,7 +195,10 @@ public static class RuntimeConfigurationFiles
             return realization.Environment;
         }
 
-        RealizedEnvironmentKey[] signing = [new(ForwardedIdentitySigning.ArcSecretKey, true), new(ForwardedIdentitySigning.AuthProxySecretKey, true)];
+        RealizedEnvironmentKey[] signing = [
+            new(ForwardedIdentitySigning.ArcSecretKey, true) { Target = RealizedEnvironmentKey.ApplicationTarget, Configuration = ForwardedIdentitySigning.ArcSecretConfiguration },
+            new(ForwardedIdentitySigning.AuthProxySecretKey, true) { Target = RealizedEnvironmentKey.AuthProxyTarget, Configuration = ForwardedIdentitySigning.AuthProxySecretConfiguration }
+        ];
         return realization.Environment.IsDefaultOrEmpty ? [.. signing] : [.. realization.Environment, .. signing];
     }
 

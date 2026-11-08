@@ -134,7 +134,8 @@ internal sealed class SensitivityNode
             }
         }
 
-        return node.Element().Kind is SensitivityKind.Secret or SensitivityKind.Unreadable;
+        // A rule aimed at a container renders the whole container, so a secret anywhere inside it counts.
+        return node.Carries || node.Element().Kind == SensitivityKind.Opaque;
     }
 
     // The element node of a collection, however deeply collections are nested; any other node itself.

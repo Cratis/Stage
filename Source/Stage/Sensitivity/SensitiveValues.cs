@@ -151,9 +151,10 @@ internal static class SensitiveValues
 
     static bool IsShapeless(JsonElement node)
     {
+        // A schema with no type at all (an identifier, say) is an ordinary scalar; only the bare object or array stub is cut short.
         if (!node.TryGetProperty("type", out var type))
         {
-            return true;
+            return false;
         }
 
         return type.ValueKind == JsonValueKind.String && (string.Equals(type.GetString(), "object", StringComparison.Ordinal) || string.Equals(type.GetString(), "array", StringComparison.Ordinal));

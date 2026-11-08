@@ -37,7 +37,8 @@ internal static class StageSecretValues
         }
         catch (JsonException)
         {
-            return payload;
+            // A schema that cannot be read cannot say what is secret, so nothing is echoed.
+            return new Dictionary<string, JsonElement>();
         }
     }
 
@@ -58,12 +59,36 @@ internal static class StageSecretValues
         try
         {
             using var document = JsonDocument.Parse(schema);
-            return document.RootElement.TryGetProperty("properties", out var properties) && properties.ValueKind == JsonValueKind.Object &&
-                properties.EnumerateObject().Any(candidate => string.Equals(candidate.Name, property, StringComparison.OrdinalIgnoreCase) && IsSecret(candidate.Value));
+            var node = document.RootElement;
+            foreach (var segment in property.Split('.'))
+            {
+                var next = node.ValueKind == JsonValueKind.Object && node.TryGetProperty("properties", out var properties) && properties.ValueKind == JsonValueKind.Object
+                    ? properties.EnumerateObject().Where(candidate => string.Equals(candidate.Name, segment, StringComparison.OrdinalIgnoreCase)).Select(candidate => (JsonElement?)candidate.Value).FirstOrDefault()
+                    : null;
+                if (next is not { } found)
+                {
+                    // An unknown segment (a list index, say) stays on the schema reached so far.
+                    if (node.ValueKind == JsonValueKind.Object && node.TryGetProperty("items", out var items))
+                    {
+                        node = items;
+                    }
+
+                    continue;
+                }
+
+                if (IsSecret(found))
+                {
+                    return true;
+                }
+
+                node = found;
+            }
+
+            return false;
         }
         catch (JsonException)
         {
-            return false;
+            return true;
         }
     }
 
@@ -120,6 +145,14 @@ internal static class StageSecretValues
         {
             var kept = value.EnumerateArray().Select(item => Value(item, items)).ToArray();
             return kept.Any(item => item is null) ? null : JsonSerializer.SerializeToElement(kept);
+        }
+
+        // A value of the wrong shape where the schema holds secrets cannot be filtered, so it is dropped.
+        if (value.ValueKind != JsonValueKind.Null && schema.ValueKind == JsonValueKind.Object && Carries(schema) &&
+            ((schema.TryGetProperty("items", out _) && value.ValueKind != JsonValueKind.Array) ||
+            (schema.TryGetProperty("properties", out _) && value.ValueKind != JsonValueKind.Object)))
+        {
+            return null;
         }
 
         if (value.ValueKind != JsonValueKind.Object || schema.ValueKind != JsonValueKind.Object)

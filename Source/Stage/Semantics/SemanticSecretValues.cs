@@ -43,10 +43,12 @@ internal static class SemanticSecretValues
     /// <returns>The response without secret values.</returns>
     internal static object? Response(object? response, SemanticCommandResponse? declared, SemanticApplication application) => (response, declared) switch
     {
-        (_, SemanticScalarCommandResponse scalar) when IsSecret(scalar.Type, application) => null,
+        (_, SemanticScalarCommandResponse scalar) => Typed(response, scalar.Type, application),
         (Dictionary<string, object?> record, SemanticRecordCommandResponse fields) => record
             .Where(entry => !fields.Fields.Any(field => string.Equals(ResponseKey(field.Name), entry.Key, StringComparison.Ordinal) && IsSecret(field.Type, application)))
-            .ToDictionary(entry => entry.Key, entry => entry.Value),
+            .ToDictionary(
+                entry => entry.Key,
+                entry => Typed(entry.Value, fields.Fields.FirstOrDefault(field => string.Equals(ResponseKey(field.Name), entry.Key, StringComparison.Ordinal))?.Type, application)),
         _ => response
     };
 
@@ -56,6 +58,43 @@ internal static class SemanticSecretValues
     /// <param name="name">The authored field name.</param>
     /// <returns>The response key.</returns>
     internal static string ResponseKey(string name) => JsonNamingPolicy.CamelCase.ConvertName(GeneratedPascalCase.From(name));
+
+    // Walks a converted response value by its declared type, dropping every secret member of a composite, in lists too.
+    static object? Typed(object? value, SemanticTypeReference? type, SemanticApplication application)
+    {
+        if (type is null || value is null)
+        {
+            return value;
+        }
+
+        if (IsSecret(type, application))
+        {
+            return null;
+        }
+
+        if (type.IsCollection && value is IEnumerable<object?> items and not IDictionary<string, object?>)
+        {
+            return items.Select(item => Typed(item, type with { IsCollection = false }, application)).ToArray();
+        }
+
+        if (type.Kind != SemanticTypeReferenceKind.CompositeType || value is not IDictionary<string, object?> composite)
+        {
+            return value;
+        }
+
+        var properties = application.Types.Single(candidate => candidate.Id == type.Target).Properties;
+        var result = new Dictionary<string, object?>();
+        foreach (var (name, member) in composite)
+        {
+            var property = properties.FirstOrDefault(candidate => string.Equals(candidate.Name, name, StringComparison.OrdinalIgnoreCase));
+            if (property is not null && !IsSecret(property.Type, application))
+            {
+                result[name] = Typed(member, property.Type, application);
+            }
+        }
+
+        return result;
+    }
 
     static bool Carries(SemanticTypeReference type, SemanticApplication application, HashSet<SemanticId> visited) =>
         IsSecret(type, application) ||
@@ -72,26 +111,37 @@ internal static class SemanticSecretValues
             {
                 result[name] = value;
             }
-            else if (!IsSecret(property.Type, application))
+            else if (!IsSecret(property.Type, application) && Value(value, property.Type, application) is { } kept)
             {
-                result[name] = Value(value, property.Type, application);
+                result[name] = kept;
             }
         }
 
         return result;
     }
 
-    static JsonElement Value(JsonElement value, SemanticTypeReference type, SemanticApplication application)
+    // A value of the wrong shape at a position that can hold secrets cannot be filtered, so it is dropped (null).
+    static JsonElement? Value(JsonElement value, SemanticTypeReference type, SemanticApplication application)
     {
+        var carries = Carries(type, application, []);
         if (type.IsCollection)
         {
-            return value.ValueKind == JsonValueKind.Array
-                ? JsonSerializer.SerializeToElement(value.EnumerateArray().Select(item => Value(item, type with { IsCollection = false }, application)).ToArray())
-                : value;
+            if (value.ValueKind != JsonValueKind.Array)
+            {
+                return carries ? null : value;
+            }
+
+            var kept = value.EnumerateArray().Select(item => Value(item, type with { IsCollection = false }, application)).ToArray();
+            return kept.Any(item => item is null) ? null : JsonSerializer.SerializeToElement(kept);
         }
 
-        if (type.Kind == SemanticTypeReferenceKind.CompositeType && value.ValueKind == JsonValueKind.Object)
+        if (type.Kind == SemanticTypeReferenceKind.CompositeType && carries)
         {
+            if (value.ValueKind != JsonValueKind.Object)
+            {
+                return value.ValueKind == JsonValueKind.Null ? value : null;
+            }
+
             var properties = application.Types.Single(candidate => candidate.Id == type.Target).Properties;
             return JsonSerializer.SerializeToElement(Members(value.EnumerateObject().Select(member => (member.Name, member.Value)), [.. properties], application));
         }

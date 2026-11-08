@@ -88,6 +88,8 @@ internal static class SemanticHost
             {
                 builder.Services.AddSingleton<ISpecificationRunProcess, SpecificationRunProcess>();
                 builder.Services.AddSingleton(SemanticSpecificationProcessOptions.FromConfiguration(builder.Configuration));
+                builder.Services.AddSingleton(StageJourneyOptions.FromConfiguration(builder.Configuration));
+                builder.Services.AddSingleton(_ => new StageJourneyClient());
             }
             AddSandboxServices(builder.Services, mode);
         }
@@ -174,6 +176,8 @@ internal static class SemanticHost
         if (mode == StageHostMode.Sandbox)
         {
             SemanticSpecificationRuns.Map(app, loaded.Plan, modelPath);
+            var journeyRoutes = scene is null ? null : new StageRoutesSource(new StageSceneRoutes(scene, app.Services, app.Logger), loaded.Model);
+            StageJourneyReplay.Map(app, () => journeyRoutes?.Build(), () => RegistrationStatus(world, issues, app.Services, modelName, modelPath));
             StageLifecycleEndpoints.Map(app, loaded.Plan, () => lifecycles);
             SemanticReadModelBrowser.Map(app, new(app.Services.GetRequiredService<ISemanticRuntime>(), () => world is not null, context => issues.Count > 0 ? RefusedResponse(context, issues) : null, admission));
         }

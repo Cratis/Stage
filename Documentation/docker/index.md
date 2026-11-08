@@ -750,6 +750,129 @@ specifications admitted by that executor as `supported`, and reports the missing
 those it refuses, without blocking the live model. The legacy EventModel engine does not expose this route.
 The `/stage/status`, `/stage/scene` and runner `results.json` schemas are unchanged.
 
+### Replay recorded journeys
+
+When a model is derived from an existing system, you want to know whether it behaves like that system. Record
+what the system did as journeys: ordered commands and queries with the answers the system gave. Then replay them
+against the running sandbox. Each step is addressed by its model name and sent over the session's own `/api`
+routes, so binding, validation, authorization, persona selection and serialization are the ones a browser sees.
+[Specification runs](#run-specifications-in-a-semantic-session) check the model against its own specifications;
+a replay checks it against behavior recorded outside the model.
+
+A journey file uses the `stage-journey/v1` schema:
+
+```json
+{
+  "schema": "stage-journey/v1",
+  "journeys": [
+    {
+      "name": "register a project twice",
+      "note": "Recorded from the original portfolio service.",
+      "steps": [
+        { "name": "register", "command": "Portfolio.RegisterProject",
+          "input": { "projectId": "$new:project", "name": "Apollo", "startsOn": "${today+7d}" },
+          "bind": { "registered": "$.response.projectId" } },
+        { "name": "listed", "query": "AllProjects", "within": 2000,
+          "expect": { "result": [{ "projectId": "${registered}", "name": "Apollo" }] } },
+        { "name": "again", "command": "RegisterProject",
+          "input": { "projectId": "$new:other", "name": "Apollo" } }
+      ]
+    },
+    {
+      "name": "no archived projects",
+      "steps": [{ "query": "ArchivedProjects", "expect": { "empty": true } }]
+    }
+  ]
+}
+```
+
+Post it as the request body:
+
+```bash
+curl -X POST http://localhost:9090/stage/semantic/journeys/replay \
+    -H 'Content-Type: application/json' --data-binary @journeys.json
+```
+
+Add `?journey=<name>` (repeatable) to replay only the named journeys.
+
+A step names exactly one `command` or `query`, as a qualified `Namespace.Name` or a simple name. A command takes
+its body as `input`; a query takes flat string, number or boolean `arguments`, sent as the query string. A query
+is addressed by its simple name: a namespace in front of it is not checked. A name that is unknown, or a simple
+name that several operations share, makes that step an `error` instead of guessing.
+
+`expect` describes the answer. `outcome` is `accepted` (the default), `rejected`, `unauthorized` or
+`unsupported`. With a refusal outcome, `messages` lists texts that some validation, authorization or refusal
+message must contain, ignoring case. With `accepted`, `response` is matched against the command response,
+and `result` against the query data. `empty: true` requires a query to return no rows, and `absent` lists values
+that no row may match. A query step without `expect` only has to succeed.
+
+| Rule | Behavior |
+| --- | --- |
+| Objects | Every expected property must be present; extra properties are ignored and names compare ignoring case. |
+| `null` | An expected `null` matches `null` or a missing property. |
+| Scalars | Strings compare exactly, numbers by value (`1` equals `1.0`); a string never matches a number. |
+| `list: "contains"` (default) | Each expected element matches a different actual element, in any order. Elements are paired with the first unused match, in expected order. |
+| `list: "ordered"` | Expected elements appear in the same relative order; other elements may sit between them. |
+| `list: "exact"` | Same length, and element *i* matches element *i*. |
+
+The `list` setting applies to every array under that step's `response`, `result` and `absent`.
+
+Recorded identities rarely fit a fresh session, so strings in `input`, `arguments` and `expect` can carry
+bindings. `"$new:<name>"` generates a GUID the first time a journey mentions it and reuses it afterwards.
+A step's `bind` captures values once the step passes, from `$.response...` for a command or `$.result...` for a
+query, using `.name` and `[index]` segments. `${<name>}` substitutes a bound value: a string that is exactly
+`${<name>}` takes the value's JSON type, and anywhere else it is interpolated as text. `${today}`, `${today-3d}`
+and `${today+3d}` are UTC dates (`yyyy-MM-dd`), and `${now}` is the current UTC time in ISO 8601. An unknown
+binding makes the step an `error`.
+
+A projection may not have caught up when the next query reads it. A query step therefore reads again every
+100 ms until its expectation matches or `within` milliseconds pass (default 5000, clamped to 0–30000), and
+reports the number of `attempts`. `note` (up to 1000 characters) and `evidence` (an array of strings) are
+accepted on journeys and steps, ignored by the replay and echoed in the report, so you can point back at the
+recording a step came from.
+
+HTTP 200 means the replay completed; `passed` tells whether every step did. A step that fails stops its journey:
+later steps are `skipped`, because they would build on state the failed step did not create, while the other
+journeys still run. With the file above and a model that requires unique project names, the second registration is rejected. An
+excerpt of the report, showing only the failed step:
+
+```json
+{
+  "schema": "stage-journey-report/v1", "passed": false, "isolation": "live",
+  "summary": { "journeys": 2, "journeysPassed": 1, "steps": 4, "stepsPassed": 3, "stepsFailed": 1, "stepsSkipped": 0, "stepsErrored": 0 },
+  "journeys": [
+    { "name": "register a project twice", "passed": false, "steps": [
+      { "index": 2, "name": "again", "kind": "command", "target": "RegisterProject", "status": "failed",
+        "durationMs": 12, "route": "/api/portfolio/register-project", "httpStatus": 400,
+        "actual": { "outcome": "rejected", "messages": ["Project name is already in use"] },
+        "mismatches": [{ "path": "$.outcome", "expected": "accepted", "actual": "rejected", "reason": "expected accepted, found rejected" }],
+        "bindings": { "project": "9d2c…", "registered": "9d2c…", "other": "41f0…" } }
+    ] }
+  ]
+}
+```
+
+A step's `status` is `passed`, `failed`, `skipped` or `error`; `error` means the step could not be executed
+(unknown or ambiguous name, unknown binding, transport failure, a 30-second step timeout, or an answer that is not
+JSON). A failed or errored step reports `actual`, its `expected` as written and the `mismatches`, each with a
+JSON path. `bindings` lists every value bound so far, generated GUIDs included, so you can repeat the step by
+hand. A reported `response` or `result` over 64 KiB is cut to a string of its first 64 KiB with
+`"truncated": true`; the comparison always uses the full answer.
+
+The replay runs against the live session: `isolation` is `live`. Every accepted command is appended to the
+session's event store and stays there, so a second replay starts from a different world. Restart the container
+for a clean one. A recording that registers the same identity twice fails the second time; use `$new:` to
+give each replay its own identities. The replay route itself has no persona: each operation runs as the persona
+it requires, as in the browser, and a step with a `persona` property is refused.
+
+A file is refused with HTTP 400 and every problem, each with its path, in `errors`; unknown properties are
+refused rather than ignored. A body over 1 MiB returns HTTP 413. A file holds at most 100 journeys, 100 steps
+per journey, 500 steps in total and `input` nested at most 32 levels deep. One replay runs at a time; another
+returns HTTP 409. While the session is `loading` or `unsupported` the route returns HTTP 503 with the status.
+`Stage__Journeys__TimeoutSeconds` (`Stage:Journeys:TimeoutSeconds`) sets the whole-run deadline (default 120,
+clamped to 1–600 seconds); when it passes, the route returns HTTP 504 without a partial report. Importing HAR
+recordings is not supported yet: convert them to this schema first.
+
 ## Behind a reverse proxy
 
 A play session is usually not exposed on its own port but reached through whatever started it — Studio, for one,

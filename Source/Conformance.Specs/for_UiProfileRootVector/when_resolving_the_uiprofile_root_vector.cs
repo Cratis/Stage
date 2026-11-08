@@ -51,7 +51,8 @@ public class when_resolving_the_uiprofile_root_vector : Specification
     [Fact] void should_translate_the_three_profiles() => _scene.UiProfiles.Select(profile => profile.Name).ShouldEqual(["Desktop", "Docked", "FromBlueprint"]);
     [Fact] void should_carry_the_root_template_of_each_profile() => _scene.UiProfiles.All(profile => profile.Root is not null).ShouldBeTrue();
     [Fact] void should_carry_the_shell_options_with_their_kinds() => _scene.UiProfiles[0].Root.Options["showFooter"].GetValue<bool>().ShouldBeTrue();
-    [Fact] void should_carry_the_appearance() => _scene.UiProfiles[0].Appearance.Accent.ShouldEqual("#4F46E5");
+    // Screenplay 6.4.0 moved colors to the design system, and the corpus' profiles now state only a color scheme.
+    [Fact] void should_carry_the_appearance() => _scene.UiProfiles[0].Appearance.ColorScheme.ShouldEqual(Cratis.Scene.Model.Profiles.ColorScheme.Dark);
     [Fact] void should_carry_the_template_new_screens_start_from() => _scene.UiProfiles[0].Defaults.NewScreenTemplate.Id.ShouldEqual("Sheet");
     [Fact] void should_carry_the_pin_of_a_blueprint_root() => _scene.UiProfiles[2].Root.Template.Version.ShouldEqual("^4.5");
     [Fact] void should_translate_to_the_checked_in_scene() => _sceneJson.ShouldEqual(Normalize(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "for_UiProfileRootVector", SceneFile))));

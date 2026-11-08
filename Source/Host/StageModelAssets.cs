@@ -1,8 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using Microsoft.Extensions.FileProviders;
-
 namespace Cratis.Stage.Host;
 
 /// <summary>
@@ -27,10 +25,13 @@ internal static class StageModelAssets
             return;
         }
 
-        // Rooted at the folder, so the file provider (not path joining here) refuses anything outside it. No directory browsing, default cache headers.
+        // Rooted at the folder, so the file provider (not path joining here) refuses anything outside it, including through a symbolic link.
+        // No directory browsing, default cache headers. The provider is released with the host.
+        var provider = new StageContainedFileProvider(folder);
+        app.ApplicationServices.GetService<IHostApplicationLifetime>()?.ApplicationStopping.Register(provider.Dispose);
         app.UseStaticFiles(new StaticFileOptions
         {
-            FileProvider = new PhysicalFileProvider(folder),
+            FileProvider = provider,
             RequestPath = RequestPath
         });
     }

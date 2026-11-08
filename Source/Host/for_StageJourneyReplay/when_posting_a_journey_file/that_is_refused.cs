@@ -47,6 +47,7 @@ public class that_is_refused : a_replay_endpoint
     [Fact] void should_refuse_an_invalid_file() => _invalid.Status.ShouldEqual(StatusCodes.Status400BadRequest);
     [Fact] void should_list_every_problem() => Problem(_invalid).GetProperty("errors").EnumerateArray().Select(error => error.GetString()).ShouldContainOnly(["schema: must be 'stage-journey/v1'", "journeys: must be a non-empty array"]);
     [Fact] void should_name_the_capability() => Problem(_invalid).GetProperty("capability").GetString().ShouldEqual("Journey");
+    [Fact] void should_answer_bad_request_for_an_unknown_journey() => _unknownJourney.Status.ShouldEqual(StatusCodes.Status400BadRequest);
     [Fact] void should_refuse_an_unknown_journey() => Problem(_unknownJourney).GetProperty("errors")[0].GetString().ShouldEqual("journey: 'other' is not in the file");
     [Fact] void should_refuse_a_large_body() => _tooLarge.Status.ShouldEqual(StatusCodes.Status413PayloadTooLarge);
     [Fact] void should_refuse_a_second_replay_while_one_runs() => _busy.Status.ShouldEqual(StatusCodes.Status409Conflict);

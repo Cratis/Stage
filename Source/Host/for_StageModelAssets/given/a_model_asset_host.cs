@@ -21,6 +21,8 @@ public abstract class a_model_asset_host : Specification
 
     protected virtual bool HasAssets => true;
 
+    protected bool SymbolicLinksSupported { get; private set; }
+
     async Task Establish()
     {
         _root = Path.Combine(Path.GetTempPath(), $"stage-model-assets-{Guid.NewGuid():N}");
@@ -35,6 +37,9 @@ public abstract class a_model_asset_host : Specification
             Directory.CreateDirectory(Path.Combine(model, "assets", "nested"));
             await File.WriteAllTextAsync(Path.Combine(model, "assets", "logo.svg"), LogoText);
             await File.WriteAllTextAsync(Path.Combine(model, "assets", "nested", "mark.svg"), LogoText);
+            await File.WriteAllTextAsync(Path.Combine(model, "assets", ".hidden.svg"), LogoText);
+            SymbolicLinksSupported = TryLink(Path.Combine(model, "assets", "escape.play"), Path.Combine(model, "model.play"), false)
+                && TryLink(Path.Combine(model, "assets", "escape-folder"), model, true);
         }
 
         _app = WebApplication.CreateBuilder(new WebApplicationOptions { WebRootPath = _webRoot }).Build();
@@ -44,6 +49,20 @@ public abstract class a_model_asset_host : Specification
         await _app.StartAsync();
         _address = new Uri(_app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single());
         _client = new HttpClient { BaseAddress = _address };
+    }
+
+    static bool TryLink(string link, string target, bool directory)
+    {
+        try
+        {
+            if (directory) Directory.CreateSymbolicLink(link, target);
+            else File.CreateSymbolicLink(link, target);
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or PlatformNotSupportedException)
+        {
+            return false;
+        }
     }
 
     async Task Destroy()

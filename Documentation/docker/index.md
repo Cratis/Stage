@@ -299,6 +299,18 @@ no mount of their parent folder is needed. Folder compilation resolves declarati
 and reports compilation errors with relative source paths. Compilation alone does not establish that Stage can
 execute every modeled construct.
 
+### Serve static assets from the model
+
+A layout's `logo image "/assets/logo.svg"` is a URL, so the file behind it has to be served. A sandbox session serves
+the files in an `assets` folder next to the model, read-only, at `/assets/...`: with the model mounted at
+`/eventmodel`, `/eventmodel/assets/logo.svg` answers `GET /assets/logo.svg`. For a single-file input the folder is
+`assets` beside that file. Files in nested folders are served by their relative path, and the content type follows
+the file extension.
+
+Only files under `assets` are served; directories are not listed and a request that tries to leave the folder
+answers `404`. A model without an `assets` folder serves nothing at `/assets`. A [published](#published-mode-preview) host does not
+serve model files, so ship the asset with the application's own static web root.
+
 ## Configuration
 
 The host separates **hosting** defaults from **deployment** configuration:

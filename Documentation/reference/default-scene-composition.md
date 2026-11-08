@@ -20,7 +20,8 @@ The default screen belongs to the application and is not copied into each slice 
 model. Scene validates these constructs; Stage reports the findings described below.
 
 Each `outlet <name> of navigation` in the first declared `layout` becomes one of the application's navigation
-outlets, and the topbar's `logo` its `ApplicationLogo`. The layout's actions outlet that holds a navigation outlet's
+outlets, and the topbar's `logo` its `ApplicationLogo`. A `logo image "/assets/logo.svg"` is a URL path: a sandbox
+session serves it from the model's `assets` folder (see [Serve static assets from the model](../docker/index.md#serve-static-assets-from-the-model)). The layout's actions outlet that holds a navigation outlet's
 buttons (`topbarActions`) becomes the outlet Scene draws beside it (`topbarButtons`). A module's
 `outlet <name> inherits|extends|overrides` of a navigation outlet becomes an `OutletRefinement` of its
 `ModuleNavigation`, with the items it adds and the ids it `hide`s, and its `contribute to` with items an

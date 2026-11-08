@@ -143,6 +143,11 @@ internal static class SemanticHost
         }
         app.UseDefaultFiles();
         app.UseStaticFiles(StageStaticFileOptions.Create());
+        if (mode == StageHostMode.Sandbox)
+        {
+            StageModelAssets.Use(app, modelPath);
+        }
+
         app.UseRouting();
         app.UseCratisChronicle();
         StagePackageEndpoints.Map(app);

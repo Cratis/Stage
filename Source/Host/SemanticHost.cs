@@ -334,7 +334,7 @@ internal static class SemanticHost
         : new StageStatus("ready", new StageStatusModel(modelName), WarmStageHandoff.ReadHandoffId(modelPath)) { Engine = "semantic" };
 
     internal static void MapStatus(WebApplication app, Func<StageStatus> status, IReadOnlyList<SemanticModelLoadDiagnostic>? notes = null) =>
-        app.MapGet("/stage/status", () => status() with { Notes = notes is { Count: > 0 } ? notes : null });
+        app.MapGet("/stage/status", async (int? wait, CancellationToken aborted) => (await StageStatusWait.Until(status, wait, Task.Delay, aborted)) with { Notes = notes is { Count: > 0 } ? notes : null });
 
     internal static void MapRefusedHost(WebApplication app, List<StageUnsupportedIssue> issues, IReadOnlyList<SemanticModelLoadDiagnostic>? notes, StageHostMode mode)
     {

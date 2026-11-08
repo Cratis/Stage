@@ -101,7 +101,8 @@ The command below binds both published ports to `127.0.0.1`. Keep model operatio
    docker run --rm -p 127.0.0.1:9090:9090 -p 127.0.0.1:35000:35000 -v "$PWD":/eventmodel:ro cratis/stage:latest
    ```
 
-3. After startup, open [Scalar](http://localhost:9090/scalar/v1) and check the model's mapped commands and queries.
+3. After startup ([wait for the session to settle](#wait-for-the-session-to-settle) if you are scripting it), open
+   [Scalar](http://localhost:9090/scalar/v1) and check the model's mapped commands and queries.
    The [OpenAPI document](http://localhost:9090/openapi/v1.json) lists the session's model API. Check the
    [session status](http://localhost:9090/stage/status) for admission issues before
    treating a responding HTTP endpoint as a usable session. These checks show what the host exposes, not whether
@@ -198,6 +199,43 @@ Three things about that base image are worth knowing:
 
 Each session gets a generated, Docker-style event store name (`brave-mendel`, `nifty-turing`, …), which is what
 you will see in the log line the host prints and in the Workbench.
+
+### Wait for the session to settle
+
+A session passes through these phases before it can take commands, whether you start it with `cratis run` or
+`docker run`:
+
+1. **Image pull.** Only on first use of an image tag.
+2. **Chronicle kernel boot.** The entrypoint waits until port `35000` accepts connections.
+3. **Stage host start.** The host compiles the model and admits its runtime constructs. Port `9090` does not
+   accept connections yet.
+4. **Chronicle registration and world rebuild.** Port `9090` answers, and `GET /stage/status` reports
+   `state: "loading"` while the host registers event contracts, seeds event sources and reconstructs its world.
+5. **Settled.** `GET /stage/status` reports `ready`, or `unsupported` with the refusing constructs in `issues`.
+
+As an example, a 120-slice model on half a CPU core booted the Chronicle silo in about 6 seconds, and the whole
+container start took about 33 seconds. A first run adds the image pull to that. Your model size and machine change
+these figures, so wait for the status instead of sleeping for a fixed time.
+
+To wait for a settled session with one request, pass `wait` (in seconds) to the status endpoint:
+
+```bash title="Terminal: wait for the session"
+curl --retry-connrefused --retry 60 --retry-delay 1 -fsS 'http://localhost:9090/stage/status?wait=120'
+```
+
+The retry flags cover the phases before port `9090` accepts connections. Once it does, the host holds the request
+while the state is `loading` and answers as soon as the state changes or the wait elapses, with the same JSON and
+HTTP 200 as a request without `wait`. Read `state` in the response:
+
+| `state`       | Meaning                                                                                                   |
+| ------------- | --------------------------------------------------------------------------------------------------------- |
+| `loading`     | The world is still being rebuilt and the wait elapsed first. Ask again; `/api/**` answers HTTP 503 for now. |
+| `ready`       | The session can take commands and queries.                                                                |
+| `unsupported` | The host refused the model. `issues` lists each refusing construct; `/api/**` answers HTTP 501.           |
+
+Compare the constructs in `issues` with the [supported semantic subset](#opt-in-to-semantic-execution).
+`wait` is capped at 300 seconds, a value that is not a whole number is rejected with HTTP 400, and without `wait`
+(or with `wait=0`) the endpoint answers at once.
 
 ## Ports
 
@@ -440,7 +478,8 @@ history across container replacement, but that storage path is not verified by t
 With a nonempty log, Stage reads the complete event history,
 checks its continuity, event schemas, origins and modeled constraints, then reconstructs the in-process
 world using Screenplay semantics. It refuses incomplete or inconsistent history rather than starting
-with partial state. `/stage/status` reports `loading` during rebuild; `/api/**` is unavailable then.
+with partial state. `/stage/status` reports `loading` during rebuild; `/api/**` is unavailable then. To wait for
+the rebuild to finish, see [Wait for the session to settle](#wait-for-the-session-to-settle).
 
 Commands retain their slice-qualified `/api/…` route and legacy alias. The semantic engine also exposes one
 query by its modeled name. Compatibility `Get…ById` and `All…` queries are available only for read models with at least one keyed query and no authorization on any keyed query targeting that read model. Otherwise, the compatibility routes are not mapped, so callers cannot bypass a modeled query policy.

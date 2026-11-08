@@ -26,7 +26,7 @@ Nothing needs to be discovered by hand — start at the Scalar reference and cli
 | ------------------------------------------------------------- | ------- | ------------------------------------------------- |
 | Frontend and `/api/...` model operations                      | yes     | yes                                               |
 | `/.cratis/*` Arc operations                                   | yes     | yes                                               |
-| `/stage/status`, `/stage/scene`, `/stage/routes`, `/stage/locales`, `/stage/strings/{locale}` | yes | yes                       |
+| `/stage/status` (`?wait=<seconds>` holds the request while the session is `loading`), `/stage/scene`, `/stage/routes`, `/stage/locales`, `/stage/strings/{locale}` | yes | yes |
 | `/stage/model-references`                                     | no      | yes                                               |
 | `/scalar`, `/openapi`                                         | yes     | not mapped                                        |
 | `/workbench`                                                  | yes     | not mapped                                        |

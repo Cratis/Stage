@@ -26,6 +26,12 @@ export interface SchemaProperty {
      * another entity, such as the product it adds. Only the schema a task dialog is built from says so.
      */
     identity?: boolean;
+
+    /**
+     * Set when the schema marks the identifier the command acts on and this identifier is not it - the company a link-to-company command assigns. A row
+     * that happens to carry a value of this name does not bind it: the field stays visible and editable.
+     */
+    otherEntity?: boolean;
     type?: 'text' | 'number' | 'boolean' | 'date';
     required: boolean;
     unsupportedReason?: string;
@@ -71,11 +77,18 @@ export function createsEntity(schema: string): boolean {
 /**
  * The properties a command's JSON schema declares, with the type the native form gives each and whether it is required. A toolbar
  * slice's task dialog is built from the same reading, so a command is the same fields wherever it is presented.
+ *
+ * @param schema The schema to read.
+ * @param identitySchema The schema the host serves for the command, which marks the identifier it acts on (`x-identity`) when the schema a
+ * rendered scene carries on an action does not.
  */
-export function schemaPropertiesOf(schema: string): SchemaProperty[] {
+export function schemaPropertiesOf(schema: string, identitySchema?: string): SchemaProperty[] {
     if (!schema) return [];
     try {
-        return membersOf(JSON.parse(schema) as JsonSchemaDefinition, 0);
+        const properties = membersOf(JSON.parse(schema) as JsonSchemaDefinition, 0);
+        const identities = new Set(properties.filter(property => property.identity).map(property => property.name));
+        if (identitySchema) membersOf(JSON.parse(identitySchema) as JsonSchemaDefinition, 0).filter(property => property.identity).forEach(property => identities.add(property.name));
+        return identities.size > 0 ? properties.map(property => property.identifier && !identities.has(property.name) ? { ...property, otherEntity: true } : property) : properties;
     } catch {
         return [];
     }

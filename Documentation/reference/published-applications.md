@@ -129,7 +129,7 @@ The host **refuses to start**, with a message naming each problem, unless all of
 | Key                                           | Meaning                                                                                                  |
 | --------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | `Stage:Published:PackagePath`                 | The package folder, or a `.tar.gz` / `.tgz` archive of one, which is extracted to a temporary folder at startup and verified exactly like a folder. Entries that leave the package, links and special files are refused. Default `/stage/package`. |
-| `Stage:Published:Storage:ConnectionString`    | A MongoDB connection string for Chronicle and its read models. Or `…ConnectionStringFile`, the path of a mounted secret holding it. |
+| `Stage:Published:Storage:ConnectionString`    | The connection string of the database the bundled Chronicle kernel stores events and read models in, for the engine `Stage:Published:Storage:Type` names. Or `…ConnectionStringFile`, the path of a mounted secret holding it. Not required with an [external kernel](#external-chronicle-kernel). |
 | `Stage:Published:Authentication:Mode`         | `TrustedProxy`, the only supported mode.                                                                 |
 | `Stage:Published:TrustedProxies`              | An array of IP addresses or CIDR networks the sign-in proxy connects from, for example `127.0.0.1` and `::1` for a proxy in the same pod. |
 | `AllowedHosts`                                | The published host names. `*` and empty are refused.                                                     |
@@ -138,6 +138,8 @@ Optional keys:
 
 | Key                                           | Meaning                                                                                                  |
 | --------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `Stage:Published:Storage:Type`                | The database engine of the bundled kernel: `MongoDB` (default), `PostgreSql` or `MsSql`, in any case. Any other value exits with code `78`, naming the accepted ones. See [Storage engine](#storage-engine). |
+| `CRATIS_CHRONICLE_CONNECTION_STRING_FILE`     | The path of a mounted Chronicle connection string. When it names a readable, non-empty file, the application uses that kernel instead of the bundled one; see [External Chronicle kernel](#external-chronicle-kernel). |
 | `Stage:Published:Chronicle:ClientId`, `…ClientSecret` (or `…ClientSecretFile`) | Credentials the host presents to its Chronicle kernel. Both or neither. |
 | `Stage:Published:EventStore`                  | The Chronicle event store name. Defaults to `app-<publishedName>`; see [Event store](#event-store). |
 | `Stage:Published:Notes:Enabled`               | Hosts the Notes backend. Defaults to the manifest's `notesEnabled`.                                      |
@@ -211,7 +213,7 @@ addresses may forward Host, Proto and Prefix. The deployment must still restrict
 
 ### Chronicle
 
-The kernel in the container uses the configured MongoDB, has authentication enabled, and has its API and Workbench
+The kernel in the container uses the configured database, has authentication enabled, and has its API and Workbench
 features off. Data survives a restart. Publish only `9090`. The shared base image declares `35000` for sandbox use,
 but in published mode the deployment must keep it internal to the pod: no Service port or host port, and a NetworkPolicy
 that prevents other pods reaching it. This release does not bind the kernel to loopback itself; no supported bind
@@ -223,6 +225,49 @@ built-in development client remains a fallback only for loopback connections. Mo
 but pass the same startup guard; refusal exits with code `78` without printing the connection string.
 Published sign-in is validated through `Stage:Published:Authentication:Mode` and the selected mode's configuration,
 not the sandbox-only `Stage:Sandbox:ForwardedIdentity` flag.
+
+#### Storage engine
+
+`Stage:Published:Storage:Type` (environment `Stage__Published__Storage__Type`) selects the database the bundled kernel stores in.
+The container's entrypoint starts the kernel with `Cratis__Chronicle__Storage__Type` set to the same value, in the kernel's
+spelling, and `Cratis__Chronicle__Storage__ConnectionDetails` set to the configured connection string, so the connection string
+must be one for that engine:
+
+| Type         | Connection string                                                     | Read models stored in |
+| ------------ | --------------------------------------------------------------------- | --------------------- |
+| `MongoDB`    | `mongodb://mongo.internal:27017`                                      | MongoDB               |
+| `PostgreSql` | `Host=postgres.internal;Database=chronicle;Username=app;Password=…`   | PostgreSQL            |
+| `MsSql`      | `Server=sql.internal;Database=chronicle;User Id=app;Password=…`       | SQL Server            |
+
+Leaving the type out keeps `MongoDB`, so a deployment that sets only the connection string runs as before. On a SQL engine
+the host registers the read models of the Notes backend with Chronicle's `SQL` sink instead of `MongoDB`, so they land in
+the same database as the events; there is no MongoDB to configure. The database names, schemas and connection pooling the
+kernel uses for each engine are described in [Chronicle storage configuration](/chronicle/hosting/configuration/storage/).
+
+```bash
+Stage__Published__Storage__Type=PostgreSql
+Stage__Published__Storage__ConnectionStringFile=/run/secrets/storage
+```
+
+#### External Chronicle kernel
+
+A published application can use a Chronicle kernel that already runs in the cluster instead of the one in its container.
+Mount the kernel's connection string as a file and point `CRATIS_CHRONICLE_CONNECTION_STRING_FILE` at it. When that names a
+readable, non-empty file, the entrypoint starts no kernel, does not require `Stage:Published:Storage:*`, and starts the host
+directly; the host connects with the mounted connection. A variable that names a missing, unreadable or empty file exits with
+code `78` rather than falling back to the bundled kernel.
+
+```bash
+CRATIS_CHRONICLE_CONNECTION_STRING_FILE=/run/secrets/chronicle
+Stage__Published__Chronicle__ClientId=my-app
+Stage__Published__Chronicle__ClientSecretFile=/run/secrets/chronicle-client-secret
+```
+
+The host's guards apply unchanged: a connection with `auth=none` is refused with code `78` (the entrypoint checks this before
+starting anything), and outside loopback `Stage:Published:Chronicle:ClientId` and `ClientSecret` must be configured. The
+application's data lives in its [event store](#event-store) on that kernel, which is why every application has its own name.
+`Stage:Published:Storage:Type` still selects where the Notes read models are registered, so set it to the external kernel's
+engine when that kernel stores in PostgreSQL or SQL Server. Neither the entrypoint nor the host prints the connection string.
 
 ### Routes
 

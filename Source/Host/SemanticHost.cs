@@ -224,7 +224,7 @@ internal static class SemanticHost
                 }
 
                 notes.AddRange(seeds.Diagnostics);
-                world = await SemanticChronicleRegistration.Register(app.Services.GetRequiredService<IChronicleClient>(), eventStore, new SemanticReplayPlan(loaded.Plan, bodies), seeds);
+                world = await SemanticChronicleRegistration.Register(app.Services.GetRequiredService<IChronicleClient>(), eventStore, new SemanticReplayPlan(loaded.Plan, bodies), seeds, loaded.Realization.Sinks.Graphs);
                 await SemanticInbox.Start(app.Services.GetRequiredService<IChronicleClient>(), eventStore, loaded.Plan, (ISemanticForeignFacts)app.Services.GetRequiredService<ISemanticRuntime>());
                 lifecycles = await StageLifecycleHosting.Start(app.Services, loaded.Plan);
             }

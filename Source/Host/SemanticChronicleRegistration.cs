@@ -49,8 +49,9 @@ internal static class SemanticChronicleRegistration
     /// <param name="name">The event store name.</param>
     /// <param name="replay">The execution plan and the body execution reducer transitions replay through, if any.</param>
     /// <param name="seeds">The events the model's seed blocks start the application with.</param>
+    /// <param name="graphSinks">The named sink each graph that chooses one stores to, by graph name; omitted, every graph stores to the kernel's default graph sink.</param>
     /// <returns>The world the log holds, seeds included.</returns>
-    internal static async Task<SemanticWorld> Register(IChronicleClient client, string name, SemanticReplayPlan replay, SemanticSeedPlan seeds)
+    internal static async Task<SemanticWorld> Register(IChronicleClient client, string name, SemanticReplayPlan replay, SemanticSeedPlan seeds, IReadOnlyDictionary<string, string>? graphSinks = null)
     {
         var plan = replay.Plan;
         var store = await client.GetEventStore(name);
@@ -86,7 +87,8 @@ internal static class SemanticChronicleRegistration
 
         // A graph is projected only by the kernel's graph sink, so its read model and projection are registered with the kernel
         // the same way whether the kernel is the embedded one or an external Chronicle.
-        var graphs = SemanticGraphMirrors.Lower(plan, Environment.GetEnvironmentVariable(GraphSinkVariable) is { Length: > 0 } sink ? sink : SemanticGraphMirrors.Neo4jSinkTypeId);
+        // The sink type stays the deployment's choice; a graph that names a sink carries that name, and the kernel maps it to storage.
+        var graphs = SemanticGraphMirrors.Lower(plan, Environment.GetEnvironmentVariable(GraphSinkVariable) is { Length: > 0 } sink ? sink : SemanticGraphMirrors.Neo4jSinkTypeId, graphSinks);
 
         // Only register contracts on reconnect: the published semantic world must not be rebuilt or replaced.
         store.Connection.Lifecycle.OnConnected += RegisterContracts;

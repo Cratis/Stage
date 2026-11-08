@@ -32,6 +32,7 @@
   "Opens": "automatic",
   "Orientation": "Horizontal",
   "OutletBuiltInAction": "close",
+  "OutletButtonDisplay": "iconAndTitle",
   "OutletItemKind": "button",
   "OutletKind": "actions",
   "OutletMode": "inherits",

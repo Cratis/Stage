@@ -54,10 +54,12 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     // Re-frozen for Cratis/Stage#209 on Scene 4.86.0: native Close (-34 bytes) and double-click alternatives (-273 bytes).
     // Train 11 carries their authored submit navigation: +156 bytes for details and +153 for list.
     // Re-frozen for Screenplay 6 and Scene 5: the toolbar is an outlet of compact buttons, the navigation outlets and the structure are carried.
-    [Fact] void should_pin_the_authored_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("ff7a7849d17b6f42b7ce22a3177bb87fb1f9b7d08ecb17b4db5df80ce8706e3f");
+    // Re-frozen for Scene 5.1.0: the icon-only toolbar item carries "display":"icon" (+17 bytes).
+    [Fact] void should_pin_the_authored_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("613791f7e8caa4eb46babdafa8ab77b4f5f6d582695c082a404aaabbb8fcc97f");
 
     // Re-frozen after train 11: the restored native guards plus the two authored submit continuations (23693 + 309 bytes).
-    [Fact] void should_pin_the_authored_scene_length() => _bytes.Length.ShouldEqual(23935);
+    [Fact] void should_pin_the_authored_scene_length() => _bytes.Length.ShouldEqual(23952);
+    [Fact] void should_show_the_icon_only_toolbar_item_as_its_icon() => Encoding.UTF8.GetString(_bytes).ShouldContain("\"display\":\"icon\"");
     [Fact] void should_carry_the_guarded_close_action() => Encoding.UTF8.GetString(_bytes).ShouldContain("\"alternatives\"");
     [Fact]
     void should_carry_the_guarded_double_click_branches()
@@ -120,7 +122,8 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     // generated documentation/specification imports, Entra host artifacts/wiring/dependencies and Yarn preapprovals.
     // Re-captured by execution for train 11 merge (#209/#857 with #925): native guards on Scene 4.87.0 and merged scaffold/runtime output.
     // Re-frozen for Screenplay 6 and Scene 5: only the scene and the WorkItemList screen fragment change.
-    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(_qualified)).ShouldEqual("1a3e5a4b515c40786b0c5a7889a9615f32f27b050a7483cc482e87c570dc4ad3");
+    // Re-frozen for Scene 5.1.0: only the scene and the WorkItemList screen fragment change (the icon-only toolbar item).
+    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(_qualified)).ShouldEqual("2d01cf833d87c85cb1b38c67d6aa33abeafa6725db31e3946ee55f848e634c34");
 
     // Re-frozen when the license header became the caller's choice and specifications moved into the application project.
     // Re-frozen for #424: generated C# uses short type names and using directives above the namespace.
@@ -132,7 +135,8 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     // generated documentation/specification imports, Entra host artifacts/wiring/dependencies and Yarn preapprovals.
     // Re-captured by execution for train 11 merge (#209/#857 with #925): native guards on Scene 4.87.0 and merged scaffold/runtime output.
     // Re-frozen for Screenplay 6 and Scene 5: only the scene and the WorkItemList screen fragment change.
-    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("c6ae723b4cd90d1f86abe3ab69f51b31fe171d4098373ee92504642bc7b02fa6");
+    // Re-frozen for Scene 5.1.0: only the scene and the WorkItemList screen fragment change (the icon-only toolbar item).
+    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("fbca6b5a71fecce13aeaf3f9287a20d2302a50e686af821142b26e8fd74ed60f");
 
     // The #209 restoration removed 34 details bytes and 273 list bytes on Scene 4.86.0.
     // Train 11 adds the authored submit navigation: details 9773 -> 9929; list 6402 -> 6555; comments is unchanged.
@@ -140,7 +144,7 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     [Fact] void should_pin_the_screen_fragments() => string.Join('\n', _plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal)).Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}")).ShouldEqual("""
         Workspaces/Tracking/WorkItemComments/Screens.scene.json acd7f05ae339201f3867044a5a7ae3e7f3501e0ae90aac9b9742fa24cc0b98da 2270
         Workspaces/Tracking/WorkItemDetails/Screens.scene.json c8a74e3f707a26878d1e3edcfe7348bd18e7df5dd9d199625abc5a018c96d36a 9929
-        Workspaces/Tracking/WorkItemList/Screens.scene.json d54d34dca7cba03bfb4e0ec5c4675c3158d7f69eb73003c2343c51fc58da1db1 5670
+        Workspaces/Tracking/WorkItemList/Screens.scene.json ae527ba9604dad7cb784ab3fbd63fe05b81290ec07f9058c986224811947edb6 5687
         """);
 
     static IEnumerable<PlannedArtifact> Legacy(IEnumerable<PlannedArtifact> artifacts) => SeparateSpecificationsLayout.RestoreWithLicenseHeader(artifacts, ApplicationName, ApplicationName)

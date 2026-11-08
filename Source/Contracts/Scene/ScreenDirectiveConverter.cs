@@ -189,8 +189,9 @@ public static class ScreenDirectiveConverter
     // names none, and every item and button is an outlet button. A button keeps its hook - the qualified slice, where it opens, what it
     // acts on, when it is enabled. A navigate or dialog item opens its destination; an action item names its command. An outlet button
     // takes a command's inputs from the slice, so the parameters an action item passes are reported as omitted. A `placement` (or
-    // `emphasis`) presentation of primary, secondary or quiet is the button's emphasis; an outlet button has nowhere to carry any
-    // other presentation value, so those are reported as omitted too.
+    // `emphasis`) presentation of primary, secondary or quiet is the button's emphasis, and a `mode` presentation of icon, title or
+    // iconAndTitle is what the button shows (its title stays the accessible name); an outlet button has nowhere to carry any other
+    // presentation value, so those are reported as omitted too.
     static SceneElements.ExternalComponent ConvertToolbar(ScreenplaySyntax.ScreenToolbarSyntax toolbar, string id, BehaviorScope scope)
     {
         var items = new List<SceneOutlets.OutletItem>();
@@ -202,6 +203,7 @@ public static class ScreenDirectiveConverter
             }
 
             SceneToolbar.ToolbarEmphasis? emphasis = null;
+            SceneOutlets.OutletButtonDisplay? display = null;
             foreach (var presentation in item.Presentation)
             {
                 if (emphasis is null && EmphasisOf(presentation) is { } authored)
@@ -210,7 +212,13 @@ public static class ScreenDirectiveConverter
                     continue;
                 }
 
-                scope.Diagnostics?.Report(new("STAGE-SCENE-TOOLBAR-002", DiagnosticSeverity.Warning, "toolbar item presentation", $"{id}.{item.Name}", presentation.Location, $"The presentation '{presentation.Name}' of the toolbar item '{item.Name}' was omitted: an outlet button carries only its emphasis (placement primary, secondary or quiet)."));
+                if (display is null && DisplayOf(presentation) is { } shown)
+                {
+                    display = shown;
+                    continue;
+                }
+
+                scope.Diagnostics?.Report(new("STAGE-SCENE-TOOLBAR-002", DiagnosticSeverity.Warning, "toolbar item presentation", $"{id}.{item.Name}", presentation.Location, $"The presentation '{presentation.Name}' of the toolbar item '{item.Name}' was omitted: an outlet button carries only its emphasis (placement primary, secondary or quiet) and what it shows (mode icon, title or iconAndTitle)."));
             }
 
             items.Add(new SceneOutlets.OutletButton
@@ -223,7 +231,8 @@ public static class ScreenDirectiveConverter
                 Subject = OutletConverter.SubjectOf(item.Subject),
                 EnabledWhen = item.EnabledWhen is null ? null : OutletConverter.ConditionText(item.EnabledWhen),
                 Confirm = item.Confirm,
-                Emphasis = emphasis
+                Emphasis = emphasis,
+                Display = display
             });
         }
 
@@ -268,6 +277,18 @@ public static class ScreenDirectiveConverter
                 "primary" => SceneToolbar.ToolbarEmphasis.Primary,
                 "secondary" => SceneToolbar.ToolbarEmphasis.Secondary,
                 "quiet" => SceneToolbar.ToolbarEmphasis.Quiet,
+                _ => null
+            }
+            : null;
+
+    // What a toolbar item's outlet button shows: a `mode` presentation of icon, title or iconAndTitle.
+    static SceneOutlets.OutletButtonDisplay? DisplayOf(ScreenplaySyntax.PresentationValueSyntax presentation) =>
+        presentation.Name.Equals("mode", StringComparison.OrdinalIgnoreCase)
+            ? presentation.Value.ToLowerInvariant() switch
+            {
+                "icon" => SceneOutlets.OutletButtonDisplay.Icon,
+                "title" => SceneOutlets.OutletButtonDisplay.Title,
+                "iconandtitle" => SceneOutlets.OutletButtonDisplay.IconAndTitle,
                 _ => null
             }
             : null;

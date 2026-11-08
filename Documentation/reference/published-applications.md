@@ -101,6 +101,9 @@ manifest records a digest of `model/`, and a published host refuses a package wh
   "modelReferences": [
     { "kind": "module", "name": "Shop", "id": "studio-module-1" },
     { "kind": "slice", "name": "Shop.Orders.PlaceOrder", "id": "studio-slice-9" }
+  ],
+  "sinks": [
+    { "name": "Reporting", "kind": "readmodels" }
   ]
 }
 ```
@@ -108,7 +111,9 @@ manifest records a digest of `model/`, and a published host refuses a package wh
 `authentication` is derived from the policies the model applies to its operations, so an operator can check that a
 sign-in provider supplying those roles and claims is configured. `opaquePolicies` is true when a policy is a code
 body that cannot be inspected. `modelReferences` lists only the elements whose identifier the source model supplied; it
-is empty when none were supplied.
+is empty when none were supplied. `sinks` lists the [named sinks](sinks.md) the model declares, each with its kind
+(`readmodels` or `graphs`), in declaration order, so a deployment can check that it maps every name; it is empty when
+the model declares none, and a manifest written before it existed reads as empty.
 
 ### Image path convention
 

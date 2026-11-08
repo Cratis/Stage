@@ -111,12 +111,19 @@ public class a_model_with_authentication_and_onboarding : Specification
 
     protected virtual string Declarations => string.Empty;
 
+    protected virtual bool SignedForwardedIdentity => false;
+
     async Task Establish()
     {
         _folder = Directory.CreateDirectory(SpecTemporaryRoot.NewPath("stage-realized-application")).FullName;
         Write(_folder, Onboarding, Declarations);
         _loaded = await SemanticModelLoader.LoadFromPathAsync(_folder, null, Application);
-        var profile = CratisRendering.WithRealization(CratisRendering.CreateProfile(Application, new(Application, Application)), _loaded.Realization);
+        _plan = PlanApplication(SignedForwardedIdentity);
+    }
+
+    protected ArtifactRenderPlan PlanApplication(bool signedForwardedIdentity)
+    {
+        var profile = CratisRendering.WithRealization(CratisRendering.CreateProfile(Application, new(Application, Application) { SignedForwardedIdentity = signedForwardedIdentity }), _loaded.Realization);
         var request = new ArtifactRenderRequest(_loaded.Model, _loaded.Plan, profile, new(ArtifactRenderScopeKind.Application, _loaded.Model.Application.Id))
         {
             SemanticIdentities = _loaded.SemanticIdentities,
@@ -125,7 +132,7 @@ public class a_model_with_authentication_and_onboarding : Specification
             ImplementationContents = _loaded.ImplementationContents,
             TypedContextDescriptors = _loaded.TypedContextDescriptors
         };
-        _plan = new CratisArtifactRenderPlanner().Plan(request);
+        return new CratisArtifactRenderPlanner().Plan(request);
     }
 
     void Destroy() => SpecTemporaryRoot.Delete(_folder);

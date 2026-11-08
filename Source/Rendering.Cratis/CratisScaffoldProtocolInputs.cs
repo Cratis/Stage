@@ -26,6 +26,7 @@ internal static class CratisScaffoldProtocolInputs
         FileHeaderInput.Name,
         "axon-render:file-header",
         ServiceLayoutInput.Name,
+        SignedForwardedIdentityInput.Name,
         SourceLineMappingInput.Name,
         UserInterfaceInput.Name,
         UserInterfaceDomainsInput.Name

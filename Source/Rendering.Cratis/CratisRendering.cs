@@ -52,6 +52,12 @@ public sealed record CratisRenderingOptions(string ProjectName, string RootNames
     public bool ServiceLayout { get; init; }
 
     /// <summary>
+    /// Gets a value indicating whether an application with authentication verifies the identity AuthProxy forwards by its
+    /// signature. It is carried by the hashed profile. See <see cref="CratisPlanOptions.SignedForwardedIdentity"/>.
+    /// </summary>
+    public bool SignedForwardedIdentity { get; init; }
+
+    /// <summary>
     /// Gets the plain-text lines every generated code file starts with, carried by the hashed profile. Empty, the
     /// default, writes no header at all. See <see cref="CratisPlanOptions.FileHeader"/>.
     /// </summary>
@@ -490,6 +496,7 @@ public static partial class CratisRendering
             .OrderBy(input => input.Name, StringComparer.Ordinal)
             .ToImmutableArray();
 
-        return FileHeaderInput.With(ServiceLayoutInput.With(ArtifactRenderProfile.Create(TargetId, TargetVersion, RendererId, RendererVersion, inputs), options), options.FileHeader);
+        var profile = SignedForwardedIdentityInput.With(ArtifactRenderProfile.Create(TargetId, TargetVersion, RendererId, RendererVersion, inputs), options.SignedForwardedIdentity);
+        return FileHeaderInput.With(ServiceLayoutInput.With(profile, options), options.FileHeader);
     }
 }

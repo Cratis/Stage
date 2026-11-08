@@ -58,6 +58,15 @@ public sealed record CratisPlanOptions(string ApplicationName, string ProjectNam
     public ImmutableArray<string> FileHeader { get; init; } = [];
 
     /// <summary>
+    /// Gets a value indicating whether an application with authentication verifies the identity AuthProxy forwards by its
+    /// signature. When true, appsettings.json also configures Arc's signed forwarded identity (its audience and key id; the
+    /// secret comes from the environment and is declared in .runtime/environment.json) and the plan no longer reports
+    /// STAGE-AUTH-003. The default, false, keeps every byte of the output: the application trusts the unsigned identity headers.
+    /// An application without authentication is not affected. The caller's profile must not carry the option's input as well.
+    /// </summary>
+    public bool SignedForwardedIdentity { get; init; }
+
+    /// <summary>
     /// Gets the modules, features or slices, beyond the plan's own selection, whose generated code - and with it their
     /// Arc proxies - is already present in the application, or null, the default, for a plan without shared UI.
     /// When set, a scoped plan also emits the application's shared UI (scene.json, src/bindings.ts, src/stage-scene.json

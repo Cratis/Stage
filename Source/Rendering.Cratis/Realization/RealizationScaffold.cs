@@ -23,7 +23,7 @@ internal static class RealizationScaffold
     static readonly Regex _chronicleImage = new("(?<head>cratis/chronicle:)(?<version>[0-9.]+)-development", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture, TimeSpan.FromMilliseconds(1000));
     static readonly JsonSerializerOptions _indented = new() { WriteIndented = true, NewLine = "\n" };
 
-    internal static PlannedArtifact Patch(PlannedArtifact artifact, ApplicationRealization realization, string rootNamespace)
+    internal static PlannedArtifact Patch(PlannedArtifact artifact, ApplicationRealization realization, string rootNamespace, JsonObject? forwardedIdentity)
     {
         var path = artifact.RelativePath;
         if (path.Contains('/', StringComparison.Ordinal))
@@ -34,7 +34,7 @@ internal static class RealizationScaffold
         Func<string, string>? patch = path switch
         {
             "Program.cs" => text => Program(text, realization, rootNamespace),
-            "appsettings.json" => text => AppSettings(text, realization),
+            "appsettings.json" => text => AppSettings(text, realization, forwardedIdentity),
             "Directory.Packages.props" when realization.Onboarding is not null => text => PackageVersions(text, realization.Onboarding.Offering.Length > 0),
             "docker-compose.yml" when realization.Onboarding is not null => ChronicleImage,
             _ when path.EndsWith(".csproj", StringComparison.Ordinal) && realization.Onboarding is not null => text => Project(text, realization.Onboarding.Offering.Length > 0),
@@ -53,8 +53,9 @@ internal static class RealizationScaffold
     }
 
     // The application runs behind AuthProxy, which strips every identity header a client sends and writes its own, so the headers
-    // can be trusted. They are not signed: the application must never be reachable except through AuthProxy.
-    static string AppSettings(string text, ApplicationRealization realization)
+    // can be trusted. By default they are not signed: the application must never be reachable except through AuthProxy
+    // (STAGE-AUTH-003). Signed, Arc verifies AuthProxy's signature with the forwarded identity settings, whose secret the environment supplies.
+    static string AppSettings(string text, ApplicationRealization realization, JsonObject? forwardedIdentity)
     {
         if (RuntimeConfigurationFiles.SupportedProviders(realization).IsEmpty)
         {
@@ -64,6 +65,10 @@ internal static class RealizationScaffold
         var root = JsonNode.Parse(text)!.AsObject();
         var arc = root["Cratis"]!.AsObject()["Arc"]!.AsObject();
         arc["TrustForwardedIdentityHeaders"] = true;
+        if (forwardedIdentity is not null)
+        {
+            arc["ForwardedIdentity"] = forwardedIdentity.DeepClone();
+        }
 
         return root.ToJsonString(_indented);
     }

@@ -203,7 +203,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         AddScaffold(request, context, artifacts);
         if (request.Scope.Kind == ArtifactRenderScopeKind.Application && ApplicationRealizationInput.From(request.Profile) is { } realization)
         {
-            diagnostics.AddRange(RealizationDiagnostics.For(realization, context.Application.Id));
+            diagnostics.AddRange(RealizationDiagnostics.For(realization, context.Application.Id, SignedForwardedIdentityInput.IsCarriedBy(request.Profile)));
         }
 
         if (partitions is not null)

@@ -72,7 +72,7 @@ public static partial class CratisRendering
         {
             return CratisPlanResult.Create(options.ApplicationName, [], [ProfileError(mismatch)]);
         }
-        if (admittedOptions != new CratisRenderingOptions(options.ProjectName, options.RootNamespace) { Refusals = admittedOptions.Refusals, Strict = admittedOptions.Strict, RepositoryRoot = options.RepositoryRoot, ServiceLayout = options.ServiceLayout, FileHeader = admittedOptions.FileHeader })
+        if (admittedOptions != new CratisRenderingOptions(options.ProjectName, options.RootNamespace) { Refusals = admittedOptions.Refusals, Strict = admittedOptions.Strict, RepositoryRoot = options.RepositoryRoot, ServiceLayout = options.ServiceLayout, SignedForwardedIdentity = admittedOptions.SignedForwardedIdentity, FileHeader = admittedOptions.FileHeader })
         {
             return CratisPlanResult.Create(options.ApplicationName, [], [ProfileError("The caller's profile project and root namespace must match the plan options.")]);
         }
@@ -140,7 +140,7 @@ public static partial class CratisRendering
         {
             return CratisPlanResult.Create(options.ApplicationName, [], [.. sourceDiagnostics, ProfileError(mismatch)], loaded.Model.Revision);
         }
-        if (admittedOptions != new CratisRenderingOptions(options.ProjectName, options.RootNamespace) { Refusals = admittedOptions.Refusals, Strict = admittedOptions.Strict, RepositoryRoot = options.RepositoryRoot, ServiceLayout = options.ServiceLayout, FileHeader = admittedOptions.FileHeader })
+        if (admittedOptions != new CratisRenderingOptions(options.ProjectName, options.RootNamespace) { Refusals = admittedOptions.Refusals, Strict = admittedOptions.Strict, RepositoryRoot = options.RepositoryRoot, ServiceLayout = options.ServiceLayout, SignedForwardedIdentity = admittedOptions.SignedForwardedIdentity, FileHeader = admittedOptions.FileHeader })
         {
             return CratisPlanResult.Create(options.ApplicationName, [], [.. sourceDiagnostics, ProfileError("The caller's profile project and root namespace must match the plan options.")], loaded.Model.Revision);
         }

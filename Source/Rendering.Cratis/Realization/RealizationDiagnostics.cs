@@ -19,6 +19,7 @@ internal static class RealizationDiagnostics
 {
     internal const string UnsupportedProvider = "STAGE-AUTH-001";
     internal const string PersonaNotMappable = "STAGE-AUTH-002";
+    internal const string UnsignedForwardedIdentity = "STAGE-AUTH-003";
     internal const string TenantInvitationUnattended = "STAGE-ONBOARDING-002";
     internal const string SignupWithoutPersona = "STAGE-ONBOARDING-003";
     internal const string LegalDocumentCount = "STAGE-ONBOARDING-004";
@@ -26,11 +27,17 @@ internal static class RealizationDiagnostics
     internal const string InvitationWithoutInviters = "STAGE-ONBOARDING-006";
     internal const string OfferingNeedsOperator = "STAGE-ONBOARDING-008";
 
-    internal static IEnumerable<ArtifactRenderDiagnostic> For(ApplicationRealization realization, SemanticId application)
+    internal static IEnumerable<ArtifactRenderDiagnostic> For(ApplicationRealization realization, SemanticId application, bool signedForwardedIdentity = false)
     {
         foreach (var provider in RuntimeConfigurationFiles.UnsupportedProviders(realization))
         {
             yield return Warning(UnsupportedProvider, $"Authentication provider '{provider.Identity}' (kind '{provider.Kind}') is not one AuthProxy can sign people in with, so it is not rendered. Supported kinds: EntraId, GitHub, Google, Apple, OpenId.", application);
+        }
+
+        // The application trusts the forwarded identity exactly when it has a provider AuthProxy signs people in with.
+        if (!signedForwardedIdentity && !RuntimeConfigurationFiles.SupportedProviders(realization).IsEmpty)
+        {
+            yield return Warning(UnsignedForwardedIdentity, "The rendered application trusts unsigned forwarded identity headers, which is safe only if every request reaches it through AuthProxy. Set the SignedForwardedIdentity render option to render signed forwarded identity (AuthProxy 2.44.0 or later, Arc 22.168.0 or later).", application);
         }
 
         foreach (var persona in realization.Personas.Where(persona => !persona.Mappable))

@@ -6,6 +6,7 @@ using SceneCommon = Cratis.Scene.Model.Common;
 using SceneElements = Cratis.Scene.Model.Elements;
 using SceneInteractions = Cratis.Scene.Model.Interactions;
 using SceneOutlets = Cratis.Scene.Model.Outlets;
+using SceneToolbar = Cratis.Scene.Model.Toolbar;
 using ScreenplaySyntax = Cratis.Screenplay.Syntax;
 
 namespace Cratis.Stage.Contracts.Scene;
@@ -187,7 +188,9 @@ public static class ScreenDirectiveConverter
     // A screen's toolbar is the outlet of actions it places (Scene 5's core:outletItems): its name names the outlet, `toolbar` when it
     // names none, and every item and button is an outlet button. A button keeps its hook - the qualified slice, where it opens, what it
     // acts on, when it is enabled. A navigate or dialog item opens its destination; an action item names its command. An outlet button
-    // takes a command's inputs from the slice, so the parameters an action item passes are reported as omitted.
+    // takes a command's inputs from the slice, so the parameters an action item passes are reported as omitted. A `placement` (or
+    // `emphasis`) presentation of primary, secondary or quiet is the button's emphasis; an outlet button has nowhere to carry any
+    // other presentation value, so those are reported as omitted too.
     static SceneElements.ExternalComponent ConvertToolbar(ScreenplaySyntax.ScreenToolbarSyntax toolbar, string id, BehaviorScope scope)
     {
         var items = new List<SceneOutlets.OutletItem>();
@@ -196,6 +199,18 @@ public static class ScreenDirectiveConverter
             if (item.Kind == ScreenplaySyntax.ToolbarItemKind.Action && item.Parameters.Any() && scope.Diagnostics is { } diagnostics)
             {
                 diagnostics.Report(new("STAGE-SCENE-TOOLBAR-001", DiagnosticSeverity.Warning, "toolbar action parameters", $"{id}.{item.Name}", item.Location, $"The parameters of the toolbar action '{item.Name}' were omitted: an outlet button takes its command's inputs from the slice."));
+            }
+
+            SceneToolbar.ToolbarEmphasis? emphasis = null;
+            foreach (var presentation in item.Presentation)
+            {
+                if (emphasis is null && EmphasisOf(presentation) is { } authored)
+                {
+                    emphasis = authored;
+                    continue;
+                }
+
+                scope.Diagnostics?.Report(new("STAGE-SCENE-TOOLBAR-002", DiagnosticSeverity.Warning, "toolbar item presentation", $"{id}.{item.Name}", presentation.Location, $"The presentation '{presentation.Name}' of the toolbar item '{item.Name}' was omitted: an outlet button carries only its emphasis (placement primary, secondary or quiet)."));
             }
 
             items.Add(new SceneOutlets.OutletButton
@@ -207,7 +222,8 @@ public static class ScreenDirectiveConverter
                 NavigateTo = ToolbarDestination(item),
                 Subject = OutletConverter.SubjectOf(item.Subject),
                 EnabledWhen = item.EnabledWhen is null ? null : OutletConverter.ConditionText(item.EnabledWhen),
-                Confirm = item.Confirm
+                Confirm = item.Confirm,
+                Emphasis = emphasis
             });
         }
 
@@ -245,6 +261,17 @@ public static class ScreenDirectiveConverter
 
     // Where a navigate or dialog item opens, so a renderer executes it through the same destination model every other
     // navigation uses. An action item opens nothing.
+    static SceneToolbar.ToolbarEmphasis? EmphasisOf(ScreenplaySyntax.PresentationValueSyntax presentation) =>
+        presentation.Name.Equals("placement", StringComparison.OrdinalIgnoreCase) || presentation.Name.Equals("emphasis", StringComparison.OrdinalIgnoreCase)
+            ? presentation.Value.ToLowerInvariant() switch
+            {
+                "primary" => SceneToolbar.ToolbarEmphasis.Primary,
+                "secondary" => SceneToolbar.ToolbarEmphasis.Secondary,
+                "quiet" => SceneToolbar.ToolbarEmphasis.Quiet,
+                _ => null
+            }
+            : null;
+
     static SceneCommon.DestinationReference? ToolbarDestination(ScreenplaySyntax.ToolbarItemSyntax item)
     {
         var parameters = item.Parameters.ToDictionary(parameter => parameter.Name, parameter => ScreenplayRichSyntax.Binding(parameter.Binding), StringComparer.Ordinal);

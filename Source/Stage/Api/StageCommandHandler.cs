@@ -14,7 +14,7 @@ namespace Cratis.Stage.Api;
 
 /// <summary>
 /// An <see cref="ICommandHandler"/> for a modeled command. Evaluates the command's <c language="csharp">produces</c> declarations
-/// against the incoming payload and appends the resulting events, then echoes the payload back as the response.
+/// against the incoming payload and appends the resulting events, then echoes the payload back as the response, without the properties typed as a secret concept.
 /// </summary>
 /// <param name="commandType">The emitted runtime command type.</param>
 /// <param name="location">The route location segments for the command.</param>
@@ -73,7 +73,7 @@ public sealed class StageCommandHandler(
 
         await AppendProducedEvents(command.Data);
 
-        return command.Data;
+        return StageSecretValues.Payload(command.Data, definition.Schema);
     }
 
     static IEnumerable<string> RequiredProperties(string schema)

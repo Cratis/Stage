@@ -35,6 +35,6 @@ public sealed class SemanticRuntimeCommandFilter(IEnumerable<ISemanticRuntime> r
         var principal = SemanticCommandAccess.Principal(accessor);
         var occurrence = SemanticCommandAccess.Occurrence(context, principal);
         var outcome = await runtime.Execute(command, SemanticCommandAccess.Payload(context), principal, occurrence, true);
-        return SemanticCommandOutcome.Map(outcome, context.CorrelationId, accessor.HttpContext, command.Id.ToString());
+        return SemanticCommandOutcome.Map(outcome, context.CorrelationId, accessor.HttpContext, command.Id.ToString(), command, runtime.Plan.Model.Application);
     }
 }

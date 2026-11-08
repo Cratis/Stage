@@ -14,11 +14,11 @@ public class and_the_request_is_aborted : given.a_status_wait
 
     void Destroy() => _aborted.Dispose();
 
-    protected override Task Delay(TimeSpan delay, CancellationToken cancellationToken)
+    protected override async Task Delay(TimeSpan delay, CancellationToken cancellationToken)
     {
         _delays.Add(delay);
-        _aborted.Cancel();
-        return Task.FromCanceled(cancellationToken);
+        await _aborted.CancelAsync();
+        await Task.FromCanceled(cancellationToken);
     }
 
     [Fact] void should_report_the_last_status() => _result.State.ShouldEqual(StageStatusWait.Loading);

@@ -30,6 +30,7 @@ public class when_loading_an_unsupported_scene : given.a_model_path
                     reviewer Uuid
                     produces ReviewRecorded
                       for id
+                      reviewer = reviewer
                   event ReviewRecorded
                     reviewer Uuid
                 slice StateView Reviewers

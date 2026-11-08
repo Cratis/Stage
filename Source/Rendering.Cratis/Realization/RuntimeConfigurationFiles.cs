@@ -42,6 +42,9 @@ public static class RuntimeConfigurationFiles
     /// </summary>
     public const string AnteEventStore = "Ante";
 
+    const string ProviderKeyPrefix = "authentication.providers.";
+    const string AuthProxyEnvironmentConfiguration = "Cratis:AuthProxy:Application:Environment";
+
     static readonly string[] _providerKinds = ["EntraId", "GitHub", "Google", "Apple", "OpenId"];
 
     static readonly JsonSerializerOptions _indented = new() { WriteIndented = true, NewLine = "\n" };
@@ -190,17 +193,24 @@ public static class RuntimeConfigurationFiles
     // Only the names of the secrets of signed forwarded identity are declared; the runtime supplies their value.
     static ImmutableArray<RealizedEnvironmentKey> EnvironmentKeys(ApplicationRealization realization, bool signedForwardedIdentity)
     {
+        var declared = realization.Environment.IsDefaultOrEmpty ? [] : realization.Environment.Select(AuthProxyProviderKey).ToImmutableArray();
         if (!signedForwardedIdentity)
         {
-            return realization.Environment;
+            return declared;
         }
 
         RealizedEnvironmentKey[] signing = [
             new(ForwardedIdentitySigning.ArcSecretKey, true) { Target = RealizedEnvironmentKey.ApplicationTarget, Configuration = ForwardedIdentitySigning.ArcSecretConfiguration },
             new(ForwardedIdentitySigning.AuthProxySecretKey, true) { Target = RealizedEnvironmentKey.AuthProxyTarget, Configuration = ForwardedIdentitySigning.AuthProxySecretConfiguration }
         ];
-        return realization.Environment.IsDefaultOrEmpty ? [.. signing] : [.. realization.Environment, .. signing];
+        return [.. declared, .. signing];
     }
+
+    // AuthProxy reads a provider key from its application contract; the whole key, dots included, is one configuration key.
+    static RealizedEnvironmentKey AuthProxyProviderKey(RealizedEnvironmentKey key) =>
+        key.Key.StartsWith(ProviderKeyPrefix, StringComparison.Ordinal) && key.Configuration is null
+            ? key with { Target = RealizedEnvironmentKey.AuthProxyTarget, Configuration = $"{AuthProxyEnvironmentConfiguration}:{key.Key}" }
+            : key;
 
     static string Serialize(JsonNode node) => $"{node.ToJsonString(_indented)}\n";
 }

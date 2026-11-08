@@ -27,8 +27,7 @@ public class when_rendering_the_environment_with_signed_forwarded_identity : Spe
     [Fact] void should_name_the_arc_configuration() => Entry("forwardedIdentity.arc.secretBase64")["configuration"]!.GetValue<string>().ShouldEqual("Cratis:Arc:ForwardedIdentity:Keys:0:SecretBase64");
     [Fact] void should_target_authproxy_with_the_authproxy_secret() => Entry("forwardedIdentity.authProxy.secretBase64")["target"]!.GetValue<string>().ShouldEqual("authProxy");
     [Fact] void should_name_the_authproxy_configuration() => Entry("forwardedIdentity.authProxy.secretBase64")["configuration"]!.GetValue<string>().ShouldEqual("Cratis:AuthProxy:Services:<name>:ForwardedIdentity:SecretBase64");
-    [Fact] void should_not_write_a_target_for_a_key_whose_configuration_is_not_known() => Entry("authentication.providers.EntraId.clientId").ContainsKey("target").ShouldBeFalse();
-    [Fact] void should_not_write_a_configuration_for_a_key_whose_configuration_is_not_known() => Entry("authentication.providers.EntraId.clientId").ContainsKey("configuration").ShouldBeFalse();
+    [Fact] void should_target_authproxy_with_a_provider_key() => Entry("authentication.providers.EntraId.clientId")["target"]!.GetValue<string>().ShouldEqual("authProxy");
 
     JsonObject Entry(string key) => _keys.Single(entry => entry!["key"]!.GetValue<string>() == key)!.AsObject();
 }

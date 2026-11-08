@@ -44,8 +44,11 @@ hook: the slice as the qualified id (`Module.Feature.Slice`) the structure knows
 `Orders.PlaceOrder` resolves the same way in the engine as in the compiler; the built-in it `runs` (`close`,
 `submit` or `refresh`); where it `opens` (a bare `runs` is `none`, run directly); `before` or `after`; `enabled
 when`, `confirm` and `authorize`. A screen's toolbar becomes the `core:outletItems` element that places an outlet of
-actions, named as the toolbar (`toolbar` when it names none). A dialog template's `outlet actions of actions` is the
-outlet Scene draws the dialog's buttons from.
+actions, named as the toolbar (`toolbar` when it names none). A toolbar item's `presentation placement` (or
+`emphasis`) of `primary`, `secondary` or `quiet` is its button's emphasis. An outlet button has nowhere to carry any
+other presentation value or the parameters of an action item, so those are reported as omitted
+(`STAGE-SCENE-TOOLBAR-002` and `STAGE-SCENE-TOOLBAR-001`, warnings). A dialog template's `outlet actions of actions`
+is the outlet Scene draws the dialog's buttons from.
 
 Scene draws an outlet where a `core:outletItems` element places it and a slot where a `core:slot` element stands, and
 a screen's own content replaces a template's seed for a slot. So each screen that fills a screen template gets what

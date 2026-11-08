@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import type { ApplicationStructure, NavigationModel, Screen } from '@cratis/scene.model';
+import { ScreenFit, type ApplicationStructure, type NavigationModel, type Screen } from '@cratis/scene.model';
 import type { EffectiveNavItem } from '@cratis/scene.engine';
 import { resolveStringsValue } from '@cratis/scene.engine';
 import type { SceneNavigationModel } from '@cratis/scene.react';
@@ -17,9 +17,11 @@ export function declaresRegions(navigation: NavigationModel | undefined): boolea
 /**
  * The screen a navigation item opens: the screen declared in the feature the item resolves to (a screen's `path` is the modules and
  * features it was declared in), the first screen declared beneath it, or the screen named like the feature - which is how the
- * application structure names a feature's screen.
+ * application structure names a feature's screen. Only a screen that fits a page is a place to go: one that fits only a dialog, drawer,
+ * pane or panel is opened by an action, never navigated to.
  */
-export function stageScreenFor(screens: Screen[]): (item: EffectiveNavItem) => string | undefined {
+export function stageScreenFor(allScreens: Screen[]): (item: EffectiveNavItem) => string | undefined {
+    const screens = allScreens.filter(fitsPage);
     const byPath = new Map<string, string>();
     for (const screen of screens) {
         const key = (screen.path ?? []).join('.');
@@ -34,6 +36,11 @@ export function stageScreenFor(screens: Screen[]): (item: EffectiveNavItem) => s
         const beneath = screens.find(screen => (screen.path ?? []).join('.').startsWith(`${resolved}.`))?.name;
         return byPath.get(resolved) ?? beneath ?? (screens.some(screen => screen.name === resolved) ? resolved : undefined);
     };
+}
+
+/** Whether a screen can be a page: it lists no fits, or page is one of them. */
+function fitsPage(screen: Screen): boolean {
+    return screen.fits === undefined || screen.fits.length === 0 || screen.fits.includes(ScreenFit.Page);
 }
 
 /** The module a screen was declared in - the first of its `path` - which decides whose sidebar the page shows. */

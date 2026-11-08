@@ -8,6 +8,7 @@ using Cratis.Execution;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Sensitivity;
 using Microsoft.AspNetCore.Http;
 
 namespace Cratis.Stage.Semantics;
@@ -35,8 +36,8 @@ internal static class SemanticCommandOutcome
     };
 
     internal static object? CommittedResponse(SemanticAccepted accepted, IDictionary<string, JsonElement> fallback, SemanticCommand command, SemanticApplication application) => accepted.Response is { } response
-        ? SemanticSecretValues.Response(Response(response), command.Response, application)
-        : SemanticSecretValues.Payload(fallback, command.Properties, application);
+        ? SensitiveValues.Response(Response(response), command.Response, application)
+        : SensitiveValues.Payload(fallback, command.Properties, application);
 
     static CommandResult Concurrency(string details) => new()
     {
@@ -44,13 +45,13 @@ internal static class SemanticCommandOutcome
     };
 
     static CommandResult Accepted(SemanticAccepted accepted, CorrelationId correlationId, SemanticCommand? command, SemanticApplication? application) => accepted.Response is { } response
-        ? new CommandResult<object?>(correlationId, command is null || application is null ? Response(response) : SemanticSecretValues.Response(Response(response), command.Response, application))
+        ? new CommandResult<object?>(correlationId, command is null || application is null ? Response(response) : SensitiveValues.Response(Response(response), command.Response, application))
         : CommandResult.Success(correlationId);
 
     static object? Response(SemanticExecutionResponse response) => response switch
     {
         SemanticScalarExecutionResponse scalar => SemanticJsonValues.ToObject(scalar.Value),
-        SemanticRecordExecutionResponse record => record.Fields.ToDictionary(field => SemanticSecretValues.ResponseKey(field.Name), field => SemanticJsonValues.ToObject(field.Value)),
+        SemanticRecordExecutionResponse record => record.Fields.ToDictionary(field => SensitiveValues.ResponseKey(field.Name), field => SemanticJsonValues.ToObject(field.Value)),
         _ => throw new UnsupportedSemanticValue("The command response cannot be represented as JSON.")
     };
 

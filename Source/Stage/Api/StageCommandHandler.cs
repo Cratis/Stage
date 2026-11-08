@@ -8,6 +8,7 @@ using Cratis.Arc.Tenancy;
 using Cratis.Arc.Validation;
 using Cratis.Stage.Contracts.Commands;
 using Cratis.Stage.Runtime;
+using Cratis.Stage.Sensitivity;
 using Cratis.Stage.Validation;
 
 namespace Cratis.Stage.Api;
@@ -73,7 +74,7 @@ public sealed class StageCommandHandler(
 
         await AppendProducedEvents(command.Data);
 
-        return StageSecretValues.Payload(command.Data, definition.Schema);
+        return SensitiveValues.Payload(command.Data, definition.Schema);
     }
 
     static IEnumerable<string> RequiredProperties(string schema)
@@ -136,7 +137,7 @@ public sealed class StageCommandHandler(
         var valuesJson = JsonSerializer.Serialize(values);
         problems.AddRange(StageRuleEvaluator.Evaluate(definition.Rules, valuesJson)
             .Where(violation => !missing.Contains(violation.PropertyName))
-            .Select(violation => (violation.PropertyName, StageSecretValues.IsSecretProperty(definition.Schema, violation.PropertyName)
+            .Select(violation => (violation.PropertyName, SensitiveValues.IsSecretPath(definition.Schema, violation.PropertyName)
                 ? $"'{violation.PropertyName}' is invalid."
                 : violation.Message)));
 

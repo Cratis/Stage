@@ -165,18 +165,6 @@ describe('when the application is hosted by the Scene navigation host', () => {
         expect(within(browsing).getAllByRole('link').map(link => link.textContent)).toEqual(['Invoices', 'Details screen']);
     });
 
-    // Routed slots and deep links are phase 2 of Cratis/Stage#1007: Scene 5's route table reads authored `destination`s, and an outlet
-    // button carries where it opens as `navigateTo`, so an address a toolbar button stands for is not restored yet.
-    it.skip('should restore the composition a slot destination\'s address stands for', async () => {
-        globalThis.history.replaceState(null, '', '#/InvoiceDetails');
-        stubScene();
-        render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
-
-        // The toolbar opens InvoiceDetails in the `detail` outlet, so that address is the list with the details beside it.
-        expect(await screen.findByRole('heading', { name: 'Details screen' })).toBeDefined();
-        expect(screen.getByRole('heading', { name: 'Invoice list' })).toBeDefined();
-    });
-
     it('should deep link to a screen no destination places in an outlet', async () => {
         globalThis.history.replaceState(null, '', '#/InvoiceList');
         stubScene();

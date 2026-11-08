@@ -5,6 +5,7 @@ import { useMemo } from 'react';
 import type { ExternalComponent, SceneElement } from '@cratis/scene.model';
 import { dataComponent } from './stageDataSources';
 import { useStageData, useStageQuery } from './stageData';
+import { useStageFilterArguments } from './stageSceneRouting';
 
 /**
  * The names of the queries an element tree binds property values to - `{ kind: 'queryResult', query, path }` - wherever it is
@@ -82,7 +83,9 @@ function BoundData({ source }: { source: StageDataSource }) {
     // The key a declaration is read by is the address's parameter, or - for a screen about the session's own basket - the session's identity of that name.
     const argument = source.by ? (parameters[source.by] || session[source.by]) : undefined;
     // A declaration with no `by` reads the query as the session sees it: narrowed by the identities the session and the address carry, when the query filters by them.
-    const queryArguments = useMemo(() => source.by ? (argument ? { [source.by]: argument } : {}) : { ...session, ...parameters }, [argument, parameters, session, source.by]);
+    // The filters on the page narrow the query by the parameters they set.
+    const filters = useStageFilterArguments(source.query);
+    const queryArguments = useMemo(() => ({ ...filters, ...(source.by ? (argument ? { [source.by]: argument } : {}) : { ...session, ...parameters }) }), [argument, filters, parameters, session, source.by]);
     useStageQuery({
         scope: `data:${source.typeName}`,
         name: source.query,
@@ -100,7 +103,8 @@ function BoundQuery({ name }: { name: string }) {
     const { routes, routesReady, parameters, session } = useStageData();
 
     // What the session and the address carry narrows the query - the shopper's own basket - when the query filters by it; a query that does not ignores it.
-    const queryArguments = useMemo(() => ({ ...session, ...parameters }), [parameters, session]);
+    const filters = useStageFilterArguments(name);
+    const queryArguments = useMemo(() => ({ ...filters, ...session, ...parameters }), [filters, parameters, session]);
     useStageQuery({ scope: `binding:${name}`, name, route: routes?.queries?.[name], arguments: queryArguments, ready: routesReady, list: true });
     return null;
 }

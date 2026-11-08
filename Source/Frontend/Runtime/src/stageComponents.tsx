@@ -5,7 +5,7 @@ import { registeredQuery } from './queryExecutor';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ExternalComponent, SceneElement } from '@cratis/scene.model';
 import { CoreOutletItems, CoreSliceDialog, OutletView, SliceDialogView, coreComponents, outletOfElement, sliceDialogParameters, useOptionalSceneNavigation, useSceneOutlets } from '@cratis/scene.react';
-import { OutletKind, type OutletButton, type OutletItem } from '@cratis/scene.model';
+import { Opens, OutletKind, type OutletButton, type OutletItem } from '@cratis/scene.model';
 import type { InteractionHandlers } from '@cratis/scene.react';
 import type { ComponentType, ReactNode } from 'react';
 import { Button } from '@cratis/components/Common';
@@ -23,6 +23,7 @@ import { registeredCommand } from './commandExecutor';
 import { navigateToScreen } from './stageNavigation';
 import { isGuardedAction, StageSceneGuardedAction as StageGuardedAction } from './stageData';
 import { useRowInteractions } from './stageRowInteractions';
+import { useStageFilterArguments } from './stageSceneRouting';
 import { StageConfirmDialog } from './StageConfirmDialog';
 import { stageConfirmDialogComponent } from './stageDialogScreens';
 import { StageKanbanBoard, kanbanBoardKey } from './stageItemChange';
@@ -123,7 +124,11 @@ export function StageTable({ element, slots }: RegisteredProps) {
     const data = useStageData();
     const queryName = text(element, 'query', text(element, 'typeName', element.id));
     const route = (text(element, 'query') ? data.routes?.queries?.[text(element, 'query')] : undefined) ?? text(element, 'route');
-    const queryArguments = useMemo(() => queryArgumentsFor(element, data), [data, element]);
+    const filters = useStageFilterArguments(text(element, 'query') || undefined);
+    const queryArguments = useMemo(() => {
+        const own = queryArgumentsFor(element, data);
+        return { ...own, values: { ...filters, ...own.values } };
+    }, [data, element, filters]);
     const { rows, error, loading, awaitingCommand } = useStageQuery({ scope: element.id, name: queryName, route: route || undefined, arguments: queryArguments.values, ready: queryArguments.ready });
     const columns = columnsFor(element, rows);
     const navigateTo = text(element, 'navigateOnRowClickToScreen');
@@ -477,6 +482,9 @@ function toolbarItemOf(owner: string, item: OutletItem): ExternalComponent | und
     if (item.kind !== 'button') return undefined;
     const button = item as OutletButton;
     if (button.navigateTo || button.builtIn !== undefined || (!button.slice && !button.command)) return undefined;
+    // A hook that runs its slice directly, or opens it in a drawer or a slot, is placed by Scene: it asks the confirmation, waits for
+    // the item and its `enabled when`, issues the command through the Stage's slice invoker, and opens a routed slot through the router.
+    if (button.opens === Opens.None || button.opens === Opens.Drawer || button.opens === Opens.Slot) return undefined;
     return {
         id: `${owner}.${button.id}`,
         componentName: stageToolbarItemComponent,

@@ -4,6 +4,7 @@
 import type { InvocationResult, SliceCommandField, SliceInvoker } from '@cratis/scene.react';
 import { schemaPropertiesOf } from './StageCommandForm';
 import { registeredCommand } from './commandExecutor';
+import { dataChanged } from './stageData';
 import type { StageCommandOutcome } from './StageCommandOutcome';
 
 /**
@@ -32,7 +33,8 @@ function humanize(name: string): string {
 /**
  * The invoker the running application submits a task dialog through: the command is posted to the route the Stage registered for
  * it, exactly as an action or a form posts it, and the application's own validation results come back to the dialog against the
- * fields they name. A successful command refreshes what the screen shows.
+ * fields they name. A successful command refreshes what the page shows. A hook that runs its slice directly (`runs`) comes through here
+ * too, once Scene has asked its confirmation, with the inputs the item and the route resolve.
  *
  * @param executeCommand Executes a registered Arc proxy with the host's configuration.
  * @param routesReady Whether the lookup has finished, so a command with no route is not-registered rather than not-yet.
@@ -47,7 +49,11 @@ export function createStageSliceInvoker(executeCommand: (name: string, values: R
             }
 
             const outcome = await executeCommand(name, payload);
-            if (outcome.isSuccess) refreshAfterCommand();
+            if (outcome.isSuccess) {
+                // The page's queries, and those of a screen a routed slot shows in a scope of its own.
+                refreshAfterCommand();
+                dataChanged();
+            }
             return {
                 succeeded: outcome.isSuccess,
                 ...(outcome.validationErrors.length > 0 ? { validationErrors: outcome.validationErrors.map(error => ({ field: error.member || undefined, message: error.message })) } : {}),

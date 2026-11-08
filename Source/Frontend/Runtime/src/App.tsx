@@ -40,7 +40,9 @@ import {
 // The tokens (z-index scale, shadows, spacing) every Cratis Components overlay reads: a dialog or drawer is portaled to `body`, outside the
 // shell, so without them its stacking falls back to `auto` and the page content paints over it.
 import '@cratis/components/tokens';
-// The stylesheets of the Cratis Components the Stage draws a screen with: the command form's fields, the dropdown and its popup, buttons and messages.
+// The stylesheets of the Cratis Components the Stage draws a screen with: the command form's fields, the dropdown and its popup, buttons and messages,
+// and the dialogs a command opens in. Without the dialog stylesheet the dialog is unpositioned content below the page while the page behind it is inert.
+import '@cratis/components/Dialogs/styles';
 import '@cratis/components/CommandForm/styles';
 import '@cratis/components/Dropdown/styles';
 import '@cratis/components/Common/styles';

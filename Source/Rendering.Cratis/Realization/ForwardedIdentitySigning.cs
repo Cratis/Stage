@@ -27,8 +27,9 @@ internal static class ForwardedIdentitySigning
     /// </summary>
     internal const string AuthProxySecretKey = "forwardedIdentity.authProxy.secretBase64";
 
-    // AuthProxy accepts a key id of at most 64 characters; the longest suffix is three.
-    const int MaximumNameLength = 61;
+    // AuthProxy accepts a key id of at most 64 characters; the longest suffix ('-api' on the audience) is four,
+    // so both the key id and the audience stay within 64.
+    const int MaximumNameLength = 60;
 
     internal static string Audience(string applicationName) => $"{Name(applicationName)}-api";
 

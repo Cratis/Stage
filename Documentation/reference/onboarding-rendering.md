@@ -98,3 +98,4 @@ Codes are permanent. `STAGE-ONBOARDING-001` (the offering is not rendered) and `
 | `STAGE-ONBOARDING-008` | Information: the offering is started through Box Office, so the operator must publish an offer with that name (tenants are started as soon as it is) and the host defines the Box Office policies. |
 | `STAGE-AUTH-001` | A provider kind AuthProxy does not know. |
 | `STAGE-AUTH-002` | A persona that cannot be reduced to roles and claims. |
+| `STAGE-AUTH-003` | Warning: the application trusts forwarded identity headers without verifying a signature; opt in to [signed forwarded identity](authentication-rendering.md#signed-forwarded-identity-opt-in). |

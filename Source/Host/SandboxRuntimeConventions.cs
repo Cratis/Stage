@@ -18,12 +18,20 @@ internal static class SandboxRuntimeConventions
     internal const string ConnectionStringFile = "CRATIS_CHRONICLE_CONNECTION_STRING_FILE";
 
     /// <summary>
+    /// Gets whether a runtime mounted a Chronicle connection string: the variable names a readable file that is not empty.
+    /// </summary>
+    /// <param name="environment">Reads an environment variable.</param>
+    /// <returns><see langword="true"/> when a connection string is mounted.</returns>
+    internal static bool HasMountedConnectionString(Func<string, string?> environment) => MountedText(environment) is not null;
+
+    /// <summary>
     /// Gets the Chronicle connection string a runtime mounted as a file, which carries a secret and so is not put in the environment.
     /// </summary>
     /// <param name="environment">Reads an environment variable.</param>
     /// <returns>The connection string as supplied, or null when the runtime mounted none.</returns>
     internal static ChronicleConnectionString? MountedConnectionString(Func<string, string?> environment) =>
-        environment(ConnectionStringFile) is { Length: > 0 } file && File.Exists(file) && File.ReadAllText(file).Trim() is { Length: > 0 } text
-            ? new ChronicleConnectionStringBuilder(text).ToConnectionString()
-            : null;
+        MountedText(environment) is { } text ? new ChronicleConnectionStringBuilder(text).ToConnectionString() : null;
+
+    static string? MountedText(Func<string, string?> environment) =>
+        environment(ConnectionStringFile) is { Length: > 0 } file && File.Exists(file) && File.ReadAllText(file).Trim() is { Length: > 0 } text ? text : null;
 }

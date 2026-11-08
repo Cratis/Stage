@@ -751,8 +751,10 @@ OpenAPI, Scalar, the Workbench proxy, the read-model browser, model loading, sem
 execution endpoints are not mapped. Application APIs, `/.cratis/*`, scene, route, locale, string, package and status
 endpoints, static files and the application SPA fallback remain available.
 
-The entrypoint still requires complete `PublishedOptions`: under `Stage:Published`, a persistent MongoDB
-`Storage:ConnectionString` (or `Storage:ConnectionStringFile`), `Authentication:Mode=TrustedProxy`, and explicit
+The entrypoint still requires complete `PublishedOptions`: under `Stage:Published`, a persistent
+`Storage:ConnectionString` (or `Storage:ConnectionStringFile`) for the `Storage:Type` engine (`MongoDB` by default,
+`PostgreSql` or `MsSql`) unless `CRATIS_CHRONICLE_CONNECTION_STRING_FILE` mounts an
+[external Chronicle kernel](../reference/published-applications.md#external-chronicle-kernel), `Authentication:Mode=TrustedProxy`, and explicit
 `TrustedProxies` addresses or CIDR networks; plus non-wildcard, top-level `AllowedHosts`. It also requires a valid
 exported application package at `Stage:Published:PackagePath` (default `/stage/package`); the mode flag alone
 is not sufficient. If Chronicle credentials are supplied under `Stage:Published`, both `Chronicle:ClientId`

@@ -20,7 +20,8 @@ The default screen belongs to the application and is not copied into each slice 
 model. Scene validates these constructs; Stage reports the findings described below.
 
 Each `outlet <name> of navigation` in the first declared `layout` becomes one of the application's navigation
-outlets, and the topbar's `logo` its `ApplicationLogo`. The layout's actions outlet that holds a navigation outlet's
+outlets, and the topbar's `logo` its `ApplicationLogo`. A `logo image "/assets/logo.svg"` is a URL path: a sandbox
+session serves it from the model's `assets` folder (see [Serve static assets from the model](../docker/index.md#serve-static-assets-from-the-model)). The layout's actions outlet that holds a navigation outlet's
 buttons (`topbarActions`) becomes the outlet Scene draws beside it (`topbarButtons`). A module's
 `outlet <name> inherits|extends|overrides` of a navigation outlet becomes an `OutletRefinement` of its
 `ModuleNavigation`, with the items it adds and the ids it `hide`s, and its `contribute to` with items an
@@ -60,7 +61,8 @@ is filled by the tabs, and a panel is never routed, so neither gets one. Navigat
 `show <Screen> by <param> from <element>.selection` becomes the `core:slot` of the template slot it stands in, with
 that slot's role and routing, `shows`, `showsBy`, `showsFrom` and `showsFromElement` (the id of the table or component
 whose selection it shows). A form field's `choose from` picker is not translated yet - Scene 5's form field has no
-place for it - and is refused with `STAGE-SCENE-UI-001` rather than dropped.
+place for it - so the field is kept as a plain input and the gap is reported as the warning
+`STAGE-SCENE-FORM-004`.
 
 ## Addresses of routed slots, tabs and filters
 

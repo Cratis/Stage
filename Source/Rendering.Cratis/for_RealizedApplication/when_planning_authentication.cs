@@ -28,4 +28,9 @@ public class when_planning_authentication : given.a_model_with_authentication_an
     [Fact] void should_map_a_persona_that_only_needs_a_sign_in_to_no_roles() => Text("GeneratedAuthentication/Personas.cs").ShouldContain("new(\"Visitor\", [], [], true)");
     [Fact] void should_still_protect_the_command_with_its_generated_policy() => _plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("AddBook.cs", StringComparison.Ordinal)).Bytes.Length.ShouldBeGreaterThan(0);
     [Fact] void should_not_warn_that_providers_are_unsupported() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-AUTH-001");
+    [Fact] void should_warn_once_that_the_forwarded_identity_is_unsigned() => _plan.Diagnostics.Count(diagnostic => diagnostic.Code == "STAGE-AUTH-003" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning).ShouldEqual(1);
+    [Fact] void should_say_the_forwarded_identity_is_unsigned() => _plan.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-AUTH-003").Message.ShouldContain("unsigned");
+    [Fact] void should_name_the_option_that_signs_the_forwarded_identity() => _plan.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-AUTH-003").Message.ShouldContain(nameof(CratisPlanOptions.SignedForwardedIdentity));
+    [Fact] void should_not_render_forwarded_identity_signing_by_default() => JsonNode.Parse(Text("appsettings.json"))["Cratis"]["Arc"]["ForwardedIdentity"].ShouldBeNull();
+    [Fact] void should_not_list_forwarded_identity_secrets_by_default() => Text(".runtime/environment.json").ShouldNotContain("forwardedIdentity");
 }

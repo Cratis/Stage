@@ -45,9 +45,10 @@ internal static class RealizationArtifacts
         string applicationName,
         string rootNamespace,
         string language,
-        ImmutableArray<SemanticId> sources)
+        ImmutableArray<SemanticId> sources,
+        bool signed = false)
     {
-        foreach (var (path, content) in RuntimeConfigurationFiles.Render(realization, applicationName))
+        foreach (var (path, content) in RuntimeConfigurationFiles.Render(realization, applicationName, signed))
         {
             yield return PlannedArtifact.CreateText(path, content, sources);
         }

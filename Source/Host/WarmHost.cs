@@ -52,7 +52,6 @@ internal static class WarmHost
         {
             StageRuntimeEngineLogging.Deprecated(app.Logger, StageRuntimeEngineSelection.Name(engine));
         }
-        app.UseForwardedHeaders();
         app.UseRouting();
         app.UseCratisChronicle();
 
@@ -73,6 +72,8 @@ internal static class WarmHost
     {
         var app = builder.Build();
         app.UseSandboxIdentityHeaders();
+        app.UseForwardedHeaders();
+        app.UseSandboxAuthentication();
         return app;
     }
 

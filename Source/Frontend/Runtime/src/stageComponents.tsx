@@ -258,7 +258,8 @@ export function StageAction({ element, interactions, slots }: RegisteredProps) {
 function useCommandAction(input: ExternalComponent) {
     const { routes, parameters } = useStageData();
     const schema = text(input, 'schema') || routes?.commandSchemas?.[text(input, 'command')];
-    const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
+    const identitySchema = routes?.commandSchemas?.[text(input, 'command')];
+    const properties = useMemo(() => schemaPropertiesOf(schema ?? '', identitySchema), [schema, identitySchema]);
     const subject = actionSubjectOf(input);
     const creates = actionCreatesEntity(input, schema);
     const { selectableRows, selectedRows } = useScreenRows();
@@ -311,10 +312,11 @@ function StageCommandAction({ element: input, interactions }: RegisteredProps) {
  * address supplies yet. A form that asks for every property of the schema - one with no fields of its own that is not manual - asks for its keys too.
  */
 function useIdentifiersAwaitingSelection(element: ExternalComponent, subject?: ActionSubject): string[] {
-    const { parameters } = useStageData();
+    const { parameters, routes } = useStageData();
     const schema = text(element, 'schema');
     const fields = element.properties.fields;
-    const properties = useMemo(() => schemaPropertiesOf(schema), [schema]);
+    const identitySchema = routes?.commandSchemas?.[text(element, 'command')];
+    const properties = useMemo(() => schemaPropertiesOf(schema, identitySchema), [schema, identitySchema]);
     const { selectableRows, selectedRows } = useScreenRows();
     const formFields: unknown[] = Array.isArray(fields) ? fields : [];
     const asked = hasExplicitActionFields(element, formFields)

@@ -56,8 +56,7 @@ internal static class SemanticHost
         var mode = hostMode ?? StageHostModeSelection.Read(builder.Configuration, args, StageRuntimeEngine.Semantic);
         var authentication = mode == StageHostMode.Published ? published ?? PublishedOptions.From(builder.Configuration) : null;
         authentication?.EnsureComplete();
-        var development = StageDevelopment.Decide(mode == StageHostMode.Sandbox, builder.Configuration, builder.Environment);
-        StageDevelopment.Inform(builder.Services, builder.Environment, development);
+        var development = SandboxActingUserAccess.Configure(builder, mode);
         var routeOptions = StageHttpRouteOptions.FromConfiguration(builder.Configuration);
         var bodySettings = SemanticBodyWorkerOptions.From(builder.Configuration);
         var bodies = loaded is null ? null : await SemanticBodyWorkerHosting.Start(loaded, modelPath, bodySettings, notes);
@@ -88,6 +87,8 @@ internal static class SemanticHost
             {
                 builder.Services.AddSingleton<ISpecificationRunProcess, SpecificationRunProcess>();
                 builder.Services.AddSingleton(SemanticSpecificationProcessOptions.FromConfiguration(builder.Configuration));
+                builder.Services.AddSingleton(StageJourneyOptions.FromConfiguration(builder.Configuration));
+                builder.Services.AddSingleton(_ => new StageJourneyClient());
             }
             AddSandboxServices(builder.Services, mode);
         }
@@ -138,14 +139,21 @@ internal static class SemanticHost
         {
             app.UseSandboxIdentityHeaders();
             app.UseForwardedHeaders();
+            app.UseSandboxAuthentication();
         }
         app.UseDefaultFiles();
         app.UseStaticFiles(StageStaticFileOptions.Create());
+        if (mode == StageHostMode.Sandbox)
+        {
+            StageModelAssets.Use(app, modelPath);
+        }
+
         app.UseRouting();
         app.UseCratisChronicle();
         StagePackageEndpoints.Map(app);
         if (mode == StageHostMode.Sandbox)
         {
+            SandboxActingUser.Map(app);
             app.MapPost("/stage/load", () => Results.Conflict());
             app.MapGet("/stage/semantic/admission", () => Results.Json(new { engine = "semantic", issues = issues.Select(issue => issue.Details), entries = admission?.Entries ?? [] }, StageJson.Options));
             MapReadModelBrowserPage(app);
@@ -174,6 +182,8 @@ internal static class SemanticHost
         if (mode == StageHostMode.Sandbox)
         {
             SemanticSpecificationRuns.Map(app, loaded.Plan, modelPath);
+            var journeyRoutes = scene is null ? null : new StageRoutesSource(new StageSceneRoutes(scene, app.Services, app.Logger), loaded.Model);
+            StageJourneyReplay.Map(app, () => journeyRoutes?.Build(), () => RegistrationStatus(world, issues, app.Services, modelName, modelPath));
             StageLifecycleEndpoints.Map(app, loaded.Plan, () => lifecycles);
             SemanticReadModelBrowser.Map(app, new(app.Services.GetRequiredService<ISemanticRuntime>(), () => world is not null, context => issues.Count > 0 ? RefusedResponse(context, issues) : null, admission));
         }
@@ -334,7 +344,7 @@ internal static class SemanticHost
         : new StageStatus("ready", new StageStatusModel(modelName), WarmStageHandoff.ReadHandoffId(modelPath)) { Engine = "semantic" };
 
     internal static void MapStatus(WebApplication app, Func<StageStatus> status, IReadOnlyList<SemanticModelLoadDiagnostic>? notes = null) =>
-        app.MapGet("/stage/status", () => status() with { Notes = notes is { Count: > 0 } ? notes : null });
+        app.MapGet("/stage/status", async (int? wait, CancellationToken aborted) => (await StageStatusWait.Until(status, wait, Task.Delay, aborted)) with { Notes = notes is { Count: > 0 } ? notes : null });
 
     internal static void MapRefusedHost(WebApplication app, List<StageUnsupportedIssue> issues, IReadOnlyList<SemanticModelLoadDiagnostic>? notes, StageHostMode mode)
     {
@@ -353,6 +363,7 @@ internal static class SemanticHost
     {
         MapStatus(app, () => new StageStatus("unsupported", null, null) { Engine = engine, Issues = issues }, notes);
         app.MapPost(SemanticSpecificationRuns.Route, (HttpContext context) => RefusedResponse(context, issues));
+        StageJourneyReplay.MapRefused(app, issues);
         if (engine == "semantic")
         {
             app.MapGet(SemanticReadModelBrowser.Route, (HttpContext context) => RefusedResponse(context, issues));

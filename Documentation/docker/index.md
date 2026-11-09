@@ -101,7 +101,8 @@ The command below binds both published ports to `127.0.0.1`. Keep model operatio
    docker run --rm -p 127.0.0.1:9090:9090 -p 127.0.0.1:35000:35000 -v "$PWD":/eventmodel:ro cratis/stage:latest
    ```
 
-3. After startup, open [Scalar](http://localhost:9090/scalar/v1) and check the model's mapped commands and queries.
+3. After startup ([wait for the session to settle](#wait-for-the-session-to-settle) if you are scripting it), open
+   [Scalar](http://localhost:9090/scalar/v1) and check the model's mapped commands and queries.
    The [OpenAPI document](http://localhost:9090/openapi/v1.json) lists the session's model API. Check the
    [session status](http://localhost:9090/stage/status) for admission issues before
    treating a responding HTTP endpoint as a usable session. These checks show what the host exposes, not whether
@@ -199,6 +200,44 @@ Three things about that base image are worth knowing:
 Each session gets a generated, Docker-style event store name (`brave-mendel`, `nifty-turing`, …), which is what
 you will see in the log line the host prints and in the Workbench.
 
+### Wait for the session to settle
+
+A session passes through these phases before it can take commands, whether you start it with `cratis run` or
+`docker run`:
+
+1. **Image pull.** Only on first use of an image tag.
+2. **Chronicle kernel boot.** The entrypoint waits until port `35000` accepts connections.
+3. **Stage host start.** The host compiles the model and admits its runtime constructs. Port `9090` does not
+   accept connections yet.
+4. **Chronicle registration and world rebuild.** Port `9090` answers, and `GET /stage/status` reports
+   `state: "loading"` while the host registers event contracts, seeds event sources and reconstructs its world.
+5. **Settled.** `GET /stage/status` reports `ready`, or `unsupported` with the refusing constructs in `issues`.
+
+As an example, a 120-slice model on half a CPU core booted the Chronicle silo in about 6 seconds, and the whole
+container start took about 33 seconds. A first run adds the image pull to that. Your model size and machine change
+these figures, so wait for the status instead of sleeping for a fixed time.
+
+To wait for a settled session with one request, pass `wait` (in seconds) to the status endpoint:
+
+```bash title="Terminal: wait for the session"
+curl --retry-all-errors --retry 60 --retry-delay 1 -fsS 'http://localhost:9090/stage/status?wait=120'
+```
+
+The retry flags (curl 7.71 or later) cover the phases before port `9090` accepts connections, including the
+empty reply a Docker port proxy can give while nothing listens behind it. Once it does, the host holds the request
+while the state is `loading` and answers as soon as the state changes or the wait elapses, with the same JSON and
+HTTP 200 as a request without `wait`. Read `state` in the response:
+
+| `state`       | Meaning                                                                                                   |
+| ------------- | --------------------------------------------------------------------------------------------------------- |
+| `loading`     | The world is still being rebuilt and the wait elapsed first. Ask again; `/api/**` answers HTTP 503 for now. |
+| `ready`       | The session can take commands and queries.                                                                |
+| `unsupported` | The host refused the model. `issues` lists each refusing construct; `/api/**` answers HTTP 501.           |
+
+Compare the constructs in `issues` with the [supported semantic subset](#opt-in-to-semantic-execution).
+`wait` is capped at 300 seconds, a value that is not a whole number is rejected with HTTP 400, and without `wait`
+(or with `wait=0`) the endpoint answers at once.
+
 ## Ports
 
 | Port | Protocol | What it serves |
@@ -259,6 +298,18 @@ before starting the host. A single-file input does not discover sibling `.play` 
 no mount of their parent folder is needed. Folder compilation resolves declarations across the discovered files
 and reports compilation errors with relative source paths. Compilation alone does not establish that Stage can
 execute every modeled construct.
+
+### Serve static assets from the model
+
+A layout's `logo image "/assets/logo.svg"` is a URL, so the file behind it has to be served. A sandbox session serves
+the files in an `assets` folder next to the model, read-only, at `/assets/...`: with the model mounted at
+`/eventmodel`, `/eventmodel/assets/logo.svg` answers `GET /assets/logo.svg`. For a single-file input the folder is
+`assets` beside that file. Files in nested folders are served by their relative path, and the content type follows
+the file extension.
+
+Only files under `assets` are served; directories are not listed and a request that tries to leave the folder
+answers `404`. A model without an `assets` folder serves nothing at `/assets`. A [published](#published-mode-preview) host does not
+serve model files, so ship the asset with the application's own static web root.
 
 ## Configuration
 
@@ -440,7 +491,8 @@ history across container replacement, but that storage path is not verified by t
 With a nonempty log, Stage reads the complete event history,
 checks its continuity, event schemas, origins and modeled constraints, then reconstructs the in-process
 world using Screenplay semantics. It refuses incomplete or inconsistent history rather than starting
-with partial state. `/stage/status` reports `loading` during rebuild; `/api/**` is unavailable then.
+with partial state. `/stage/status` reports `loading` during rebuild; `/api/**` is unavailable then. To wait for
+the rebuild to finish, see [Wait for the session to settle](#wait-for-the-session-to-settle).
 
 Commands retain their slice-qualified `/api/…` route and legacy alias. The semantic engine also exposes one
 query by its modeled name. Compatibility `Get…ById` and `All…` queries are available only for read models with at least one keyed query and no authorization on any keyed query targeting that read model. Otherwise, the compatibility routes are not mapped, so callers cannot bypass a modeled query policy.
@@ -544,12 +596,30 @@ docker run --rm -p 127.0.0.1:9090:9090 -p 127.0.0.1:35000:35000 \
   -v "$PWD":/eventmodel:ro cratis/stage:latest
 ```
 
+- The Stage browser topbar offers **Acting as** when the sandbox has modeled users. Pick a user to make actual commands,
+  queries, and observable subscriptions run as that user. The page reloads after a successful switch so identity details and
+  subscriptions are recreated together. **No acting user** clears the selection and leaves browser calls anonymous.
 - Stage lists the users at `/.cratis/users`, with the roles and claims synthesized from the policies of the personas each one
-  plays. Lens reads that list, and the user you pick there is the caller for every request, so you can switch between them
-  while testing without restarting Stage.
+  plays. Lens reads that list and can still inject a caller independently; explicit identity headers take precedence over the
+  browser selection.
 - The single server-selected persona above is off while users are on, and Stage trusts the identity headers the tool sends.
 - Stage refuses to start if `Stage:Sandbox:Users` is on when Stage is not in development, or together with
   `Stage:Sandbox:ForwardedIdentity`. A published application never offers users.
+
+The browser selection uses an HttpOnly, SameSite=Strict session cookie containing only the modeled name. Stage resolves its
+roles and claims from the current model on each request; stale names are ignored and cleared. The picker and cookie mapping
+are unavailable in Production, published mode, or without the explicit users switch and a nonempty modeled user list.
+This is a real sandbox caller, not a design-time persona preview or a production sign-in mechanism.
+
+The cookie belongs to the sandbox's host and path, not its port. Separate localhost sessions can therefore share a name;
+Stage accepts it only if the current session models that user. Unsafe requests and WebSocket upgrades need a same-origin
+Origin or Referer to use the cookie; changing the selection requires a same-origin Origin and JSON. A different localhost
+port is not the same origin.
+
+Behind a path-prefixed proxy, preserve the sandbox's base path and cookies. The selection cookie is scoped to `PathBase`
+(`/` when absent) and uses Secure on HTTPS. If the proxy strips cookies, the picker cannot persist a caller. Generated
+applications and static sources do not offer this capability. For the HTTP contract, see
+[Sandbox acting-user selection](../reference/urls.md#sandbox-acting-user-selection).
 
 :::danger[Modeled users are not authentication]
 Local callers, and remote callers when remote access is allowed, can present any identity, including a role the model never
@@ -720,6 +790,130 @@ The managed heap limit plus working-set watchdog is not an OS memory cap or a ho
 specifications admitted by that executor as `supported`, and reports the missing capability and details for
 those it refuses, without blocking the live model. The legacy EventModel engine does not expose this route.
 The `/stage/status`, `/stage/scene` and runner `results.json` schemas are unchanged.
+
+### Replay recorded journeys
+
+When a model is derived from an existing system, you want to know whether it behaves like that system. Record
+what the system did as journeys: ordered commands and queries with the answers the system gave. Then replay them
+against the running sandbox. Each step is addressed by its model name and sent over the session's own `/api`
+routes, so binding, validation, authorization, persona selection and serialization are the ones a browser sees.
+[Specification runs](#run-specifications-in-a-semantic-session) check the model against its own specifications;
+a replay checks it against behavior recorded outside the model.
+
+A journey file uses the `stage-journey/v1` schema:
+
+```json
+{
+  "schema": "stage-journey/v1",
+  "journeys": [
+    {
+      "name": "register a project twice",
+      "note": "Recorded from the original portfolio service.",
+      "steps": [
+        { "name": "register", "command": "Portfolio.RegisterProject",
+          "input": { "projectId": "$new:project", "name": "Apollo", "startsOn": "${today+7d}" },
+          "bind": { "registered": "$.response.projectId" } },
+        { "name": "listed", "query": "AllProjects", "within": 2000,
+          "expect": { "result": [{ "projectId": "${registered}", "name": "Apollo" }] } },
+        { "name": "again", "command": "RegisterProject",
+          "input": { "projectId": "$new:other", "name": "Apollo" } }
+      ]
+    },
+    {
+      "name": "no archived projects",
+      "steps": [{ "query": "ArchivedProjects", "expect": { "empty": true } }]
+    }
+  ]
+}
+```
+
+Post it as the request body:
+
+```bash
+curl -X POST http://localhost:9090/stage/semantic/journeys/replay \
+    -H 'Content-Type: application/json' --data-binary @journeys.json
+```
+
+The body must be sent as `application/json`; any other content type is refused with 415. Add `?journey=<name>`
+(repeatable) to replay only the named journeys.
+
+A step names exactly one `command` or `query`, as a qualified `Namespace.Name` or a simple name. A command takes
+its body as `input`; a query takes flat string, number or boolean `arguments`, sent as the query string. A query
+is addressed by its simple name: a namespace in front of it is not checked. A name that is unknown, or a simple
+name that several operations share, makes that step an `error` instead of guessing.
+
+`expect` describes the answer. `outcome` is `accepted` (the default), `rejected`, `unauthorized` or
+`unsupported`. With a refusal outcome, `messages` lists texts that some validation, authorization or refusal
+message must contain, ignoring case. With `accepted`, `response` is matched against the command response,
+and `result` against the query data. `empty: true` requires a query to return no rows, and `absent` lists values
+that no row may match. A query step without `expect` only has to succeed.
+
+| Rule | Behavior |
+| --- | --- |
+| Objects | Every expected property must be present; extra properties are ignored and names compare ignoring case. |
+| `null` | An expected `null` matches `null` or a missing property. |
+| Scalars | Strings compare exactly, numbers by value (`1` equals `1.0`); a string never matches a number. |
+| `list: "contains"` (default) | Each expected element matches a different actual element, in any order. Elements are paired with the first unused match, in expected order. |
+| `list: "ordered"` | Expected elements appear in the same relative order; other elements may sit between them. |
+| `list: "exact"` | Same length, and element *i* matches element *i*. |
+
+The `list` setting applies to every array under that step's `response`, `result` and `absent`.
+
+Recorded identities rarely fit a fresh session, so strings in `input`, `arguments` and `expect` can carry
+bindings. `"$new:<name>"` generates a GUID the first time a journey mentions it and reuses it afterwards.
+A step's `bind` captures values once the step passes, from `$.response...` for a command or `$.result...` for a
+query, using `.name` and `[index]` segments. `${<name>}` substitutes a bound value: a string that is exactly
+`${<name>}` takes the value's JSON type, and anywhere else it is interpolated as text. `${today}`, `${today-3d}`
+and `${today+3d}` are UTC dates (`yyyy-MM-dd`), and `${now}` is the current UTC time in ISO 8601. An unknown
+binding makes the step an `error`.
+
+A projection may not have caught up when the next query reads it. A query step therefore reads again every
+100 ms until its expectation matches or `within` milliseconds pass (default 5000, clamped to 0–30000), and
+reports the number of `attempts`. `note` (up to 1000 characters) and `evidence` (an array of strings) are
+accepted on journeys and steps, ignored by the replay and echoed in the report, so you can point back at the
+recording a step came from.
+
+HTTP 200 means the replay completed; `passed` tells whether every step did. A step that fails stops its journey:
+later steps are `skipped`, because they would build on state the failed step did not create, while the other
+journeys still run. With the file above and a model that requires unique project names, the second registration is rejected. An
+excerpt of the report, showing only the failed step:
+
+```json
+{
+  "schema": "stage-journey-report/v1", "passed": false, "isolation": "live",
+  "summary": { "journeys": 2, "journeysPassed": 1, "steps": 4, "stepsPassed": 3, "stepsFailed": 1, "stepsSkipped": 0, "stepsErrored": 0 },
+  "journeys": [
+    { "name": "register a project twice", "passed": false, "steps": [
+      { "index": 2, "name": "again", "kind": "command", "target": "RegisterProject", "status": "failed",
+        "durationMs": 12, "route": "/api/portfolio/register-project", "httpStatus": 400,
+        "actual": { "outcome": "rejected", "messages": ["Project name is already in use"] },
+        "mismatches": [{ "path": "$.outcome", "expected": "accepted", "actual": "rejected", "reason": "expected accepted, found rejected" }],
+        "bindings": { "project": "9d2c…", "registered": "9d2c…", "other": "41f0…" } }
+    ] }
+  ]
+}
+```
+
+A step's `status` is `passed`, `failed`, `skipped` or `error`; `error` means the step could not be executed
+(unknown or ambiguous name, unknown binding, transport failure, a 30-second step timeout, or an answer that is not
+JSON). A failed or errored step reports `actual`, its `expected` as written and the `mismatches`, each with a
+JSON path. `bindings` lists every value bound so far, generated GUIDs included, so you can repeat the step by
+hand. A reported `response` or `result` over 64 KiB is cut to a string of its first 64 KiB with
+`"truncated": true`; the comparison always uses the full answer.
+
+The replay runs against the live session: `isolation` is `live`. Every accepted command is appended to the
+session's event store and stays there, so a second replay starts from a different world. Restart the container
+for a clean one. A recording that registers the same identity twice fails the second time; use `$new:` to
+give each replay its own identities. The replay route itself has no persona: each operation runs as the persona
+it requires, as in the browser, and a step with a `persona` property is refused.
+
+A file is refused with HTTP 400 and every problem, each with its path, in `errors`; unknown properties are
+refused rather than ignored. A body over 1 MiB returns HTTP 413. A file holds at most 100 journeys, 100 steps
+per journey, 500 steps in total and `input` nested at most 32 levels deep. One replay runs at a time; another
+returns HTTP 409. While the session is `loading` or `unsupported` the route returns HTTP 503 with the status.
+`Stage__Journeys__TimeoutSeconds` (`Stage:Journeys:TimeoutSeconds`) sets the whole-run deadline (default 120,
+clamped to 1–600 seconds); when it passes, the route returns HTTP 504 without a partial report. Importing HAR
+recordings is not supported yet: convert them to this schema first.
 
 ## Behind a reverse proxy
 

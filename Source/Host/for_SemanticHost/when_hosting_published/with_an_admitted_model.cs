@@ -11,11 +11,22 @@ namespace Cratis.Stage.Host.for_SemanticHost.when_hosting_published;
 public class with_an_admitted_model : given.a_semantic_host
 {
     void Establish() => _arguments = ["--published", "--Stage:Sandbox:ForwardedIdentity=true", "--Stage:Sandbox:Identity=true"];
-    async Task Because() => await BuildHost();
+    DefaultHttpContext _journeyReplay = null!;
+
+    async Task Because()
+    {
+        await BuildHost();
+        _journeyReplay = new DefaultHttpContext { RequestServices = _app.Services };
+        _journeyReplay.Request.Method = "POST";
+        _journeyReplay.Request.Path = StageJourneyReplay.Route;
+        await ((IApplicationBuilder)_app).Build()(_journeyReplay);
+    }
 
     [Fact] void should_admit_the_model() => _refused.ShouldBeFalse();
     [Fact] void should_only_map_the_runtime_stage_routes() => _patterns.Where(pattern => pattern.StartsWith("/stage/", StringComparison.Ordinal)).ShouldContainOnly(["/stage/status", "/stage/packages", "/stage/scene", "/stage/routes", "/stage/locales", "/stage/strings/{locale}"]);
     [Fact] void should_not_map_any_tooling() => Published.PublishedSurface.ToolingRoutes(((Microsoft.AspNetCore.Routing.IEndpointRouteBuilder)_app).DataSources.SelectMany(source => source.Endpoints)).ShouldBeEmpty();
+    [Fact] void should_not_map_the_journey_replay() => _patterns.ShouldNotContain(StageJourneyReplay.Route);
+    [Fact] void should_refuse_a_journey_replay() => _journeyReplay.Response.StatusCode.ShouldEqual(StatusCodes.Status404NotFound);
     [Fact] void should_not_map_the_read_model_page() => _patterns.ShouldNotContain("/read-models");
     [Fact] void should_not_redirect_to_the_read_model_page() => _readModelPage.Response.StatusCode.ShouldEqual(StatusCodes.Status404NotFound);
     [Fact] void should_not_map_openapi() => _patterns.Any(pattern => pattern.Contains("openapi", StringComparison.OrdinalIgnoreCase)).ShouldBeFalse();

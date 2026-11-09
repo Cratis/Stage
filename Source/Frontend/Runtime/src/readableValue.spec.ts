@@ -23,6 +23,26 @@ describe('reading a table cell value', () => {
         expect(readableValue('2026-03-15T10:30:00Z')).toEqual(new Date('2026-03-15T10:30:00Z').toLocaleString());
     });
 
+    it('should join the one field of each child of a collection', () => {
+        expect(readableValue([{ label: 'probe' }, { label: 'urgent' }])).toEqual('probe, urgent');
+    });
+
+    it('should join the values of a collection of scalars', () => {
+        expect(readableValue(['probe', 'urgent'])).toEqual('probe, urgent');
+    });
+
+    it('should read the item count of children with several fields', () => {
+        expect(readableValue([{ label: 'probe', color: 'red' }, { label: 'urgent', color: 'blue' }])).toEqual('2 items');
+    });
+
+    it('should read a single child with several fields as one item', () => {
+        expect(readableValue([{ label: 'probe', color: 'red' }])).toEqual('1 item');
+    });
+
+    it('should read an empty collection as an empty cell', () => {
+        expect(readableValue([])).toEqual('');
+    });
+
     it.each(['Alpha', '2026-13-45', '2026-02-31', 'Due 2026-03-15', '', 42, null, undefined])('should leave %s as it is', value => {
         expect(readableValue(value)).toBeUndefined();
     });

@@ -23,7 +23,28 @@ internal static partial class SemanticCratisAdmission
         {
             diagnostics.Add(Error(SemanticVersionFeatures.ProtectedIdentity, $"Protected concept '{concept!.Name}' is used as {use}. Use a surrogate identity and keep the protected value as a separate property.", concept.Id));
         }
+
+        WarnOnSecretReadModelProperties(context, diagnostics);
     }
+
+    static void WarnOnSecretReadModelProperties(SemanticApplicationContext context, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        var slices = SemanticVersionFeatures.Slices(context.Application).ToArray();
+        var populated = slices.SelectMany(slice => slice.Projections.Select(projection => projection.ReadModel)
+            .Concat(slice.Reducers.Select(reducer => reducer.ReadModel))).ToHashSet();
+        foreach (var model in slices.SelectMany(slice => slice.ReadModels).Where(model => populated.Contains(model.Id)))
+        {
+            foreach (var property in model.Properties)
+            {
+                var concept = SecretConcept(context, property.Type);
+                if (concept is null) continue;
+                diagnostics.Add(Warning(SemanticVersionFeatures.SecretReadModelProperty, $"Read model '{model.Name}' property '{property.Name}' is populated with secret concept '{concept.Name}'. The read model stores the value; review whether it should be held there.", model.Id));
+            }
+        }
+    }
+
+    static SemanticConcept? SecretConcept(SemanticApplicationContext context, SemanticTypeReference type) =>
+        ProtectedConcept(context, type) is { Compliance: { Personal: null, Secret: not null } } concept ? concept : null;
 
     static SemanticConcept? ProtectedConcept(SemanticApplicationContext context, SemanticTypeReference type)
     {

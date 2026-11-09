@@ -8,10 +8,11 @@ import { SceneNavigationContextInternal, useSceneTheme } from '@cratis/scene.rea
 import { useEffect } from 'react';
 import { ColorScheme, useLayoutConfig, defaultBlueprintThemes } from '@cratis/scene.blueprint.default';
 import { NotesButton } from '@cratis/showrunner.notes.react';
-import { screenHash, stageLocaleComponent, stageNotesComponent, stageNavigationTreeComponent, stageThemeToggleComponent } from './blueprint';
+import { screenHash, stageLocaleComponent, stageNotesComponent, stageActingUserComponent, stageNavigationTreeComponent, stageThemeToggleComponent } from './blueprint';
 import { opensElsewhere, type NavigationNode } from './navigationTree';
 import { externalRouteHref } from './externalRouteHref';
 import { StageSlot } from './stageSlot';
+import { SandboxActingUser } from './SandboxActingUser';
 
 /** What the Stage's own components need that the document itself does not carry. */
 export interface StageChromeState {
@@ -185,6 +186,7 @@ export function ColorSchemeMirror() {
 /** The Stage's own components, to merge over the blueprint's. */
 export const stageChromeComponents: ComponentRegistry = {
     [stageNotesComponent]: StageNotes,
+    [stageActingUserComponent]: SandboxActingUser,
     [stageLocaleComponent]: StageLocale,
     [stageThemeToggleComponent]: StageThemeToggle,
     [stageNavigationTreeComponent]: StageNavigationTree,

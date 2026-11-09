@@ -65,6 +65,25 @@ static class CratisArtifactRenderProfileAdmission
         }
     }
 
+    // The application realization and how the realized application trusts the identity AuthProxy forwards.
+    static bool TryReadRealization(ArtifactRenderProfile profile, out string mismatch)
+    {
+        mismatch = string.Empty;
+        if (!Realization.ApplicationRealizationInput.TryRead(profile, out _))
+        {
+            mismatch = "The Cratis profile carries an invalid or duplicate application realization.";
+            return false;
+        }
+
+        if (!SignedForwardedIdentityInput.TryRead(profile, out _))
+        {
+            mismatch = "The Cratis profile carries an invalid or duplicate signed forwarded identity input.";
+            return false;
+        }
+
+        return true;
+    }
+
     static bool Matches(ArtifactRenderProfile profile, string applicationName, ExecutableSemanticModel? model, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
     {
         admittedOptions = null;
@@ -127,9 +146,8 @@ static class CratisArtifactRenderProfileAdmission
             return false;
         }
 
-        if (!Realization.ApplicationRealizationInput.TryRead(profile, out _))
+        if (!TryReadRealization(profile, out mismatch))
         {
-            mismatch = "The Cratis profile carries an invalid or duplicate application realization.";
             return false;
         }
 
@@ -229,7 +247,7 @@ static class CratisArtifactRenderProfileAdmission
             return false;
         }
 
-        admittedOptions = options with { ServiceLayout = serviceLayout };
+        admittedOptions = options with { ServiceLayout = serviceLayout, SignedForwardedIdentity = SignedForwardedIdentityInput.IsCarriedBy(profile) };
         return true;
     }
 

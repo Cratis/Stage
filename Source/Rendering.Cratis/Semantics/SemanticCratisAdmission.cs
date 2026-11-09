@@ -361,6 +361,9 @@ internal static partial class SemanticCratisAdmission
     static ArtifactRenderDiagnostic Error(string code, string message, SemanticId artifact) =>
         new(code, ArtifactRenderDiagnosticSeverity.Error, message, artifact);
 
+    static ArtifactRenderDiagnostic Warning(string code, string message, SemanticId artifact) =>
+        new(code, ArtifactRenderDiagnosticSeverity.Warning, message, artifact);
+
     static IEnumerable<GeneratedTypeDeclaration> StructuralDeclarations(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices, IEnumerable<(string Namespace, string Name)>? typedContexts, bool commandReceiptTime) =>
         GeneratedTypeNames.Declarations(
             context.Application,

@@ -150,6 +150,7 @@ if (engine == StageRuntimeEngine.EventModel)
     StageRuntimeEngineLogging.Deprecated(app.Logger, StageRuntimeEngineSelection.Name(engine));
 }
 app.UseForwardedHeaders();
+app.UseSandboxAuthentication();
 app.UseDefaultFiles();
 app.UseStaticFiles(StageStaticFileOptions.Create());
 app.UseRouting();

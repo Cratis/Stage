@@ -15,7 +15,7 @@ public class with_an_admitted_model : when_hosting_published.given.a_semantic_ho
     void should_keep_the_complete_endpoint_set() => _patterns.Distinct().ShouldContainOnly(
     [
         "/stage/packages", "/stage/load", "/stage/semantic/admission", "/stage/scene", "/stage/routes",
-        "/stage/locales", "/stage/strings/{locale}", "/stage/status", "/stage/semantic/specifications/run",
+        "/stage/locales", "/stage/strings/{locale}", "/stage/status", "/stage/semantic/specifications/run", "/stage/semantic/journeys/replay",
         "/stage/lifecycles", "/stage/lifecycles/workflows/{workflow}/subjects/{subject}/approvals/{node}",
         "/stage/read-models", "/stage/read-models/{id}", "/openapi/{documentName}.json",
         "/workbench/{**path}", "/workbench", "{*path:nonfile}",
@@ -32,7 +32,7 @@ public class with_an_admitted_model : when_hosting_published.given.a_semantic_ho
         "/.cratis/queries/sse/subscribe", "/.cratis/queries/sse/unsubscribe",
         "/scalar/scalar.js", "/scalar/scalar.aspnetcore.js", "/scalar/favicon.svg", "/scalar/{documentName?}"
     ]);
-    [Fact] void should_keep_all_sandbox_stage_routes() => _patterns.Where(pattern => pattern.StartsWith("/stage/", StringComparison.Ordinal)).ShouldContainOnly(["/stage/status", "/stage/packages", "/stage/scene", "/stage/routes", "/stage/locales", "/stage/strings/{locale}", "/stage/load", "/stage/semantic/admission", "/stage/semantic/specifications/run", "/stage/read-models", "/stage/read-models/{id}", "/stage/lifecycles", "/stage/lifecycles/workflows/{workflow}/subjects/{subject}/approvals/{node}"]);
+    [Fact] void should_keep_all_sandbox_stage_routes() => _patterns.Where(pattern => pattern.StartsWith("/stage/", StringComparison.Ordinal)).ShouldContainOnly(["/stage/status", "/stage/packages", "/stage/scene", "/stage/routes", "/stage/locales", "/stage/strings/{locale}", "/stage/load", "/stage/semantic/admission", "/stage/semantic/specifications/run", "/stage/semantic/journeys/replay", "/stage/read-models", "/stage/read-models/{id}", "/stage/lifecycles", "/stage/lifecycles/workflows/{workflow}/subjects/{subject}/approvals/{node}"]);
     [Fact] void should_keep_the_read_model_redirect() => _readModelPage.Response.StatusCode.ShouldEqual(StatusCodes.Status302Found);
     [Fact] void should_redirect_to_the_read_model_page() => _readModelPage.Response.Headers.Location.ToString().ShouldEqual("../read-models");
     [Fact] void should_keep_openapi() => _patterns.Any(pattern => pattern.Contains("openapi", StringComparison.OrdinalIgnoreCase)).ShouldBeTrue();

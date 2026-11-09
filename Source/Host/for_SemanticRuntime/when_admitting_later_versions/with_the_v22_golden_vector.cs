@@ -22,5 +22,6 @@ public class with_the_v22_golden_vector : Specification
     [Fact] void should_read_the_full_v22_vector() => _plan.Model.SemanticVersion.ShouldEqual(SemanticVersion.V22);
     [Fact] void should_not_refuse_the_audited_version() => _admission.Blocking.Any(entry => entry.Details.StartsWith("STAGE-ESM-016:", StringComparison.Ordinal)).ShouldBeFalse();
     [Fact] void should_admit_atomic_reaction_batches() => _admission.Blocking.ShouldNotContain(entry => entry.Details.StartsWith("STAGE-ESM-043:", StringComparison.Ordinal));
-    [Fact] void should_still_refuse_the_application_trigger() => _admission.Blocking.ShouldContain(entry => entry.Details.StartsWith("STAGE-ESM-024:", StringComparison.Ordinal));
+    [Fact] void should_still_refuse_the_application_trigger() => _admission.Entries.ShouldContain(entry => entry.Kind == "trigger" && entry.Status == "unsupported" && entry.Details!.StartsWith("STAGE-ESM-024:", StringComparison.Ordinal));
+    [Fact] void should_not_block_the_model_for_the_application_trigger() => _admission.Blocking.ShouldNotContain(entry => entry.Kind == "trigger");
 }

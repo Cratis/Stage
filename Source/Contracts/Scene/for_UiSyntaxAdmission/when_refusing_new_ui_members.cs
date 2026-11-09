@@ -11,15 +11,20 @@ namespace Cratis.Stage.Contracts.Scene.for_UiSyntaxAdmission;
 
 public class when_refusing_new_ui_members : Specification
 {
-    // A form field's picker (Screenplay 6) is not translated yet.
-    [Theory]
-    [InlineData(typeof(FormFieldSyntax), "Choices")]
-    public void should_refuse_instead_of_dropping_the_authored_member(Type type, string member)
+    // A form field's picker (Screenplay 6) is not translated yet: the field stays a plain input and the gap is a warning, never a refusal.
+    [Fact]
+    public void should_report_a_field_picker_as_a_warning()
     {
-        var error = Catch.Exception(() => new UiSyntaxAdmission().VisitNode(Authored(type, member)));
-        error.ShouldBeOfExactType<UnsupportedUiSyntax>();
-        error.Message.ShouldContain(UnsupportedUiSyntax.DiagnosticCode);
+        var diagnostics = new ConversionDiagnostics();
+        var error = Catch.Exception(() => new UiSyntaxAdmission(diagnostics).VisitNode(Authored(typeof(FormFieldSyntax), "Choices")));
+        error.ShouldBeNull();
+        diagnostics.All.Single().Code.ShouldEqual(UiSyntaxAdmission.PickerDiagnosticCode);
+        diagnostics.All.Single().Severity.ShouldEqual(DiagnosticSeverity.Warning);
     }
+
+    [Fact]
+    public void should_admit_a_field_picker_without_a_collector() =>
+        Catch.Exception(() => new UiSyntaxAdmission().VisitNode(Authored(typeof(FormFieldSyntax), "Choices"))).ShouldBeNull();
 
     // Showing a screen by another component's selection (Screenplay 6) is the slot it stands in (TemplateSlotPlacement).
     [Fact]

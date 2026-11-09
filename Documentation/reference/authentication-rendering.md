@@ -28,7 +28,7 @@ an application plan adds the following to the application:
 | `.runtime/authproxy.application.json` | The provider list in AuthProxy's `Cratis:AuthProxy:Application` shape. |
 | `.runtime/environment.json` | The environment keys the model needs, with the secrets marked. |
 
-The identity headers are not signed. Arc ignores them unless `TrustForwardedIdentityHeaders` is on, and AuthProxy removes every identity header a client sends and writes its own, so the setting is right only when every request reaches the application through AuthProxy. Never expose a rendered application with authentication directly.
+By default the identity headers are not signed. Arc ignores them unless `TrustForwardedIdentityHeaders` is on, and AuthProxy removes every identity header a client sends and writes its own, so the setting is right only when every request reaches the application through AuthProxy. Never expose a rendered application with authentication directly. The plan reports this as the warning `STAGE-AUTH-003`; to have Arc verify the forwarded identity by its signature, opt in to [signed forwarded identity](#signed-forwarded-identity-opt-in).
 
 The policies the commands and queries already carry need nothing else. A caller AuthProxy forwarded satisfies `require authenticated`, `require role` and `require claim` through the roles and claims in the forwarded principal; an anonymous caller satisfies none of them, and an `authorize Anyone` policy still renders as `[AllowAnonymous]`.
 
@@ -61,6 +61,68 @@ The application container receives:
 | `CRATIS_ENVIRONMENT` | The name of the environment. |
 | `CRATIS_SECRETS_DIRECTORY` | A directory with one file per environment key, named by the key. |
 | `CRATIS_CHRONICLE_CONNECTION_STRING_FILE` | A file holding the Chronicle connection string. |
+
+## Signed forwarded identity (opt-in)
+
+AuthProxy can sign the identity it forwards, and Arc can refuse forwarded identity that is not signed with a key it knows. Set `SignedForwardedIdentity` on `CratisRenderingOptions`, or on `CratisPlanOptions` for `CratisRendering.PlanFrom`, to render an application that verifies the signature:
+
+```csharp
+var profile = CratisRendering.WithRealization(CratisRendering.CreateProfile(name, options with { SignedForwardedIdentity = true }), compilation, modelRoot);
+```
+
+The option is a profile input, so it is part of the input digest. This repository exposes it through these options only; it adds no command-line flag. Without it the output does not change. An application without authentication trusts no forwarded identity, so the option changes nothing there.
+
+It needs AuthProxy 2.44.0 or later and Arc 22.168.0 or later (the minimum AuthProxy documents). With the option on, the plan no longer reports `STAGE-AUTH-003` and renders:
+
+| Setting | Value |
+| --- | --- |
+| `Cratis:Arc:TrustForwardedIdentityHeaders` | `true`, as before. |
+| `Cratis:Arc:ForwardedIdentity:Enabled` | `true` |
+| `Cratis:Arc:ForwardedIdentity:Audience` | `<application>-api`, the application name in lower case with every other character run turned into `-`. |
+| `Cratis:Arc:ForwardedIdentity:Keys` | One key whose `KeyId` is `<application>-v1`. |
+
+The renderer never writes a secret. `.runtime/environment.json` declares two more secret keys. The runtime supplies their value and has to make it available as the configuration in the second column:
+
+| Key | Configuration it must become |
+| --- | --- |
+| `forwardedIdentity.arc.secretBase64` | `Cratis__Arc__ForwardedIdentity__Keys__0__SecretBase64` for the application. |
+| `forwardedIdentity.authProxy.secretBase64` | `Cratis__AuthProxy__Services__<name>__ForwardedIdentity__SecretBase64` for AuthProxy. |
+
+Each entry of `.runtime/environment.json` has this shape:
+
+```json
+{
+  "key": "forwardedIdentity.arc.secretBase64",
+  "secret": true,
+  "target": "application",
+  "configuration": "Cratis:Arc:ForwardedIdentity:Keys:0:SecretBase64"
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `key` | The name of the value in the model. |
+| `secret` | Whether the value is a secret. |
+| `target` | The process the key configures: `application` for the rendered application, `authProxy` for the AuthProxy in front of it. |
+| `configuration` | The full .NET configuration path, in colon form, the value must become. |
+
+The environment variable for a configuration path is the path with every `:` replaced by `__`, so `Cratis:Arc:ForwardedIdentity:Keys:0:SecretBase64` is `Cratis__Arc__ForwardedIdentity__Keys__0__SecretBase64`. `target` and `configuration` are written only for keys whose configuration Stage knows: the two keys above and the authentication provider keys. The onboarding keys (`onboarding.email.*`) carry only `key` and `secret`, because who reads them (Ante or the application's Herald) is not confirmed. The AuthProxy service that routes to the application is the operator's choice and AuthProxy has no convention for it, so the `configuration` of `forwardedIdentity.authProxy.secretBase64` keeps the literal `<name>` placeholder; the operator replaces it with the name of the AuthProxy service that routes to the application.
+
+Every `authentication.providers.<Identity>.<key>` key targets `authProxy`, and its configuration is `Cratis:AuthProxy:Application:Environment:authentication.providers.<Identity>.<key>`, with the identity written exactly as the model declares it, spaces and hyphens included. The last segment, `authentication.providers.<Identity>.<key>`, contains dots and is one configuration key. Only `:` becomes `__` in the environment variable, so the dots stay: `Cratis__AuthProxy__Application__Environment__authentication.providers.<Identity>.<key>`. AuthProxy also accepts a `<path>_FILE` form for a secret, whose value is the path of a file holding it, and `Cratis:AuthProxy:Application:SecretsDirectory`, a directory with one file per key.
+
+The model declares `clientId` and `clientSecret` for every provider, `tenantId` for `EntraId` and `authority` for `OpenId`. AuthProxy requires exactly these for `EntraId`, `GitHub` and `OpenId`; for `Google` and `Apple` it accepts an optional `authority` that the model does not declare.
+
+Both hold the same value: the standard base64 of exactly 32 random bytes, for example from `openssl rand -base64 32`. Keep it in a secret store and never commit it. Use a separate key for every audience.
+
+Stage renders only AuthProxy's `Cratis:AuthProxy:Application` contract, so configure the sending side of AuthProxy yourself:
+
+- `Cratis:AuthProxy:Services:<name>:ForwardedIdentity` with `Audience` `<application>-api`, `KeyId` `<application>-v1` and the secret above. `<name>` is the service AuthProxy routes to the application.
+- The tenant list flow is signed separately, under `TenantResolutions:<i>:Options:ForwardedIdentity`, with the same shape.
+- By convention an MCP flow uses the audience `<application>-mcp` and its own key.
+- Outside local development the application must be reached over HTTPS with a client certificate. Stage does not render these.
+- A custom `Tenancy.HttpHeader` is not signed by AuthProxy, so it cannot be combined with signed forwarded identity.
+
+To rotate a key, add the new key at every receiver first, then switch AuthProxy to the new key id and secret, wait out the replay window and remove the old key. AuthProxy's forwarded identity signing documentation describes the details.
 
 ## Personas
 

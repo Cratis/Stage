@@ -11,10 +11,10 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 internal static class CratisEsmSupport
 {
     internal static EsmSupport Descriptor { get; } = new(
-        [.. EsmSchemaV30Support.LanguageVersions.Zip(EsmSchemaV30Support.SemanticVersions), (LanguageVersion.V31, SemanticVersion.V31), (LanguageVersion.V32, SemanticVersion.V32), (LanguageVersion.V33, SemanticVersion.V33), (LanguageVersion.V34, SemanticVersion.V34), (LanguageVersion.V36, SemanticVersion.V36), (LanguageVersion.V38, SemanticVersion.V38), (LanguageVersion.V40, SemanticVersion.V40), (LanguageVersion.V41, SemanticVersion.V41)],
+        [.. EsmSchemaV30Support.LanguageVersions.Zip(EsmSchemaV30Support.SemanticVersions), (LanguageVersion.V31, SemanticVersion.V31), (LanguageVersion.V32, SemanticVersion.V32), (LanguageVersion.V33, SemanticVersion.V33), (LanguageVersion.V34, SemanticVersion.V34), (LanguageVersion.V36, SemanticVersion.V36), (LanguageVersion.V37, SemanticVersion.V37), (LanguageVersion.V38, SemanticVersion.V38), (LanguageVersion.V40, SemanticVersion.V40), (LanguageVersion.V41, SemanticVersion.V41)],
         new(SemanticVersion.V32, 33))
     {
-        // ESM v38 is audited for graphs and v40 for graph queries, which the sandbox runs and the renderer does not render yet (STAGE-ESM-068). It also carries the v37 clock constructs, which stay refused by the ledger (STAGE-ESM-016).
-        MemberScanned = [(LanguageVersion.V38, SemanticVersion.V38), (LanguageVersion.V40, SemanticVersion.V40), (LanguageVersion.V41, SemanticVersion.V41)]
+        // ESM v37 is the command clock and v38 graphs, v40 graph queries, which the sandbox runs and the renderer does not render yet (STAGE-ESM-068). The clock members stay refused by the ledger (STAGE-ESM-016), per owning command or specification at run time, so these pairs scan their members.
+        MemberScanned = [(LanguageVersion.V37, SemanticVersion.V37), (LanguageVersion.V38, SemanticVersion.V38), (LanguageVersion.V40, SemanticVersion.V40), (LanguageVersion.V41, SemanticVersion.V41)]
     };
 }

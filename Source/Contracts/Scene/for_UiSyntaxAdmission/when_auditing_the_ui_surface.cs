@@ -25,7 +25,7 @@ public class when_auditing_the_ui_surface : Specification
     // Sinks (Screenplay 6.4.0, decision 0146) are realization metadata: Stage reads them from SemanticCompilation.Sinks, ReadModelSinks and GraphSinks, never from this syntax.
     // DesignSystems (Screenplay 6.4.0) are UI configuration the binder defers from the executable model (PLAY0269); Scene has no design system yet, so Stage neither renders nor refuses them.
     // ScreenShowSyntax is the slot it stands in
-    // (TemplateSlotPlacement); FormFieldSyntax.Choices is refused by UiSyntaxAdmission until Scene's form field can carry it.
+    // (TemplateSlotPlacement); FormFieldSyntax.Choices is a plain input with a STAGE-SCENE-FORM-004 warning from UiSyntaxAdmission until Scene's form field can carry it.
     [Theory]
     [InlineData(typeof(ApplicationSyntax), "Authentication Behaviors CommandReadMode Concepts Context DesignSystems Domain EventSources Examples Exposures FileImports Identity Imports InstanceContributions Layouts Modules Onboarding Personas Policies Purposes ReactionProductionMode RetiredForms SampleDataPacks Seeds Sinks SourceOptions StateMachines StickyNotes Systems Templates Themes TimeZone Triggers Types UiProfiles Users Workflows")]
     [InlineData(typeof(ModuleSyntax), "Authorize Behaviors Contributions DependsOn Description DialogTemplates Documentation Examples Features FileImports Forms IsPlacement Name Outlets Purposes RetiredForms ScreenTemplates Templates UsedBehaviors")]

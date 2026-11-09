@@ -42,6 +42,9 @@ public static class RuntimeConfigurationFiles
     /// </summary>
     public const string AnteEventStore = "Ante";
 
+    const string ProviderKeyPrefix = "authentication.providers.";
+    const string AuthProxyEnvironmentConfiguration = "Cratis:AuthProxy:Application:Environment";
+
     static readonly string[] _providerKinds = ["EntraId", "GitHub", "Google", "Apple", "OpenId"];
 
     static readonly JsonSerializerOptions _indented = new() { WriteIndented = true, NewLine = "\n" };
@@ -75,7 +78,17 @@ public static class RuntimeConfigurationFiles
     /// <param name="realization">The realization of the application.</param>
     /// <param name="applicationName">The name of the application, which is the name of its Chronicle event store.</param>
     /// <returns>The relative path of each file and its content.</returns>
-    public static IEnumerable<(string RelativePath, string Content)> Render(ApplicationRealization realization, string applicationName)
+    public static IEnumerable<(string RelativePath, string Content)> Render(ApplicationRealization realization, string applicationName) =>
+        Render(realization, applicationName, signedForwardedIdentity: false);
+
+    /// <summary>
+    /// Renders every runtime configuration file the realization calls for, declaring the secrets of signed forwarded identity when it is on.
+    /// </summary>
+    /// <param name="realization">The realization of the application.</param>
+    /// <param name="applicationName">The name of the application, which is the name of its Chronicle event store.</param>
+    /// <param name="signedForwardedIdentity">Whether the application verifies the signature of the identity AuthProxy forwards.</param>
+    /// <returns>The relative path of each file and its content.</returns>
+    public static IEnumerable<(string RelativePath, string Content)> Render(ApplicationRealization realization, string applicationName, bool signedForwardedIdentity)
     {
         var providers = SupportedProviders(realization);
         if (!providers.IsEmpty)
@@ -88,9 +101,11 @@ public static class RuntimeConfigurationFiles
             yield return (AntePath, Ante(onboarding, applicationName));
         }
 
-        if (!realization.Environment.IsDefaultOrEmpty)
+        // Nothing is signed without a provider AuthProxy signs people in with, as nothing is forwarded.
+        var signed = signedForwardedIdentity && !providers.IsEmpty;
+        if (!realization.Environment.IsDefaultOrEmpty || signed)
         {
-            yield return (EnvironmentPath, Environment(realization, applicationName));
+            yield return (EnvironmentPath, Environment(realization, applicationName, signed));
         }
     }
 
@@ -151,12 +166,51 @@ public static class RuntimeConfigurationFiles
     internal static string[] GrantablePersonas(RealizedOnboarding onboarding) =>
         [.. onboarding.Invitations.SelectMany(invitation => invitation.Grant).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)];
 
-    internal static string Environment(ApplicationRealization realization, string applicationName) =>
+    internal static string Environment(ApplicationRealization realization, string applicationName, bool signedForwardedIdentity = false) =>
         Serialize(new JsonObject
         {
             ["application"] = applicationName,
-            ["keys"] = new JsonArray([.. realization.Environment.Select(key => (JsonNode)new JsonObject { ["key"] = key.Key, ["secret"] = key.Secret })])
+            ["keys"] = new JsonArray([.. EnvironmentKeys(realization, signedForwardedIdentity).Select(EnvironmentEntry)])
         });
+
+    // The target and configuration are written only when known.
+    static JsonObject EnvironmentEntry(RealizedEnvironmentKey key)
+    {
+        var entry = new JsonObject { ["key"] = key.Key, ["secret"] = key.Secret };
+        if (key.Target is not null)
+        {
+            entry["target"] = key.Target;
+        }
+
+        if (key.Configuration is not null)
+        {
+            entry["configuration"] = key.Configuration;
+        }
+
+        return entry;
+    }
+
+    // Only the names of the secrets of signed forwarded identity are declared; the runtime supplies their value.
+    static ImmutableArray<RealizedEnvironmentKey> EnvironmentKeys(ApplicationRealization realization, bool signedForwardedIdentity)
+    {
+        var declared = realization.Environment.IsDefaultOrEmpty ? [] : realization.Environment.Select(AuthProxyProviderKey).ToImmutableArray();
+        if (!signedForwardedIdentity)
+        {
+            return declared;
+        }
+
+        RealizedEnvironmentKey[] signing = [
+            new(ForwardedIdentitySigning.ArcSecretKey, true) { Target = RealizedEnvironmentKey.ApplicationTarget, Configuration = ForwardedIdentitySigning.ArcSecretConfiguration },
+            new(ForwardedIdentitySigning.AuthProxySecretKey, true) { Target = RealizedEnvironmentKey.AuthProxyTarget, Configuration = ForwardedIdentitySigning.AuthProxySecretConfiguration }
+        ];
+        return [.. declared, .. signing];
+    }
+
+    // AuthProxy reads a provider key from its application contract; the whole key, dots included, is one configuration key.
+    static RealizedEnvironmentKey AuthProxyProviderKey(RealizedEnvironmentKey key) =>
+        key.Key.StartsWith(ProviderKeyPrefix, StringComparison.Ordinal) && key.Configuration is null
+            ? key with { Target = RealizedEnvironmentKey.AuthProxyTarget, Configuration = $"{AuthProxyEnvironmentConfiguration}:{key.Key}" }
+            : key;
 
     static string Serialize(JsonNode node) => $"{node.ToJsonString(_indented)}\n";
 }

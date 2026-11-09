@@ -10,6 +10,8 @@ using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Sensitivity;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Cratis.Stage.Semantics;
 
@@ -31,6 +33,7 @@ internal static class SemanticCommandOutcome
                 ? [ValidationResult.Error(rejected.Details)]
                 : rejected.ValidationFailures.Select(failure => ValidationResult.Error(failure.Message)).ToArray()
         },
+        SemanticUnsupported { Capability: SemanticExecutionCapability.Projection } unsupported when IsMissingInstance(unsupported.Details) => MissingInstanceRefusal(unsupported.Details, httpContext, artifact),
         SemanticUnsupported unsupported => Unsupported(unsupported, httpContext, artifact),
         _ => new CommandResult { ExceptionMessages = ["Semantic execution returned an unrecognized outcome."] }
     };
@@ -38,6 +41,24 @@ internal static class SemanticCommandOutcome
     internal static object? CommittedResponse(SemanticAccepted accepted, IDictionary<string, JsonElement> fallback, SemanticCommand command, SemanticApplication application) => accepted.Response is { } response
         ? SensitiveValues.Response(Response(response), command.Response, application)
         : SensitiveValues.Payload(fallback, command.Properties, application);
+
+    // The reference projection refuses a read model whose required properties no creating event established: the instance was never created.
+    static bool IsMissingInstance(string details)
+    {
+        const string prefix = "Projection '";
+        const string marker = "' did not establish required read-model property '";
+        return details.StartsWith(prefix, StringComparison.Ordinal) && details.Contains(marker, StringComparison.Ordinal);
+    }
+
+    static CommandResult MissingInstanceRefusal(string details, HttpContext? context, string artifact)
+    {
+        if (context?.RequestServices?.GetService<ILoggerFactory>() is { } loggers)
+        {
+            SemanticCommandOutcomeLog.MissingInstance(loggers.CreateLogger(typeof(SemanticCommandOutcome)), artifact, details);
+        }
+
+        return new CommandResult { ValidationResults = [ValidationResult.Error("The instance does not exist.")] };
+    }
 
     static CommandResult Concurrency(string details) => new()
     {

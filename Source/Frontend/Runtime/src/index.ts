@@ -18,5 +18,7 @@ export { StageCommandForm } from './StageCommandForm';
 export { StageSceneGuardedAction as StageGuardedAction } from './stageData';
 export { StageDataProvider, useStageData, useStageQuery, dataChanged } from './stageData';
 export { createStageSliceInvoker, sliceFieldsFrom } from './stageSlices';
+export { readSandboxActingUser, writeSandboxActingUser } from './sandboxActingUser';
+export type { SandboxActingUserState } from './sandboxActingUser';
 export { readStageNotes } from './stageNotes';
 export type { StageNotesState } from './stageNotes';

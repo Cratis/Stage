@@ -37,6 +37,7 @@ public class a_sandbox_host : Specification
             [new Claim(ClaimTypes.NameIdentifier, "persona:Shopper"), new Claim(ClaimTypes.Name, "Ada"), new Claim(ClaimTypes.Role, "Shopper")],
             "stage-persona"));
         _app.UseSandboxIdentityHeaders();
+        _app.UseSandboxAuthentication();
         _app.UseRouting();
         SandboxIdentity.Use(_app, persona);
         _app.UseAuthorization();

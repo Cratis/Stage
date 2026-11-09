@@ -64,7 +64,8 @@ function commandFormSubject(element: ExternalComponent, rows: ScreenRows, schema
 
 function useCommandSchema(element: ExternalComponent, routes: StageDataState['routes']) {
     const schemaText = text(element, 'schema') || routes?.commandSchemas?.[text(element, 'command')];
-    const schema = useMemo(() => schemaPropertiesOf(schemaText ?? ''), [schemaText]);
+    const identitySchema = routes?.commandSchemas?.[text(element, 'command')];
+    const schema = useMemo(() => schemaPropertiesOf(schemaText ?? '', identitySchema), [schemaText, identitySchema]);
     return { schemaText, schema, hasSchemaMetadata: typeof schemaText === 'string' };
 }
 
@@ -392,8 +393,12 @@ export function selectedIdentifier(property: SchemaProperty, selectedRows: Recor
     return values.size === 1 ? [...values][0] : undefined;
 }
 
-/** Whether a row the person could select carries a property of this name - the key of an entity that already exists on the screen. */
+/**
+ * Whether a row the person could select carries a property of this name - the key of an entity that already exists on the screen. A reference to
+ * another entity than the one the command acts on is never bound from a row, even when a row column shares its name.
+ */
 export function carriedBy(property: SchemaProperty, rows: Record<string, unknown>[]): boolean {
+    if (property.otherEntity) return false;
     return rows.some(row => Object.hasOwn(row, property.name));
 }
 

@@ -30,6 +30,9 @@ export const stageThemeToggleComponent = 'Stage:themeToggle';
 /** The name the feedback button in the topbar is registered under. */
 export const stageNotesComponent = 'Stage:notes';
 
+/** The live sandbox's browser-local acting-user selection. */
+export const stageActingUserComponent = 'Stage:acting-user';
+
 /** The package a host renders with when the profile lists no component library: the Cratis component library, built on React Aria. */
 export const stageBaselinePackage = 'Cratis.Components';
 
@@ -146,13 +149,17 @@ export interface ChromeOptions {
     /** Whether the footer is drawn. On unless stated. */
     showFooter?: boolean;
 
+    /** Whether a live source offers the sandbox acting-user capability. Off for generated applications. */
+    showActingUser?: boolean;
+
     /** Whether the topbar offers the theme switcher. On unless stated. */
     showThemeSwitcher?: boolean;
 }
 
 /** The end of the topbar: the locale picker when the application has more than one locale, then the theme switcher when it is offered. */
-function topbarEnd(locales: string[], locale: string, showThemeSwitcher: boolean): SceneElement[] {
+function topbarEnd(locales: string[], locale: string, showThemeSwitcher: boolean, showActingUser: boolean): SceneElement[] {
     const end: SceneElement[] = [];
+    if (showActingUser) end.push(externalComponent('topbar-acting-user', stageActingUserComponent, {}));
     if (locales.length > 1) end.push(externalComponent('topbar-locale', stageLocaleComponent, { locales, locale }));
     if (showThemeSwitcher) end.push(externalComponent('topbar-theme', stageThemeToggleComponent, {}));
     return end;
@@ -167,7 +174,7 @@ function topbarEnd(locales: string[], locale: string, showThemeSwitcher: boolean
  * sidebar draw no region of their own.
  */
 export function applicationChrome(screens: Screen[], activeScreen: string, locales: string[], locale: string, application?: ApplicationIdentity, options: ChromeOptions = {}): Record<string, SceneElement[]> {
-    const { regions = false, showFooter = true, showThemeSwitcher = true } = options;
+    const { regions = false, showFooter = true, showThemeSwitcher = true, showActingUser = false } = options;
     const first = screens[0]?.name ?? '';
     const title = application?.title ?? stageApplicationName;
     const authored = authoredNavigationEntries(screens);
@@ -186,7 +193,7 @@ export function applicationChrome(screens: Screen[], activeScreen: string, local
     const menu = authored.length > 0
         ? externalComponent('menu-hierarchy', stageNavigationTreeComponent, { nodes: tree, activeScreen })
         : externalComponent('menu-screens', ComponentName.Menu, { title: 'Screens', label: 'Screens' }, { items: entries });
-    const end = [externalComponent('topbar-notes', stageNotesComponent, {}), ...topbarEnd(locales, locale, showThemeSwitcher)];
+    const end = [externalComponent('topbar-notes', stageNotesComponent, {}), ...topbarEnd(locales, locale, showThemeSwitcher, showActingUser)];
     const regionNavigation = { regionNavigation: regions };
 
     return {

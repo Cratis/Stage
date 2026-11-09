@@ -40,7 +40,9 @@ import {
 // The tokens (z-index scale, shadows, spacing) every Cratis Components overlay reads: a dialog or drawer is portaled to `body`, outside the
 // shell, so without them its stacking falls back to `auto` and the page content paints over it.
 import '@cratis/components/tokens';
-// The stylesheets of the Cratis Components the Stage draws a screen with: the command form's fields, the dropdown and its popup, buttons and messages.
+// The stylesheets of the Cratis Components the Stage draws a screen with: the command form's fields, the dropdown and its popup, buttons and messages,
+// and the dialogs a command opens in. Without the dialog stylesheet the dialog is unpositioned content below the page while the page behind it is inert.
+import '@cratis/components/Dialogs/styles';
 import '@cratis/components/CommandForm/styles';
 import '@cratis/components/Dropdown/styles';
 import '@cratis/components/Common/styles';
@@ -159,8 +161,8 @@ function resolvedScreens(screens: Screen[], dictionary?: Record<string, string>)
  * What the Stage decides about composing a screen, on top of the composition it shares with the preview: its own chrome around the
  * shell (the effective navigation regions are Scene's), its command form, its status line and its data sources.
  */
-export function stageComposition(scene: StageSceneApplication, locales: string[], locale: string, packageCatalog?: PackageCatalog, dictionary?: Record<string, string>, blueprintTemplates?: ScreenTemplate[], showFooter = true, showThemeSwitcher = true): CompositionOptions {
-    const options: ChromeOptions = { regions: declaresRegions(scene.navigation), showFooter, showThemeSwitcher };
+export function stageComposition(scene: StageSceneApplication, locales: string[], locale: string, packageCatalog?: PackageCatalog, dictionary?: Record<string, string>, blueprintTemplates?: ScreenTemplate[], showFooter = true, showThemeSwitcher = true, showActingUser = false): CompositionOptions {
+    const options: ChromeOptions = { regions: declaresRegions(scene.navigation), showFooter, showThemeSwitcher, showActingUser };
     const chromeScreens = resolvedScreens(scene.screens, dictionary);
     const application = applicationIdentity(scene);
     return {
@@ -320,9 +322,11 @@ function StageApplication({ scene, registry, routing, routeState, strings, packa
     const shellSettings = useMemo(() => shell ? stageShellSettings(profile, shell, prefersDark) : undefined, [profile, shell, prefersDark]);
     const themes = useMemo(() => themesWithAccent(defaultBlueprintThemes, shellSettings?.accent), [shellSettings?.accent]);
     const { showFooter, showThemeSwitcher } = shellChromeOf(shellSettings);
+    const source = useStageSource();
+    const showActingUser = !!source.actingUser && !!source.selectActingUser;
     const composition = useMemo(
-        () => stageComposition(scene, strings.locales, strings.locale, packageCatalog, strings.dictionary, screenTemplates, showFooter, showThemeSwitcher),
-        [scene, strings.locales, strings.locale, strings.dictionary, packageCatalog, screenTemplates, showFooter, showThemeSwitcher]);
+        () => stageComposition(scene, strings.locales, strings.locale, packageCatalog, strings.dictionary, screenTemplates, showFooter, showThemeSwitcher, showActingUser),
+        [scene, strings.locales, strings.locale, strings.dictionary, packageCatalog, screenTemplates, showFooter, showThemeSwitcher, showActingUser]);
     const onSystemSchemeChange = useCallback((dark: boolean) => setPrefersDark(dark), []);
     const navigationModel = useMemo(() => stageNavigationModel(scene, isVisible, strings.dictionary), [scene, isVisible, strings.dictionary]);
     // Own templates come first: a template of the application wins over a blueprint's of the same name, as in composition.

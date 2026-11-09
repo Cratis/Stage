@@ -41,7 +41,7 @@ public static class EventModelLoader
         var application = await CompilePath(path);
         return new StageApplication(
             new ScreenplayEventModelVisitor().Visit(application),
-            new ScreenplaySceneVisitor().Visit(application));
+            VisitScene(application));
     }
 
     /// <summary>
@@ -68,7 +68,7 @@ public static class EventModelLoader
         var merged = await CompileDirectory(directory);
         return new StageApplication(
             new ScreenplayEventModelVisitor().Visit(merged),
-            new ScreenplaySceneVisitor().Visit(merged));
+            VisitScene(merged));
     }
 
     /// <summary>
@@ -123,6 +123,15 @@ public static class EventModelLoader
         }
 
         return new ScreenplayEventModelVisitor().Visit(result.Value!);
+    }
+
+    // The converters run without a collector, so report the members that are admitted but not translated yet (a form field's picker).
+    static SceneApplication VisitScene(ApplicationSyntax application)
+    {
+        var scene = new ScreenplaySceneVisitor().Visit(application);
+        var admitted = new ConversionDiagnostics();
+        new UiSyntaxAdmission(admitted).VisitApplication(application);
+        return scene with { ConversionDiagnostics = [.. scene.ConversionDiagnostics, .. admitted.All] };
     }
 
     static async Task<ApplicationSyntax> CompilePath(string path)

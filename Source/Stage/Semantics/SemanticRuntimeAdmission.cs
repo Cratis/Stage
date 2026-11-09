@@ -13,6 +13,8 @@ internal sealed record SemanticAdmissionEntry(string Artifact, string Kind, stri
 
 internal sealed class SemanticRuntimeAdmission
 {
+    const string TriggerNotExecuted = "Not executed at runtime: there is no way to raise an application trigger yet (Cratis/Stage#957).";
+
     internal SemanticRuntimeAdmission(SemanticExecutionPlan plan, Func<string, string?>? ruleName = null, SemanticBodyExecution? bodies = null)
     {
         var entries = new List<SemanticAdmissionEntry>();
@@ -21,8 +23,21 @@ internal sealed class SemanticRuntimeAdmission
 
         // External integrations remain visible without blocking unrelated local behavior.
         // Other unsupported constructs still refuse the model rather than silently losing behavior.
-        foreach (var feature in SemanticRunAdmission.ModelFeatures(plan.Model))
+        foreach (var scoped in SemanticRunAdmission.ScopedClockMembers(plan.Model).Where(scoped => string.Equals(scoped.Kind, "readModel", StringComparison.Ordinal) || string.Equals(scoped.Kind, "application", StringComparison.Ordinal)))
         {
+            // The clock only matters to the commands and specifications that use it; metadata and ordering never change what runs.
+            entries.Add(new(scoped.Member.Owner.ToString(), scoped.Member.OwnerKind, "supported", null, $"STAGE-ESM-016: ESM member {scoped.Member.Member} is not audited and is ignored; properties are ordered canonically and clock constructs are refused per command."));
+        }
+
+        foreach (var feature in SemanticRunAdmission.RuntimeModelFeatures(plan.Model))
+        {
+            if (IsUnraisableTrigger(feature))
+            {
+                // Nothing in the runtime can raise an application trigger, so only the trigger and its reaction are refused.
+                entries.Add(Refused(feature) with { Details = $"{feature.Details} {TriggerNotExecuted}" });
+                continue;
+            }
+
             var details = SemanticRunAdmission.RunsAround(plan.Model.Application, feature);
             var entry = details is null ? Refused(feature) : new(feature.Artifact, feature.Kind, "renderedAround", feature.Capability, details);
             entries.Add(entry);
@@ -109,6 +124,10 @@ internal sealed class SemanticRuntimeAdmission
 
     internal IReadOnlyList<SemanticAdmissionEntry> Blocking { get; }
 
+    static bool IsUnraisableTrigger(SemanticAdmissionFeature feature) =>
+        feature.Details.StartsWith($"{SemanticVersionFeatures.Automation}:", StringComparison.Ordinal) &&
+        (feature.Kind == "trigger" || (feature.Kind == "reaction" && feature.Details.Contains("trigger kind 'ApplicationTrigger'", StringComparison.Ordinal)));
+
     static SemanticAdmissionEntry LifecycleEntry(string name, string kind, IEnumerable<Cratis.Stage.Contracts.Lifecycles.LifecycleRefusal> refusals)
     {
         var own = refusals.Where(refusal => refusal.Owner == name).ToArray();
@@ -119,6 +138,11 @@ internal sealed class SemanticRuntimeAdmission
 
     static (SemanticAdmissionEntry Entry, bool BlocksModel) CommandEntry(SemanticExecutionPlan plan, SemanticCommand command, Func<string, string?>? ruleName, SemanticBodyExecution? bodies)
     {
+        if (SemanticRunAdmission.CommandRangeRefusal(plan, command) is { } clockRefusal)
+        {
+            // The command clock refuses only the commands that use it.
+            return (new(command.Id.ToString(), "command", "unsupported", clockRefusal.Capability.ToString(), clockRefusal.Details), false);
+        }
         if (SemanticPlanAdmission.Check(plan, command.Id) is { } planRefusal)
         {
             return (new(command.Id.ToString(), "command", "unsupported", planRefusal.Capability.ToString(), command.Handler is null ? planRefusal.Details : $"{planRefusal.Details} {BodyDiagnostics.NotExecuted(SemanticImplementationRole.CommandHandler)}"), false);

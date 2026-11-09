@@ -5,6 +5,7 @@ using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Files;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Api;
+using Cratis.Stage.Contracts;
 using Cratis.Stage.Contracts.Scene;
 using Cratis.Stage.Contracts.Semantics;
 
@@ -25,6 +26,13 @@ internal static class SemanticHostScene
                 .Select(diagnostic => $"{diagnostic.Location.Path}({diagnostic.Location.Line},{diagnostic.Location.Column}): {diagnostic.Message}")]);
         }
 
-        return SceneSynthesizer.Synthesize(new ScreenplaySceneVisitor().Visit(result.Value!), model);
+        var syntax = result.Value!;
+        var scene = SceneSynthesizer.Synthesize(new ScreenplaySceneVisitor().Visit(syntax), model);
+
+        // The converters run without a collector here, so report the members that are admitted but not translated yet (a form field's picker).
+        var admitted = new ConversionDiagnostics();
+        new UiSyntaxAdmission(admitted).VisitApplication(syntax);
+
+        return scene with { ConversionDiagnostics = [.. scene.ConversionDiagnostics, .. admitted.All] };
     }
 }

@@ -16,6 +16,7 @@ internal static class CratisScaffoldArtifacts
     internal static IEnumerable<PlannedArtifact> Render(ArtifactRenderProfile profile, string rootNamespace, ImmutableArray<SemanticId> sources, string? applicationName = null, bool generatedWorkflows = false, string? contractsFolder = null, bool usesGraphs = false)
     {
         var realization = applicationName is null ? null : ApplicationRealizationInput.From(profile);
+        var signed = SignedForwardedIdentityInput.IsCarriedBy(profile);
         var strings = StringsCatalogInput.From(profile);
         var sinks = applicationName is not null && SinksInput.TryRead(profile, null, out var declared) ? declared : Contracts.Semantics.RealizedSinks.None;
         var sceneName = $"cratis-scaffold:text:{SceneCompositionInput.RelativePath}";
@@ -34,7 +35,7 @@ internal static class CratisScaffoldArtifacts
                 planned = PlannedArtifact.CreateText(planned.RelativePath, Encoding.UTF8.GetString(planned.Bytes.AsSpan()).Replace("builder.Services.AddEventSourcedWorkflows();", $"builder.Services.AddEventSourcedWorkflows({rootNamespace}.Lifecycles.GeneratedWorkflows.Configure);", StringComparison.Ordinal), planned.Sources);
             }
 
-            planned = realization is null ? planned : RealizationScaffold.Patch(planned, realization, rootNamespace);
+            planned = realization is null ? planned : RealizationScaffold.Patch(planned, realization, rootNamespace, ForwardedIdentitySigning.Settings(applicationName!, signed));
             planned = contractsFolder is null ? planned : EventContractsScaffold.Patch(planned, contractsFolder);
             planned = usesGraphs && applicationName is not null ? GraphScaffold.Patch(planned, applicationName) : planned;
             yield return SinksScaffold.Patch(planned, sinks);
@@ -42,7 +43,7 @@ internal static class CratisScaffoldArtifacts
 
         if (realization is not null)
         {
-            foreach (var planned in RealizationArtifacts.Render(realization, applicationName!, rootNamespace, strings?.DefaultLocale ?? RealizationArtifacts.DefaultLanguage, sources))
+            foreach (var planned in RealizationArtifacts.Render(realization, applicationName!, rootNamespace, strings?.DefaultLocale ?? RealizationArtifacts.DefaultLanguage, sources, signed))
             {
                 yield return planned;
             }

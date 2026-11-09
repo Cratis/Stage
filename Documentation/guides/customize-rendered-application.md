@@ -254,7 +254,8 @@ public partial class Program
 
 Merge this registration into your existing global `ConfigureServices` hook and keep the setting out of scaffolded
 `appsettings.json`. Without a trusted
-identity, `/.cratis/me` returns 401 and protected commands and queries reject anonymous callers.
+identity, `/.cratis/me` returns 401 and protected commands and queries reject anonymous callers. To have Arc verify the
+forwarded identity by its signature, see [signed forwarded identity](../reference/authentication-rendering.md#signed-forwarded-identity-opt-in).
 
 Outside the Development environment, Arc's discovery endpoints (`/.cratis/commands`, `/.cratis/queries`,
 `/.cratis/users`, `/.cratis/tenants` and `/.cratis/identity-details/schema`) also require an authenticated caller.

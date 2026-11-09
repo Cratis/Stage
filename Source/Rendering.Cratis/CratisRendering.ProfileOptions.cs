@@ -36,7 +36,16 @@ public static partial class CratisRendering
                 profile.RendererVersion,
                 [.. profile.Inputs, RefusalModeInput.Create(options.Refusals)]);
         }
-        return PrepareFileHeader(options, profile, domain);
+        return PrepareSignedForwardedIdentity(options, profile, domain);
+    }
+
+    static (ArtifactRenderProfile? Profile, CratisPlanDiagnostic? Diagnostic) PrepareSignedForwardedIdentity(CratisPlanOptions options, ArtifactRenderProfile profile, string domain)
+    {
+        if (options.SignedForwardedIdentity && profile.Inputs.Any(input => input.Name == SignedForwardedIdentityInput.Name))
+        {
+            return (null, ProfileError("The caller's profile must omit signed forwarded identity when the SignedForwardedIdentity option is set."));
+        }
+        return PrepareFileHeader(options, SignedForwardedIdentityInput.With(profile, options.SignedForwardedIdentity), domain);
     }
 
     static (ArtifactRenderProfile? Profile, CratisPlanDiagnostic? Diagnostic) PrepareFileHeader(CratisPlanOptions options, ArtifactRenderProfile profile, string domain)

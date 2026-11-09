@@ -118,7 +118,7 @@ public static class CratisServiceConfiguration
 
         if (published is null)
         {
-            SandboxIdentityOptions.Configure(builder.Services, builder.Configuration);
+            SandboxIdentityOptions.Configure(builder.Services, builder.Configuration, builder.Environment);
         }
         else
         {

@@ -16,7 +16,7 @@ namespace Cratis.Stage.Host;
 /// </param>
 internal sealed record SandboxIdentityOptions(bool Enabled, bool ForwardedIdentity = false)
 {
-    internal static void Configure(IServiceCollection services, IConfiguration configuration)
+    internal static void Configure(IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
         // The identity headers are not signed, so trusting them is only right when every request arrives through AuthProxy, which strips what a
         // client sends and writes its own. A sandbox that plays a persona and one that trusts AuthProxy cannot both decide who the caller is.
@@ -24,8 +24,9 @@ internal sealed record SandboxIdentityOptions(bool Enabled, bool ForwardedIdenti
 
         // Modeled users are the one other case where the headers are trusted: a development tool such as Lens sends the user it selected. It is
         // development only and explicit (see SandboxUsersOptions), so the users and AuthProxy cannot both be on, and the users, who are the
-        // caller the tool chose, take the place of the single persona Stage would pick for itself.
-        var users = SandboxUsersOptions.Read(configuration, StageDevelopment.Decide(sandbox: true, configuration));
+        // caller the tool chose, take the place of the single persona Stage would pick for itself. UseSandboxIdentityHeaders
+        // accepts the selected user only from the local machine unless remote access is allowed.
+        var users = SandboxUsersOptions.Read(configuration, StageDevelopment.Decide(sandbox: true, configuration, environment));
         if (users.Enabled && forwarded)
         {
             throw new InvalidOperationException($"{SandboxUsersOptions.Key} and Stage:Sandbox:ForwardedIdentity are both on. Modeled users are a development tool; behind AuthProxy the caller is whoever signed in.");

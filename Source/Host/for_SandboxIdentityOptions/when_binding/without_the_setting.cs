@@ -4,6 +4,7 @@
 using Cratis.Arc;
 using Cratis.Specifications;
 using Microsoft.Extensions.Options;
+using NSubstitute;
 using Xunit;
 
 namespace Cratis.Stage.Host.for_SandboxIdentityOptions.when_binding;
@@ -17,7 +18,7 @@ public class without_the_setting : Specification
         var configuration = new ConfigurationBuilder().AddInMemoryCollection([]).Build();
         var services = new ServiceCollection();
         services.AddOptions<ArcOptions>();
-        SandboxIdentityOptions.Configure(services, configuration);
+        SandboxIdentityOptions.Configure(services, configuration, Substitute.For<IHostEnvironment>());
         _provider = services.BuildServiceProvider();
     }
 

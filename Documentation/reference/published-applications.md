@@ -190,6 +190,14 @@ signs users in with the application's identity providers and forwards each reque
 Platform principal headers (`x-ms-client-principal`, `x-ms-client-principal-id`, `x-ms-client-principal-name`,
 `x-ms-client-principal-idp`). Set the mode to `TrustedProxy` and configure `Stage:Published:TrustedProxies`.
 
+The principal headers are not signed, so Stage trusts whatever a trusted address sends. Two rules keep that safe:
+
+- List only the sign-in proxy's own addresses in `Stage:Published:TrustedProxies`. Do not list ingress controllers,
+  load balancers, node or pod ranges, or any other component that forwards client requests without replacing these
+  headers.
+- The proxy must remove every `x-ms-client-principal*` header a client sends before it writes its own. Otherwise a
+  client can present itself as someone else through the proxy.
+
 - Arc is told to trust those headers. A request without a principal is unauthenticated, and the model's policies
   (`require authenticated`, roles, claims) are enforced against the real principal.
 - A request that does **not** come from a trusted proxy address has the principal headers removed before anything reads

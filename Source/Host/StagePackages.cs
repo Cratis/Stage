@@ -165,7 +165,7 @@ internal sealed class StagePackages
     /// <returns>The document.</returns>
     public object ToDocument() => new
     {
-        set = JsonDocument.Parse(ApprovedPackageSetJson.Write(Set)).RootElement.Clone(),
+        set = JsonElement.Parse(ApprovedPackageSetJson.Write(Set)),
         modules = Modules,
         styles = Styles,
         diagnostics = Diagnostics

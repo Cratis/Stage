@@ -77,7 +77,7 @@ public class and_the_instance_was_never_created : Specification
     [Fact] void should_refuse_the_command() => _result.IsSuccess.ShouldBeFalse();
     [Fact] void should_be_invalid() => _result.IsValid.ShouldBeFalse();
     [Fact] void should_not_report_an_exception() => _result.HasExceptions.ShouldBeFalse();
-    [Fact] void should_say_the_instance_does_not_exist() => _result.ValidationResults.Single().Message.ShouldEqual("TaskOverviewProjection does not exist.");
+    [Fact] void should_say_the_instance_does_not_exist() => _result.ValidationResults.Single().Message.ShouldEqual("The instance does not exist.");
     [Fact] void should_not_leak_the_internal_exception_text() => _result.ValidationResults.Single().Message.ShouldNotContain("did not establish");
     [Fact] void should_not_mark_the_response_unsupported() => _http.Items.ContainsKey(SemanticRuntimeMarkers.Unsupported).ShouldBeFalse();
     [Fact] void should_not_leak_the_model_identity() => _http.Response.Headers.ContainsKey("Stage-Unsupported-Artifact").ShouldBeFalse();

@@ -5,17 +5,19 @@ using System.Text.Json;
 using Cratis.Arc.Commands;
 using Cratis.Arc.Validation;
 using Cratis.Execution;
+using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Sensitivity;
 using Microsoft.AspNetCore.Http;
 
 namespace Cratis.Stage.Semantics;
 
 internal static class SemanticCommandOutcome
 {
-    internal static CommandResult Map(SemanticExecutionResult result, CorrelationId correlationId, HttpContext? httpContext, string artifact) => result switch
+    internal static CommandResult Map(SemanticExecutionResult result, CorrelationId correlationId, HttpContext? httpContext, string artifact, SemanticCommand? command = null, SemanticApplication? application = null) => result switch
     {
-        SemanticAccepted accepted => Accepted(accepted, correlationId),
+        SemanticAccepted accepted => Accepted(accepted, correlationId, command, application),
         SemanticRejected { Category: SemanticRejectionCategory.Unauthorized } rejected => CommandResult.Unauthorized(correlationId, rejected.Details),
         SemanticRejected { Category: SemanticRejectionCategory.Constraint } rejected => new CommandResult
         {
@@ -33,23 +35,23 @@ internal static class SemanticCommandOutcome
         _ => new CommandResult { ExceptionMessages = ["Semantic execution returned an unrecognized outcome."] }
     };
 
-    internal static object? CommittedResponse(SemanticAccepted accepted, object fallback) => accepted.Response is { } response
-        ? Response(response)
-        : fallback;
+    internal static object? CommittedResponse(SemanticAccepted accepted, IDictionary<string, JsonElement> fallback, SemanticCommand command, SemanticApplication application) => accepted.Response is { } response
+        ? SensitiveValues.Response(Response(response), command.Response, application)
+        : SensitiveValues.Payload(fallback, command.Properties, application);
 
     static CommandResult Concurrency(string details) => new()
     {
         ValidationResults = [ValidationResult.Error(details, reason: ValidationResultReason.ConcurrencyViolation)]
     };
 
-    static CommandResult Accepted(SemanticAccepted accepted, CorrelationId correlationId) => accepted.Response is { } response
-        ? new CommandResult<object?>(correlationId, Response(response))
+    static CommandResult Accepted(SemanticAccepted accepted, CorrelationId correlationId, SemanticCommand? command, SemanticApplication? application) => accepted.Response is { } response
+        ? new CommandResult<object?>(correlationId, command is null || application is null ? Response(response) : SensitiveValues.Response(Response(response), command.Response, application))
         : CommandResult.Success(correlationId);
 
     static object? Response(SemanticExecutionResponse response) => response switch
     {
         SemanticScalarExecutionResponse scalar => SemanticJsonValues.ToObject(scalar.Value),
-        SemanticRecordExecutionResponse record => record.Fields.ToDictionary(field => JsonNamingPolicy.CamelCase.ConvertName(GeneratedPascalCase.From(field.Name)), field => SemanticJsonValues.ToObject(field.Value)),
+        SemanticRecordExecutionResponse record => record.Fields.ToDictionary(field => SensitiveValues.ResponseKey(field.Name), field => SemanticJsonValues.ToObject(field.Value)),
         _ => throw new UnsupportedSemanticValue("The command response cannot be represented as JSON.")
     };
 

@@ -15,7 +15,7 @@ public class and_a_modeled_rule_does_not_hold : given.a_command_handler
     Exception? _error;
 
     async Task Because() => _error = await Catch.Exception(() => HandlerWith(
-            "{\"type\":\"object\",\"properties\":{\"invoiceId\":{},\"authorName\":{}}}",
+            "{\"type\":\"object\",\"properties\":{\"invoiceId\":{\"type\":\"string\"},\"authorName\":{\"type\":\"string\"}}}",
             new CommandPropertyRules("authorName", [new NotEmpty("Name the author.")]))
         .Handle(ContextFor("{\"invoiceId\":\"33333333-3333-3333-3333-333333333333\",\"authorName\":\"\"}")).AsTask());
 

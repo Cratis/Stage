@@ -596,12 +596,30 @@ docker run --rm -p 127.0.0.1:9090:9090 -p 127.0.0.1:35000:35000 \
   -v "$PWD":/eventmodel:ro cratis/stage:latest
 ```
 
+- The Stage browser topbar offers **Acting as** when the sandbox has modeled users. Pick a user to make actual commands,
+  queries, and observable subscriptions run as that user. The page reloads after a successful switch so identity details and
+  subscriptions are recreated together. **No acting user** clears the selection and leaves browser calls anonymous.
 - Stage lists the users at `/.cratis/users`, with the roles and claims synthesized from the policies of the personas each one
-  plays. Lens reads that list, and the user you pick there is the caller for every request, so you can switch between them
-  while testing without restarting Stage.
+  plays. Lens reads that list and can still inject a caller independently; explicit identity headers take precedence over the
+  browser selection.
 - The single server-selected persona above is off while users are on, and Stage trusts the identity headers the tool sends.
 - Stage refuses to start if `Stage:Sandbox:Users` is on when Stage is not in development, or together with
   `Stage:Sandbox:ForwardedIdentity`. A published application never offers users.
+
+The browser selection uses an HttpOnly, SameSite=Strict session cookie containing only the modeled name. Stage resolves its
+roles and claims from the current model on each request; stale names are ignored and cleared. The picker and cookie mapping
+are unavailable in Production, published mode, or without the explicit users switch and a nonempty modeled user list.
+This is a real sandbox caller, not a design-time persona preview or a production sign-in mechanism.
+
+The cookie belongs to the sandbox's host and path, not its port. Separate localhost sessions can therefore share a name;
+Stage accepts it only if the current session models that user. Unsafe requests and WebSocket upgrades need a same-origin
+Origin or Referer to use the cookie; changing the selection requires a same-origin Origin and JSON. A different localhost
+port is not the same origin.
+
+Behind a path-prefixed proxy, preserve the sandbox's base path and cookies. The selection cookie is scoped to `PathBase`
+(`/` when absent) and uses Secure on HTTPS. If the proxy strips cookies, the picker cannot persist a caller. Generated
+applications and static sources do not offer this capability. For the HTTP contract, see
+[Sandbox acting-user selection](../reference/urls.md#sandbox-acting-user-selection).
 
 :::danger[Modeled users are not authentication]
 Local callers, and remote callers when remote access is allowed, can present any identity, including a role the model never

@@ -278,7 +278,7 @@ document, but it is there:
 
 | URL                                                                                          | Purpose                                                                                  |
 | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `/.cratis/me`                                                                                | The current identity. Unauthenticated in a sandbox session, so it answers `401`.         |
+| `/.cratis/me`                                                                                | The current identity; answers `401` when the sandbox caller is anonymous.                |
 | `/.cratis/users`, `/.cratis/tenants`                                                         | Development identity endpoints — the users and tenants a client can switch between.      |
 | `/.cratis/identity-details/schema`                                                           | The schema of the identity details the app provides.                                     |
 | `/.cratis/queries/ws`                                                                        | WebSocket transport for observable queries (a plain `GET` fails — it needs the upgrade). |
@@ -290,6 +290,23 @@ conventional `All`/`ById` queries remain one-shot.
 
 Two request headers are honored on every call: **`X-Correlation-Id`** to correlate a call with what it caused, and
 **`X-Tenant-Id`** to pick the tenant.
+
+## Sandbox acting-user selection
+
+The live Stage browser uses `/stage/sandbox/acting-user` only in a development sandbox with
+`Stage:Sandbox:Users=true` and at least one modeled user. It is unavailable in Production and published mode.
+Like the modeled-user identity headers, it requires a loopback connection and local Host unless
+`Stage:Sandbox:UsersAllowRemote=true`. See [Development users](../docker/index.md#development-users) for setup and security limits.
+
+| Method | Result |
+| --- | --- |
+| `GET` | `{ "enabled": true, "users": [{ "name": "kari", "displayName": "Kari Nordmann", "personas": ["SchemaSteward"] }], "current": "kari" }`; `current` is `null` without a valid selection. No roles or claims are accepted from the browser. |
+| `PUT` | JSON `{ "name": "kari" }` selects that modeled name; `{ "name": null }` clears it. Returns `204` and sets or deletes the name-only session cookie. |
+
+PUT requires a same-origin Origin header, and any Sec-Fetch-Site header must be `same-origin`. A rejected origin returns
+`403`, non-JSON content returns `415`, and an unknown name or malformed body returns `400`, without changing the cookie.
+Requests outside the sandbox access boundary return `404`. These routes are Stage-only and absent from OpenAPI.
+The browser reloads only after a successful mutation; a failed switch leaves the current caller in place.
 
 ## The Chronicle Workbench
 

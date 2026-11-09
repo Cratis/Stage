@@ -51,6 +51,15 @@ internal static class SandboxIdentity
             });
         }
 
+        if (SandboxActingUser.Enabled(app.ApplicationServices))
+        {
+            app.Use((context, next) =>
+            {
+                SandboxActingUser.Apply(context);
+                return next(context);
+            });
+        }
+
         if (app.ApplicationServices.GetService<IAuthenticationSchemeProvider>() is not null)
         {
             app.UseAuthentication();
@@ -68,6 +77,13 @@ internal static class SandboxIdentity
     }
 
     internal static void Use(IApplicationBuilder app, ClaimsPrincipal? principal) => UseForRequests(app, _ => principal);
+
+    internal static bool IsLocalRequest(HttpContext context) => IsLoopback(context.Connection.RemoteIpAddress)
+        && (string.Equals(context.Request.Host.Host, "localhost", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(context.Request.Host.Host, "127.0.0.1", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(context.Request.Host.Host, "[::1]", StringComparison.OrdinalIgnoreCase));
+
+    internal static bool IsIdentityHeader(string name) => name.StartsWith("x-ms-client-principal", StringComparison.OrdinalIgnoreCase);
 
     static void UseForRequests(IApplicationBuilder app, Func<HttpContext, ClaimsPrincipal?> select)
     {
@@ -93,12 +109,5 @@ internal static class SandboxIdentity
         });
     }
 
-    static bool IsLocalRequest(HttpContext context) => IsLoopback(context.Connection.RemoteIpAddress)
-        && (string.Equals(context.Request.Host.Host, "localhost", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(context.Request.Host.Host, "127.0.0.1", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(context.Request.Host.Host, "[::1]", StringComparison.OrdinalIgnoreCase));
-
     static bool IsLoopback(IPAddress? address) => address is not null && IPAddress.IsLoopback(address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address);
-
-    static bool IsIdentityHeader(string name) => name.StartsWith("x-ms-client-principal", StringComparison.OrdinalIgnoreCase);
 }

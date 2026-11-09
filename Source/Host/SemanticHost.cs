@@ -57,6 +57,7 @@ internal static class SemanticHost
         var authentication = mode == StageHostMode.Published ? published ?? PublishedOptions.From(builder.Configuration) : null;
         authentication?.EnsureComplete();
         var development = StageDevelopment.Decide(mode == StageHostMode.Sandbox, builder.Configuration, builder.Environment);
+        builder.Services.AddSingleton(new SandboxActingUserAccess(mode, builder.Environment.IsProduction(), development));
         StageDevelopment.Inform(builder.Services, builder.Environment, development);
         var routeOptions = StageHttpRouteOptions.FromConfiguration(builder.Configuration);
         var bodySettings = SemanticBodyWorkerOptions.From(builder.Configuration);
@@ -153,6 +154,7 @@ internal static class SemanticHost
         StagePackageEndpoints.Map(app);
         if (mode == StageHostMode.Sandbox)
         {
+            SandboxActingUser.Map(app);
             app.MapPost("/stage/load", () => Results.Conflict());
             app.MapGet("/stage/semantic/admission", () => Results.Json(new { engine = "semantic", issues = issues.Select(issue => issue.Details), entries = admission?.Entries ?? [] }, StageJson.Options));
             MapReadModelBrowserPage(app);

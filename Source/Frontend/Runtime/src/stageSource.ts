@@ -6,6 +6,7 @@ import type { StringsDictionary } from '@cratis/scene.engine';
 import type { StageRoutes } from './stageRoutes';
 import type { StageSceneApplication } from './App';
 import type { StageNotesState } from './stageNotes';
+import type { SandboxActingUserState } from './sandboxActingUser';
 
 /** The content supplied by the host of a Stage application. */
 export interface StageSource {
@@ -16,6 +17,10 @@ export interface StageSource {
 
     /** What the host says about feedback: whether Notes is served, and the model references. A source with nothing to say omits it. */
     notes?(signal: AbortSignal): Promise<StageNotesState>;
+
+    /** A live sandbox's host-gated caller selection. Never supplied by a static application. */
+    actingUser?(signal: AbortSignal): Promise<SandboxActingUserState | undefined>;
+    selectActingUser?(name: string | null): Promise<void>;
 }
 
 /** What a generated application already holds when it is built. */
@@ -41,6 +46,7 @@ export const stageEndpoints = {
     routes: 'stage/routes',
     locales: 'stage/locales',
     modelReferences: 'stage/model-references',
+    actingUser: 'stage/sandbox/acting-user',
     strings: (locale: string) => `stage/strings/${encodeURIComponent(locale)}`,
 };
 

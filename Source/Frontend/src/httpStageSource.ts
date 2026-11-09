@@ -4,7 +4,7 @@
 import type { StringsDictionary } from '@cratis/scene.engine';
 import type { StageRoutes, StageSceneApplication, StageSource } from '@cratis/stage.runtime';
 
-import { readStageNotes, stageEndpoints } from '@cratis/stage.runtime';
+import { readStageNotes, readSandboxActingUser, writeSandboxActingUser, stageEndpoints } from '@cratis/stage.runtime';
 
 /** Reads everything from the endpoints a running Stage host serves. */
 export const httpStageSource: StageSource = {
@@ -26,4 +26,6 @@ export const httpStageSource: StageSource = {
         return response.ok ? response.json() as Promise<StringsDictionary> : {};
     },
     notes: signal => readStageNotes(signal),
+    actingUser: signal => readSandboxActingUser(signal),
+    selectActingUser: name => writeSandboxActingUser(name),
 };

@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Net;
 using System.Security.Claims;
 using Cratis.Screenplay.Files;
 using Cratis.Screenplay.Semantics;
@@ -31,16 +32,23 @@ internal static class SandboxIdentity
     }
 
     /// <summary>
-    /// Removes forwarded identity headers before anything else in the pipeline sees them, then authenticates.
-    /// Call first after building the application, ahead of static files and routing, so neither the
-    /// authentication handler nor a proxied endpoint receives a client-supplied identity.
+    /// Removes forwarded identity headers unless modeled users accept the caller's address, then authenticates.
+    /// Call first after building the application, ahead of static files and routing, so the same address
+    /// decision applies to authentication and proxied endpoints.
     /// </summary>
     /// <param name="app">The application to configure.</param>
     internal static void UseSandboxIdentityHeaders(this IApplicationBuilder app)
     {
-        if (app.ApplicationServices.GetRequiredService<SandboxIdentityOptions>().Enabled)
+        var sandbox = app.ApplicationServices.GetRequiredService<SandboxIdentityOptions>();
+        var users = app.ApplicationServices.GetRequiredService<SandboxUsersOptions>();
+        if (sandbox.Enabled || users.Enabled)
         {
-            app.Use(StripIdentityHeaders);
+            app.Use((context, next) =>
+            {
+                return !users.Enabled || (!users.AllowRemote && !IsLoopback(context.Connection.RemoteIpAddress))
+                    ? StripIdentityHeaders(context, next)
+                    : next();
+            });
         }
 
         if (app.ApplicationServices.GetService<IAuthenticationSchemeProvider>() is not null)
@@ -84,6 +92,8 @@ internal static class SandboxIdentity
             });
         });
     }
+
+    static bool IsLoopback(IPAddress? address) => address is not null && IPAddress.IsLoopback(address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address);
 
     static bool IsIdentityHeader(string name) => name.StartsWith("x-ms-client-principal", StringComparison.OrdinalIgnoreCase);
 }

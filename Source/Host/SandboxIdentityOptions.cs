@@ -24,7 +24,8 @@ internal sealed record SandboxIdentityOptions(bool Enabled, bool ForwardedIdenti
 
         // Modeled users are the one other case where the headers are trusted: a development tool such as Lens sends the user it selected. It is
         // development only and explicit (see SandboxUsersOptions), so the users and AuthProxy cannot both be on, and the users, who are the
-        // caller the tool chose, take the place of the single persona Stage would pick for itself.
+        // caller the tool chose, take the place of the single persona Stage would pick for itself. UseSandboxIdentityHeaders
+        // accepts the selected user only from the local machine unless remote access is allowed.
         var users = SandboxUsersOptions.Read(configuration, StageDevelopment.Decide(sandbox: true, configuration));
         if (users.Enabled && forwarded)
         {

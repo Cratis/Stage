@@ -15,6 +15,8 @@ public class when_deciding : Specification
     bool _sandboxTurnedOff;
     bool _published;
     bool _publishedAskedToBeDevelopment;
+    bool _developmentEnvironment;
+    bool _productionEnvironment;
 
     void Because()
     {
@@ -22,9 +24,13 @@ public class when_deciding : Specification
         _sandboxTurnedOff = StageDevelopment.Decide(true, With((StageDevelopment.Key, "false")));
         _published = StageDevelopment.Decide(false, With());
         _publishedAskedToBeDevelopment = StageDevelopment.Decide(false, With((StageDevelopment.Key, "true")));
+        _developmentEnvironment = StageDevelopment.Decide(true, With((HostDefaults.EnvironmentKey, Environments.Development)));
+        _productionEnvironment = StageDevelopment.Decide(true, With((HostDefaults.EnvironmentKey, "production")));
     }
 
     [Fact] void should_treat_the_sandbox_as_development() => _sandbox.ShouldBeTrue();
+    [Fact] void should_keep_a_development_environment_in_development() => _developmentEnvironment.ShouldBeTrue();
+    [Fact] void should_recognize_production_regardless_of_case() => _productionEnvironment.ShouldBeFalse();
     [Fact] void should_let_the_sandbox_be_turned_off() => _sandboxTurnedOff.ShouldBeFalse();
     [Fact] void should_never_treat_a_published_application_as_development() => _published.ShouldBeFalse();
     [Fact] void should_not_let_a_setting_make_a_published_application_development() => _publishedAskedToBeDevelopment.ShouldBeFalse();

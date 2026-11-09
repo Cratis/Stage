@@ -3,6 +3,8 @@
         <AssemblyName>Cratis.Stage.Contracts</AssemblyName>
         <RootNamespace>Cratis.Stage.Contracts</RootNamespace>
         <IsPackable>true</IsPackable>
+        <TargetFramework></TargetFramework>
+        <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
         <Description>The Cratis Stage contract — the event model intermediate format, specification run results and their serialization.</Description>
     </PropertyGroup>
     <ItemGroup>

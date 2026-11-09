@@ -5,6 +5,8 @@
         <AssemblyName>Cratis.Stage</AssemblyName>
         <RootNamespace>Cratis.Stage</RootNamespace>
         <IsPackable>true</IsPackable>
+        <TargetFramework></TargetFramework>
+        <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
         <CratisEmbeddedScreenplayEnabled>false</CratisEmbeddedScreenplayEnabled>
         <!-- Type discovery emits references to the deprecated structural types; retain them through the next major. -->
         <NoWarn>$(NoWarn);CS0618</NoWarn>

@@ -4,6 +4,8 @@
         <RootNamespace>Cratis.Stage.Rendering.Cratis.Scaffolding</RootNamespace>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <IsPackable>true</IsPackable>
+        <TargetFramework></TargetFramework>
+        <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
         <Description>Scaffolds the Cratis project a rendered Screenplay application is placed into, from the Cratis templates.</Description>
     </PropertyGroup>
     <ItemGroup>

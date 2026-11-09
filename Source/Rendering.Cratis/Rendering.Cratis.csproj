@@ -4,6 +4,8 @@
         <RootNamespace>Cratis.Stage.Rendering.Cratis</RootNamespace>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <IsPackable>true</IsPackable>
+        <TargetFramework></TargetFramework>
+        <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
         <Description>The Cratis Stage Cratis renderer — generates a Cratis Arc + Chronicle vertical-slice application from a compiled Screenplay application.</Description>
     </PropertyGroup>
     <ItemGroup>

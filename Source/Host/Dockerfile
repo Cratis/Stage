@@ -30,6 +30,9 @@ ARG STAGE_PRIMEUI_LICENSE=""
 ENV STAGE_PRIMEUI_LICENSE=$STAGE_PRIMEUI_LICENSE
 RUN npm run build
 
+# Stage runs on .NET 11 while the bundled Chronicle kernel retains its .NET 10 runtime.
+FROM mcr.microsoft.com/dotnet/aspnet:11.0.0-rc.3 AS stage-runtime
+
 # The Chronicle base image is the kernel (Cratis.Chronicle.Server in /app). Storage is fully in-memory, so no
 # database is required to run a play session — the container is self-contained on its own.
 #
@@ -38,6 +41,9 @@ RUN npm run build
 # Keep the DEVELOPMENT kernel flavor and its shell/apt/tini runtime; the bare-version image is chiseled.
 # Verification/verify-runtime-compatibility.py enforces the release version and required development flavor.
 FROM cratis/chronicle:19.144.0-development
+
+# Merge the .NET 11 runtime and host into the existing installation without removing .NET 10.
+COPY --from=stage-runtime /usr/share/dotnet/ /usr/share/dotnet/
 
 # The Chronicle base image bundles MongoDB (its default storage backend, an ~800MB install). The Stage runs
 # fully in-memory, so purge it to keep the image database-free. The purge is guarded so it is a no-op on

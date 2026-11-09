@@ -31,19 +31,7 @@ public static class FormConverter
     /// </summary>
     /// <param name="form">The <see cref="ScreenplaySyntax.FormSyntax"/> to convert.</param>
     /// <returns>The converted <see cref="SceneModel.Form"/>.</returns>
-    public static SceneModel.Form Convert(ScreenplaySyntax.FormSyntax form) =>
-        new(
-            form.Name,
-            form.For,
-            ConvertPopulateSource(form.Populate),
-            [.. form.Fields.Select(ConvertField)],
-            ScreenplayRichSyntax.GenerationMode(form),
-            ScreenplayRichSyntax.Layout(form))
-        {
-            OnSubmit = form.OnSubmit is { } navigate
-                ? [Submit(navigate)]
-                : []
-        };
+    public static SceneModel.Form Convert(ScreenplaySyntax.FormSyntax form) => Build(form, null, string.Empty);
 
     /// <summary>
     /// Converts a form while omitting an unsupported population source.
@@ -54,10 +42,52 @@ public static class FormConverter
     /// <returns>The form with its supported fields and population source.</returns>
     public static SceneModel.Form Convert(ScreenplaySyntax.FormSyntax form, ConversionDiagnostics? diagnostics, string path)
     {
-        if (diagnostics is null || form.Populate is null or ScreenplaySyntax.FormPopulateViaQuerySyntax or ScreenplaySyntax.FormPopulateFromItemSyntax) return Convert(form);
+        if (diagnostics is null || form.Populate is null or ScreenplaySyntax.FormPopulateViaQuerySyntax or ScreenplaySyntax.FormPopulateFromItemSyntax) return Build(form, diagnostics, path);
         var construct = $"form populate source {form.Populate.GetType().Name}";
         diagnostics.Report(new("STAGE-SCENE-FORM-001", DiagnosticSeverity.Error, construct, path, form.Populate.Location, $"Unsupported {construct} was omitted from '{path}'."));
-        return Convert(form with { Populate = null });
+        return Build(form with { Populate = null }, diagnostics, path);
+    }
+
+    static SceneModel.Form Build(ScreenplaySyntax.FormSyntax form, ConversionDiagnostics? diagnostics, string path) =>
+        new(
+            form.Name,
+            form.For,
+            ConvertPopulateSource(form.Populate),
+            ApplyManualColumns(form, diagnostics, path),
+            ScreenplayRichSyntax.GenerationMode(form),
+            ScreenplayRichSyntax.Layout(form))
+        {
+            OnSubmit = form.OnSubmit is { } navigate
+                ? [Submit(navigate)]
+                : []
+        };
+
+    // A manual column list gives each property its label and its place: the fields follow the column order and take the column's label.
+    // A column for a property the form has no field for cannot be shown, and a field without a column keeps its own place after the columns;
+    // the first is reported rather than dropped silently.
+    static List<SceneModel.FormField> ApplyManualColumns(ScreenplaySyntax.FormSyntax form, ConversionDiagnostics? diagnostics, string path)
+    {
+        var fields = form.Fields.Select(ConvertField).ToList();
+        if (form.ColumnMode != ScreenplaySyntax.FormColumnMode.Manual || form.Columns?.ToList() is not { Count: > 0 } columns) return fields;
+
+        var ordered = new List<SceneModel.FormField>();
+        foreach (var column in columns)
+        {
+            var index = fields.FindIndex(field => field.Name == column.Property);
+            if (index < 0)
+            {
+                var construct = $"form column {column.Property}";
+                diagnostics?.Report(new("STAGE-SCENE-FORM-002", DiagnosticSeverity.Warning, construct, path, form.Location, $"The manual column '{column.Property}' of '{path}' names a property the form has no field for and was omitted."));
+                continue;
+            }
+
+            ordered.Add(fields[index] with { Label = column.Label ?? fields[index].Label });
+            fields.RemoveAt(index);
+        }
+
+        ordered.AddRange(fields);
+
+        return ordered;
     }
 
     static Cratis.Scene.Model.Interactions.NavigateAction Submit(ScreenplaySyntax.ScreenNavigateSyntax navigate) => new(navigate.Screen)

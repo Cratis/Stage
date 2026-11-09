@@ -23,7 +23,7 @@ internal sealed class SemanticRuntimeAdmission
 
         // External integrations remain visible without blocking unrelated local behavior.
         // Other unsupported constructs still refuse the model rather than silently losing behavior.
-        foreach (var scoped in SemanticRunAdmission.ScopedClockMembers(plan.Model).Where(scoped => scoped.Kind is "readModel" or "application"))
+        foreach (var scoped in SemanticRunAdmission.ScopedClockMembers(plan.Model).Where(scoped => string.Equals(scoped.Kind, "readModel", StringComparison.Ordinal) || string.Equals(scoped.Kind, "application", StringComparison.Ordinal)))
         {
             // The clock only matters to the commands and specifications that use it; metadata and ordering never change what runs.
             entries.Add(new(scoped.Member.Owner.ToString(), scoped.Member.OwnerKind, "supported", null, $"STAGE-ESM-016: ESM member {scoped.Member.Member} is not audited and is ignored; properties are ordered canonically and clock constructs are refused per command."));

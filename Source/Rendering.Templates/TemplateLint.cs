@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Frozen;
 using Cratis.Stage.Rendering.Kits;
 using Scriban.Syntax;
 
@@ -8,9 +9,9 @@ namespace Cratis.Stage.Rendering.Templates;
 
 internal sealed class TemplateLint(LoadedKit kit, List<TemplateDiagnostic>? diagnostics = null, bool isOverride = false) : ScriptVisitor
 {
-    static readonly HashSet<string> _roots = new(["model", "item", "for", "while", "empty", "blank"], StringComparer.Ordinal);
+    static readonly FrozenSet<string> _roots = FrozenSet.Create(StringComparer.Ordinal, "model", "item", "for", "while", "empty", "blank");
     static readonly IReadOnlyDictionary<string, string[]> _helpers = TemplateCatalogue.Helpers;
-    static readonly HashSet<string> _calls = new(["render", "section", "refuse", "gap"], StringComparer.Ordinal);
+    static readonly FrozenSet<string> _calls = FrozenSet.Create(StringComparer.Ordinal, "render", "section", "refuse", "gap");
     readonly HashSet<string> _locals = [with(comparer: StringComparer.Ordinal)];
     readonly TemplatePartialLint _partials = new(kit);
     readonly TemplateSectionLint _sections = new(isOverride);

@@ -11,7 +11,7 @@ namespace Cratis.Stage.Host.for_StageJourneyReplay.when_posting_a_journey_file;
 public class that_replays : a_replay_endpoint
 {
     (int Status, string Body) _response;
-    JsonElement Report => JsonDocument.Parse(_response.Body).RootElement;
+    JsonElement Report => JsonElement.Parse(_response.Body);
 
     async Task Because() => _response = await Request(OneJourney, "?journey=register");
 

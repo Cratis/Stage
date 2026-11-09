@@ -28,6 +28,6 @@ public class when_the_runner_fails : a_specification_endpoint
     async Task Because() => await Request("{}");
 
     [Fact] void should_return_a_gateway_failure() => _status.ShouldEqual(StatusCodes.Status502BadGateway);
-    [Fact] void should_identify_the_failed_capability() => JsonDocument.Parse(_body).RootElement.GetProperty("capability").GetString().ShouldEqual("Specification");
+    [Fact] void should_identify_the_failed_capability() => JsonElement.Parse(_body).GetProperty("capability").GetString().ShouldEqual("Specification");
     [Fact] void should_delete_the_run_directory() => Directory.Exists(Path.GetDirectoryName(_output)).ShouldBeFalse();
 }

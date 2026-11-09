@@ -22,8 +22,8 @@ public class when_creating_a_scaffold_with_approved_packages : a_current_fronten
 
     [Fact] void should_emit_the_approved_package_set_document() => ApprovedPackageSetJson.Write(an_approved_package_set.Set).ShouldEqual(Approved("approved-packages.json"));
     [Fact] void should_emit_the_loading_module() => _approved.Select(PathOf).ShouldContain(".frontend/approvedPackages.ts");
-    [Fact] void should_install_the_approved_package_in_sorted_position() => JsonDocument.Parse(Approved("package.json")).RootElement.GetProperty("dependencies").EnumerateObject().Select(_ => _.Name).SequenceEqual(JsonDocument.Parse(Approved("package.json")).RootElement.GetProperty("dependencies").EnumerateObject().Select(_ => _.Name).Order(StringComparer.Ordinal)).ShouldBeTrue();
-    [Fact] void should_install_the_approved_package_at_its_version() => JsonDocument.Parse(Approved("package.json")).RootElement.GetProperty("dependencies").GetProperty("@acme/scene.charts").GetString().ShouldEqual("1.2.0");
+    [Fact] void should_install_the_approved_package_in_sorted_position() => JsonElement.Parse(Approved("package.json")).GetProperty("dependencies").EnumerateObject().Select(_ => _.Name).SequenceEqual(JsonElement.Parse(Approved("package.json")).GetProperty("dependencies").EnumerateObject().Select(_ => _.Name).Order(StringComparer.Ordinal)).ShouldBeTrue();
+    [Fact] void should_install_the_approved_package_at_its_version() => JsonElement.Parse(Approved("package.json")).GetProperty("dependencies").GetProperty("@acme/scene.charts").GetString().ShouldEqual("1.2.0");
     [Fact] void should_keep_every_shipped_dependency() => DependencyNames(Approved("package.json")).Except(DependencyNames(Content("package.json"))).ShouldEqual(["@acme/scene.charts"]);
     [Fact] void should_import_the_approved_module_literally() => Approved(".frontend/approvedPackages.ts").ShouldContain("// @ts-ignore - an approved package may ship without type declarations\n    '@acme/scene.charts': () => import('@acme/scene.charts')");
     [Fact] void should_import_the_approved_style_sheets() => Approved(".frontend/approvedPackages.ts").ShouldContain("import '@acme/scene.charts/styles.css';");
@@ -37,5 +37,5 @@ public class when_creating_a_scaffold_with_approved_packages : a_current_fronten
     [Fact] void should_refuse_a_package_named_like_a_shipped_one() => Catch.Exception(() => _request.WithApprovedPackages(ApprovedPackageSetJson.Read(an_approved_package_set.Document.Replace("Acme.Charts", "core", StringComparison.Ordinal)).Set)).ShouldBeOfExactType<InvalidCratisBackendApplicationScaffold>();
     [Fact] void should_refuse_a_package_imported_from_an_installed_npm_package() => Catch.Exception(() => _request.WithApprovedPackages(ApprovedPackageSetJson.Read(an_approved_package_set.Document.Replace("@acme/scene.charts", "react", StringComparison.Ordinal).Replace("react/styles.css", "react/x.css", StringComparison.Ordinal)).Set)).ShouldBeOfExactType<InvalidCratisBackendApplicationScaffold>();
 
-    static string[] DependencyNames(string packageJson) => [.. JsonDocument.Parse(packageJson).RootElement.GetProperty("dependencies").EnumerateObject().Select(_ => _.Name)];
+    static string[] DependencyNames(string packageJson) => [.. JsonElement.Parse(packageJson).GetProperty("dependencies").EnumerateObject().Select(_ => _.Name)];
 }

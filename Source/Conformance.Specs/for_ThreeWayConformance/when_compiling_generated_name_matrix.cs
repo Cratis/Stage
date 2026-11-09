@@ -963,7 +963,7 @@ public class when_compiling_generated_name_matrix
                     var json = JsonSerializer.Serialize(instance, SerializationOptions);
                     if (escapedSerialization && type.Name == "RegisterProject")
                     {
-                        Assert.Equal("value", JsonDocument.Parse(json).RootElement.GetProperty("registerProject_").GetString());
+                        Assert.Equal("value", JsonElement.Parse(json).GetProperty("registerProject_").GetString());
                         Assert.Equal(instance, JsonSerializer.Deserialize(json, type, SerializationOptions));
                     }
                 }

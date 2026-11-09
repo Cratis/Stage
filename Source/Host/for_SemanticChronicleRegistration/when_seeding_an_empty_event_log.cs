@@ -35,8 +35,8 @@ public class when_seeding_an_empty_event_log : a_seeding_store
     [Fact] void should_append_each_event_source_separately_in_declaration_order() => _appends.Select(append => append.Events.Single().EventSourceId).ShouldContainOnly(["mug", "tee"]);
     [Fact] void should_append_to_the_event_log_of_the_store() => _appends.TrueForAll(append => append.EventStore == Store && append.EventSequenceId == "event-log").ShouldBeTrue();
     [Fact] void should_append_the_stored_event_type() => _appends[0].Events.Single().EventType.Id.ShouldEqual("ProductListed");
-    [Fact] void should_append_the_declared_values() => JsonDocument.Parse(_appends[0].Events.Single().Content).RootElement.GetProperty("name").GetString().ShouldEqual("Stoneware mug");
-    [Fact] void should_append_decimal_values_exactly() => JsonDocument.Parse(_appends[0].Events.Single().Content).RootElement.GetProperty("price").GetDecimal().ShouldEqual(12.5m);
+    [Fact] void should_append_the_declared_values() => JsonElement.Parse(_appends[0].Events.Single().Content).GetProperty("name").GetString().ShouldEqual("Stoneware mug");
+    [Fact] void should_append_decimal_values_exactly() => JsonElement.Parse(_appends[0].Events.Single().Content).GetProperty("price").GetDecimal().ShouldEqual(12.5m);
     [Fact] void should_say_who_seeded() => _appends[0].CausedBy.Subject.ShouldEqual(SemanticChronicleRegistration.SeedSubject);
     [Fact] void should_hold_the_seeded_facts_in_the_world() => _world.Facts.Length.ShouldEqual(2);
     [Fact] void should_project_the_seeded_rows() => _world.ReadModels.Length.ShouldEqual(2);

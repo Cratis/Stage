@@ -58,5 +58,5 @@ public class when_restarting_with_previously_seeded_events : a_seeding_store
     [Fact] void should_rebuild_the_seeded_rows() => _world.ReadModels.Length.ShouldEqual(2);
     [Fact] void should_not_append_the_seeds_again() => _appends.ShouldBeEmpty();
     [Fact] void should_have_seed_causation_on_the_stored_event_context() => _history[0].Context.CausedBy.Subject.ShouldEqual(SemanticChronicleRegistration.SeedSubject);
-    [Fact] void should_exercise_a_decimal_that_storage_did_not_preserve_exactly() => JsonDocument.Parse(_history[0].Content).RootElement.GetProperty("price").GetDecimal().ShouldNotEqual(12345678901234567.89m);
+    [Fact] void should_exercise_a_decimal_that_storage_did_not_preserve_exactly() => JsonElement.Parse(_history[0].Content).GetProperty("price").GetDecimal().ShouldNotEqual(12345678901234567.89m);
 }

@@ -260,7 +260,7 @@ internal sealed partial class SemanticApplicationContext
     internal AuthoringMetadataInput.Catalog? Documentation { get; }
     internal IReadOnlyDictionary<string, InlineSourceLine>? SourceLines { get; }
 
-    internal Dictionary<string, IReadOnlySet<string>> ReducerContextReads { get; } = new(StringComparer.Ordinal);
+    internal Dictionary<string, IReadOnlySet<string>> ReducerContextReads { get; } = [with(comparer: StringComparer.Ordinal)];
 
     /// <summary>Gets the admitted opaque policy bodies' context reads, by requirement and use site.</summary>
     internal Dictionary<(string RequirementId, SemanticId Operation), IReadOnlySet<string>> PolicyContextReads { get; } = [];

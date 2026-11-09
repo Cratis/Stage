@@ -25,12 +25,12 @@ internal sealed class FrameworkNameCatalog
 
     static readonly Lazy<FrameworkNameCatalog> _current = new(() => new(FrameworkNameCatalogText.Read(ReadResource())));
 
-    readonly Dictionary<string, GeneratedProjects> _namespaces = new(StringComparer.Ordinal);
+    readonly Dictionary<string, GeneratedProjects> _namespaces = [with(comparer: StringComparer.Ordinal)];
     readonly Dictionary<(string Namespace, string Name, int Arity), List<CatalogedType>> _types = [];
-    readonly Dictionary<string, List<CatalogedType>> _typesByNamespace = new(StringComparer.Ordinal);
-    readonly Dictionary<string, List<CatalogExtensions>> _extensions = new(StringComparer.Ordinal);
-    readonly Dictionary<string, List<CatalogBaseType>> _baseTypes = new(StringComparer.Ordinal);
-    readonly HashSet<string> _importedNamespaces = new(StringComparer.Ordinal);
+    readonly Dictionary<string, List<CatalogedType>> _typesByNamespace = [with(comparer: StringComparer.Ordinal)];
+    readonly Dictionary<string, List<CatalogExtensions>> _extensions = [with(comparer: StringComparer.Ordinal)];
+    readonly Dictionary<string, List<CatalogBaseType>> _baseTypes = [with(comparer: StringComparer.Ordinal)];
+    readonly HashSet<string> _importedNamespaces = [with(comparer: StringComparer.Ordinal)];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FrameworkNameCatalog"/> class.

@@ -21,7 +21,7 @@ public class and_the_submit_behavior_is_guarded : Specification
         var behavior = new BehaviorSyntax(null, [], [new InteractionBindingSyntax(new BuiltInInteractionTriggerSyntax(InteractionTriggerKind.Submit, location), "item.ready", [action], location)], location);
         var form = new FormSyntax("Register", "Register", null, [], null, location) { Behaviors = [behavior] };
         _diagnostics = new ConversionDiagnostics();
-        var scope = new BehaviorScope(new Dictionary<string, BehaviorSyntax>(), new List<RenderFinding>())
+        var scope = new BehaviorScope(new Dictionary<string, BehaviorSyntax>(), [])
         {
             Diagnostics = _diagnostics,
             CommandResponses = new Dictionary<string, IReadOnlyDictionary<string, string>>(StringComparer.Ordinal)

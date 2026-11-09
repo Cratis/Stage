@@ -111,7 +111,7 @@ public sealed record ApplicationRealization(
     RealizedOnboarding? Onboarding,
     ImmutableArray<RealizedEnvironmentKey> Environment)
 {
-    static readonly HashSet<string> _imageExtensions = new(StringComparer.OrdinalIgnoreCase) { ".png", ".jpg", ".jpeg", ".gif" };
+    static readonly HashSet<string> _imageExtensions = [with(comparer: StringComparer.OrdinalIgnoreCase), ".png", ".jpg", ".jpeg", ".gif"];
 
     /// <summary>
     /// Gets a realization of an application with no authentication and no onboarding.

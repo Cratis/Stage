@@ -101,7 +101,7 @@ internal static class FrameworkNameCatalogText
 
     sealed class Reader
     {
-        readonly SortedDictionary<string, string> _pins = new(StringComparer.Ordinal);
+        readonly SortedDictionary<string, string> _pins = [with(comparer: StringComparer.Ordinal)];
         readonly List<CatalogPackage> _packages = [];
         readonly List<CatalogFramework> _frameworks = [];
         readonly List<CatalogUsing> _usings = [];

@@ -17,7 +17,7 @@ namespace Cratis.Stage.Host;
 internal sealed class SandboxPersonas
 {
     readonly ClaimsPrincipal? _fallback;
-    readonly Dictionary<string, ClaimsPrincipal?> _operations = new(StringComparer.OrdinalIgnoreCase);
+    readonly Dictionary<string, ClaimsPrincipal?> _operations = [with(comparer: StringComparer.OrdinalIgnoreCase)];
 
     internal SandboxPersonas(ApplicationSyntax application, ExecutableSemanticModel model, StageHttpSurface surface, ILogger logger)
     {

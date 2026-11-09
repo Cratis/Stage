@@ -78,7 +78,7 @@ public static class SemanticSchemas
         return schema;
     }
 
-    static JsonArray Metadata(string type) => new(new JsonObject { ["metadataType"] = type, ["details"] = string.Empty });
+    static JsonArray Metadata(string type) => [new JsonObject { ["metadataType"] = type, ["details"] = string.Empty }];
 
     static JsonObject TypeShape(SemanticTypeReference reference, SemanticApplication application)
     {

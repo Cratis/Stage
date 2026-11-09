@@ -110,7 +110,7 @@ internal sealed partial class SemanticRunCaptures(SemanticExecutionPlan plan, Se
 
     static SemanticCaptureRecord Overlay(SemanticCaptureRecord? previous, SemanticCaptureRecord current)
     {
-        var fields = previous?.Fields.ToDictionary(field => field.Name, StringComparer.Ordinal) ?? new(StringComparer.Ordinal);
+        var fields = previous?.Fields.ToDictionary(field => field.Name, StringComparer.Ordinal) ?? [with(comparer: StringComparer.Ordinal)];
         foreach (var field in current.Fields) fields[field.Name] = field;
         return new([.. fields.Values]);
     }

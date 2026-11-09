@@ -16,7 +16,7 @@ namespace Cratis.Stage.Rendering.Cratis.CodeGeneration;
 /// </summary>
 public class CSharpCodeBuilder
 {
-    readonly HashSet<string> _usings = new(StringComparer.Ordinal);
+    readonly HashSet<string> _usings = [with(comparer: StringComparer.Ordinal)];
     readonly StringBuilder _body = new();
     readonly InlineCodeTokens _inline = new();
     readonly List<InlineCodeDiagnostic> _inlineDiagnostics = [];

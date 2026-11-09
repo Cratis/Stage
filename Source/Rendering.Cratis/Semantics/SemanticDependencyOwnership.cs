@@ -8,17 +8,15 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// <summary>Assigns id-less members to their enclosing owner; reducers belong to their target read model.</summary>
 internal static class SemanticDependencyOwnership
 {
-    static readonly HashSet<string> _declarations = new(StringComparer.Ordinal)
-    {
+    static readonly HashSet<string> _declarations = [with(comparer: StringComparer.Ordinal),
         "SemanticApplication", "SemanticModule", "SemanticFeature", "SemanticSlice", "SemanticConcept", "SemanticCompositeType",
         "SemanticEventContract", "SemanticCommand", "SemanticReadModel", "SemanticProjection", "SemanticKeyedQuery",
         "SemanticSpecification", "SemanticReaction", "SemanticCapture", "SemanticApplicationTrigger", "SemanticEventSource", "SemanticEventStream"
-    };
+    ];
 
-    static readonly HashSet<string> _members = new(StringComparer.Ordinal)
-    {
+    static readonly HashSet<string> _members = [with(comparer: StringComparer.Ordinal),
         "SemanticProperty", "SemanticReadModelQueryArgument", "SemanticQueryFilter", "SemanticQueryKeyPart"
-    };
+    ];
 
     internal static bool DeclaresIdentity(Type? type) => type is not null && (_declarations.Contains(type.Name) || _members.Contains(type.Name));
 

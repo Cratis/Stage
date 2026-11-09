@@ -17,7 +17,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 public class a_generated_application : a_register_project_render_request
 {
     protected DirectoryInfo _evidence = null!;
-    readonly Dictionary<string, string> _artifactHashes = new(StringComparer.Ordinal);
+    readonly Dictionary<string, string> _artifactHashes = [with(comparer: StringComparer.Ordinal)];
     DirectoryInfo? _application;
 
     void Establish()

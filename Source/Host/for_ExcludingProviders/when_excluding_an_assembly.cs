@@ -53,7 +53,7 @@ public class when_excluding_an_assembly : Specification
         performer.Type.Returns(type);
         performer.ReadModelType.Returns(type);
         performer.Name.Returns(new QueryName(name));
-        performer.Parameters.Returns(new QueryParameters([]));
+        performer.Parameters.Returns<QueryParameters>([]);
         performer.FullyQualifiedName.Returns(new FullyQualifiedQueryName($"x.{name}"));
         return performer;
     }

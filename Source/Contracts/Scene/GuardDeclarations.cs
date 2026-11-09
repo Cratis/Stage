@@ -22,7 +22,7 @@ internal sealed class GuardDeclarations
 
     internal (PropertySyntax Property, IReadOnlyList<string> Scope)? Property(string name, IReadOnlyList<string> scope, string field)
     {
-        var shape = Shape(name, scope, new HashSet<string>(StringComparer.Ordinal));
+        var shape = Shape(name, scope, [with(comparer: StringComparer.Ordinal)]);
         var property = Single((shape?.Properties ?? []).Where(property => property.Name == field));
         return property is null ? null : (property, shape!.Scope);
     }
@@ -44,7 +44,7 @@ internal sealed class GuardDeclarations
             if (type.IsCollection && index < segments.Length - 1) return GuardFieldType.Unknown("Cannot traverse a collection");
         }
 
-        return Classify(type, scope, new HashSet<string>(StringComparer.Ordinal)) with { IsOptional = optional };
+        return Classify(type, scope, [with(comparer: StringComparer.Ordinal)]) with { IsOptional = optional };
     }
 
     GuardFieldType Classify(TypeRefSyntax type, IReadOnlyList<string> scope, HashSet<string> seen)
@@ -75,7 +75,7 @@ internal sealed class GuardDeclarations
                 : Classify(type with { Name = concept.Type }, scope, seen);
         }
 
-        return concepts.Length == 0 && Shape(type.Name, scope, new HashSet<string>(StringComparer.Ordinal)) is not null
+        return concepts.Length == 0 && Shape(type.Name, scope, [with(comparer: StringComparer.Ordinal)]) is not null
             ? new(GuardFieldKind.Composite)
             : GuardFieldType.Unknown($"Unknown or ambiguous type '{type.Name}'");
     }

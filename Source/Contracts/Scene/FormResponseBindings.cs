@@ -15,13 +15,13 @@ internal sealed record FormResponseBindings
     internal required IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> Commands { get; init; }
     internal IReadOnlyDictionary<string, string> Active { get; init; } = new Dictionary<string, string>(StringComparer.Ordinal);
     internal IReadOnlySet<string> Unavailable { get; init; } = new HashSet<string>(StringComparer.Ordinal);
-    HashSet<string> Shadowed { get; init; } = new(StringComparer.Ordinal);
+    HashSet<string> Shadowed { get; init; } = [with(comparer: StringComparer.Ordinal)];
 
     internal static IReadOnlyDictionary<string, string> Names(CommandResponseSyntax? response) => response switch
     {
         ScalarCommandResponseSyntax scalar => new Dictionary<string, string>(StringComparer.Ordinal) { [scalar.Source.Property] = string.Empty },
         RecordCommandResponseSyntax record => record.Fields.ToDictionary(field => field.Name, field => field.Name, StringComparer.Ordinal),
-        _ => new Dictionary<string, string>(StringComparer.Ordinal)
+        _ => [with(comparer: StringComparer.Ordinal)]
     };
 
     internal FormResponseBindings For(string command) => this with

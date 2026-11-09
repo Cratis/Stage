@@ -32,7 +32,7 @@ namespace Cratis.Stage.Rendering.Cratis.Expressions;
 public sealed class CommandContextAccess(string subject, ICollection<string> diagnostics) : IExpressionContext
 {
     readonly List<HandlerCollaborator> _collaborators = [];
-    readonly SortedSet<string> _namespaces = new(StringComparer.Ordinal);
+    readonly SortedSet<string> _namespaces = [with(comparer: StringComparer.Ordinal)];
 
     /// <summary>
     /// Gets the collaborators the rendered handler needs, in the order they were first asked for.

@@ -26,10 +26,10 @@ internal sealed class CSharpImports(GeneratedProjects project, IEnumerable<Gener
     static readonly CSharpParseOptions _parseOptions = new(preprocessorSymbols: ["DEBUG"]);
 
     readonly HashSet<TypeReference> _inlineReturns = [];
-    readonly HashSet<string> _types = new(StringComparer.Ordinal);
-    readonly HashSet<string> _values = new(StringComparer.Ordinal);
-    readonly HashSet<string> _pinned = new(StringComparer.Ordinal);
-    readonly HashSet<string> _accessed = new(StringComparer.Ordinal);
+    readonly HashSet<string> _types = [with(comparer: StringComparer.Ordinal)];
+    readonly HashSet<string> _values = [with(comparer: StringComparer.Ordinal)];
+    readonly HashSet<string> _pinned = [with(comparer: StringComparer.Ordinal)];
+    readonly HashSet<string> _accessed = [with(comparer: StringComparer.Ordinal)];
     bool _unknown;
 
     internal void Scope(IEnumerable<string> types, IEnumerable<string> values)

@@ -11,7 +11,7 @@ internal sealed class TemplateLint(LoadedKit kit, List<TemplateDiagnostic>? diag
     static readonly HashSet<string> _roots = new(["model", "item", "for", "while", "empty", "blank"], StringComparer.Ordinal);
     static readonly IReadOnlyDictionary<string, string[]> _helpers = TemplateCatalogue.Helpers;
     static readonly HashSet<string> _calls = new(["render", "section", "refuse", "gap"], StringComparer.Ordinal);
-    readonly HashSet<string> _locals = new(StringComparer.Ordinal);
+    readonly HashSet<string> _locals = [with(comparer: StringComparer.Ordinal)];
     readonly TemplatePartialLint _partials = new(kit);
     readonly TemplateSectionLint _sections = new(isOverride);
 

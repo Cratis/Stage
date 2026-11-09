@@ -14,8 +14,8 @@ internal sealed class NameScope
     readonly FrameworkNameCatalog _catalog;
     readonly GeneratedProjects _project;
     readonly Dictionary<(string Namespace, string Name, int Arity), int> _generated = [];
-    readonly Dictionary<string, HashSet<string>> _generatedNames = new(StringComparer.Ordinal);
-    readonly HashSet<string> _generatedNamespaces = new(StringComparer.Ordinal);
+    readonly Dictionary<string, HashSet<string>> _generatedNames = [with(comparer: StringComparer.Ordinal)];
+    readonly HashSet<string> _generatedNamespaces = [with(comparer: StringComparer.Ordinal)];
     readonly HashSet<string> _typeNames;
 
     /// <summary>
@@ -33,7 +33,7 @@ internal sealed class NameScope
         foreach (var type in request.GeneratedTypes)
         {
             _generated[(type.Namespace, type.Name, type.Arity)] = _generated.GetValueOrDefault((type.Namespace, type.Name, type.Arity)) + 1;
-            if (!_generatedNames.TryGetValue(type.Namespace, out var names)) _generatedNames[type.Namespace] = names = new(StringComparer.Ordinal);
+            if (!_generatedNames.TryGetValue(type.Namespace, out var names)) _generatedNames[type.Namespace] = names = [with(comparer: StringComparer.Ordinal)];
             names.Add(type.Name);
             _generatedNamespaces.UnionWith(CatalogNames.SelfAndContaining(type.Namespace));
         }

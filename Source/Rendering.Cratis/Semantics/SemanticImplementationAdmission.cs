@@ -101,7 +101,7 @@ internal static class SemanticImplementationAdmission
         out string? body)
     {
         var requirements = request.ImplementationRequirements;
-        var byId = requirements.IsDefault ? new Dictionary<string, SemanticImplementationRequirement>(StringComparer.Ordinal) :
+        var byId = requirements.IsDefault ? [with(comparer: StringComparer.Ordinal)] :
             requirements.Where(requirement => requirement is not null && !string.IsNullOrEmpty(requirement.RequirementId))
                 .GroupBy(requirement => requirement.RequirementId, StringComparer.Ordinal)
                 .Where(group => group.Count() == 1)

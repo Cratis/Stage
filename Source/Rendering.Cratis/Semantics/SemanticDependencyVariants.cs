@@ -8,8 +8,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// <summary>Refuses to claim completeness for future expression, type or context variants.</summary>
 internal static class SemanticDependencyVariants
 {
-    static readonly HashSet<string> _variants = new(StringComparer.Ordinal)
-    {
+    static readonly HashSet<string> _variants = [with(comparer: StringComparer.Ordinal),
         "SemanticResolvedExpression", "SemanticValueExpression", "SemanticEventContextExpression", "SemanticRefusalExpression", "SemanticReadPathExpression",
         "SemanticTextValue", "SemanticNumberValue", "SemanticBooleanValue", "SemanticNullValue", "SemanticArrayValue", "SemanticCompositeValue",
         "SemanticComparison", "SemanticLogicalCondition", "SemanticAnonymousCondition", "SemanticAuthenticatedCondition", "SemanticRoleCondition", "SemanticClaimCondition",
@@ -17,14 +16,13 @@ internal static class SemanticDependencyVariants
         "SemanticProjectionValueKey", "SemanticProjectionPartsKey", "SemanticProjectionCompositeKey", "SemanticProjectionLiteral",
         "SemanticProjectionEventProperty", "SemanticProjectionEventSourceIdentity", "SemanticProjectionEventContextValue",
         "SemanticScalarCommandResponse", "SemanticRecordCommandResponse", "SemanticScalarSpecificationResponse", "SemanticRecordSpecificationResponse"
-    };
+    ];
 
     static readonly HashSet<string> _contextTypes = new(["runtime", "shape", "model"], StringComparer.Ordinal);
-    static readonly HashSet<string> _sources = new(StringComparer.Ordinal)
-    {
+    static readonly HashSet<string> _sources = [with(comparer: StringComparer.Ordinal),
         "context-contract", "derived", "command", "read-model", "current-event", "event-source-id", "model-property", "concept-value",
         "validated-property", "validated-artifact", "authorized-operation", "command-identifier", "query-key", SemanticContextSourceKinds.Unavailable
-    };
+    ];
 
     internal static bool Known(object node) => KnownType(node.GetType()) && KnownValue(node);
 

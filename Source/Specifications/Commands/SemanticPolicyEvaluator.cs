@@ -35,7 +35,7 @@ internal static class SemanticPolicyEvaluator
         if (SemanticAnonymousAccess.NestsAnonymous(query.Authorization, plan.Model.Application.Policies)) return false;
         if (caller is not { Roles.IsDefault: false, Claims.IsDefault: false }) return false;
         var artifact = query.Argument is null
-            ? new Dictionary<string, SemanticValue>(StringComparer.Ordinal)
+            ? [with(comparer: StringComparer.Ordinal)]
             : new Dictionary<string, SemanticValue>(StringComparer.Ordinal) { [query.Argument.Name] = key };
         var properties = query.Argument is null ? Array.Empty<SemanticProperty>()
             : [new SemanticProperty(query.Argument.Id, query.Argument.Name, query.Argument.Type, false)];

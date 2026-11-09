@@ -12,7 +12,7 @@ namespace Cratis.Stage.Specifications.Commands;
 
 internal sealed class SemanticRunReads(SemanticRuntimeTypes types)
 {
-    readonly Dictionary<string, IReadOnlyDictionary<SemanticId, SemanticValue>> _values = new(StringComparer.Ordinal);
+    readonly Dictionary<string, IReadOnlyDictionary<SemanticId, SemanticValue>> _values = [with(comparer: StringComparer.Ordinal)];
 
     internal IReadOnlyDictionary<string, IReadOnlyDictionary<SemanticId, SemanticValue>> Values => _values;
 

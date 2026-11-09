@@ -38,7 +38,7 @@ public class a_routed_model : Specification
     protected readonly List<CommandContext> _commands = [];
     protected readonly List<QueryContext> _queries = [];
     protected readonly List<string> _readModelRequests = [];
-    protected readonly Dictionary<string, IReadOnlyList<string>> _readModelDocuments = new(StringComparer.Ordinal);
+    protected readonly Dictionary<string, IReadOnlyList<string>> _readModelDocuments = [with(comparer: StringComparer.Ordinal)];
     protected bool _rejectQueries;
     protected ISemanticRuntime? _semanticRuntime;
     protected readonly List<(Type BoundType, string EventSourceId, IReadOnlyList<ProducedEventPayload> Events)> _appends = [];

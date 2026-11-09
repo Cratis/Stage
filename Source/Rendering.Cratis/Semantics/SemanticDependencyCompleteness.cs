@@ -8,13 +8,12 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// <summary>Proves reference coverage outside the deliberately omitted events' own property types.</summary>
 internal static class SemanticDependencyCompleteness
 {
-    static readonly HashSet<string> _members = new(StringComparer.Ordinal)
-    {
+    static readonly HashSet<string> _members = [with(comparer: StringComparer.Ordinal),
         "SemanticProperty.Type",
         "SemanticTypeReference.Kind",
         "SemanticTypeReference.Primitive",
         "SemanticTypeReference.Target"
-    };
+    ];
 
     internal static bool Tolerates(SemanticDependencyIndex index, IReadOnlyDictionary<SemanticId, string> roots, SemanticApplicationContext context)
     {

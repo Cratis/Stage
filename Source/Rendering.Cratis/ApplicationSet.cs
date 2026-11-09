@@ -230,7 +230,7 @@ public class ApplicationSet
 
             if (!usage.TryGetValue(name, out var slices))
             {
-                slices = new Dictionary<string, LocatedSlice>(StringComparer.Ordinal);
+                slices = [with(comparer: StringComparer.Ordinal)];
                 usage[name] = slices;
             }
 

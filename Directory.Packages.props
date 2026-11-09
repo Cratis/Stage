@@ -9,16 +9,16 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Cratis -->
-    <PackageVersion Include="Cratis" Version="22.176.0" />
+    <PackageVersion Include="Cratis" Version="22.182.0" />
     <PackageVersion Include="Cratis.Fundamentals" Version="7.33.1" />
-    <PackageVersion Include="Cratis.Arc" Version="22.176.0" />
-    <PackageVersion Include="Cratis.Arc.Chronicle" Version="22.176.0" />
-    <PackageVersion Include="Cratis.Arc.Chronicle.Testing" Version="22.176.0" />
-    <PackageVersion Include="Cratis.Arc.MongoDB" Version="22.176.0" />
-    <PackageVersion Include="Cratis.Arc.Neo4j" Version="22.176.0" />
-    <PackageVersion Include="Cratis.Arc.Screenplay" Version="22.176.0" />
-    <PackageVersion Include="Cratis.Arc.Swagger" Version="22.176.0" />
-    <PackageVersion Include="Cratis.Arc.Testing" Version="22.176.0" />
+    <PackageVersion Include="Cratis.Arc" Version="22.182.0" />
+    <PackageVersion Include="Cratis.Arc.Chronicle" Version="22.182.0" />
+    <PackageVersion Include="Cratis.Arc.Chronicle.Testing" Version="22.182.0" />
+    <PackageVersion Include="Cratis.Arc.MongoDB" Version="22.182.0" />
+    <PackageVersion Include="Cratis.Arc.Neo4j" Version="22.182.0" />
+    <PackageVersion Include="Cratis.Arc.Screenplay" Version="22.182.0" />
+    <PackageVersion Include="Cratis.Arc.Swagger" Version="22.182.0" />
+    <PackageVersion Include="Cratis.Arc.Testing" Version="22.182.0" />
     <PackageVersion Include="Cratis.Showrunner.Notes" Version="1.14.0" />
     <!--
         The Chronicle client packages are pinned here AND referenced directly from Stage and Host - central package

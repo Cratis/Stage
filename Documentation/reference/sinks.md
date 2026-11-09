@@ -1,6 +1,6 @@
 ---
 title: Named sinks
-description: How Cratis Stage carries Screenplay sink declarations into Chronicle when it runs a model and when it renders one, what the published package manifest lists, and why a query over a read model in a named sink is refused.
+description: How Cratis Stage carries Screenplay sink declarations into Chronicle when it runs a model and when it renders one, what the published package manifest lists, and how a rendered application reads a read model from its named sink.
 ---
 
 A Screenplay model can name the sinks its read models and graphs are stored in. `sink Reporting for readmodels` and `sink People for graphs` declare a sink at the application root, and a `sink <Name>` directive in a read model or a graph chooses one. A read model or graph that names no sink uses the default sink of its kind, so a model without sinks behaves exactly as it always has. The model never names an engine: whoever runs the application maps each name to storage, through Chronicle's [named sinks configuration](/chronicle/hosting/configuration/sinks/).
@@ -54,14 +54,32 @@ The rendered `docker-compose.yml` configures the development kernel with one con
 | `readmodels` | `Type: MongoDB` on the development image's own MongoDB, `mongodb://localhost:27017` |
 | `graphs` | `Type: Neo4j` on the development Neo4j server, `bolt://neo4j:7687`, user `neo4j`, `DatabaseMode: Single`, with the password read from `NEO4J_PASSWORD` as the graph scaffold does |
 
-The variables are `Cratis__Chronicle__Sinks__Configurations__<Name>__*` on the `chronicle` service. The kernel's default sinks are left as they are. A deployment replaces these with its own storage for each name. The application's `appsettings.json` is unchanged: it configures the application's own Arc and Chronicle client, not the kernel, and the client finds a read model's or graph's sink from its `[Sink]` attribute.
+The variables are `Cratis__Chronicle__Sinks__Configurations__<Name>__*` on the `chronicle` service. The kernel's default sinks are left as they are. A deployment replaces these with its own storage for each name.
+
+The application's `appsettings.json` maps each `readmodels` sink to the same development MongoDB, so the application reads a read model where the kernel writes it, out of the box:
+
+```json
+"MongoDB": {
+  "Server": "mongodb://localhost:27017",
+  "Database": "Organization",
+  "Sinks": {
+    "Reporting": {
+      "Server": "mongodb://localhost:27017"
+    }
+  }
+}
+```
+
+The Chronicle client finds a read model's or graph's sink from its `[Sink]` attribute, so its own configuration does not change. A model without `readmodels` sinks gets no `Sinks` section, and `graphs` sinks are never listed there: Arc's MongoDB support only reads read models.
 
 ### A query over a read model in a named sink
 
-Rendered queries read their read model through Arc's MongoDB support (`WithMongoDB`), from the application's own MongoDB database. The pinned Arc release cannot read a read model from a named sink, which may be another database or another server, so a rendered query would silently read the wrong database. Stage refuses such a model instead:
+A rendered query reads its read model through Arc's MongoDB support (`WithMongoDB`). From Arc 22.182.0, which Stage pins, Arc reads a read model marked `[Sink("<Name>")]` from the server configured for that sink, `Cratis:MongoDB:Sinks:<Name>:Server` (or `ServerFile`, a file holding the connection string, such as a mounted secret). Sink names are case-insensitive. The database name is the one the default connection uses, on the sink's server. Observable queries read the same way. So a query over a read model in a named sink renders like any other query.
+
+A deployment that stores a sink on another server sets that server for the application too, for instance with the environment variable `Cratis__MongoDB__Sinks__Reporting__ServerFile`, next to the kernel's `Cratis__Chronicle__Sinks__Configurations__Reporting__*`.
+
+Graph queries are not rendered at all yet (`STAGE-ESM-068`, see [Graph rendering](graph-rendering.md)): Arc does not read a named Neo4j sink per graph, so a query over a graph is refused whatever sink the graph names.
 
 | Code | Meaning |
 | --- | --- |
-| `STAGE-ESM-069` | A query reads a read model that names a sink. The diagnostic names the query, the read model and the sink. Nothing is rendered. Keep the read model in the default sink, or render once Arc can read a named sink. |
-
-A read model in a named sink that no query reads renders: Chronicle writes it to its sink, and commands that read it go through Chronicle. Graph queries are not rendered at all yet (`STAGE-ESM-068`), so a graph in a named sink raises no read-side refusal.
+| `STAGE-ESM-069` | Retired for named sinks. Stage refused a query over a read model in a named sink while its pinned Arc read every rendered query from the application's own database. It is no longer emitted for that from the Stage release that pins Arc 22.182.0, and the number is not reused for it. The same number also names the [secret read model property](compliance-rendering.md) warning, which is still emitted. |

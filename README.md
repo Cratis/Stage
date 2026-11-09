@@ -330,7 +330,7 @@ one canonical, unconditional literal Include per protected client, rejects prote
 duplicates, and fails closed on nonliteral or multi-ID PackageVersion targets (including properties, item expressions,
 wildcards, and semicolon lists). It does not establish safety against arbitrary external MSBuild imports, command-line
 properties, or project-level overrides. SpecRunner performs model-level verification without a
-Chronicle kernel; its ASP.NET 10 base matches the repository's `net10.0` target. Neither check changes the distinct
+Chronicle kernel; its ASP.NET 11 base matches SpecRunner's `net11.0` target. Neither check changes the distinct
 generated application's separate runtime profile.
 
 After updating the three client packages together, synchronize the repository Host pin with:

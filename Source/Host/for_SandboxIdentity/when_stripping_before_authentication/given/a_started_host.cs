@@ -21,7 +21,7 @@ public class a_started_host : Specification
     {
         var builder = WebApplication.CreateSlimBuilder();
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?> { ["Stage:Sandbox:Identity"] = SandboxEnabled.ToString() });
-        SandboxIdentityOptions.Configure(builder.Services, builder.Configuration);
+        SandboxIdentityOptions.Configure(builder.Services, builder.Configuration, builder.Environment);
         builder.Services.AddSingleton(_recording);
         builder.Services.AddAuthentication(RecordingAuthenticationHandler.SchemeName)
             .AddScheme<AuthenticationSchemeOptions, RecordingAuthenticationHandler>(RecordingAuthenticationHandler.SchemeName, _ => { });

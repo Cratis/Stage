@@ -106,7 +106,8 @@ internal sealed class SandboxUsersProvider(SandboxUsers users) : ICanProvideUser
 /// Whether the sandbox offers its modeled users, which Lens then sends as the caller.
 /// </summary>
 /// <param name="Enabled">Whether the users are on.</param>
-internal sealed record SandboxUsersOptions(bool Enabled)
+/// <param name="AllowRemote">Whether a selected user is accepted from outside the local machine.</param>
+internal sealed record SandboxUsersOptions(bool Enabled, bool AllowRemote = false)
 {
     internal const string Key = "Stage:Sandbox:Users";
 
@@ -122,6 +123,6 @@ internal sealed record SandboxUsersOptions(bool Enabled)
         var requested = configuration.GetValue<bool>(Key);
         return requested && !development
             ? throw new InvalidOperationException($"{Key} is on, but Stage is not in development ({StageDevelopment.Key} is off, or this is a published application). Modeled users are for development and test only.")
-            : new(requested);
+            : new(requested, configuration.GetValue<bool>($"{Key}AllowRemote"));
     }
 }

@@ -47,7 +47,7 @@ internal static class WarmHost
             options.KnownProxies.Clear();
         });
 
-        var app = builder.Build();
+        var app = Build(builder);
         if (engine == StageRuntimeEngine.EventModel)
         {
             StageRuntimeEngineLogging.Deprecated(app.Logger, StageRuntimeEngineSelection.Name(engine));
@@ -67,6 +67,13 @@ internal static class WarmHost
             cancellationToken));
 
         await app.RunAsync();
+    }
+
+    internal static WebApplication Build(WebApplicationBuilder builder)
+    {
+        var app = builder.Build();
+        app.UseSandboxIdentityHeaders();
+        return app;
     }
 
     /// <summary>

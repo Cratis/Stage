@@ -23,8 +23,9 @@ public class a_sandbox_host : Specification
         // A content root without the host's own appsettings keeps the Docker listener (9090) out of the spec.
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = Environment, ContentRootPath = Path.GetTempPath() });
         builder.WebHost.UseKestrel(options => options.Listen(IPAddress.Loopback, 0));
-        SandboxIdentityOptions.Configure(builder.Services, new ConfigurationBuilder().AddInMemoryCollection(
-            new Dictionary<string, string?> { ["Stage:Sandbox:Identity"] = "true" }).Build());
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(
+            new Dictionary<string, string?> { ["Stage:Sandbox:Identity"] = "true" }).Build();
+        SandboxIdentityOptions.Configure(builder.Services, configuration, builder.Environment);
         builder.Services.AddAuthentication(MicrosoftIDentityPlatformAuthHandler.SchemeName)
             .AddScheme<AuthenticationSchemeOptions, MicrosoftIDentityPlatformAuthHandler>(MicrosoftIDentityPlatformAuthHandler.SchemeName, _ => { });
         builder.Services.AddAuthorization();

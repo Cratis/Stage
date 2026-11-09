@@ -5,6 +5,7 @@ using System.Security.Claims;
 using Cratis.Arc.Identity;
 using Cratis.Specifications;
 using Microsoft.AspNetCore.Authentication;
+using NSubstitute;
 
 namespace Cratis.Stage.Host.for_SandboxIdentity.given;
 
@@ -19,8 +20,9 @@ public class an_api_pipeline : Specification
     {
         var services = new ServiceCollection();
         services.AddLogging();
-        SandboxIdentityOptions.Configure(services, new ConfigurationBuilder().AddInMemoryCollection(
-            new Dictionary<string, string?> { ["Stage:Sandbox:Identity"] = _enabled.ToString() }).Build());
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(
+            new Dictionary<string, string?> { ["Stage:Sandbox:Identity"] = _enabled.ToString() }).Build();
+        SandboxIdentityOptions.Configure(services, configuration, Substitute.For<IHostEnvironment>());
         services.AddAuthentication(MicrosoftIDentityPlatformAuthHandler.SchemeName)
             .AddScheme<AuthenticationSchemeOptions, MicrosoftIDentityPlatformAuthHandler>(MicrosoftIDentityPlatformAuthHandler.SchemeName, _ => { });
         _provider = services.BuildServiceProvider();

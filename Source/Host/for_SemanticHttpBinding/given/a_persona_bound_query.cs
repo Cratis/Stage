@@ -39,8 +39,9 @@ public class a_persona_bound_query : for_StageEndpointMapper.given.a_routed_mode
 
     protected override void ConfigureHostServices(IServiceCollection services)
     {
-        SandboxIdentityOptions.Configure(services, new ConfigurationBuilder().AddInMemoryCollection(
-            new Dictionary<string, string?> { ["Stage:Sandbox:Identity"] = Enabled.ToString() }).Build());
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(
+            new Dictionary<string, string?> { ["Stage:Sandbox:Identity"] = Enabled.ToString() }).Build();
+        SandboxIdentityOptions.Configure(services, configuration, Substitute.For<IHostEnvironment>());
         services.AddAuthentication(MicrosoftIDentityPlatformAuthHandler.SchemeName)
             .AddScheme<AuthenticationSchemeOptions, MicrosoftIDentityPlatformAuthHandler>(MicrosoftIDentityPlatformAuthHandler.SchemeName, _ => { });
     }

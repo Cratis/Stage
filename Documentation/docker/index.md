@@ -563,9 +563,10 @@ modeled application, not for protecting a production system.
 ### Development
 
 Stage owns its definition of development and tells ASP.NET Core and Arc about it, so a deployment's
-`ASPNETCORE_ENVIRONMENT` cannot make a Stage development or stop it from being one.
+`ASPNETCORE_ENVIRONMENT` does not by itself turn on Stage's development surfaces.
 
-- The play sandbox is development. Set `Stage:Development` (`Stage__Development=false`) to turn that off.
+- The play sandbox is development unless its host environment is explicitly `Production`.
+  Set `Stage:Development` (`Stage__Development=false`) to turn that off, or explicitly set it to `true` to override the environment.
 - A published application is never development, and no setting makes it so.
 
 Development is what lets surfaces meant for tools open: Arc maps its user and tenant discovery endpoints
@@ -584,6 +585,16 @@ user guest "Guest"
 ```
 
 Set `Stage:Sandbox:Users` (`Stage__Sandbox__Users=true`) to offer them. The switch is explicit and off when absent.
+The selected user is only accepted from the local machine with a Host header of `localhost`,
+`127.0.0.1`, or `[::1]` (with any port) unless `Stage:Sandbox:UsersAllowRemote`
+(`Stage__Sandbox__UsersAllowRemote=true`) is set. Stage uses the connection address, not `X-Forwarded-For`.
+Inside a container, traffic from the host is not loopback, so Docker needs the remote-access opt-in:
+
+```shell
+docker run --rm -p 127.0.0.1:9090:9090 -p 127.0.0.1:35000:35000 \
+  -e Stage__Sandbox__Users=true -e Stage__Sandbox__UsersAllowRemote=true \
+  -v "$PWD":/eventmodel:ro cratis/stage:latest
+```
 
 - Stage lists the users at `/.cratis/users`, with the roles and claims synthesized from the policies of the personas each one
   plays. Lens reads that list, and the user you pick there is the caller for every request, so you can switch between them
@@ -593,8 +604,8 @@ Set `Stage:Sandbox:Users` (`Stage__Sandbox__Users=true`) to offer them. The swit
   `Stage:Sandbox:ForwardedIdentity`. A published application never offers users.
 
 :::danger[Modeled users are not authentication]
-Whoever can reach the sandbox can present any identity, including a role the model never gave a user. Keep the session
-private, and leave `Stage:Sandbox:Users` off anywhere that is not a development or test environment.
+Local callers, and remote callers when remote access is allowed, can present any identity, including a role the model never
+gave a user. Keep the session private, and leave `Stage:Sandbox:Users` off anywhere that is not a development or test environment.
 :::
 
 To disable the persona middleware, set `Stage__Sandbox__Identity=false` in the host environment (for Docker,

@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Specifications;
+using NSubstitute;
 using Xunit;
 
 namespace Cratis.Stage.Host.for_SandboxIdentityOptions.when_binding;
@@ -15,7 +16,7 @@ public class the_docker_defaults : Specification
         var configuration = new ConfigurationBuilder().SetBasePath(Path.GetDirectoryName(typeof(SandboxIdentityOptions).Assembly.Location))
             .AddJsonFile("appsettings.Docker.json").Build();
         var services = new ServiceCollection();
-        SandboxIdentityOptions.Configure(services, configuration);
+        SandboxIdentityOptions.Configure(services, configuration, Substitute.For<IHostEnvironment>());
         using var provider = services.BuildServiceProvider();
         _enabled = provider.GetRequiredService<SandboxIdentityOptions>().Enabled;
     }

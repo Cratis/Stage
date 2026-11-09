@@ -32,6 +32,8 @@
   href: authentication-rendering.md
 - name: Graph rendering
   href: graph-rendering.md
+- name: Named sinks
+  href: sinks.md
 - name: Onboarding rendering
   href: onboarding-rendering.md
 - name: Plan artifacts from Screenplay sources

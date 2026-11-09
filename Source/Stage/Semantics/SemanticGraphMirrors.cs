@@ -34,9 +34,10 @@ public static class SemanticGraphMirrors
     /// </summary>
     /// <param name="plan">The execution plan of the model being run.</param>
     /// <param name="sinkTypeId">The graph sink type the kernel projects to.</param>
+    /// <param name="graphSinks">The named sink each graph that chooses one stores to, by graph name; a graph absent from it stores to the kernel's default graph sink.</param>
     /// <returns>One read model and projection per graph; empty when the application declares none.</returns>
     /// <exception cref="UnsupportedSemanticGraph">A construct has no equivalent in the kernel's graph projection.</exception>
-    public static IReadOnlyList<(ChronicleReadModels.ReadModelDefinition ReadModel, ChronicleProjections.ProjectionDefinition Projection)> Lower(SemanticExecutionPlan plan, string sinkTypeId = Neo4jSinkTypeId)
+    public static IReadOnlyList<(ChronicleReadModels.ReadModelDefinition ReadModel, ChronicleProjections.ProjectionDefinition Projection)> Lower(SemanticExecutionPlan plan, string sinkTypeId = Neo4jSinkTypeId, IReadOnlyDictionary<string, string>? graphSinks = null)
     {
         var application = plan.Model.Application;
         var result = new List<(ChronicleReadModels.ReadModelDefinition, ChronicleProjections.ProjectionDefinition)>();
@@ -44,19 +45,19 @@ public static class SemanticGraphMirrors
         {
             var projections = (application.GraphProjections.IsDefault ? [] : application.GraphProjections).Where(candidate => candidate.Graph == graph.Name).ToArray();
             var projectionId = Runtime.StageChronicleDefinitions.DeterministicGuid($"{graph.Name}:graph-projection").ToString();
-            result.Add((ReadModel(graph, application, projectionId, sinkTypeId), Projection(plan, graph, projections, projectionId)));
+            result.Add((ReadModel(graph, application, projectionId, sinkTypeId, graphSinks?.GetValueOrDefault(graph.Name) ?? string.Empty), Projection(plan, graph, projections, projectionId)));
         }
 
         return result;
     }
 
-    static ChronicleReadModels.ReadModelDefinition ReadModel(SemanticGraph graph, SemanticApplication application, string projectionId, string sinkTypeId) =>
+    static ChronicleReadModels.ReadModelDefinition ReadModel(SemanticGraph graph, SemanticApplication application, string projectionId, string sinkTypeId, string sinkName) =>
         new()
         {
             Type = new() { Identifier = graph.Name, Generation = FirstGeneration },
             ContainerName = graph.Name,
             DisplayName = graph.Name,
-            Sink = new ChronicleSinks.SinkDefinition { ConfigurationId = Guid.Empty, TypeId = sinkTypeId },
+            Sink = new ChronicleSinks.SinkDefinition { ConfigurationId = Guid.Empty, TypeId = sinkTypeId, Name = sinkName },
             Schema = Schema(graph, application),
             Indexes = [],
             ObserverType = ChronicleReadModels.ReadModelObserverType.Projection,

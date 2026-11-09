@@ -15,6 +15,7 @@ internal static class CratisScaffoldProtocolInputs
         StringsCatalogInput.Name,
         ApplicationRealizationInput.Name,
         PassiveReadModelsInput.Name,
+        SinksInput.Name,
         AuthoringMetadataInput.Name,
         DomainPlacementInput.Name,
         ScreenPartitionsInput.Name,

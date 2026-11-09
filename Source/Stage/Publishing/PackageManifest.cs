@@ -31,6 +31,15 @@ public sealed record PackageManifest(
     public const int CurrentSchemaVersion = 1;
     public const string FileName = "manifest.json";
     public const string ModelFolder = "model";
+
+    /// <summary>
+    /// Gets the named sinks the model declares, in declaration order; empty when it declares none.
+    /// </summary>
+    /// <remarks>
+    /// A runtime that deploys the package maps each name to storage, and can check that it maps every one before the kernel refuses
+    /// a read model or graph that names a sink it has no configuration for. A manifest written before sinks existed reads as none.
+    /// </remarks>
+    public IReadOnlyList<PackageSink> Sinks { get; init; } = [];
 }
 
 /// <summary>
@@ -62,3 +71,17 @@ public sealed record ClaimRequirement(string Name, string? Value);
 /// <param name="Name">The dot-separated qualified name.</param>
 /// <param name="Id">The identifier supplied by the source model.</param>
 public sealed record ModelReference(string Kind, string Name, string Id);
+
+/// <summary>
+/// A named sink the model declares.
+/// </summary>
+/// <param name="Name">The name of the sink, as the model declares it.</param>
+/// <param name="Kind">What it stores: <c language="shell">readmodels</c> or <c language="shell">graphs</c>.</param>
+public sealed record PackageSink(string Name, string Kind)
+{
+    /// <summary>The kind of a sink that stores read models.</summary>
+    public const string ReadModels = "readmodels";
+
+    /// <summary>The kind of a sink that stores graphs.</summary>
+    public const string Graphs = "graphs";
+}

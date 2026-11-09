@@ -65,7 +65,7 @@ internal sealed class SemanticRuntimeCommandHandler : ICommandHandler
             false);
         if (outcome is SemanticAccepted accepted && commandContext.Command is DynamicCommand dynamic)
         {
-            return SemanticCommandOutcome.CommittedResponse(accepted, dynamic.Data);
+            return SemanticCommandOutcome.CommittedResponse(accepted, dynamic.Data, _command, _runtime.Plan.Model.Application);
         }
 
         if (outcome is SemanticRejected rejected)
@@ -81,7 +81,7 @@ internal sealed class SemanticRuntimeCommandHandler : ICommandHandler
                 reasonDetail: rejected.Code));
         }
 
-        var result = SemanticCommandOutcome.Map(outcome, commandContext.CorrelationId, _context.HttpContext, _command.Id.ToString());
+        var result = SemanticCommandOutcome.Map(outcome, commandContext.CorrelationId, _context.HttpContext, _command.Id.ToString(), _command, _runtime.Plan.Model.Application);
         throw new SemanticCommandExecutionFailed(string.Join("; ", result.ExceptionMessages));
     }
 }

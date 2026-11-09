@@ -7,11 +7,11 @@ pin	Cratis.Arc.Chronicle.Testing	22.176.0
 pin	Cratis.Arc.MongoDB	22.176.0
 pin	Cratis.Choreography	2.2.0
 pin	Cratis.Choreography.Chronicle	2.2.0
-pin	Cratis.Chronicle	19.142.0
-pin	Cratis.Chronicle.AspNetCore	19.142.0
-pin	Cratis.Chronicle.Testing	19.142.0
-pin	Cratis.Screenplay	6.0.0
-pin	Cratis.Screenplay.Matching	6.0.0
+pin	Cratis.Chronicle	19.144.0
+pin	Cratis.Chronicle.AspNetCore	19.144.0
+pin	Cratis.Chronicle.Testing	19.144.0
+pin	Cratis.Screenplay	6.4.0
+pin	Cratis.Screenplay.Matching	6.4.0
 pin	Cratis.Specifications	5.2.3
 pin	Cratis.Specifications.XUnit	5.2.3
 pin	Microsoft.NET.Test.Sdk	18.11.0
@@ -42,17 +42,17 @@ package	AS	Cratis.Choreography	2.2.0
 package	AS	Cratis.Choreography.Chronicle	2.2.0
 package	AS	Cratis.Choreography.Storage	2.2.0
 package	AS	Cratis.Choreography.Storage.MongoDB	2.1.2
-package	AS	Cratis.Chronicle	19.142.0
-package	AS	Cratis.Chronicle.AspNetCore	19.142.0
-package	AS	Cratis.Chronicle.CodeAnalysis	19.142.0
-package	AS	Cratis.Chronicle.Connections	19.142.0
-package	AS	Cratis.Chronicle.Testing	19.142.0
+package	AS	Cratis.Chronicle	19.144.0
+package	AS	Cratis.Chronicle.AspNetCore	19.144.0
+package	AS	Cratis.Chronicle.CodeAnalysis	19.144.0
+package	AS	Cratis.Chronicle.Connections	19.144.0
+package	AS	Cratis.Chronicle.Testing	19.144.0
 package	AS	Cratis.Fundamentals	7.33.1
 package	AS	Cratis.Metrics.Roslyn	7.33.1
 package	AS	Cratis.Observability.SourceGenerators	7.33.1
-package	AS	Cratis.Screenplay	6.0.0
-package	AS	Cratis.Screenplay.Contexts	6.0.0
-package	AS	Cratis.Screenplay.Matching	6.0.0
+package	AS	Cratis.Screenplay	6.4.0
+package	AS	Cratis.Screenplay.Contexts	6.4.0
+package	AS	Cratis.Screenplay.Matching	6.4.0
 package	AS	Cratis.Specifications	5.2.3
 package	AS	Cratis.Specifications.XUnit	5.2.3
 package	AS	DnsClient	1.8.0
@@ -585,6 +585,7 @@ namespace	AS	Cratis.Chronicle.Events.EventSequences
 namespace	AS	Cratis.Chronicle.Events.EventSequences.Migrations
 namespace	AS	Cratis.Chronicle.Events.Migrations
 namespace	AS	Cratis.Chronicle.ExternalServices
+namespace	AS	Cratis.Chronicle.Federation
 namespace	AS	Cratis.Chronicle.Generations
 namespace	AS	Cratis.Chronicle.Generations.Admission
 namespace	AS	Cratis.Chronicle.Generations.Bindings
@@ -806,6 +807,7 @@ namespace	AS	Cratis.Screenplay.Comparison
 namespace	AS	Cratis.Screenplay.Completeness
 namespace	AS	Cratis.Screenplay.Contexts
 namespace	AS	Cratis.Screenplay.Dependencies
+namespace	AS	Cratis.Screenplay.Design
 namespace	AS	Cratis.Screenplay.Diagnostics
 namespace	AS	Cratis.Screenplay.Environments
 namespace	AS	Cratis.Screenplay.Files
@@ -4664,6 +4666,7 @@ type	AS	Cratis.Chronicle.Projections.Graphs	EdgeMustHaveOneSourceAndOneTarget	cl
 type	AS	Cratis.Chronicle.Projections.Graphs	EdgeRemovedWithAttribute`1	attribute
 type	AS	Cratis.Chronicle.Projections.Graphs	GraphAttribute	attribute
 type	AS	Cratis.Chronicle.Projections.Graphs	GraphElementCannotBeReadModel	class
+type	AS	Cratis.Chronicle.Projections.Graphs	GraphHasConflictingSinks	class
 type	AS	Cratis.Chronicle.Projections.Graphs	IEdgeAttribute	interface
 type	AS	Cratis.Chronicle.Projections.Graphs	IEdgeFromAttribute	interface
 type	AS	Cratis.Chronicle.Projections.Graphs	IEdgeRemovedWithAttribute	interface
@@ -5018,6 +5021,8 @@ type	AS	Cratis.Chronicle.Sinks	EventLogIsNotAPublicationTarget	class
 type	AS	Cratis.Chronicle.Sinks	EventTargetExtensions	static
 type	AS	Cratis.Chronicle.Sinks	PrivateEventTypeCannotBePublishedToOutbox	class
 type	AS	Cratis.Chronicle.Sinks	PublishToAttribute	attribute
+type	AS	Cratis.Chronicle.Sinks	SinkAttribute	attribute
+type	AS	Cratis.Chronicle.Sinks	SinkTypeExtensions	static
 type	AS	Cratis.Chronicle.Sinks	SinkTypeId	class
 type	AS	Cratis.Chronicle.Sinks	WellKnownSinkTypes	static
 type	AS	Cratis.Chronicle.Testing	DateAndTimeExtensions	static
@@ -5304,6 +5309,9 @@ type	AS	Cratis.Screenplay.Comparison	MemberChangeKind	enum
 type	AS	Cratis.Screenplay.Comparison	ModelComparison	static
 type	AS	Cratis.Screenplay.Comparison	ModelDifference	class
 type	AS	Cratis.Screenplay.Comparison	ModelDocumentLocation	class
+type	AS	Cratis.Screenplay.Comparison	SliceChange	class
+type	AS	Cratis.Screenplay.Comparison	SliceChangeKind	enum
+type	AS	Cratis.Screenplay.Comparison	SliceChangeSummary	class
 type	AS	Cratis.Screenplay.Comparison	SpecificationChange	class
 type	AS	Cratis.Screenplay.Comparison	SpecificationChangeKind	enum
 type	AS	Cratis.Screenplay.Completeness	CompletenessCheck	enum
@@ -5323,6 +5331,12 @@ type	AS	Cratis.Screenplay.Contexts	QueryContext	class
 type	AS	Cratis.Screenplay.Contexts	ReducerContext	class
 type	AS	Cratis.Screenplay.Contexts	RuleContext	class
 type	AS	Cratis.Screenplay.Contexts	TenantId	class
+type	AS	Cratis.Screenplay.Design	DesignColor	static
+type	AS	Cratis.Screenplay.Design	DesignSystemResolver	static
+type	AS	Cratis.Screenplay.Design	DesignVocabulary	static
+type	AS	Cratis.Screenplay.Design	ResolvedDesignComponent	class
+type	AS	Cratis.Screenplay.Design	ResolvedDesignTheme	class
+type	AS	Cratis.Screenplay.Design	ResolvedDesignVariant	class
 type	AS	Cratis.Screenplay.Diagnostics	Diagnostic	class
 type	AS	Cratis.Screenplay.Diagnostics	DiagnosticArgument	class
 type	AS	Cratis.Screenplay.Diagnostics	DiagnosticArgumentDefinitionsAttribute	attribute
@@ -5478,6 +5492,7 @@ type	AS	Cratis.Screenplay.Semantics	EventContractIdentityRename	class
 type	AS	Cratis.Screenplay.Semantics	EventContractRevision	struct
 type	AS	Cratis.Screenplay.Semantics	EventContractRevisionAdvancement	class
 type	AS	Cratis.Screenplay.Semantics	ExecutableSemanticModel	class
+type	AS	Cratis.Screenplay.Semantics	ExecutableSemanticModelScope	static
 type	AS	Cratis.Screenplay.Semantics	GenerationEntropy	static
 type	AS	Cratis.Screenplay.Semantics	GenerationExecutability	enum
 type	AS	Cratis.Screenplay.Semantics	GenerationOptionCondition	class
@@ -5493,6 +5508,7 @@ type	AS	Cratis.Screenplay.Semantics	IAdmissibleSemanticModelCompiler	interface
 type	AS	Cratis.Screenplay.Semantics	ISemanticModelBinder	interface
 type	AS	Cratis.Screenplay.Semantics	ISemanticModelCompiler	interface
 type	AS	Cratis.Screenplay.Semantics	InvalidSemanticContract	class
+type	AS	Cratis.Screenplay.Semantics	InvalidSemanticModelScope	class
 type	AS	Cratis.Screenplay.Semantics	LanguageVersion	struct
 type	AS	Cratis.Screenplay.Semantics	PortableMatchCheck	class
 type	AS	Cratis.Screenplay.Semantics	PortableMatchPattern	static
@@ -5725,6 +5741,8 @@ type	AS	Cratis.Screenplay.Semantics	SemanticRuleStatus	enum
 type	AS	Cratis.Screenplay.Semantics	SemanticScalarCommandResponse	class
 type	AS	Cratis.Screenplay.Semantics	SemanticScalarSpecificationResponse	class
 type	AS	Cratis.Screenplay.Semantics	SemanticSecret	class
+type	AS	Cratis.Screenplay.Semantics	SemanticSink	class
+type	AS	Cratis.Screenplay.Semantics	SemanticSinkKind	enum
 type	AS	Cratis.Screenplay.Semantics	SemanticSlice	class
 type	AS	Cratis.Screenplay.Semantics	SemanticSliceKind	enum
 type	AS	Cratis.Screenplay.Semantics	SemanticSourceDocument	class
@@ -5854,6 +5872,7 @@ type	AS	Cratis.Screenplay.Semantics.Generation	RuleConsistency	static
 type	AS	Cratis.Screenplay.Semantics.Generation	RuleConsistencyResult	class
 type	AS	Cratis.Screenplay.Semantics.Generation	RuleConsistencyStatus	enum
 type	AS	Cratis.Screenplay.Semantics.Serialization	EsmAdmissionRange	struct
+type	AS	Cratis.Screenplay.Semantics.Serialization	EsmJsonSchema	static
 type	AS	Cratis.Screenplay.Semantics.Serialization	SemanticIdentityCatalogSerializer	static
 type	AS	Cratis.Screenplay.Semantics.Serialization	SemanticModelCanonicalJson	static
 type	AS	Cratis.Screenplay.Semantics.Serialization	SemanticModelSerializer	static
@@ -5926,6 +5945,15 @@ type	AS	Cratis.Screenplay.Syntax	ContributionSyntax	class
 type	AS	Cratis.Screenplay.Syntax	DateOfExpressionSyntax	class
 type	AS	Cratis.Screenplay.Syntax	DeclarativeValidateSyntax	class
 type	AS	Cratis.Screenplay.Syntax	DependsOnSyntax	class
+type	AS	Cratis.Screenplay.Syntax	DesignAssignmentSyntax	class
+type	AS	Cratis.Screenplay.Syntax	DesignComponentSyntax	class
+type	AS	Cratis.Screenplay.Syntax	DesignContrastRuleSyntax	class
+type	AS	Cratis.Screenplay.Syntax	DesignStateSyntax	class
+type	AS	Cratis.Screenplay.Syntax	DesignSystemSyntax	class
+type	AS	Cratis.Screenplay.Syntax	DesignTokenCategorySyntax	class
+type	AS	Cratis.Screenplay.Syntax	DesignTokenSyntax	class
+type	AS	Cratis.Screenplay.Syntax	DesignVariantSyntax	class
+type	AS	Cratis.Screenplay.Syntax	DesignWordsSyntax	class
 type	AS	Cratis.Screenplay.Syntax	DialogTemplateSyntax	class
 type	AS	Cratis.Screenplay.Syntax	DomainSyntax	class
 type	AS	Cratis.Screenplay.Syntax	EnvironmentExpressionSyntax	class
@@ -6154,6 +6182,8 @@ type	AS	Cratis.Screenplay.Syntax	SeedSyntax	class
 type	AS	Cratis.Screenplay.Syntax	SetStateActionSyntax	class
 type	AS	Cratis.Screenplay.Syntax	ShellOptionSyntax	class
 type	AS	Cratis.Screenplay.Syntax	ShellOptionValueKind	enum
+type	AS	Cratis.Screenplay.Syntax	SinkKind	enum
+type	AS	Cratis.Screenplay.Syntax	SinkSyntax	class
 type	AS	Cratis.Screenplay.Syntax	SliceSyntax	class
 type	AS	Cratis.Screenplay.Syntax	SliceType	enum
 type	AS	Cratis.Screenplay.Syntax	SlotRole	enum
@@ -6177,6 +6207,7 @@ type	AS	Cratis.Screenplay.Syntax	TemplateAssignmentSyntax	class
 type	AS	Cratis.Screenplay.Syntax	TemplateExposedValueSyntax	class
 type	AS	Cratis.Screenplay.Syntax	TemplateSlotContentSyntax	class
 type	AS	Cratis.Screenplay.Syntax	TemplateSlotSyntax	class
+type	AS	Cratis.Screenplay.Syntax	ThemeModeValuesSyntax	class
 type	AS	Cratis.Screenplay.Syntax	ThemeSyntax	class
 type	AS	Cratis.Screenplay.Syntax	TimeZoneSyntax	class
 type	AS	Cratis.Screenplay.Syntax	ToolbarButtonSyntax	class
@@ -13815,7 +13846,7 @@ extensions	AS	Cratis.Chronicle.Reducers	GetEventSequenceId GetFailedPartitionsFo
 extensions	AS	Cratis.Chronicle.Registrations	WaitForRegistration
 extensions	AS	Cratis.Chronicle.Schemas	AddedProtectionMetadataPaths DescribesGeospatialValue EnsureComplianceMetadata EnsureSchemaMetadata EnsureSecurityMetadata EqualsIgnoringNullableFormatMarkers EqualsIgnoringTitles GetCompensationFor GetComplianceMetadata GetDefaultValue GetFlattenedProperties GetFlattenedPropertiesByExactName GetKeyProperty GetLikelyKeyPropertyName GetSchemaForPropertyPath GetSchemaMetadata GetSchemaPropertyForPropertyPath GetSecurityMetadata GetTargetTypeForJsonSchemaProperty GetTargetTypeForPropertyPath HasCompatibleProtectionMetadata HasComplianceMetadata HasKeyProperty HasSchemaMetadata HasSecurityMetadata HasSubjectIndependentSecurityMetadata IsCompatibleWith IsCompensation IsDynamic IsNullable MarkAsDynamic MorePrecise SetCompensationFor
 extensions	AS	Cratis.Chronicle.Seeding	CreateEventSeeding
-extensions	AS	Cratis.Chronicle.Sinks	GetPublishingSequence IsEventTypeTarget IsPublicEventType ValidateAsEventTarget
+extensions	AS	Cratis.Chronicle.Sinks	GetPublishingSequence GetSinkName IsEventTypeTarget IsPublicEventType ValidateAsEventTarget
 extensions	AS	Cratis.Chronicle.Testing	RoundDownTicks
 extensions	AS	Cratis.Chronicle.Testing.EventSequences	ShouldBeFailed ShouldBeForEventSource ShouldBeSuccessful ShouldHaveAppendedEvent ShouldHaveConcurrencyViolations ShouldHaveConstraintViolation ShouldHaveConstraintViolationFor ShouldHaveConstraintViolations ShouldHaveErrors ShouldHaveEvent ShouldHaveTailSequenceNumber ShouldNotHaveConcurrencyViolations ShouldNotHaveConstraintViolations ShouldNotHaveErrors
 extensions	AS	Cratis.Collections	Combine CountElements ForEach ToObjectArray
@@ -14748,7 +14779,7 @@ base	AS	Cratis.Chronicle.Changes.ResolvedJoin	Cratis.Chronicle.Changes.Change	Ar
 base	AS	Cratis.Chronicle.ChronicleBuilder	System.Object	ClientArtifactsProvider Configuration CorrelationIdAccessor IdentityProvider NamespaceResolver NamingPolicy Services	-
 base	AS	Cratis.Chronicle.ChronicleClient	System.Object	CausationManager Dispose EvictEventStores GetEventStore GetEventStores Options	-
 base	AS	Cratis.Chronicle.ChronicleClientOptions	Cratis.Chronicle.ChronicleOptions	EventStore EventStoreNamespaceResolverType	-
-base	AS	Cratis.Chronicle.ChronicleOptions	System.Object	ActivationId ActivationScope ArtifactIdentityDrift Authentication AutoDiscoverAndRegister ClaimsBasedNamespaceResolverClaimType ConcurrencyOptions ConnectTimeout ConnectionString DefaultGraphSinkTypeId DefaultSinkTypeId EnableEventTypeGenerationValidation EventGenerationDelivery ExplicitArtifacts ForServerless ForShortLivedProcess FromConnectionString FromDevelopmentConnectionString JsonSerializerOptions LifecycleScope LoadBalancerStrategy MaxReceiveMessageSize MaxSendMessageSize ProgramIdentifier Reactors Reducers RegistrationMode RegistrationRetry Serverless SkipCompatibilityCheck SkipKeepAlive SoftwareCommit SoftwareVersion Telemetry Tls UnitOfWorkLifecyclePolicy UseServerless UseShortLivedProcess Validate	-
+base	AS	Cratis.Chronicle.ChronicleOptions	System.Object	ActivationId ActivationScope ArtifactIdentityDrift Authentication AutoDiscoverAndRegister ClaimsBasedNamespaceResolverClaimType ConcurrencyOptions ConnectTimeout ConnectionString DefaultGraphSinkName DefaultGraphSinkTypeId DefaultSinkName DefaultSinkTypeId EnableEventTypeGenerationValidation EventGenerationDelivery ExplicitArtifacts ForServerless ForShortLivedProcess FromConnectionString FromDevelopmentConnectionString JsonSerializerOptions LifecycleScope LoadBalancerStrategy MaxReceiveMessageSize MaxSendMessageSize ProgramIdentifier Reactors Reducers RegistrationMode RegistrationRetry Serverless SkipCompatibilityCheck SkipKeepAlive SoftwareCommit SoftwareVersion Telemetry Tls UnitOfWorkLifecyclePolicy UseServerless UseShortLivedProcess Validate	-
 base	AS	Cratis.Chronicle.ChronicleTelemetryOptions	System.Object	EventSourceIdHashKey EventSourceIdTracing SpanNames	-
 base	AS	Cratis.Chronicle.ClaimsBasedNamespaceResolver	System.Object	Resolve	-
 base	AS	Cratis.Chronicle.ClientArtifactActivationFailed	System.Exception	-	-
@@ -15109,6 +15140,7 @@ base	AS	Cratis.Chronicle.Projections.FromEveryBuilder`1	System.Object	ExcludeChi
 base	AS	Cratis.Chronicle.Projections.Graphs.EdgeCanHaveOnlyOneIdentifyingKey	System.Exception	-	-
 base	AS	Cratis.Chronicle.Projections.Graphs.EdgeMustHaveOneSourceAndOneTarget	System.Exception	-	-
 base	AS	Cratis.Chronicle.Projections.Graphs.GraphElementCannotBeReadModel	System.Exception	-	-
+base	AS	Cratis.Chronicle.Projections.Graphs.GraphHasConflictingSinks	System.Exception	-	-
 base	AS	Cratis.Chronicle.Projections.Graphs.NestedObjectInGraph	System.Exception	-	-
 base	AS	Cratis.Chronicle.Projections.Graphs.NodeMustHaveExactlyOneKey	System.Exception	-	-
 base	AS	Cratis.Chronicle.Projections.Graphs.UnknownGraphEventProperty	System.Exception	-	-
@@ -15549,6 +15581,7 @@ base	AS	Cratis.Screenplay.ScreenplayCompiler	System.Object	Compile CompileCaptur
 base	AS	Cratis.Screenplay.Semantics.Execution.SemanticExecutionResponse	System.Object	EqualityContract Equals GetHashCode PrintMembers ToString	-
 base	AS	Cratis.Screenplay.Semantics.Execution.SemanticExecutionResult	System.Object	Deconstruct EqualityContract Equals GetHashCode Kind PrintMembers ToString World	-
 base	AS	Cratis.Screenplay.Semantics.InvalidSemanticContract	System.Exception	-	-
+base	AS	Cratis.Screenplay.Semantics.InvalidSemanticModelScope	System.Exception	-	-
 base	AS	Cratis.Screenplay.Semantics.SemanticAuthorization	System.Object	EqualityContract Equals GetHashCode PrintMembers ToString	-
 base	AS	Cratis.Screenplay.Semantics.SemanticCommandResponse	System.Object	EqualityContract Equals GetHashCode PrintMembers ToString	-
 base	AS	Cratis.Screenplay.Semantics.SemanticCondition	System.Object	EqualityContract Equals GetHashCode PrintMembers ToString	-
@@ -15565,7 +15598,7 @@ base	AS	Cratis.Screenplay.Strings.StringsFileReference	System.Object	BaseName De
 base	AS	Cratis.Screenplay.Strings.StringsFiles	System.Object	FindIn Pattern ReadContent	-
 base	AS	Cratis.Screenplay.Syntax.AnonymousConditionSyntax	Cratis.Screenplay.Syntax.PolicyConditionSyntax	Deconstruct EqualityContract Equals GetHashCode PrintMembers ToString	-
 base	AS	Cratis.Screenplay.Syntax.ApplicationContextSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct Description EqualityContract Equals GetHashCode Members PrintMembers ToString	-
-base	AS	Cratis.Screenplay.Syntax.ApplicationSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Authentication Behaviors CommandReadMode Concepts Context Deconstruct Domain EqualityContract Equals EventSources Examples Exposures FileImports GetHashCode Identity Imports InstanceContributions Layouts Modules Onboarding Personas Policies PrintMembers Purposes ReactionProductionMode RetiredForms SampleDataPacks Seeds SourceOptions StateMachines StickyNotes Systems Templates Themes TimeZone ToString Triggers Types UiProfiles Users Workflows	-
+base	AS	Cratis.Screenplay.Syntax.ApplicationSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Authentication Behaviors CommandReadMode Concepts Context Deconstruct DesignSystems Domain EqualityContract Equals EventSources Examples Exposures FileImports GetHashCode Identity Imports InstanceContributions Layouts Modules Onboarding Personas Policies PrintMembers Purposes ReactionProductionMode RetiredForms SampleDataPacks Seeds Sinks SourceOptions StateMachines StickyNotes Systems Templates Themes TimeZone ToString Triggers Types UiProfiles Users Workflows	-
 base	AS	Cratis.Screenplay.Syntax.ApplicationTriggerInteractionTriggerSyntax	Cratis.Screenplay.Syntax.InteractionTriggerSyntax	Deconstruct EqualityContract Equals GetHashCode PrintMembers ToString TriggerName	-
 base	AS	Cratis.Screenplay.Syntax.ArrangementContainerSyntax	Cratis.Screenplay.Syntax.ArrangementNodeSyntax	Children Columns Deconstruct EqualityContract Equals Gap GetHashCode Grow Kind PrintMembers Rows Span ToString	-
 base	AS	Cratis.Screenplay.Syntax.ArrangementNodeSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct EqualityContract Equals GetHashCode PrintMembers ToString	-
@@ -15623,6 +15656,15 @@ base	AS	Cratis.Screenplay.Syntax.ContributionSyntax	Cratis.Screenplay.Syntax.Syn
 base	AS	Cratis.Screenplay.Syntax.DateOfExpressionSyntax	Cratis.Screenplay.Syntax.ExpressionSyntax	Deconstruct EqualityContract Equals GetHashCode Operand PrintMembers ToString	-
 base	AS	Cratis.Screenplay.Syntax.DeclarativeValidateSyntax	Cratis.Screenplay.Syntax.ValidateSyntax	Deconstruct EqualityContract Equals GetHashCode PrintMembers Requirements Rules ToString	-
 base	AS	Cratis.Screenplay.Syntax.DependsOnSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct EqualityContract Equals GetHashCode PrintMembers Target ToString	-
+base	AS	Cratis.Screenplay.Syntax.DesignAssignmentSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct EqualityContract Equals GetHashCode IsLiteral Name PrintMembers ToString Value	-
+base	AS	Cratis.Screenplay.Syntax.DesignComponentSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct EqualityContract Equals GetHashCode Name Parts PrintMembers ToString Variants	-
+base	AS	Cratis.Screenplay.Syntax.DesignContrastRuleSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Background Deconstruct EqualityContract Equals Foreground GetHashCode Minimum PrintMembers ToString	-
+base	AS	Cratis.Screenplay.Syntax.DesignStateSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct EqualityContract Equals GetHashCode Name Parts PrintMembers ToString	-
+base	AS	Cratis.Screenplay.Syntax.DesignSystemSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Components Deconstruct DefaultTheme EqualityContract Equals GetHashCode Modes Name PrintMembers Rules ToString Tokens Words	-
+base	AS	Cratis.Screenplay.Syntax.DesignTokenCategorySyntax	Cratis.Screenplay.Syntax.SyntaxNode	Category Deconstruct EqualityContract Equals GetHashCode PrintMembers ToString Tokens	-
+base	AS	Cratis.Screenplay.Syntax.DesignTokenSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct Description EqualityContract Equals GetHashCode Name PrintMembers ToString	-
+base	AS	Cratis.Screenplay.Syntax.DesignVariantSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct EqualityContract Equals GetHashCode Name Parts PrintMembers States ToString	-
+base	AS	Cratis.Screenplay.Syntax.DesignWordsSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct EqualityContract Equals GetHashCode Naming PrintMembers ToString Voice	-
 base	AS	Cratis.Screenplay.Syntax.DialogTemplateSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Arrangement Behaviors Category Content Deconstruct Description DisplayName EqualityContract Equals Exposes GetHashCode Name Outlets PrintMembers RecursiveSlots RestrictsScopes RetiredForms Scopes SliceKinds Slots TemplateType ToString UsedBehaviors	-
 base	AS	Cratis.Screenplay.Syntax.DomainSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct EqualityContract Equals GetHashCode Name PrintMembers ToString	-
 base	AS	Cratis.Screenplay.Syntax.EnvironmentExpressionSyntax	Cratis.Screenplay.Syntax.ExpressionSyntax	Deconstruct EqualityContract Equals GetHashCode Name PrintMembers ToString	-
@@ -15663,7 +15705,7 @@ base	AS	Cratis.Screenplay.Syntax.GraphPatternHopSyntax	Cratis.Screenplay.Syntax.
 base	AS	Cratis.Screenplay.Syntax.GraphPatternNodeSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Alias Deconstruct EqualityContract Equals GetHashCode Label PrintMembers ToString	-
 base	AS	Cratis.Screenplay.Syntax.GraphQuerySyntax	Cratis.Screenplay.Syntax.SyntaxNode	Authorize By Conditions Deconstruct Description EqualityContract Equals Filters GetHashCode Graph IsObservable Matches Name PrintMembers ReturnType Returns ToString	-
 base	AS	Cratis.Screenplay.Syntax.GraphReturnSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Alias Deconstruct EqualityContract Equals GetHashCode PrintMembers Property Source ToString	-
-base	AS	Cratis.Screenplay.Syntax.GraphSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct Description Documentation Edges EqualityContract Equals File GetHashCode Name Nodes PrintMembers ToString	-
+base	AS	Cratis.Screenplay.Syntax.GraphSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct Description Documentation Edges EqualityContract Equals File GetHashCode Name Nodes PrintMembers Sink ToString	-
 base	AS	Cratis.Screenplay.Syntax.HandlerSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Code Deconstruct EqualityContract Equals File GetHashCode Implementation PossibleEvents PrintMembers ToString	-
 base	AS	Cratis.Screenplay.Syntax.IdentityDetailSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct EqualityContract Equals GetHashCode Name PrintMembers Source ToString Type	-
 base	AS	Cratis.Screenplay.Syntax.IdentityExpressionSyntax	Cratis.Screenplay.Syntax.ExpressionSyntax	Deconstruct EqualityContract Equals GetHashCode Path PrintMembers ToString	-
@@ -15792,7 +15834,7 @@ base	AS	Cratis.Screenplay.Syntax.RawExpressionSyntax	Cratis.Screenplay.Syntax.Ex
 base	AS	Cratis.Screenplay.Syntax.ReactionIdentitySyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct EqualityContract Equals GetHashCode Kind PrintMembers Roles ToString	-
 base	AS	Cratis.Screenplay.Syntax.ReactionSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct Description Documentation EqualityContract Equals From GetHashCode Name PrintMembers RunsAs ToString Triggers Where	-
 base	AS	Cratis.Screenplay.Syntax.ReactionTriggerSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Code Data Deconstruct Description EqualityContract Equals File GetHashCode Invokes PrintMembers Produces Reads Source ToString	-
-base	AS	Cratis.Screenplay.Syntax.ReadModelSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct Description Documentation EqualityContract Equals File GetHashCode IsPassive Name PrintMembers Properties ToString	-
+base	AS	Cratis.Screenplay.Syntax.ReadModelSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct Description Documentation EqualityContract Equals File GetHashCode IsPassive Name PrintMembers Properties Sink ToString	-
 base	AS	Cratis.Screenplay.Syntax.ReadsSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Alias By ByParts Deconstruct EqualityContract Equals GetHashCode PrintMembers ReadModel ToString	-
 base	AS	Cratis.Screenplay.Syntax.RecordCommandResponseSyntax	Cratis.Screenplay.Syntax.CommandResponseSyntax	Deconstruct EqualityContract Equals Fields GetHashCode PrintMembers ToString	-
 base	AS	Cratis.Screenplay.Syntax.ReducerRuleSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Code Deconstruct Description EqualityContract Equals Event File GetHashCode PrintMembers ToString	-
@@ -15839,13 +15881,14 @@ base	AS	Cratis.Screenplay.Syntax.ScreenTemplateSyntax	Cratis.Screenplay.Syntax.S
 base	AS	Cratis.Screenplay.Syntax.ScreenTitleSyntax	Cratis.Screenplay.Syntax.ScreenDirectiveSyntax	Deconstruct EqualityContract Equals GetHashCode PrintMembers Text ToString	-
 base	AS	Cratis.Screenplay.Syntax.ScreenToolbarSyntax	Cratis.Screenplay.Syntax.ScreenDirectiveSyntax	Buttons Deconstruct EqualityContract Equals GetHashCode Items Name PrintMembers ToString	-
 base	AS	Cratis.Screenplay.Syntax.ScreenUsesBehaviorSyntax	Cratis.Screenplay.Syntax.ScreenDirectiveSyntax	Deconstruct EqualityContract Equals GetHashCode PrintMembers ToString Uses	-
-base	AS	Cratis.Screenplay.Syntax.ScreenplaySyntaxWalker	System.Object	VisitAddMapping VisitAll VisitAnonymousCondition VisitApplication VisitApplicationContext VisitApplicationTriggerInteractionTrigger VisitArrangement VisitArrangementContainer VisitArrangementNode VisitArrangementOverride VisitArrangementSlot VisitAttachments VisitAuthenticatedCondition VisitAuthentication VisitAuthenticationProvider VisitAuthorize VisitBehavior VisitBehaviorArgument VisitBehaviorParameter VisitBuiltInInteractionTrigger VisitCapture VisitCaptureAppend VisitCaptureChildren VisitCaptureMapEntry VisitCaptureMapOperation VisitCaptureNested VisitCaptureSource VisitCaptureSourceSetting VisitCaptureSplit VisitCaptureTranslation VisitCaptureWhen VisitCaseValueExpression VisitCausedByExpression VisitChildren VisitClaimCondition VisitClaimIdentitySource VisitClearMapping VisitClearWith VisitClockOffsetExpression VisitCloseDialogAction VisitCodeBlock VisitCodeIdentitySource VisitCodeValidate VisitCommand VisitCommandCalendar VisitCommandFormLayout VisitCommandResponse VisitCommandStream VisitComparisonCondition VisitCompositeKey VisitConcept VisitConceptAttribute VisitConcurrency VisitCondition VisitConfirmAction VisitConstraint VisitContextExpression VisitContextMember VisitContribution VisitCountMapping VisitDateOfExpression VisitDeclarativeValidate VisitDecrementMapping VisitDependsOn VisitDialogTemplate VisitDomain VisitEnvironmentExpression VisitEvent VisitEventContextExpression VisitEventInteractionTrigger VisitEventSource VisitEventSourceIdExpression VisitEventSpec VisitEventStream VisitEventStreamIdPart VisitEvery VisitExecuteCommandAction VisitExposure VisitExpression VisitExpressionKey VisitFeature VisitFileConstraint VisitFileIdentitySource VisitFileImport VisitFileReference VisitFileValidate VisitForm VisitFormColumn VisitFormField VisitFormFieldPlacement VisitFormLayoutColumn VisitFormPopulate VisitFormWidth VisitFrom VisitGeneration VisitGraph VisitGraphEdge VisitGraphEdgeBlock VisitGraphFrom VisitGraphNode VisitGraphNodeBlock VisitGraphProjection VisitGraphQuery VisitGraphRemove VisitHandler VisitIdentity VisitIdentityDetail VisitIdentityExpression VisitIdentitySource VisitImplementation VisitImplementationHint VisitImport VisitIncrementMapping VisitInstanceContributions VisitInteractionAction VisitInteractionAlternative VisitInteractionArgument VisitInteractionBinding VisitInteractionOtherwise VisitInteractionTrigger VisitIntervalInteractionTrigger VisitInvocationRefusal VisitInvokes VisitJoin VisitJoinEvent VisitKey VisitKeyPart VisitLayout VisitLifecycleSpecification VisitListExpression VisitLiteralExpression VisitLogicalCondition VisitLogicalPolicyCondition VisitLogicalPolicyRequirement VisitMapping VisitModule VisitNavigateAction VisitNavigateBackAction VisitNavigationItem VisitNavigationLogo VisitNavigationTarget VisitNested VisitNode VisitNotPolicyCondition VisitNotifyAction VisitObjectExpression VisitObjectMember VisitObserverFilter VisitOnboarding VisitOpenDialogAction VisitOperation VisitOperationPhase VisitOutlet VisitOutletGroup VisitOutletItem VisitOutletPosition VisitPathExpression VisitPerformer VisitPersona VisitPlace VisitPolicy VisitPolicyCondition VisitPolicyReference VisitPolicyRequirement VisitPossibleEvent VisitPossibleEvents VisitProduces VisitProjection VisitProjectionBlock VisitProjectionEntersOn VisitProjectionVariant VisitProperty VisitPropertyMapping VisitPropertyResponseSource VisitPurpose VisitPurposeReference VisitPurposeTransfer VisitQuery VisitQueryIdentitySource VisitQueryParameter VisitRaiseTriggerAction VisitRawExpression VisitReaction VisitReactionIdentity VisitReactionTrigger VisitReadModel VisitReads VisitRecordCommandResponse VisitRecordSpecificationReturn VisitReducer VisitReducerRule VisitRefreshQueryAction VisitRefusalExpression VisitRemoveViaJoin VisitRemoveWith VisitRequirement VisitResponseField VisitRoleCondition VisitSampleDataPack VisitSampleDataRow VisitSampleDataSelection VisitSampleDataSet VisitScalarCommandResponse VisitScalarSpecificationReturn VisitScreen VisitScreenAction VisitScreenActionAlternative VisitScreenActionOtherwise VisitScreenBehavior VisitScreenCode VisitScreenColumn VisitScreenComponent VisitScreenData VisitScreenDirective VisitScreenField VisitScreenGuardedAction VisitScreenNavigate VisitScreenSection VisitScreenSlot VisitScreenSummary VisitScreenTable VisitScreenTemplate VisitScreenTemplateReference VisitScreenTitle VisitScreenToolbar VisitScreenUsesBehavior VisitSeed VisitSeedEvent VisitSeedGroup VisitSetMapping VisitSetStateAction VisitSlice VisitSlot VisitSourceItemExpression VisitSpecification VisitSpecificationAbsentReadModel VisitSpecificationCaller VisitSpecificationCallerClaim VisitSpecificationCallerPersona VisitSpecificationCapture VisitSpecificationCase VisitSpecificationClock VisitSpecificationCommand VisitSpecificationCompensated VisitSpecificationDenied VisitSpecificationError VisitSpecificationEvent VisitSpecificationExample VisitSpecificationGeneratedValue VisitSpecificationGraph VisitSpecificationGraphElement VisitSpecificationInvocation VisitSpecificationNoResult VisitSpecificationNoStream VisitSpecificationOperation VisitSpecificationOperationFailure VisitSpecificationParameter VisitSpecificationQuery VisitSpecificationQueryResult VisitSpecificationReadModel VisitSpecificationRedelivery VisitSpecificationReturn VisitSpecificationStream VisitSpecificationTimeZone VisitSpecificationTrigger VisitSpecificationWhenQuery VisitState VisitStateEntry VisitStateMachine VisitStateTransition VisitStickyNote VisitStringsExpression VisitSubtractMapping VisitSystem VisitTag VisitTemplateExpression VisitTemplateInterpolation VisitTemplatePart VisitTemplateSlotContent VisitTemplateText VisitTheme VisitTimeZone VisitToolbarButton VisitTrigger VisitTriggerData VisitType VisitTypeRef VisitUiBinding VisitUiProfile VisitUniqueEventConstraint VisitUniquePropertyConstraint VisitUser VisitUsesBehavior VisitValidate VisitValidationRule VisitVariant VisitWorkflow VisitWorkflowEdge VisitWorkflowNode	-
+base	AS	Cratis.Screenplay.Syntax.ScreenplaySyntaxWalker	System.Object	VisitAddMapping VisitAll VisitAnonymousCondition VisitApplication VisitApplicationContext VisitApplicationTriggerInteractionTrigger VisitArrangement VisitArrangementContainer VisitArrangementNode VisitArrangementOverride VisitArrangementSlot VisitAttachments VisitAuthenticatedCondition VisitAuthentication VisitAuthenticationProvider VisitAuthorize VisitBehavior VisitBehaviorArgument VisitBehaviorParameter VisitBuiltInInteractionTrigger VisitCapture VisitCaptureAppend VisitCaptureChildren VisitCaptureMapEntry VisitCaptureMapOperation VisitCaptureNested VisitCaptureSource VisitCaptureSourceSetting VisitCaptureSplit VisitCaptureTranslation VisitCaptureWhen VisitCaseValueExpression VisitCausedByExpression VisitChildren VisitClaimCondition VisitClaimIdentitySource VisitClearMapping VisitClearWith VisitClockOffsetExpression VisitCloseDialogAction VisitCodeBlock VisitCodeIdentitySource VisitCodeValidate VisitCommand VisitCommandCalendar VisitCommandFormLayout VisitCommandResponse VisitCommandStream VisitComparisonCondition VisitCompositeKey VisitConcept VisitConceptAttribute VisitConcurrency VisitCondition VisitConfirmAction VisitConstraint VisitContextExpression VisitContextMember VisitContribution VisitCountMapping VisitDateOfExpression VisitDeclarativeValidate VisitDecrementMapping VisitDependsOn VisitDesignSystem VisitDialogTemplate VisitDomain VisitEnvironmentExpression VisitEvent VisitEventContextExpression VisitEventInteractionTrigger VisitEventSource VisitEventSourceIdExpression VisitEventSpec VisitEventStream VisitEventStreamIdPart VisitEvery VisitExecuteCommandAction VisitExposure VisitExpression VisitExpressionKey VisitFeature VisitFileConstraint VisitFileIdentitySource VisitFileImport VisitFileReference VisitFileValidate VisitForm VisitFormColumn VisitFormField VisitFormFieldPlacement VisitFormLayoutColumn VisitFormPopulate VisitFormWidth VisitFrom VisitGeneration VisitGraph VisitGraphEdge VisitGraphEdgeBlock VisitGraphFrom VisitGraphNode VisitGraphNodeBlock VisitGraphProjection VisitGraphQuery VisitGraphRemove VisitHandler VisitIdentity VisitIdentityDetail VisitIdentityExpression VisitIdentitySource VisitImplementation VisitImplementationHint VisitImport VisitIncrementMapping VisitInstanceContributions VisitInteractionAction VisitInteractionAlternative VisitInteractionArgument VisitInteractionBinding VisitInteractionOtherwise VisitInteractionTrigger VisitIntervalInteractionTrigger VisitInvocationRefusal VisitInvokes VisitJoin VisitJoinEvent VisitKey VisitKeyPart VisitLayout VisitLifecycleSpecification VisitListExpression VisitLiteralExpression VisitLogicalCondition VisitLogicalPolicyCondition VisitLogicalPolicyRequirement VisitMapping VisitModule VisitNavigateAction VisitNavigateBackAction VisitNavigationItem VisitNavigationLogo VisitNavigationTarget VisitNested VisitNode VisitNotPolicyCondition VisitNotifyAction VisitObjectExpression VisitObjectMember VisitObserverFilter VisitOnboarding VisitOpenDialogAction VisitOperation VisitOperationPhase VisitOutlet VisitOutletGroup VisitOutletItem VisitOutletPosition VisitPathExpression VisitPerformer VisitPersona VisitPlace VisitPolicy VisitPolicyCondition VisitPolicyReference VisitPolicyRequirement VisitPossibleEvent VisitPossibleEvents VisitProduces VisitProjection VisitProjectionBlock VisitProjectionEntersOn VisitProjectionVariant VisitProperty VisitPropertyMapping VisitPropertyResponseSource VisitPurpose VisitPurposeReference VisitPurposeTransfer VisitQuery VisitQueryIdentitySource VisitQueryParameter VisitRaiseTriggerAction VisitRawExpression VisitReaction VisitReactionIdentity VisitReactionTrigger VisitReadModel VisitReads VisitRecordCommandResponse VisitRecordSpecificationReturn VisitReducer VisitReducerRule VisitRefreshQueryAction VisitRefusalExpression VisitRemoveViaJoin VisitRemoveWith VisitRequirement VisitResponseField VisitRoleCondition VisitSampleDataPack VisitSampleDataRow VisitSampleDataSelection VisitSampleDataSet VisitScalarCommandResponse VisitScalarSpecificationReturn VisitScreen VisitScreenAction VisitScreenActionAlternative VisitScreenActionOtherwise VisitScreenBehavior VisitScreenCode VisitScreenColumn VisitScreenComponent VisitScreenData VisitScreenDirective VisitScreenField VisitScreenGuardedAction VisitScreenNavigate VisitScreenSection VisitScreenSlot VisitScreenSummary VisitScreenTable VisitScreenTemplate VisitScreenTemplateReference VisitScreenTitle VisitScreenToolbar VisitScreenUsesBehavior VisitSeed VisitSeedEvent VisitSeedGroup VisitSetMapping VisitSetStateAction VisitSink VisitSlice VisitSlot VisitSourceItemExpression VisitSpecification VisitSpecificationAbsentReadModel VisitSpecificationCaller VisitSpecificationCallerClaim VisitSpecificationCallerPersona VisitSpecificationCapture VisitSpecificationCase VisitSpecificationClock VisitSpecificationCommand VisitSpecificationCompensated VisitSpecificationDenied VisitSpecificationError VisitSpecificationEvent VisitSpecificationExample VisitSpecificationGeneratedValue VisitSpecificationGraph VisitSpecificationGraphElement VisitSpecificationInvocation VisitSpecificationNoResult VisitSpecificationNoStream VisitSpecificationOperation VisitSpecificationOperationFailure VisitSpecificationParameter VisitSpecificationQuery VisitSpecificationQueryResult VisitSpecificationReadModel VisitSpecificationRedelivery VisitSpecificationReturn VisitSpecificationStream VisitSpecificationTimeZone VisitSpecificationTrigger VisitSpecificationWhenQuery VisitState VisitStateEntry VisitStateMachine VisitStateTransition VisitStickyNote VisitStringsExpression VisitSubtractMapping VisitSystem VisitTag VisitTemplateExpression VisitTemplateInterpolation VisitTemplatePart VisitTemplateSlotContent VisitTemplateText VisitTheme VisitTimeZone VisitToolbarButton VisitTrigger VisitTriggerData VisitType VisitTypeRef VisitUiBinding VisitUiProfile VisitUniqueEventConstraint VisitUniquePropertyConstraint VisitUser VisitUsesBehavior VisitValidate VisitValidationRule VisitVariant VisitWorkflow VisitWorkflowEdge VisitWorkflowNode	-
 base	AS	Cratis.Screenplay.Syntax.SeedEventSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct EqualityContract Equals Event GetHashCode PrintMembers Properties ToString	-
 base	AS	Cratis.Screenplay.Syntax.SeedGroupSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct EqualityContract Equals EventSourceId Events GetHashCode PrintMembers ToString	-
 base	AS	Cratis.Screenplay.Syntax.SeedSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct EqualityContract Equals GetHashCode Groups Name PrintMembers ToString X Y	-
 base	AS	Cratis.Screenplay.Syntax.Serialization.InvalidSyntaxJson	System.Exception	-	-
 base	AS	Cratis.Screenplay.Syntax.SetStateActionSyntax	Cratis.Screenplay.Syntax.InteractionActionSyntax	Deconstruct EqualityContract Equals GetHashCode PrintMembers Target ToString Value	-
 base	AS	Cratis.Screenplay.Syntax.ShellOptionSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct EqualityContract Equals GetHashCode Kind Name PrintMembers ToString Value	-
+base	AS	Cratis.Screenplay.Syntax.SinkSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct EqualityContract Equals GetHashCode Name PrintMembers Stores ToString	-
 base	AS	Cratis.Screenplay.Syntax.SliceSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Captures Commands Constraints Deconstruct Description DescriptionLocation DescriptionRawLength Direction Documentation EffectiveDirection EqualityContract Equals Events Examples File GetHashCode GraphProjections GraphQueries Graphs Name Operations PrintMembers Projections Purposes Queries Reactions ReadModels Reducers Screens Specifications Templates ToString Type	-
 base	AS	Cratis.Screenplay.Syntax.SlotSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct EqualityContract Equals GetHashCode Name Optional Primary PrintMembers Role Routed RoutedBy ToString	-
 base	AS	Cratis.Screenplay.Syntax.SourceItemExpressionSyntax	Cratis.Screenplay.Syntax.ExpressionSyntax	Deconstruct EqualityContract Equals GetHashCode Path PrintMembers ToString	-
@@ -15898,7 +15941,8 @@ base	AS	Cratis.Screenplay.Syntax.TemplateAssignmentSyntax	Cratis.Screenplay.Synt
 base	AS	Cratis.Screenplay.Syntax.TemplateExposedValueSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct EqualityContract Equals GetHashCode Name PrintMembers ToString Type	-
 base	AS	Cratis.Screenplay.Syntax.TemplateSlotContentSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct Directives EqualityContract Equals GetHashCode PrintMembers Slot ToString	-
 base	AS	Cratis.Screenplay.Syntax.TemplateSlotSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct EqualityContract Equals GetHashCode Name PrintMembers ToString	-
-base	AS	Cratis.Screenplay.Syntax.ThemeSyntax	Cratis.Screenplay.Syntax.SyntaxNode	CompatibleWith Deconstruct EqualityContract Equals GetHashCode Name PrintMembers ToString	-
+base	AS	Cratis.Screenplay.Syntax.ThemeModeValuesSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct EqualityContract Equals GetHashCode Mode PrintMembers ToString Values	-
+base	AS	Cratis.Screenplay.Syntax.ThemeSyntax	Cratis.Screenplay.Syntax.SyntaxNode	CompatibleWith Deconstruct EqualityContract Equals GetHashCode Implements ModeValues Name Palette PrintMembers ToString Values	-
 base	AS	Cratis.Screenplay.Syntax.TimeZoneSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Configurable Deconstruct EqualityContract Equals GetHashCode Id PrintMembers ToString	-
 base	AS	Cratis.Screenplay.Syntax.ToolbarButtonSyntax	Cratis.Screenplay.Syntax.OutletItemSyntax	Authorize Confirm Deconstruct Emphasis EnabledWhen EqualityContract Equals GetHashCode Icon Opens OpensSlot PrintMembers Runs Slice Subject ToString	-
 base	AS	Cratis.Screenplay.Syntax.ToolbarItemSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Confirm Deconstruct EnabledWhen EqualityContract Equals GetHashCode Icon Kind Label Name Parameters Presentation PrintMembers Subject Target ToString	-

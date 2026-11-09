@@ -242,6 +242,8 @@ internal static class SemanticSurfaceLedger
         // QueryShapes records the cross-product rather than treating an enum value as universally supported.
         // Passivity is carried by SemanticCompilation.PassiveReadModels through PassiveReadModelsInput,
         // not portable ESM; the attribute and fluent projection flag are rendered for #208.
+        // Named sinks are carried by SemanticCompilation.Sinks, ReadModelSinks and GraphSinks through SinksInput, not portable ESM;
+        // [Sink] is rendered on read models and graph records, and a query over a read model in a named sink refuses STAGE-ESM-069.
         Add(entries, "SemanticReadModel", rendered, "Id Name Properties");
         Add(entries, "SemanticProjection", rendered, "Id Name ReadModel Transitions");
         Add(entries, "SemanticProjection", rendered, "Scope");

@@ -26,21 +26,68 @@ public static class SemanticRunAdmission
     public const string GraphsNotProjected = "STAGE-ESM-065";
 
     static readonly ConditionalWeakTable<ExecutableSemanticModel, ConcurrentDictionary<string, EsmSupportStanding>> _standings = [];
+    static readonly string[] ClockMemberPrefixes = ["SemanticCommand.Calendar", "SemanticCommandCalendar.", "SemanticClockOperand.", "SemanticClockKind.", "SemanticClockUnit.", "SemanticConditionOperand.Clock", "SemanticConditionOperand.DateOf", "SemanticValidationRule.ClockOperand", "SemanticSpecification.GivenTimeZone"];
+    static readonly System.Text.RegularExpressions.Regex CommandSegment = new(@"\.Commands\[(\d+)\]", System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
     /// <summary>
     /// Checks the audited version pair before finding constructs that block live model admission.
     /// </summary>
     /// <param name="model">The executable model.</param>
     /// <returns>The precise capability refusals.</returns>
-    public static IEnumerable<SemanticAdmissionFeature> ModelFeatures(ExecutableSemanticModel model)
+    public static IEnumerable<SemanticAdmissionFeature> ModelFeatures(ExecutableSemanticModel model) => ModelFeatures(model, _ => true);
+
+    internal static IEnumerable<SemanticAdmissionFeature> RuntimeModelFeatures(ExecutableSemanticModel model) =>
+        ModelFeatures(model, member => ScopedClockMember(model, member) is null);
+
+    /// <summary>
+    /// Finds the clock members (ESM v37) that the live runtime refuses per owning command or notes, instead of refusing the whole model.
+    /// Every other unaudited member, including anything security relevant, is never scoped and keeps blocking.
+    /// </summary>
+    /// <param name="model">The executable model.</param>
+    /// <returns>The scoped clock members.</returns>
+    internal static IEnumerable<SemanticScopedMember> ScopedClockMembers(ExecutableSemanticModel model)
+    {
+        var standing = RunStanding(model, new HashSet<SemanticId>());
+        if (standing.Version is not (EsmVersionStanding.Audited or EsmVersionStanding.NewerWithinRange)) return [];
+        return standing.UnknownMembers.Select(member => ScopedClockMember(model, member)).OfType<SemanticScopedMember>();
+    }
+
+    /// <summary>
+    /// Refuses a command that uses the command clock, which the live runtime cannot run yet; other commands run.
+    /// </summary>
+    /// <param name="plan">The executable plan.</param>
+    /// <param name="command">The command.</param>
+    /// <returns>The refusal, or null when the command does not use the clock.</returns>
+    internal static SemanticUnsupportedCapability? CommandRangeRefusal(SemanticExecutionPlan plan, SemanticCommand command) =>
+        ScopedClockMembers(plan.Model).FirstOrDefault(scoped => scoped.Command?.Id == command.Id) is { } clock
+            ? new(StageExecutionCapability.Command, command.Id.ToString(), $"STAGE-ESM-016: Command '{command.Name}' uses the command clock (ESM member {clock.Member.Member}), which Stage does not run yet (Cratis/Stage#957); other commands run.")
+            : null;
+
+    static IEnumerable<SemanticAdmissionFeature> ModelFeatures(ExecutableSemanticModel model, Func<SemanticUnknownMember, bool> include)
     {
         var standing = RunStanding(model, new HashSet<SemanticId>());
         if (standing.Version is not (EsmVersionStanding.Audited or EsmVersionStanding.NewerWithinRange))
         {
             return [new(model.Application.Id.ToString(), "application", nameof(StageExecutionCapability.PlanIssue), UnsupportedVersion(model))];
         }
-        return standing.UnknownMembers.Select(member => new SemanticAdmissionFeature(member.Owner.ToString(), member.OwnerKind, nameof(StageExecutionCapability.PlanIssue), UnauditedMember(member)))
+        return standing.UnknownMembers.Where(include).Select(member => new SemanticAdmissionFeature(member.Owner.ToString(), member.OwnerKind, nameof(StageExecutionCapability.PlanIssue), UnauditedMember(member)))
             .Concat(ModelFeatures(model.Application));
+    }
+
+    static SemanticScopedMember? ScopedClockMember(ExecutableSemanticModel model, SemanticUnknownMember member)
+    {
+        if (member.Member == "SemanticReadModel.PropertyOrder") return new(member, "readModel", null);
+        if (member.Member.StartsWith("SemanticApplication.", StringComparison.Ordinal) || member.Member.StartsWith("SemanticTimeZone.", StringComparison.Ordinal))
+        {
+            return member.Member is "SemanticApplication.TimeZone" or "SemanticApplication.ContextMembers" || member.Member.StartsWith("SemanticTimeZone.", StringComparison.Ordinal) ? new(member, "application", null) : null;
+        }
+        if (!ClockMemberPrefixes.Any(prefix => member.Member.StartsWith(prefix, StringComparison.Ordinal))) return null;
+        if (CommandSegment.Match(member.Path) is { Success: true } command)
+        {
+            var owner = SemanticVersionFeatures.Slices(model.Application).FirstOrDefault(slice => slice.Id == member.Owner);
+            return owner?.Commands.ElementAtOrDefault(int.Parse(command.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture)) is { } found ? new(member, "command", found) : null;
+        }
+        return member.Path.Contains(".Specifications[", StringComparison.Ordinal) ? new(member, "specification", null) : null;
     }
 
     /// <summary>
@@ -428,7 +475,7 @@ public static class SemanticRunAdmission
     }
 
     static string UnsupportedVersion(ExecutableSemanticModel model) =>
-        $"STAGE-ESM-016: ESM pair {model.LanguageVersion}/{model.SemanticVersion} is not an audited pair and is outside the range Stage runs ({CratisEsmSupport.Descriptor.Accepts}).";
+        $"STAGE-ESM-016: ESM pair {model.LanguageVersion}/{model.SemanticVersion} is not an audited pair; Stage audits ESM pairs individually (prospective range {CratisEsmSupport.Descriptor.Accepts}; see the ESM feature matrix).";
 
     static string UnauditedMember(SemanticUnknownMember member) => $"STAGE-ESM-016: Unaudited ESM member {member.Member} at {member.Path}.";
 

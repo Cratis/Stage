@@ -171,6 +171,11 @@ internal sealed partial class SemanticRuntime : ISemanticRuntime, ISemanticForei
             return new(_world, SemanticExecutionCapability.Command, $"{feature.Code}: {feature.Message}");
         }
 
+        if (command is not null && SemanticRunAdmission.CommandRangeRefusal(Plan, command) is { } clockRefusal)
+        {
+            return new(_world, SemanticExecutionCapability.Command, clockRefusal.Details);
+        }
+
         if (command is not null && SemanticRunAdmission.CommandValidationRefusal(Plan, command) is { } validationRefusal)
         {
             return new(_world, SemanticExecutionCapability.Command, validationRefusal);

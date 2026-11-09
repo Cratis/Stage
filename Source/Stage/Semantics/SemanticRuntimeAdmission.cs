@@ -23,7 +23,13 @@ internal sealed class SemanticRuntimeAdmission
 
         // External integrations remain visible without blocking unrelated local behavior.
         // Other unsupported constructs still refuse the model rather than silently losing behavior.
-        foreach (var feature in SemanticRunAdmission.ModelFeatures(plan.Model))
+        foreach (var scoped in SemanticRunAdmission.ScopedClockMembers(plan.Model).Where(scoped => scoped.Kind is "readModel" or "application"))
+        {
+            // The clock only matters to the commands and specifications that use it; metadata and ordering never change what runs.
+            entries.Add(new(scoped.Member.Owner.ToString(), scoped.Member.OwnerKind, "supported", null, $"STAGE-ESM-016: ESM member {scoped.Member.Member} is not audited and is ignored; properties are ordered canonically and clock constructs are refused per command."));
+        }
+
+        foreach (var feature in SemanticRunAdmission.RuntimeModelFeatures(plan.Model))
         {
             if (IsUnraisableTrigger(feature))
             {
@@ -132,6 +138,11 @@ internal sealed class SemanticRuntimeAdmission
 
     static (SemanticAdmissionEntry Entry, bool BlocksModel) CommandEntry(SemanticExecutionPlan plan, SemanticCommand command, Func<string, string?>? ruleName, SemanticBodyExecution? bodies)
     {
+        if (SemanticRunAdmission.CommandRangeRefusal(plan, command) is { } clockRefusal)
+        {
+            // The command clock refuses only the commands that use it.
+            return (new(command.Id.ToString(), "command", "unsupported", clockRefusal.Capability.ToString(), clockRefusal.Details), false);
+        }
         if (SemanticPlanAdmission.Check(plan, command.Id) is { } planRefusal)
         {
             return (new(command.Id.ToString(), "command", "unsupported", planRefusal.Capability.ToString(), command.Handler is null ? planRefusal.Details : $"{planRefusal.Details} {BodyDiagnostics.NotExecuted(SemanticImplementationRole.CommandHandler)}"), false);

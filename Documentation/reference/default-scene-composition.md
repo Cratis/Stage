@@ -61,7 +61,8 @@ is filled by the tabs, and a panel is never routed, so neither gets one. Navigat
 `show <Screen> by <param> from <element>.selection` becomes the `core:slot` of the template slot it stands in, with
 that slot's role and routing, `shows`, `showsBy`, `showsFrom` and `showsFromElement` (the id of the table or component
 whose selection it shows). A form field's `choose from` picker is not translated yet - Scene 5's form field has no
-place for it - and is refused with `STAGE-SCENE-UI-001` rather than dropped.
+place for it - so the field is kept as a plain input and the gap is reported as the warning
+`STAGE-SCENE-FORM-004`.
 
 ## Addresses of routed slots, tabs and filters
 

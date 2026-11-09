@@ -37,8 +37,8 @@ the single command, trigger, reaction or specification that needs it, and the re
 | --- | --- | --- | --- |
 | Application triggers and the reactions they start | Refused individually, not executed; the rest of the model runs | Refused | `STAGE-ESM-024` |
 | Command clock (`SemanticCommand.Calendar`, clock operands, `now` and `today` conditions) | The commands that use it are refused; other commands run | The model is refused | `STAGE-ESM-016` |
-| Specification that sets a time zone or uses the clock | That specification is refused | The model is refused | `STAGE-ESM-016` |
-| Application time zone, context members and declared read model property order | Noted and ignored; properties are ordered canonically | The model is refused | `STAGE-ESM-016` |
+| Specification that sets a time zone or uses the clock | Specifications in that slice are refused | The model is refused | `STAGE-ESM-016` |
+| Application time zone, context members and declared read model property order | Commands and queries run, with properties ordered canonically; specifications in the affected scope are refused | The model is refused | `STAGE-ESM-016` |
 | Graph queries (ESM 40) | Run against Neo4j | Refused | `STAGE-ESM-068` |
 | Form field `choose from query` | Kept as a plain input; the gap is reported as a warning | Kept as a plain input; the gap is reported as a warning | `STAGE-SCENE-FORM-004` |
 | Unaudited ESM pair or unknown version | The whole model is refused | The whole model is refused | `STAGE-ESM-016` |
@@ -53,12 +53,16 @@ tracked in [Cratis/Stage#957](https://github.com/Cratis/Stage/issues/957).
 ### The command clock
 
 Stage does not run the command clock yet (ESM 37, `STAGE-ESM-016`). A command that uses it is refused when you
-execute it, and every other command in the model runs. A specification that uses the clock is refused the same
-way. A model that uses the clock cannot be rendered into an application.
+execute it, and every other command in the model runs. Specifications cannot run with clock members in their
+scope: a clock member in a slice refuses every specification in that slice. A model that uses the clock cannot be
+rendered into an application.
+
+Application time zone and context members are application-wide, so every specification is refused while they
+are present. A declared read model property order refuses the specifications in that read model's slice.
 
 ### Unaudited members
 
-Only the clock members above are refused per command or specification. A member Stage has not audited anywhere
+Only the clock members above are refused per command or specification scope. A member Stage has not audited anywhere
 else, and any member of an unaudited or unknown version, still refuses the whole model with `STAGE-ESM-016`.
 This includes members that affect security, such as authorization. Stage fails closed rather than run a model
 whose meaning it cannot check.

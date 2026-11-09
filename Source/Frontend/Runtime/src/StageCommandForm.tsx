@@ -121,6 +121,7 @@ export function StageCommandForm({ element, cancellable }: StageCommandFormProps
                 currentValues={currentValues}
                 validateOn='both'
                 validateAllFieldsOnChange
+                exceptionDisplayComponent={AnnouncedException}
                 onBeforeExecute={command => withHostedBasePath(command, arc.apiBasePath)}
                 onFieldValidate={(_command, fieldName, _oldValue, newValue) => requiredMessage(fields, schema, fieldName, newValue)}
                 onValidationFailure={validation => setMessages(unboundValidationMessages(fields, validation))}
@@ -148,6 +149,14 @@ export function StageCommandForm({ element, cancellable }: StageCommandFormProps
             </NativeCommandForm>
         </section>
     );
+}
+
+/**
+ * Arc's own notice that a command raised an exception. The form already shows what the command reported, so this generic sentence is only
+ * announced to assistive technology, visually hidden, instead of a second visible alert beside the real message.
+ */
+function AnnouncedException({ message }: { message: string }) {
+    return <span role='status' className='cratis-field-sr-only'>{message}</span>;
 }
 
 /** The label the form submits under: the one the model gave the action, else the command's own, else 'Submit'. */

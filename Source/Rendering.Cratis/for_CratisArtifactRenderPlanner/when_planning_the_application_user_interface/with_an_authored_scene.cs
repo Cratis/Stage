@@ -39,7 +39,8 @@ public class with_an_authored_scene : a_screen_composition_render
     // Recomputed for Chronicle 19.142.0 and Arc 22.176.0 on Screenplay 6.0.0 and Scene 5.0.0: the pins (Directory.Packages.props, docker-compose.yml, package.json) and any Scene 5 outlet shapes in the scene.
     // Recomputed for the Scene 5.1.0 pins.
     // Recomputed for Chronicle 19.144.0 and Screenplay 6.4.0: only the scaffold pins change.
-    const string Before = "46a3216a0cec27d3af6be3cb7c6392aa90c6d5dac4a51c3a1d29cb4a9a56f085";
+    // Recomputed for Arc 22.182.0: only the Arc pins in Directory.Packages.props and package.json change.
+    const string Before = "6f97021bc9d1b053e24ea1727cb3abf16a490001c8975947060c319fc5fde909";
 
     ArtifactRenderPlan _plan = null!;
 

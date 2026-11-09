@@ -18,12 +18,6 @@
         <GenerateAssemblyDescriptionAttribute>true</GenerateAssemblyDescriptionAttribute>
         <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 
-        <!--
-            Stage's projects do not carry their own Screenplay documents: Release builds never embed them, and in Debug the
-            Arc embedded-document task's own compiler cannot load the .NET 11 SDK source generators.
-        -->
-        <CratisEmbeddedScreenplayEnabled>false</CratisEmbeddedScreenplayEnabled>
-
         <IsTestProject>false</IsTestProject>
         <IsPackable>false</IsPackable>
         <PackageReadmeFile>README.md</PackageReadmeFile>

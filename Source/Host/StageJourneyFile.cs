@@ -367,7 +367,7 @@ internal sealed partial record StageJourneyFile(IReadOnlyList<StageJourney> Jour
         {
             if (!step.TryGetProperty("within", out var within)) return DefaultWithin;
             if (kind != StageJourneyStepKind.Query) Errors.Add($"{path}.within: only for a query step");
-            if (!within.TryGetInt32(out var milliseconds))
+            if (within.ValueKind != JsonValueKind.Number || !within.TryGetInt32(out var milliseconds))
             {
                 Errors.Add($"{path}.within: must be a whole number of milliseconds");
                 return DefaultWithin;

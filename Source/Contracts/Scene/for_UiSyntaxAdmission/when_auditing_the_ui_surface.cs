@@ -23,7 +23,7 @@ public class when_auditing_the_ui_surface : Specification
     // Screenplay 6: slots, outlets, fits and hooks are translated (SlotConverter, OutletConverter, OutletLevelConverter, ScreenConverter).
     // RetiredForms is source-span metadata of the Screenplay 5 forms the compiler refuses; it never reaches Stage.
     // ScreenShowSyntax is the slot it stands in
-    // (TemplateSlotPlacement); FormFieldSyntax.Choices is refused by UiSyntaxAdmission until Scene's form field can carry it.
+    // (TemplateSlotPlacement); FormFieldSyntax.Choices is a plain input with a STAGE-SCENE-FORM-004 warning from UiSyntaxAdmission until Scene's form field can carry it.
     [Theory]
     [InlineData(typeof(ApplicationSyntax), "Authentication Behaviors CommandReadMode Concepts Context Domain EventSources Examples Exposures FileImports Identity Imports InstanceContributions Layouts Modules Onboarding Personas Policies Purposes ReactionProductionMode RetiredForms SampleDataPacks Seeds SourceOptions StateMachines StickyNotes Systems Templates Themes TimeZone Triggers Types UiProfiles Users Workflows")]
     [InlineData(typeof(ModuleSyntax), "Authorize Behaviors Contributions DependsOn Description DialogTemplates Documentation Examples Features FileImports Forms IsPlacement Name Outlets Purposes RetiredForms ScreenTemplates Templates UsedBehaviors")]

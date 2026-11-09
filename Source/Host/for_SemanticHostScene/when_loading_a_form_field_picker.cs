@@ -9,7 +9,7 @@ using Xunit;
 
 namespace Cratis.Stage.Host.for_SemanticHostScene;
 
-public class when_refusing_unsupported_ui_syntax : Specification
+public class when_loading_a_form_field_picker : Specification
 {
     string _directory = null!;
 
@@ -19,9 +19,9 @@ public class when_refusing_unsupported_ui_syntax : Specification
         Directory.CreateDirectory(_directory);
     }
 
-    // A form field's picker is not translated yet - Scene's form field has no place for it - so it is refused rather than dropped.
+    // A form field's picker is not translated yet - Scene's form field has no place for it - so the field stays a plain input and the scene carries a warning.
     [Fact]
-    public void should_refuse_before_returning_a_host_scene()
+    public void should_return_a_host_scene_with_a_warning()
     {
         const string source = """
             module Work
@@ -55,11 +55,11 @@ public class when_refusing_unsupported_ui_syntax : Specification
             """);
         var path = Path.Combine(_directory, "Navigation.play");
         File.WriteAllText(path, source);
-        var error = Catch.Exception(() => SemanticHostScene.Load(path, plan.Model));
-        error.ShouldBeOfExactType<UnsupportedUiSyntax>();
-        error.Message.ShouldContain(UnsupportedUiSyntax.DiagnosticCode);
-        ((UnsupportedUiSyntax)error).Member.ShouldEqual("FormFieldSyntax.Choices");
-        ((UnsupportedUiSyntax)error).Location.Line.ShouldEqual(3);
+        var scene = SemanticHostScene.Load(path, plan.Model);
+        var warning = scene.ConversionDiagnostics.Single(diagnostic => diagnostic.Code == UiSyntaxAdmission.PickerDiagnosticCode);
+        warning.Severity.ShouldEqual(Cratis.Screenplay.Diagnostics.DiagnosticSeverity.Warning);
+        warning.Path.ShouldEqual("owner");
+        warning.Location.Line.ShouldEqual(3);
     }
 
     void Destroy() => Directory.Delete(_directory, recursive: true);

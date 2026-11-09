@@ -77,7 +77,7 @@ public static class FormConverter
             if (index < 0)
             {
                 var construct = $"form column {column.Property}";
-                diagnostics?.Report(new("STAGE-SCENE-FORM-002", DiagnosticSeverity.Warning, construct, path, form.Location, $"The manual column '{column.Property}' of '{path}' names a property the form has no field for and was omitted."));
+                diagnostics?.Report(new("STAGE-SCENE-FORM-002", DiagnosticSeverity.Warning, construct, path, column.Location, $"The manual column '{column.Property}' of '{path}' names a property the form has no field for and was omitted."));
                 continue;
             }
 

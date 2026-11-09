@@ -137,6 +137,8 @@ export function StageTable({ element, slots }: RegisteredProps) {
     const selected = data.selections[element.id];
     const linkedIdentity = navigateBy ? data.parameters[navigateBy] : undefined;
     const rowInteractions = useRowInteractions(element);
+    // Pending means nothing has been answered yet: rows on screen or a reported failure are an answer, so the message never sits above them.
+    const pending = (loading || awaitingCommand) && rows.length === 0 && !error;
 
     useEffect(() => {
         if (!selected) return;
@@ -193,7 +195,7 @@ export function StageTable({ element, slots }: RegisteredProps) {
 
     return (
         <section className='stage-table' data-scene-id={element.id}>
-            {(loading || awaitingCommand) && <Message severity='info' text='Loading…' />}
+            {pending && <Message severity='info' text='Loading…' />}
             {error && <Message severity='error' text={error} />}
             {selected && <Button type='button' size='small' onClick={clear}>Clear selection</Button>}
             <table aria-label={text(element, 'label', text(element, 'typeName', 'Results'))}>

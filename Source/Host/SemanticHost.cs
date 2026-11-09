@@ -362,6 +362,7 @@ internal static class SemanticHost
     {
         MapStatus(app, () => new StageStatus("unsupported", null, null) { Engine = engine, Issues = issues }, notes);
         app.MapPost(SemanticSpecificationRuns.Route, (HttpContext context) => RefusedResponse(context, issues));
+        StageJourneyReplay.MapRefused(app, issues);
         if (engine == "semantic")
         {
             app.MapGet(SemanticReadModelBrowser.Route, (HttpContext context) => RefusedResponse(context, issues));

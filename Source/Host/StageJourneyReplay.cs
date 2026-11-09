@@ -35,6 +35,14 @@ internal static class StageJourneyReplay
         app.MapPost(Route, (HttpContext context, StageJourneyClient client, StageJourneyOptions options) => Replay(context, new(routes, status, gate, client, options)));
     }
 
+    /// <summary>
+    /// Maps <see cref="Route"/> for a session whose model was refused: every replay is answered 503 with the issues, as the session reports them.
+    /// </summary>
+    /// <param name="app">The application to map on.</param>
+    /// <param name="issues">The issues the model was refused with.</param>
+    internal static void MapRefused(IEndpointRouteBuilder app, List<StageUnsupportedIssue> issues) =>
+        app.MapPost(Route, () => Problem("The session is unsupported.", StatusCodes.Status503ServiceUnavailable, [.. issues.Select(issue => $"{issue.Capability} {issue.Artifact}: {issue.Details}")]));
+
     static async Task<IResult> Replay(HttpContext context, ReplayHost host)
     {
         var aborted = context.RequestAborted;

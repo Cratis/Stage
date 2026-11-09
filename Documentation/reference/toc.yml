@@ -16,6 +16,8 @@
   href: stage-rendering.md
 - name: Cratis renderer compatibility
   href: renderer-compatibility.md
+- name: ESM versions and features
+  href: esm-feature-matrix.md
 - name: Generated values and command responses
   href: generated-values-rendering.md
 - name: Event reaction rendering

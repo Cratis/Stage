@@ -114,6 +114,7 @@ export function StageCommandForm({ element, cancellable }: StageCommandFormProps
 
     return (
         <section ref={section} className='stage-command-form' data-command={form.command} data-generation-mode={form.generationMode}>
+            <FormShowsMessage.Provider value={messages.length > 0}>
             <NativeCommandForm
                 key={populationKey}
                 command={commandType}
@@ -125,7 +126,7 @@ export function StageCommandForm({ element, cancellable }: StageCommandFormProps
                 onBeforeExecute={command => withHostedBasePath(command, arc.apiBasePath)}
                 onFieldValidate={(_command, fieldName, _oldValue, newValue) => requiredMessage(fields, schema, fieldName, newValue)}
                 onValidationFailure={validation => setMessages(unboundValidationMessages(fields, validation))}
-                onException={exceptionMessages => setMessages(exceptionMessages)}
+                onException={exceptionMessages => { if (exceptionMessages.length > 0) setMessages(exceptionMessages); }}
                 onFailed={result => setMessages(commandOutcome(form.command, result).messages)}
                 onSuccess={async response => {
                     data.refreshAfterCommand();
@@ -147,15 +148,23 @@ export function StageCommandForm({ element, cancellable }: StageCommandFormProps
                     ? createPortal(<Button type='button' className='scene-slice-dialog-submit' onClick={() => section.current?.querySelector('form')?.requestSubmit()}>{submitLabel}</Button>, footer)
                     : <FormActions submitLabel={submitLabel} cancellable={cancellable} />}
             </NativeCommandForm>
+            </FormShowsMessage.Provider>
         </section>
     );
 }
 
 /**
- * Arc's own notice that a command raised an exception. The form already shows what the command reported, so this generic sentence is only
- * announced to assistive technology, visually hidden, instead of a second visible alert beside the real message.
+ * Whether the form shows a message of its own for the last submit.
+ */
+const FormShowsMessage = createContext(false);
+
+/**
+ * Arc's own notice that a command raised an exception. When the form already shows what the command reported, this generic sentence is only
+ * announced to assistive technology, visually hidden, instead of a second visible alert beside the real message; otherwise it is the message.
  */
 function AnnouncedException({ message }: { message: string }) {
+    const shown = useContext(FormShowsMessage);
+    if (!shown) return <p role='alert' className='stage-form-error'>{message}</p>;
     return <span role='status' className='cratis-field-sr-only'>{message}</span>;
 }
 

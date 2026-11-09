@@ -40,6 +40,12 @@ describe('a rejected command submit', () => {
         expect(hidden(announced)).toBe(true);
     });
 
+    it('still shows that the command was not accepted when it reported no exception message', async () => {
+        submitRejected({ isSuccess: false, hasExceptions: true, exceptionMessages: [] });
+
+        await waitFor(() => expect(visibleAlerts().map(node => node.textContent)).toEqual(['“AddPet” was not accepted.']));
+    });
+
     it('shows an authorization failure once', async () => {
         submitRejected({ isSuccess: false, isAuthorized: false, authorizationFailureReason: 'Only admins may add pets' });
 

@@ -18,6 +18,8 @@
             OpenAPI interceptor namespace above, so with it enabled the build stops on SP0024.
         -->
         <CratisEmbeddedScreenplayEnabled>false</CratisEmbeddedScreenplayEnabled>
+        <!-- The .NET 11 RC SDK's Debug browser-tools JS initializer has no matching static web asset endpoint. -->
+        <EnableHotReloadInRuntimeConfigDevFile Condition="'$(Configuration)' == 'Debug' and '$(TargetFramework)' == 'net11.0'">false</EnableHotReloadInRuntimeConfigDevFile>
         <WarnOnPackingNonPackableProject>false</WarnOnPackingNonPackableProject>
     </PropertyGroup>
 

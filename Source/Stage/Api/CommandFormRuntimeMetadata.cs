@@ -59,8 +59,9 @@ static class CommandFormRuntimeMetadata
         var contributions = screen.Contributions.Select(contribution => Enrich(contribution, commands, formsByCommand, placed)).ToArray();
 
         // A form a command form element placed on the screen already presents is shown there, beside the elements it was authored
-        // among, and is not appended a second time at the end of the screen.
-        var unplaced = forms.Where(form => !placed.Commands.Contains(form.ForCommand)).ToArray();
+        // among, and is not appended a second time at the end of the screen. A form an action on the screen runs its command through
+        // is that action's dialog: it is used when the command runs and is not shown inline.
+        var unplaced = forms.Where(form => !placed.Commands.Contains(form.ForCommand) && !placed.UsedByActions.Contains(form.ForCommand)).ToArray();
         if (unplaced.Length > 0)
         {
             slotContent[FormsSlot] = [.. slotContent.GetValueOrDefault(FormsSlot) ?? [], .. unplaced.Select(form => FormElement(screen.Name, form, commands.GetValueOrDefault(form.ForCommand)))];
@@ -125,6 +126,7 @@ static class CommandFormRuntimeMetadata
 
         if (form is not null)
         {
+            placed.UseByAction(commandName);
             properties["form"] = form.Name;
             properties["onSubmit"] = form.OnSubmit;
             properties["generationMode"] = form.GenerationMode;
@@ -241,11 +243,23 @@ sealed record CommandFormRuntimeCommand(string Command, string Schema, IReadOnly
 sealed class PlacedForms(IReadOnlyDictionary<string, Form> formsByCommand)
 {
     readonly HashSet<string> _commands = new(StringComparer.Ordinal);
+    readonly HashSet<string> _usedByActions = new(StringComparer.Ordinal);
 
     /// <summary>
     /// Gets the commands whose forms an element placed on the screen presents.
     /// </summary>
     public IReadOnlySet<string> Commands => _commands;
+
+    /// <summary>
+    /// Gets the commands whose forms an action on the screen takes its fields, labels and layout from.
+    /// </summary>
+    public IReadOnlySet<string> UsedByActions => _usedByActions;
+
+    /// <summary>
+    /// Records that an action on the screen runs its command through the form for it.
+    /// </summary>
+    /// <param name="commandName">The command the action runs.</param>
+    internal void UseByAction(string commandName) => _usedByActions.Add(commandName);
 
     /// <summary>
     /// Makes a placed command form element the runtime command form for its command.

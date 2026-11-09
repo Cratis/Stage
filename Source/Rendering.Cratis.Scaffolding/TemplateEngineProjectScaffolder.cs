@@ -50,8 +50,27 @@ public class TemplateEngineProjectScaffolder : IProjectScaffolder
 
         var packagePath = LocateLocalPackage(PackageId) ?? throw new TemplatePackageNotFound(PackageId);
 
+        // The template engine guards its global settings with a machine-wide named mutex derived from the settings
+        // path. A shared path lets one process abandon the mutex another process waits on, which crashes the waiter,
+        // so every scaffold gets its own settings location.
+        var settingsLocation = Path.Combine(Path.GetTempPath(), "cratis-stage-template-engine", Guid.NewGuid().ToString("N"));
+        try
+        {
+            await Instantiate(targetDirectory, projectName, output, packagePath, settingsLocation);
+        }
+        finally
+        {
+            DeleteSettingsLocation(settingsLocation);
+        }
+
+        await output.WriteLineAsync("Scaffolding complete.");
+        return true;
+    }
+
+    static async Task Instantiate(DirectoryInfo targetDirectory, string projectName, TextWriter output, string packagePath, string settingsLocation)
+    {
         var host = new DefaultTemplateEngineHost("Cratis.Stage.Rendering.Cratis", "1.0.0", builtIns: BuiltInComponents());
-        using var environment = new EngineEnvironmentSettings(host, virtualizeSettings: true);
+        using var environment = new EngineEnvironmentSettings(host, virtualizeSettings: true, settingsLocation: settingsLocation);
         using var packageManager = new TemplatePackageManager(environment);
 
         await output.WriteLineAsync($"Installing template package from '{packagePath}'...");
@@ -100,9 +119,25 @@ public class TemplateEngineProjectScaffolder : IProjectScaffolder
         {
             await output.WriteLineAsync("Removed the template's sample slice.");
         }
+    }
 
-        await output.WriteLineAsync("Scaffolding complete.");
-        return true;
+    static void DeleteSettingsLocation(string settingsLocation)
+    {
+        try
+        {
+            if (Directory.Exists(settingsLocation))
+            {
+                Directory.Delete(settingsLocation, recursive: true);
+            }
+        }
+        catch (IOException)
+        {
+            // A leftover settings folder in the temporary directory is harmless.
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // A leftover settings folder in the temporary directory is harmless.
+        }
     }
 
     /// <summary>

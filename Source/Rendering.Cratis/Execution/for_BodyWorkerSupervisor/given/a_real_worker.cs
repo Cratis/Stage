@@ -18,7 +18,7 @@ internal sealed class a_real_worker : IDisposable
     internal a_real_worker()
     {
         var root = Path.GetFullPath("../../../../..", AppContext.BaseDirectory);
-        WorkerPath = Path.Combine(root, "Source", "Host", "bin", "Debug", "net10.0", "bodyworker", "Cratis.Stage.BodyWorker.dll");
+        WorkerPath = Path.Combine(root, "Source", "Host", "bin", "Debug", "net11.0", "bodyworker", "Cratis.Stage.BodyWorker.dll");
         Assert.True(File.Exists(WorkerPath), "Build Host in Debug before running the real-worker specifications.");
         CacheDirectory = Directory.CreateTempSubdirectory("stage-body-worker-spec-").FullName;
     }

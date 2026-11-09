@@ -111,6 +111,29 @@ The command below binds both published ports to `127.0.0.1`. Keep model operatio
 The direct Docker command uses the moving `latest` tag. The CLI selects the Stage version it renders with;
 do not assume a published image has every capability described by current source.
 
+### Use an external Chronicle kernel
+
+By default the container runs its own Chronicle kernel with in-memory storage, so every session starts empty and ends with the container. To keep the event log, run a Chronicle that stores in a database, mount its connection string as a file and name the file:
+
+```yaml title="docker-compose.yml"
+services:
+  stage:
+    image: cratis/stage:latest
+    environment:
+      CRATIS_CHRONICLE_CONNECTION_STRING_FILE: /run/configs/chronicle-connection
+      STAGE_EVENT_STORE: my-application   # a fixed name, or each new container invents its own store
+    configs:
+      - source: chronicle-connection
+        target: /run/configs/chronicle-connection
+    volumes:
+      - ./model:/eventmodel:ro
+configs:
+  chronicle-connection:
+    content: chronicle://client:secret@chronicle:35000
+```
+
+The container then starts no kernel and does not wait for port 35000. It keeps everything else: input validation, `--warm` and the warm handoff restart. The entrypoint prints the connection with the password masked and never the file's contents. This is the sandbox counterpart of the external kernel a [published application](../reference/published-applications.md) can use; unlike it, the sandbox keeps its development surfaces.
+
 ### Use the application
 
 1. Open [session status](http://localhost:9090/stage/status) and
@@ -320,6 +343,7 @@ The host separates **hosting** defaults from **deployment** configuration:
 | `appsettings.json` / `appsettings.Docker.json` | Hosting defaults only — the Kestrel endpoint (`http://0.0.0.0:9090`) and the correlation-id (`X-Correlation-Id`) and tenant (`X-Tenant-Id`) HTTP headers. |
 | `cratis-stage.json` | Deployment configuration, loaded from the content root if present. Optional, and reloaded on change. |
 | `STAGE_CONFIG` | Overrides the path `cratis-stage.json` is read from — point it at a mounted file to configure a session without rebuilding the image. |
+| `CRATIS_CHRONICLE_CONNECTION_STRING_FILE` | The path of a mounted file holding the connection string of a Chronicle kernel that is already running. When it names a readable, non-empty file the session uses that kernel and starts none of its own, so the event log can live in a database and outlive the container. An unreadable or empty file exits with code 78. See [Use an external Chronicle kernel](#use-an-external-chronicle-kernel). |
 
 Anything Chronicle-related can also be set with the kernel's own environment variables
 (`Cratis__Chronicle__…`), which is how the entrypoint pins in-memory storage and the Workbench.

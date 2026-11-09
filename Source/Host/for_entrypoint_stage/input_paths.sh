@@ -116,7 +116,7 @@ def execute(environment, arguments, cwd, read_fd, write_fd):
     return process.returncode, stdout.decode(errors="replace"), stderr.decode(errors="replace")
 
 
-def run_case(root, name, selection, valid, default_has_play=True):
+def run_case(root, name, selection, valid, default_has_play=True, external=None):
     case_root = root / name
     app = case_root / "app"
     stage = case_root / "stage"
@@ -174,6 +174,12 @@ case "$PWD" in
     *) printf 'find escaped the owned fixture\n' >&2; exit 97 ;;
 esac
 ''')
+    secret = "a-secret-that-must-never-be-printed"
+    connection = case_root / "chronicle-connection"
+    if external == "valid":
+        connection.write_text("chronicle://client:" + secret + "@chronicle:35000\n", encoding="utf-8")
+    elif external == "empty":
+        connection.write_text(" \n", encoding="utf-8")
     read_fd, write_fd = os.pipe()
     environment = {
         "PATH": str(binaries),
@@ -191,6 +197,11 @@ esac
         "BOUNDARY_READY_READ": str(read_fd),
         "BOUNDARY_READY_WRITE": str(write_fd),
     }
+    if external is not None:
+        environment["CRATIS_CHRONICLE_CONNECTION_STRING_FILE"] = str(connection)
+    if external == "valid":
+        # No kernel runs, so nothing else signals the fake Host that "the kernel" is ready; it must not be waiting on one.
+        os.write(write_fd, b"K")
     try:
         status, stdout, stderr = execute(environment, arguments, work, read_fd, write_fd)
     finally:
@@ -201,6 +212,20 @@ esac
     hosts = [record for record in records if record["kind"] == "dotnet"]
     checks = [record for record in records if record["kind"] == "nc"]
     evidence = json.dumps({"exit": status, "calls": records, "stdout": stdout, "stderr": stderr})
+    assert secret not in stdout + stderr, "The connection string was printed: " + evidence
+    if external == "valid":
+        assert status == 0, "An external kernel was rejected: " + evidence
+        assert not kernels, "An external kernel still started the bundled one: " + evidence
+        assert not checks, "An external kernel waited for the bundled one: " + evidence
+        assert len(hosts) == 1, "Expected exactly one Host launch: " + evidence
+        assert hosts[0]["cwd"] == str(stage) and hosts[0]["argv"] == ["Cratis.Stage.Host.dll", expected_argument], "Host launch changed: " + evidence
+        assert "chronicle://client:***@chronicle:35000" in stdout, "The masked connection was not shown: " + evidence
+        return
+    if external is not None:
+        assert status == 78, "An unusable connection file must exit 78: " + evidence
+        assert not kernels and not hosts and not checks, "An unusable connection file started something: " + evidence
+        assert "ERROR:" in stderr, "Missing diagnostic: " + evidence
+        return
     if not valid:
         assert status != 0, "Invalid input succeeded: " + evidence
         assert not kernels, "Invalid input started kernel: " + evidence
@@ -230,6 +255,10 @@ CASES = [
     ("empty_default_folder", "default", False, False),
     ("relative_file_from_nondefault_cwd", "relative", True, True),
     ("relative_folder_from_nondefault_cwd", "relative_folder", True, True),
+    ("external_kernel_starts_no_bundled_kernel", "default", True, True, "valid"),
+    ("external_kernel_with_selected_folder", "folder", True, True, "valid"),
+    ("external_connection_file_missing", "default", True, True, "missing"),
+    ("external_connection_file_empty", "default", True, True, "empty"),
 ]
 print("Production entrypoint:", ENTRYPOINT)
 print("Production SHA256:", hashlib.sha256(ENTRYPOINT.read_bytes()).hexdigest())

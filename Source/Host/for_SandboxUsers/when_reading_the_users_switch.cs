@@ -21,8 +21,8 @@ public class when_reading_the_users_switch : Specification
     {
         _unset = SandboxUsersOptions.Read(With(), development: true);
         _on = SandboxUsersOptions.Read(With((SandboxUsersOptions.Key, "true")), development: true);
-        _remote = SandboxUsersOptions.Read(With((SandboxUsersOptions.Key, "true"), ($"{SandboxUsersOptions.Key}:AllowRemote", "true")), development: true);
-        _remoteOff = SandboxUsersOptions.Read(With((SandboxUsersOptions.Key, "true"), ($"{SandboxUsersOptions.Key}:AllowRemote", "false")), development: true);
+        _remote = SandboxUsersOptions.Read(With((SandboxUsersOptions.Key, "true"), ($"{SandboxUsersOptions.Key}AllowRemote", "true")), development: true);
+        _remoteOff = SandboxUsersOptions.Read(With((SandboxUsersOptions.Key, "true"), ($"{SandboxUsersOptions.Key}AllowRemote", "false")), development: true);
         _refused = Catch.Exception(() => SandboxUsersOptions.Read(With((SandboxUsersOptions.Key, "true")), development: false));
     }
 

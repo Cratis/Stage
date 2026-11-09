@@ -8,11 +8,11 @@ namespace Cratis.Stage.Host;
 
 /// <summary>
 /// What Stage means by development. Stage owns the definition and tells ASP.NET Core and Arc about it, instead of
-/// inheriting it from <c language="shell">ASPNETCORE_ENVIRONMENT</c>, except that an explicitly configured Production host is not development.
+/// inheriting it from <c language="shell">ASPNETCORE_ENVIRONMENT</c>, except that a Production host environment is not development.
 /// </summary>
 /// <remarks>
 /// <para>
-/// The play sandbox is development unless its configured host environment is Production or
+/// The play sandbox is development unless its host environment is Production or
 /// <c language="shell">Stage:Development</c> is <c language="csharp">false</c>. An explicit true setting overrides the environment.
 /// A published application is never development, and no setting makes it so.
 /// </para>
@@ -27,14 +27,15 @@ internal static class StageDevelopment
     internal const string Key = "Stage:Development";
 
     /// <summary>
-    /// Decides whether this run is development. An explicit Stage setting wins over the configured host environment;
-    /// otherwise a sandbox is development unless the host environment is explicitly Production.
+    /// Decides whether this run is development. An explicit Stage setting wins over the host environment;
+    /// otherwise a sandbox is development unless the host environment is Production.
     /// </summary>
     /// <param name="sandbox">Whether Stage runs as the play sandbox, as opposed to a published application.</param>
     /// <param name="configuration">The configuration the host runs with.</param>
+    /// <param name="environment">The host environment the process started with.</param>
     /// <returns><see langword="true"/> when Stage is in development.</returns>
-    internal static bool Decide(bool sandbox, IConfiguration configuration) => sandbox && (configuration.GetValue<bool?>(Key)
-        ?? !string.Equals(configuration[HostDefaults.EnvironmentKey], Environments.Production, StringComparison.OrdinalIgnoreCase));
+    internal static bool Decide(bool sandbox, IConfiguration configuration, IHostEnvironment environment) => sandbox && (configuration.GetValue<bool?>(Key)
+        ?? !environment.IsProduction());
 
     /// <summary>
     /// Works out the environment name ASP.NET Core and Arc must see for what Stage decided.

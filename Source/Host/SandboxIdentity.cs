@@ -32,8 +32,8 @@ internal static class SandboxIdentity
     }
 
     /// <summary>
-    /// Removes forwarded identity headers unless modeled users accept the caller's address, then authenticates.
-    /// Call first after building the application, ahead of static files and routing, so the same address
+    /// Removes forwarded identity headers unless modeled users accept the caller's address and host, then authenticates.
+    /// Call first after building the application, ahead of static files and routing, so the same connection
     /// decision applies to authentication and proxied endpoints.
     /// </summary>
     /// <param name="app">The application to configure.</param>
@@ -45,7 +45,7 @@ internal static class SandboxIdentity
         {
             app.Use((context, next) =>
             {
-                return !users.Enabled || (!users.AllowRemote && !IsLoopback(context.Connection.RemoteIpAddress))
+                return !users.Enabled || (!users.AllowRemote && !IsLocalRequest(context))
                     ? StripIdentityHeaders(context, next)
                     : next();
             });
@@ -92,6 +92,11 @@ internal static class SandboxIdentity
             });
         });
     }
+
+    static bool IsLocalRequest(HttpContext context) => IsLoopback(context.Connection.RemoteIpAddress)
+        && (string.Equals(context.Request.Host.Host, "localhost", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(context.Request.Host.Host, "127.0.0.1", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(context.Request.Host.Host, "[::1]", StringComparison.OrdinalIgnoreCase));
 
     static bool IsLoopback(IPAddress? address) => address is not null && IPAddress.IsLoopback(address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address);
 

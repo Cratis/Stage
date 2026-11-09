@@ -69,8 +69,9 @@ public class a_started_multimodule_host : for_StageEndpointMapper.given.a_routed
 
     protected override void ConfigureHostServices(IServiceCollection services)
     {
-        SandboxIdentityOptions.Configure(services, new ConfigurationBuilder().AddInMemoryCollection(
-            new Dictionary<string, string?> { ["Stage:Sandbox:Identity"] = SandboxEnabled.ToString() }).Build());
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(
+            new Dictionary<string, string?> { ["Stage:Sandbox:Identity"] = SandboxEnabled.ToString() }).Build();
+        SandboxIdentityOptions.Configure(services, configuration, Substitute.For<IHostEnvironment>());
         services.AddSingleton(_recording);
         services.AddAuthentication(RecordingAuthenticationHandler.SchemeName)
             .AddScheme<AuthenticationSchemeOptions, RecordingAuthenticationHandler>(

@@ -6,6 +6,7 @@ using System.Text;
 using Cratis.Arc.Identity;
 using Cratis.Specifications;
 using Microsoft.AspNetCore.Authentication;
+using NSubstitute;
 using Xunit;
 
 namespace Cratis.Stage.Host.for_SandboxIdentity;
@@ -15,29 +16,39 @@ public class when_accepting_a_selected_user : Specification
     ServiceProvider _provider = null!;
 
     [Theory]
-    [InlineData("192.0.2.1", false, false)]
-    [InlineData("2001:db8::1", false, false)]
-    [InlineData("127.0.0.1", false, true)]
-    [InlineData("::1", false, true)]
-    [InlineData("::ffff:127.0.0.1", false, true)]
-    [InlineData("::ffff:192.0.2.1", false, false)]
-    [InlineData("192.0.2.1", true, true)]
-    [InlineData(null, false, false)]
-    public async Task should_accept_the_selected_user_only_from_an_allowed_connection(string? address, bool allowRemote, bool accepted)
+    [InlineData("192.0.2.1", "localhost", false, false)]
+    [InlineData("2001:db8::1", "localhost", false, false)]
+    [InlineData("127.0.0.1", "localhost", false, true)]
+    [InlineData("::1", "localhost", false, true)]
+    [InlineData("::ffff:127.0.0.1", "localhost", false, true)]
+    [InlineData("::ffff:192.0.2.1", "localhost", false, false)]
+    [InlineData("192.0.2.1", "attacker.example", true, true)]
+    [InlineData(null, "localhost", false, false)]
+    [InlineData("127.0.0.1", "attacker.example", false, false)]
+    [InlineData("127.0.0.1", "localhost:9090", false, true)]
+    [InlineData("127.0.0.1", "LOCALHOST:9090", false, true)]
+    [InlineData("127.0.0.1", "127.0.0.1:9090", false, true)]
+    [InlineData("::1", "[::1]:9090", false, true)]
+    [InlineData("127.0.0.1", "app.localhost", false, false)]
+    [InlineData("127.0.0.1", "", false, false)]
+    [InlineData("127.0.0.1", "attacker.example", true, true)]
+    public async Task should_accept_the_selected_user_only_from_an_allowed_connection(string? address, string host, bool allowRemote, bool accepted)
     {
         var services = new ServiceCollection();
         services.AddLogging();
-        SandboxIdentityOptions.Configure(services, new ConfigurationBuilder().AddInMemoryCollection(
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(
             new Dictionary<string, string?>
             {
                 [SandboxUsersOptions.Key] = "true",
-                [$"{SandboxUsersOptions.Key}:AllowRemote"] = allowRemote.ToString()
-            }).Build());
+                [$"{SandboxUsersOptions.Key}AllowRemote"] = allowRemote.ToString()
+            }).Build();
+        SandboxIdentityOptions.Configure(services, configuration, Substitute.For<IHostEnvironment>());
         services.AddAuthentication(MicrosoftIDentityPlatformAuthHandler.SchemeName)
             .AddScheme<AuthenticationSchemeOptions, MicrosoftIDentityPlatformAuthHandler>(MicrosoftIDentityPlatformAuthHandler.SchemeName, _ => { });
         _provider = services.BuildServiceProvider();
         var context = new DefaultHttpContext { RequestServices = _provider };
         context.Connection.RemoteIpAddress = address is null ? null : IPAddress.Parse(address);
+        context.Request.Host = new HostString(host);
         context.Request.Headers["X-Forwarded-For"] = "127.0.0.1";
         context.Request.Headers["x-ms-client-principal-id"] = "selected-user";
         context.Request.Headers["x-ms-client-principal-name"] = "Selected user";

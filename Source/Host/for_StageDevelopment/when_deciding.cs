@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Specifications;
+using NSubstitute;
 using Xunit;
 
 namespace Cratis.Stage.Host.for_StageDevelopment;
@@ -20,12 +21,15 @@ public class when_deciding : Specification
 
     void Because()
     {
-        _sandbox = StageDevelopment.Decide(true, With());
-        _sandboxTurnedOff = StageDevelopment.Decide(true, With((StageDevelopment.Key, "false")));
-        _published = StageDevelopment.Decide(false, With());
-        _publishedAskedToBeDevelopment = StageDevelopment.Decide(false, With((StageDevelopment.Key, "true")));
-        _developmentEnvironment = StageDevelopment.Decide(true, With((HostDefaults.EnvironmentKey, Environments.Development)));
-        _productionEnvironment = StageDevelopment.Decide(true, With((HostDefaults.EnvironmentKey, "production")));
+        var environment = Substitute.For<IHostEnvironment>();
+        _sandbox = StageDevelopment.Decide(true, With(), environment);
+        _sandboxTurnedOff = StageDevelopment.Decide(true, With((StageDevelopment.Key, "false")), environment);
+        _published = StageDevelopment.Decide(false, With(), environment);
+        _publishedAskedToBeDevelopment = StageDevelopment.Decide(false, With((StageDevelopment.Key, "true")), environment);
+        environment.EnvironmentName = Environments.Development;
+        _developmentEnvironment = StageDevelopment.Decide(true, With(), environment);
+        environment.EnvironmentName = "production";
+        _productionEnvironment = StageDevelopment.Decide(true, With(), environment);
     }
 
     [Fact] void should_treat_the_sandbox_as_development() => _sandbox.ShouldBeTrue();

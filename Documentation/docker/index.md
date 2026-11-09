@@ -533,13 +533,14 @@ user guest "Guest"
 ```
 
 Set `Stage:Sandbox:Users` (`Stage__Sandbox__Users=true`) to offer them. The switch is explicit and off when absent.
-The selected user is only accepted from the local machine unless `Stage:Sandbox:Users:AllowRemote`
-(`Stage__Sandbox__Users__AllowRemote=true`) is set. Stage uses the connection address, not `X-Forwarded-For`.
+The selected user is only accepted from the local machine with a Host header of `localhost`,
+`127.0.0.1`, or `[::1]` (with any port) unless `Stage:Sandbox:UsersAllowRemote`
+(`Stage__Sandbox__UsersAllowRemote=true`) is set. Stage uses the connection address, not `X-Forwarded-For`.
 Inside a container, traffic from the host is not loopback, so Docker needs the remote-access opt-in:
 
 ```shell
 docker run --rm -p 127.0.0.1:9090:9090 -p 127.0.0.1:35000:35000 \
-  -e Stage__Sandbox__Users=true -e Stage__Sandbox__Users__AllowRemote=true \
+  -e Stage__Sandbox__Users=true -e Stage__Sandbox__UsersAllowRemote=true \
   -v "$PWD":/eventmodel:ro cratis/stage:latest
 ```
 

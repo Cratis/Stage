@@ -16,16 +16,16 @@ public class when_production_is_configured : Specification
     void Because()
     {
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = Environments.Production, ContentRootPath = Path.GetTempPath() });
-        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?> { [SandboxUsersOptions.Key] = "true" });
-        _development = StageDevelopment.Decide(true, builder.Configuration);
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?> { [SandboxUsersOptions.Key] = "true", [HostDefaults.EnvironmentKey] = Environments.Development });
+        _development = StageDevelopment.Decide(true, builder.Configuration, builder.Environment);
         _environment = StageDevelopment.EnvironmentFor(_development, builder.Environment.EnvironmentName);
-        _refused = Catch.Exception(() => SandboxIdentityOptions.Configure(builder.Services, builder.Configuration));
+        _refused = Catch.Exception(() => SandboxIdentityOptions.Configure(builder.Services, builder.Configuration, builder.Environment));
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?> { [StageDevelopment.Key] = "true" });
-        _overridden = StageDevelopment.Decide(true, builder.Configuration);
-        SandboxIdentityOptions.Configure(builder.Services, builder.Configuration);
+        _overridden = StageDevelopment.Decide(true, builder.Configuration, builder.Environment);
+        SandboxIdentityOptions.Configure(builder.Services, builder.Configuration, builder.Environment);
     }
 
-    [Fact] void should_not_treat_the_sandbox_as_development() => _development.ShouldBeFalse();
+    [Fact] void should_not_treat_the_sandbox_as_development_despite_conflicting_configuration() => _development.ShouldBeFalse();
     [Fact] void should_leave_the_host_environment_alone() => _environment.ShouldBeNull();
     [Fact] void should_refuse_modeled_users_without_an_explicit_override() => _refused.ShouldBeOfExactType<InvalidOperationException>();
     [Fact] void should_allow_an_explicit_development_setting() => _overridden.ShouldBeTrue();

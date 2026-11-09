@@ -56,9 +56,7 @@ internal static class SemanticHost
         var mode = hostMode ?? StageHostModeSelection.Read(builder.Configuration, args, StageRuntimeEngine.Semantic);
         var authentication = mode == StageHostMode.Published ? published ?? PublishedOptions.From(builder.Configuration) : null;
         authentication?.EnsureComplete();
-        var development = StageDevelopment.Decide(mode == StageHostMode.Sandbox, builder.Configuration, builder.Environment);
-        builder.Services.AddSingleton(new SandboxActingUserAccess(mode, builder.Environment.IsProduction(), development));
-        StageDevelopment.Inform(builder.Services, builder.Environment, development);
+        var development = SandboxActingUserAccess.Configure(builder, mode);
         var routeOptions = StageHttpRouteOptions.FromConfiguration(builder.Configuration);
         var bodySettings = SemanticBodyWorkerOptions.From(builder.Configuration);
         var bodies = loaded is null ? null : await SemanticBodyWorkerHosting.Start(loaded, modelPath, bodySettings, notes);
@@ -141,6 +139,7 @@ internal static class SemanticHost
         {
             app.UseSandboxIdentityHeaders();
             app.UseForwardedHeaders();
+            app.UseSandboxAuthentication();
         }
         app.UseDefaultFiles();
         app.UseStaticFiles(StageStaticFileOptions.Create());

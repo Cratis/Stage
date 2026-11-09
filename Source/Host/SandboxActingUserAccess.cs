@@ -7,4 +7,13 @@ namespace Cratis.Stage.Host;
 /// <param name="Mode">The host's immutable run mode.</param>
 /// <param name="Production">Whether the process started in Production.</param>
 /// <param name="Development">Whether Stage is in development.</param>
-internal sealed record SandboxActingUserAccess(StageHostMode Mode, bool Production, bool Development);
+internal sealed record SandboxActingUserAccess(StageHostMode Mode, bool Production, bool Development)
+{
+    internal static bool Configure(WebApplicationBuilder builder, StageHostMode mode)
+    {
+        var development = StageDevelopment.Decide(mode == StageHostMode.Sandbox, builder.Configuration, builder.Environment);
+        builder.Services.AddSingleton(new SandboxActingUserAccess(mode, builder.Environment.IsProduction(), development));
+        StageDevelopment.Inform(builder.Services, builder.Environment, development);
+        return development;
+    }
+}

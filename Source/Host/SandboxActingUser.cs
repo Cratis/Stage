@@ -27,10 +27,12 @@ internal static class SandboxActingUser
         app.MapPut(Route, (Delegate)Select).AllowAnonymous();
     }
 
-    // Called before forwarded headers and authentication, alongside the existing identity-header boundary.
+    // Capture the raw connection and Host before forwarded headers can change the request.
+    internal static void CaptureLocalRequest(HttpContext context) => context.Items[_localRequest] = SandboxIdentity.IsLocalRequest(context);
+
+    // Called after forwarded headers and before authentication, retaining the raw access decision.
     internal static void Apply(HttpContext context)
     {
-        context.Items[_localRequest] = SandboxIdentity.IsLocalRequest(context);
         if (!Available(context) || !context.Request.Cookies.TryGetValue(CookieName, out var name))
         {
             return;

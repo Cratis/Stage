@@ -48,6 +48,7 @@ public class a_started_multimodule_host : for_StageEndpointMapper.given.a_routed
         var path = Path.Combine(_folder, "Commerce.play");
         await File.WriteAllTextAsync(path, multimodule_source.Source);
         _app.UseSandboxIdentityHeaders();
+        _app.UseSandboxAuthentication();
         _app.UseRouting();
         _app.UseSandboxIdentity(path, plan.Plan.Model, _surface);
         _app.Use((context, next) =>

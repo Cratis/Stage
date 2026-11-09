@@ -57,6 +57,7 @@ public class when_accepting_a_selected_user : Specification
         context.Request.Headers["x-ms-client-principal-extra"] = "selected-value";
         var pipeline = new ApplicationBuilder(_provider);
         pipeline.UseSandboxIdentityHeaders();
+        pipeline.UseSandboxAuthentication();
         pipeline.Run(_ => Task.CompletedTask);
 
         await pipeline.Build()(context);

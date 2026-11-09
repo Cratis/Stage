@@ -27,6 +27,7 @@ public class a_started_host : Specification
             .AddScheme<AuthenticationSchemeOptions, RecordingAuthenticationHandler>(RecordingAuthenticationHandler.SchemeName, _ => { });
         _app = builder.Build();
         _app.UseSandboxIdentityHeaders();
+        _app.UseSandboxAuthentication();
         _app.UseRouting();
         _app.MapGet("/workbench/anything", (HttpContext context) =>
         {

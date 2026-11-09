@@ -11,6 +11,7 @@ using Cratis.Specifications;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
+using Microsoft.AspNetCore.HttpOverrides;
 
 namespace Cratis.Stage.Host.for_SandboxActingUser.given;
 
@@ -40,6 +41,8 @@ public class a_started_host : Specification
     protected bool _authenticated;
     protected virtual bool Development => true;
     protected virtual string PathBase => "";
+    protected virtual string? ForwardedOrigin => null;
+    string Origin => ForwardedOrigin ?? _client.BaseAddress!.GetLeftPart(UriPartial.Authority);
 
     async Task Establish()
     {
@@ -47,13 +50,20 @@ public class a_started_host : Specification
         builder.Services.AddSingleton(new SandboxIdentityOptions(!UsersEnabled));
         builder.Services.AddSingleton(new SandboxUsersOptions(UsersEnabled, AllowRemote));
         builder.Services.AddSingleton(HasUsers ? new SandboxUsers([_user]) : SandboxUsers.None);
-        builder.Services.AddSingleton(new SandboxActingUserAccess(Mode, Production, Development));
+        ConfigureDevelopment(builder);
         if (UsersEnabled) builder.Services.Configure<ArcOptions>(options => options.TrustForwardedIdentityHeaders = true);
         builder.Services.AddAuthentication(MicrosoftIDentityPlatformAuthHandler.SchemeName)
             .AddScheme<AuthenticationSchemeOptions, MicrosoftIDentityPlatformAuthHandler>(MicrosoftIDentityPlatformAuthHandler.SchemeName, _ => { });
+        builder.Services.Configure<ForwardedHeadersOptions>(options =>
+        {
+            options.ForwardedHeaders = ForwardedHeaders.XForwardedHost | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedPrefix;
+            options.KnownIPNetworks.Clear();
+            options.KnownProxies.Clear();
+        });
         _app = builder.Build();
-        if (PathBase.Length > 0) _app.UsePathBase(PathBase);
         _app.UseSandboxIdentityHeaders();
+        _app.UseForwardedHeaders();
+        _app.UseSandboxAuthentication();
         _app.UseRouting();
         SandboxActingUser.Map(_app);
         _app.MapMethods("/identity", ["GET", "POST"], (HttpContext context) =>
@@ -67,15 +77,16 @@ public class a_started_host : Specification
         _app.Urls.Add("http://127.0.0.1:0");
         await _app.StartAsync();
         var addresses = _app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!;
-        _client = new HttpClient(new HttpClientHandler { UseCookies = false, CheckCertificateRevocationList = true }) { BaseAddress = new Uri($"{addresses.Addresses.Single()}{PathBase}/") };
+        _client = new HttpClient(new HttpClientHandler { UseCookies = false, CheckCertificateRevocationList = true }) { BaseAddress = new Uri($"{addresses.Addresses.Single()}/") };
     }
 
     protected async Task SendIdentity(HttpMethod? method = null, string? origin = null, string? explicitHeader = null, bool webSocket = false, string? host = null, string? referer = null)
     {
         using var request = new HttpRequestMessage(method ?? HttpMethod.Get, "identity");
         request.Headers.Add("Cookie", $"stage-acting-user={_cookie}");
-        if (origin is not null) request.Headers.Add("Origin", origin == "self" ? _client.BaseAddress!.GetLeftPart(UriPartial.Authority) : origin);
-        if (referer is not null) request.Headers.Add("Referer", referer == "self" ? new Uri(_client.BaseAddress!, "page").ToString() : referer);
+        Forward(request);
+        if (origin is not null) request.Headers.Add("Origin", origin == "self" ? Origin : origin);
+        if (referer is not null) request.Headers.Add("Referer", referer == "self" ? $"{Origin}{PathBase}/page" : referer);
         if (explicitHeader is not null) request.Headers.Add("x-ms-client-principal-id", explicitHeader);
         if (host is not null) request.Headers.Host = host;
         if (webSocket)
@@ -92,7 +103,8 @@ public class a_started_host : Specification
         {
             Content = new StringContent(body, Encoding.UTF8, "application/json")
         };
-        request.Headers.Add("Origin", _client.BaseAddress!.GetLeftPart(UriPartial.Authority));
+        Forward(request);
+        request.Headers.Add("Origin", Origin);
         _response = await _client.SendAsync(request);
     }
 
@@ -101,10 +113,24 @@ public class a_started_host : Specification
         using var request = new HttpRequestMessage(method ?? HttpMethod.Put, SandboxActingUser.Route.TrimStart('/'));
         request.Headers.Add("Cookie", "stage-acting-user=alice");
         request.Content = json ? JsonContent.Create(new { name }) : new StringContent("name=alice");
-        if (origin is not null) request.Headers.Add("Origin", origin == "self" ? _client.BaseAddress!.GetLeftPart(UriPartial.Authority) : origin);
+        Forward(request);
+        if (origin is not null) request.Headers.Add("Origin", origin == "self" ? Origin : origin);
         if (site is not null) request.Headers.Add("Sec-Fetch-Site", site);
         if (host is not null) request.Headers.Host = host;
         _response = await _client.SendAsync(request);
+    }
+
+    protected virtual void ConfigureDevelopment(WebApplicationBuilder builder) => builder.Services.AddSingleton(new SandboxActingUserAccess(Mode, Production, Development));
+
+    void Forward(HttpRequestMessage request)
+    {
+        if (PathBase.Length > 0) request.Headers.Add("X-Forwarded-Prefix", PathBase);
+        if (ForwardedOrigin is not null)
+        {
+            var origin = new Uri(ForwardedOrigin);
+            request.Headers.Add("X-Forwarded-Host", origin.Authority);
+            request.Headers.Add("X-Forwarded-Proto", origin.Scheme);
+        }
     }
 
     protected ClientPrincipal MappedPrincipal() => JsonSerializer.Deserialize<ClientPrincipal>(Encoding.UTF8.GetString(Convert.FromBase64String(_principal!)), _json)!;

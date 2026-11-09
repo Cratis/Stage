@@ -113,6 +113,11 @@ internal sealed class SensitivityNode
     internal bool IsSecretPath(string path)
     {
         var node = this;
+        if (string.IsNullOrEmpty(path))
+        {
+            return node.Carries || node.Element().Kind == SensitivityKind.Opaque;
+        }
+
         foreach (var segment in path.Split('.'))
         {
             node = node.Element();
@@ -127,9 +132,10 @@ internal sealed class SensitivityNode
                 continue;
             }
 
+            // A path the schema does not declare cannot be classified, so its rule message stays value-free.
             if (!int.TryParse(segment, out _))
             {
-                return false;
+                return true;
             }
         }
 

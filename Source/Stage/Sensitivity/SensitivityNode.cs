@@ -45,7 +45,7 @@ internal sealed class SensitivityNode
         Kind = kind;
         _members = members;
         _item = item;
-        Carries = kind is SensitivityKind.Secret or SensitivityKind.Unreadable ||
+        Carries = kind is SensitivityKind.Secret or SensitivityKind.Unreadable or SensitivityKind.Opaque ||
             members.Values.Any(member => member.Carries) ||
             (item?.Carries ?? false);
     }
@@ -56,7 +56,7 @@ internal sealed class SensitivityNode
     internal SensitivityKind Kind { get; }
 
     /// <summary>
-    /// Gets whether the node is, or holds anywhere below it, a secret.
+    /// Gets whether the node is, or holds anywhere below it, a secret or an opaque position.
     /// </summary>
     internal bool Carries { get; }
 
@@ -84,12 +84,12 @@ internal sealed class SensitivityNode
     internal static SensitivityNode Collection(SensitivityNode item) => new(SensitivityKind.Collection, [], item);
 
     /// <summary>
-    /// Removes the secrets from the members of a payload.
+    /// Removes secret, opaque and undeclared members from a payload.
     /// </summary>
     /// <param name="payload">The payload as the caller sent it.</param>
-    /// <returns>The payload itself when nothing in it can be secret; otherwise a copy without the secret values.</returns>
+    /// <returns>A copy containing only declared members known not to hold secrets.</returns>
     internal IDictionary<string, JsonElement> FilterPayload(IDictionary<string, JsonElement> payload) =>
-        Carries ? FilterMembers(payload.Select(member => (member.Key, member.Value))) : payload;
+        FilterMembers(payload.Select(member => (member.Key, member.Value)));
 
     /// <summary>
     /// Removes the secrets from one value.
@@ -98,8 +98,7 @@ internal sealed class SensitivityNode
     /// <returns>The value without its secrets, or nothing when the whole value is to be dropped.</returns>
     internal JsonElement? Filter(JsonElement value) => Kind switch
     {
-        SensitivityKind.Secret or SensitivityKind.Unreadable => null,
-        SensitivityKind.Opaque => value.ValueKind is JsonValueKind.Object or JsonValueKind.Array ? null : value,
+        SensitivityKind.Secret or SensitivityKind.Unreadable or SensitivityKind.Opaque => null,
         SensitivityKind.Collection => FilterCollection(value),
         SensitivityKind.Composite => FilterComposite(value),
         _ => value

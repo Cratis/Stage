@@ -21,6 +21,9 @@ public abstract class a_model_asset_host : Specification
 
     protected virtual bool HasAssets => true;
 
+    // When set, the assets folder is a link to a folder outside the model that holds appsettings.json with the sentinel.
+    protected virtual bool AssetsFolderIsLink => false;
+
     protected bool SymbolicLinksSupported { get; private set; }
 
     async Task Establish()
@@ -32,13 +35,23 @@ public abstract class a_model_asset_host : Specification
         var model = Path.Combine(_root, "model");
         Directory.CreateDirectory(model);
         await File.WriteAllTextAsync(Path.Combine(model, "model.play"), SecretText);
-        if (HasAssets)
+
+        // A .json file, because static files refuse a .play file by content type before the provider runs, which would hide a missing guard.
+        await File.WriteAllTextAsync(Path.Combine(model, "secret.json"), SecretText);
+        if (AssetsFolderIsLink)
+        {
+            var outside = Path.Combine(_root, "outside");
+            Directory.CreateDirectory(outside);
+            await File.WriteAllTextAsync(Path.Combine(outside, "appsettings.json"), SecretText);
+            SymbolicLinksSupported = TryLink(Path.Combine(model, "assets"), outside, true);
+        }
+        else if (HasAssets)
         {
             Directory.CreateDirectory(Path.Combine(model, "assets", "nested"));
             await File.WriteAllTextAsync(Path.Combine(model, "assets", "logo.svg"), LogoText);
             await File.WriteAllTextAsync(Path.Combine(model, "assets", "nested", "mark.svg"), LogoText);
             await File.WriteAllTextAsync(Path.Combine(model, "assets", ".hidden.svg"), LogoText);
-            SymbolicLinksSupported = TryLink(Path.Combine(model, "assets", "escape.play"), Path.Combine(model, "model.play"), false)
+            SymbolicLinksSupported = TryLink(Path.Combine(model, "assets", "escape.json"), Path.Combine(model, "secret.json"), false)
                 && TryLink(Path.Combine(model, "assets", "escape-folder"), model, true);
         }
 

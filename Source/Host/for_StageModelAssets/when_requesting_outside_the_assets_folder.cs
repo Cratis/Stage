@@ -19,11 +19,11 @@ public class when_requesting_outside_the_assets_folder : a_model_asset_host
 
     async Task Because()
     {
-        _plain = await Raw("/assets/../model.play");
-        _encoded = await Raw("/assets/%2e%2e/model.play");
-        _doubleEncoded = await Raw("/assets/%252e%252e/model.play");
-        _backslash = await Raw("/assets/..%5cmodel.play");
-        _model = await Raw("/model.play");
+        _plain = await Raw("/assets/../secret.json");
+        _encoded = await Raw("/assets/%2e%2e/secret.json");
+        _doubleEncoded = await Raw("/assets/%252e%252e/secret.json");
+        _backslash = await Raw("/assets/..%5csecret.json");
+        _model = await Raw("/secret.json");
         _directory = await Raw("/assets/nested/");
         _app = await _client.GetAsync("/index.html");
     }

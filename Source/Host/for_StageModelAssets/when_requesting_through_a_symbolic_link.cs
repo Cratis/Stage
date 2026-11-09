@@ -15,13 +15,20 @@ public class when_requesting_through_a_symbolic_link : a_model_asset_host
 
     async Task Because()
     {
-        _file = await Raw("/assets/escape.play");
-        _folder = await Raw("/assets/escape-folder/model.play");
+        _file = await Raw("/assets/escape.json");
+        _folder = await Raw("/assets/escape-folder/secret.json");
         _logo = await _client.GetAsync("/assets/logo.svg");
     }
 
     // Platforms that cannot create links have nothing to refuse, so those facts pass without a link in place.
-    [Fact] void should_not_serve_a_linked_file_outside_the_folder() => (!SymbolicLinksSupported || !_file.Contains(SecretText, StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_not_serve_a_file_below_a_linked_folder() => (!SymbolicLinksSupported || !_folder.Contains(SecretText, StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_not_serve_a_linked_file_outside_the_folder() => Refused(_file);
+    [Fact] void should_not_serve_a_file_below_a_linked_folder() => Refused(_folder);
     [Fact] void should_keep_serving_regular_files() => _logo.IsSuccessStatusCode.ShouldBeTrue();
+
+    void Refused(string response)
+    {
+        if (!SymbolicLinksSupported) return;
+        response.ShouldContain(" 404 ");
+        response.ShouldNotContain(SecretText);
+    }
 }

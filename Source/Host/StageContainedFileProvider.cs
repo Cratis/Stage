@@ -16,12 +16,15 @@ internal sealed class StageContainedFileProvider(string root) : IFileProvider, I
     readonly string _root = Path.GetFullPath(root);
     readonly PhysicalFileProvider _inner = new(root);
 
+    // The walk below stops at the root, so a root that is itself a link would serve whatever it points at: serve nothing instead.
+    readonly bool _rootIsLink = IsLink(root);
+
     /// <inheritdoc/>
     public IFileInfo GetFileInfo(string subpath)
     {
         var info = _inner.GetFileInfo(subpath);
 
-        return info.Exists && !ContainsLink(info.PhysicalPath) ? info : new NotFoundFileInfo(subpath);
+        return _rootIsLink || !info.Exists || ContainsLink(info.PhysicalPath) ? new NotFoundFileInfo(subpath) : info;
     }
 
     /// <inheritdoc/>
@@ -32,6 +35,19 @@ internal sealed class StageContainedFileProvider(string root) : IFileProvider, I
 
     /// <inheritdoc/>
     public void Dispose() => _inner.Dispose();
+
+    static bool IsLink(string path)
+    {
+        try
+        {
+            var trimmed = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
+            return new DirectoryInfo(trimmed).LinkTarget is not null || new FileInfo(trimmed).LinkTarget is not null;
+        }
+        catch (Exception)
+        {
+            return true;
+        }
+    }
 
     bool ContainsLink(string? physicalPath)
     {

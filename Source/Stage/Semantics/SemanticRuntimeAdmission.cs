@@ -13,6 +13,8 @@ internal sealed record SemanticAdmissionEntry(string Artifact, string Kind, stri
 
 internal sealed class SemanticRuntimeAdmission
 {
+    const string TriggerNotExecuted = "Not executed at runtime: there is no way to raise an application trigger yet (Cratis/Stage#957).";
+
     internal SemanticRuntimeAdmission(SemanticExecutionPlan plan, Func<string, string?>? ruleName = null, SemanticBodyExecution? bodies = null)
     {
         var entries = new List<SemanticAdmissionEntry>();
@@ -23,6 +25,13 @@ internal sealed class SemanticRuntimeAdmission
         // Other unsupported constructs still refuse the model rather than silently losing behavior.
         foreach (var feature in SemanticRunAdmission.ModelFeatures(plan.Model))
         {
+            if (IsUnraisableTrigger(feature))
+            {
+                // Nothing in the runtime can raise an application trigger, so only the trigger and its reaction are refused.
+                entries.Add(Refused(feature) with { Details = $"{feature.Details} {TriggerNotExecuted}" });
+                continue;
+            }
+
             var details = SemanticRunAdmission.RunsAround(plan.Model.Application, feature);
             var entry = details is null ? Refused(feature) : new(feature.Artifact, feature.Kind, "renderedAround", feature.Capability, details);
             entries.Add(entry);
@@ -108,6 +117,10 @@ internal sealed class SemanticRuntimeAdmission
     internal IReadOnlyList<SemanticAdmissionEntry> Entries { get; }
 
     internal IReadOnlyList<SemanticAdmissionEntry> Blocking { get; }
+
+    static bool IsUnraisableTrigger(SemanticAdmissionFeature feature) =>
+        feature.Details.StartsWith($"{SemanticVersionFeatures.Automation}:", StringComparison.Ordinal) &&
+        (feature.Kind == "trigger" || (feature.Kind == "reaction" && feature.Details.Contains("trigger kind 'ApplicationTrigger'", StringComparison.Ordinal)));
 
     static SemanticAdmissionEntry LifecycleEntry(string name, string kind, IEnumerable<Cratis.Stage.Contracts.Lifecycles.LifecycleRefusal> refusals)
     {

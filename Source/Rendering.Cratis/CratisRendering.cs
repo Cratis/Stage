@@ -462,15 +462,7 @@ public static partial class CratisRendering
             throw new InvalidCratisBackendApplicationScaffold("Every file header line must be non-null plain text without line breaks, control, private-use or bidirectional formatting characters.");
         }
 
-        if (scene is not null)
-        {
-            var errors = scene.ConversionDiagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ToArray();
-            if (errors.Length > 0)
-            {
-                throw new InvalidArtifactRenderContract(string.Join(Environment.NewLine, errors.Select(error => $"{error.Code}: {error.Message}")));
-            }
-            SceneRuntimeAdmission.RequireSupported(scene);
-        }
+        RequireValidScene(scene);
 
         var request = CratisBackendApplicationScaffoldRequest.Create(
             applicationName,
@@ -494,15 +486,7 @@ public static partial class CratisRendering
 
         var backend = new CratisBackendApplicationScaffold().Create(request);
         var frontend = new CratisFrontendApplicationScaffold().Create(request);
-        var composed = scene is null
-            ? []
-            : new[]
-            {
-                CratisArtifactRenderInput.CreateText(
-                    SceneCompositionInput.RelativePath,
-                    scaffoldProfile.CratisPackageVersion,
-                    CanonicalSceneJson.Serialize(scene))
-            };
+        var composed = ComposedSceneInputs(scene, scaffoldProfile);
         if ((stringsFiles is null) != (defaultLocale is null))
         {
             throw new InvalidCratisBackendApplicationScaffold("Both strings files and a default locale are required together.");
@@ -520,4 +504,31 @@ public static partial class CratisRendering
         var profile = SignedForwardedIdentityInput.With(ArtifactRenderProfile.Create(TargetId, TargetVersion, RendererId, RendererVersion, inputs), options.SignedForwardedIdentity);
         return FileHeaderInput.With(ServiceLayoutInput.With(profile, options), options.FileHeader);
     }
+
+    static void RequireValidScene(SceneApplication? scene)
+    {
+        if (scene is null)
+        {
+            return;
+        }
+
+        var errors = scene.ConversionDiagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ToArray();
+        if (errors.Length > 0)
+        {
+            throw new InvalidArtifactRenderContract(string.Join(Environment.NewLine, errors.Select(error => $"{error.Code}: {error.Message}")));
+        }
+
+        SceneRuntimeAdmission.RequireSupported(scene);
+    }
+
+    static ArtifactRenderInput[] ComposedSceneInputs(SceneApplication? scene, CratisBackendApplicationScaffoldProfile scaffoldProfile)
+        => scene is null
+            ? []
+            :
+            [
+                CratisArtifactRenderInput.CreateText(
+                    SceneCompositionInput.RelativePath,
+                    scaffoldProfile.CratisPackageVersion,
+                    CanonicalSceneJson.Serialize(scene))
+            ];
 }

@@ -101,6 +101,27 @@ static class CratisArtifactRenderProfileAdmission
         return true;
     }
 
+    static bool TryResolveScaffoldProfile(ArtifactRenderProfile profile, string? profileVersion, [NotNullWhen(true)] out CratisBackendApplicationScaffoldProfile? scaffoldProfile, out string mismatch)
+    {
+        mismatch = string.Empty;
+        scaffoldProfile = CratisBackendApplicationScaffoldProfile.ForVersion(profileVersion);
+        if (scaffoldProfile is null)
+        {
+            mismatch = $"The scaffold profile version '{profileVersion}' is not supported.";
+            return false;
+        }
+
+        var recordedVersion = profile.Inputs.First(input => input.Name.StartsWith(ProjectInputPrefix, StringComparison.Ordinal) && input.Name.EndsWith(".csproj", StringComparison.Ordinal)).Version;
+        if (profileVersion is not null && !string.Equals(recordedVersion, scaffoldProfile.Version, StringComparison.Ordinal))
+        {
+            mismatch = $"The scaffold profile version '{profileVersion}' conflicts with the version '{recordedVersion}' recorded by the supplied profile.";
+            scaffoldProfile = null;
+            return false;
+        }
+
+        return true;
+    }
+
     static bool Matches(ArtifactRenderProfile profile, string applicationName, ExecutableSemanticModel? model, string? profileVersion, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
     {
         admittedOptions = null;
@@ -124,16 +145,8 @@ static class CratisArtifactRenderProfileAdmission
             return false;
         }
 
-        if (CratisBackendApplicationScaffoldProfile.ForVersion(profileVersion) is not { } scaffoldProfile)
+        if (!TryResolveScaffoldProfile(profile, profileVersion, out var scaffoldProfile, out mismatch))
         {
-            mismatch = $"The scaffold profile version '{profileVersion}' is not supported.";
-            return false;
-        }
-
-        var recordedVersion = profile.Inputs.First(input => input.Name.StartsWith(ProjectInputPrefix, StringComparison.Ordinal) && input.Name.EndsWith(".csproj", StringComparison.Ordinal)).Version;
-        if (profileVersion is not null && !string.Equals(recordedVersion, scaffoldProfile.Version, StringComparison.Ordinal))
-        {
-            mismatch = $"The scaffold profile version '{profileVersion}' conflicts with the version '{recordedVersion}' recorded by the supplied profile.";
             return false;
         }
 

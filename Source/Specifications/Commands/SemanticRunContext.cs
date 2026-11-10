@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.Globalization;
 using System.Text.Json;
 using Cratis.Chronicle.Events;
+using Cratis.Chronicle.Testing;
 using Cratis.Chronicle.EventSequences;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
@@ -35,6 +36,13 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
     readonly SemanticBodyRuleSession? _bodyRules = parent is null && options.BodyExecution is { } execution ? new(plan.Model.Application, execution) : null;
 
     internal SemanticRunReads Reads { get; } = new(runtimeTypes);
+
+    // The instances a policy that reads recorded state decides from: the read models the specification gave and the ones the facts so far project.
+    internal IEnumerable<SemanticReadModelInstance> ReadModelInstances(SemanticId readModel)
+    {
+        var defaults = new Defaults(new SemanticClientArtifactsProvider([.. plan.Events.Keys.Select(runtimeTypes.For)]));
+        return SemanticRunProjections.ForReadModel(plan, readModel, this, runtimeTypes, defaults).Select(projected => new SemanticReadModelInstance(projected.ReadModel, projected.Key, projected.Values));
+    }
     internal SemanticBodyExecution? BodyExecution => options.BodyExecution;
     internal SemanticBodyRuleSession? BodyRules => parent?.BodyRules ?? _bodyRules;
     internal CancellationToken CancellationToken { get; init; }

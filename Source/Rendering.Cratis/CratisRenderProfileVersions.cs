@@ -19,7 +19,7 @@ static class CratisRenderProfileVersions
     /// <param name="admittedOptions">The options admitted when the profile matches.</param>
     /// <param name="mismatch">The reason the profile did not match.</param>
     /// <returns>True when the profile matches; otherwise false.</returns>
-    internal delegate bool VersionMatcher(string? profileVersion, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch);
+    internal delegate bool VersionMatcher(string? profileVersion, out CratisRenderingOptions? admittedOptions, out string mismatch);
 
     /// <summary>
     /// Matches the default version first and then the current version. Downstream of the facade the version is already admitted, so a profile exactly equal to any known profile is accepted.
@@ -30,12 +30,12 @@ static class CratisRenderProfileVersions
     /// <returns>True when the profile matches any known version; otherwise false.</returns>
     internal static bool MatchesAnyKnownVersion(VersionMatcher matcher, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
     {
-        if (matcher(null, out admittedOptions, out mismatch))
+        if (matcher(null, out admittedOptions, out mismatch) && admittedOptions is not null)
         {
             return true;
         }
 
-        return matcher(CratisBackendApplicationScaffoldProfile.Current.Version, out admittedOptions, out _);
+        return matcher(CratisBackendApplicationScaffoldProfile.Current.Version, out admittedOptions, out _) && admittedOptions is not null;
     }
 
     /// <summary>

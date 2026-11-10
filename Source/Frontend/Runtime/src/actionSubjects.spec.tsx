@@ -65,8 +65,8 @@ async function submit(fetched: ReturnType<typeof renderScreen>, carrier = 'Poste
     const dialog = await screen.findByRole('dialog');
     fireEvent.change(within(dialog).getByLabelText('Carrier', { exact: false }), { target: { value: carrier } });
     await act(async () => { fireEvent.click(dialog.querySelector('.scene-slice-dialog-submit, button[type="submit"]')!); });
-    await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
-    const [, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;
+    await waitFor(() => expect(fetched.mock.calls.some(([url, init]) => init?.method === 'POST' && !String(url).endsWith('/validate'))).toBe(true));
+    const [, init] = fetched.mock.calls.find(([url, request]) => request?.method === 'POST' && !String(url).endsWith('/validate'))!;
     return JSON.parse(String(init?.body));
 }
 
@@ -110,8 +110,8 @@ describe('a toolbar action that names the item and needs nothing else', () => {
         expect(dialog.querySelectorAll('input, select, textarea')).toHaveLength(0);
         await act(async () => { fireEvent.click(dialog.querySelector('.scene-slice-dialog-submit, button[type="submit"]')!); });
 
-        await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
-        const [, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;
+        await waitFor(() => expect(fetched.mock.calls.some(([url, init]) => init?.method === 'POST' && !String(url).endsWith('/validate'))).toBe(true));
+        const [, init] = fetched.mock.calls.find(([url, request]) => request?.method === 'POST' && !String(url).endsWith('/validate'))!;
         expect(JSON.parse(String(init?.body))).toEqual({ shipmentId: rows[1].shipmentId });
     });
 
@@ -125,8 +125,8 @@ describe('a toolbar action that names the item and needs nothing else', () => {
         const dialog = await screen.findByRole('dialog');
         await act(async () => { fireEvent.click(dialog.querySelector('.scene-slice-dialog-submit, button[type="submit"]')!); });
 
-        await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
-        const [, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;
+        await waitFor(() => expect(fetched.mock.calls.some(([url, init]) => init?.method === 'POST' && !String(url).endsWith('/validate'))).toBe(true));
+        const [, init] = fetched.mock.calls.find(([url, request]) => request?.method === 'POST' && !String(url).endsWith('/validate'))!;
         expect(JSON.parse(String(init?.body))).toEqual({ shipmentId: rows[1].shipmentId });
     });
 });
@@ -170,8 +170,8 @@ describe('a screen action that names the item as its subject', () => {
         fireEvent.change(within(dialog).getByLabelText('Carrier', { exact: false }), { target: { value: 'Posten' } });
         await act(async () => { fireEvent.click(dialog.querySelector('.scene-slice-dialog-submit, button[type="submit"]')!); });
 
-        await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
-        const [, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;
+        await waitFor(() => expect(fetched.mock.calls.some(([url, init]) => init?.method === 'POST' && !String(url).endsWith('/validate'))).toBe(true));
+        const [, init] = fetched.mock.calls.find(([url, request]) => request?.method === 'POST' && !String(url).endsWith('/validate'))!;
         expect(JSON.parse(String(init?.body))).toEqual({ shipmentId: keyed[1].rowId, carrier: 'Posten' });
     });
 });

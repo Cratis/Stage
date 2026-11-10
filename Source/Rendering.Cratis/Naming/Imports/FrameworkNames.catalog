@@ -10,8 +10,8 @@ pin	Cratis.Choreography.Chronicle	2.2.0
 pin	Cratis.Chronicle	19.144.0
 pin	Cratis.Chronicle.AspNetCore	19.144.0
 pin	Cratis.Chronicle.Testing	19.144.0
-pin	Cratis.Screenplay	6.16.0
-pin	Cratis.Screenplay.Matching	6.16.0
+pin	Cratis.Screenplay	6.17.0
+pin	Cratis.Screenplay.Matching	6.17.0
 pin	Cratis.Specifications	5.2.3
 pin	Cratis.Specifications.XUnit	5.2.3
 pin	Microsoft.NET.Test.Sdk	18.11.0
@@ -50,9 +50,9 @@ package	AS	Cratis.Chronicle.Testing	19.144.0
 package	AS	Cratis.Fundamentals	7.33.1
 package	AS	Cratis.Metrics.Roslyn	7.33.1
 package	AS	Cratis.Observability.SourceGenerators	7.33.1
-package	AS	Cratis.Screenplay	6.16.0
-package	AS	Cratis.Screenplay.Contexts	6.16.0
-package	AS	Cratis.Screenplay.Matching	6.16.0
+package	AS	Cratis.Screenplay	6.17.0
+package	AS	Cratis.Screenplay.Contexts	6.17.0
+package	AS	Cratis.Screenplay.Matching	6.17.0
 package	AS	Cratis.Specifications	5.2.3
 package	AS	Cratis.Specifications.XUnit	5.2.3
 package	AS	DnsClient	1.8.0
@@ -5880,6 +5880,7 @@ type	AS	Cratis.Screenplay.Semantics.Execution	ISemanticBodyExecutionProviderFact
 type	AS	Cratis.Screenplay.Semantics.Execution	ISemanticEvaluator	interface
 type	AS	Cratis.Screenplay.Semantics.Execution	ISemanticSpecificationRunner	interface
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticAccepted	class
+type	AS	Cratis.Screenplay.Semantics.Execution	SemanticAvailability	enum
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticBodyExecutionResult	class
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticBodyIdentity	class
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticCommandBodyFaultException	class
@@ -5894,6 +5895,8 @@ type	AS	Cratis.Screenplay.Semantics.Execution	SemanticConstraintFailure	class
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticDecision	class
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticDecisionDependencies	class
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticDecisionDependencies+Entry	class
+type	AS	Cratis.Screenplay.Semantics.Execution	SemanticElementAvailability	class
+type	AS	Cratis.Screenplay.Semantics.Execution	SemanticElementKind	enum
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticEvaluator	class
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticExecutionCapability	enum
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticExecutionOutcomeKind	enum
@@ -5934,6 +5937,7 @@ type	AS	Cratis.Screenplay.Semantics.Execution	SemanticRejected	class
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticRejectionCategory	enum
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticRuleContext	class
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticScalarExecutionResponse	class
+type	AS	Cratis.Screenplay.Semantics.Execution	SemanticScreenAvailability	static
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticSpecificationRun	class
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticSpecificationRunner	class
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticUnsupported	class

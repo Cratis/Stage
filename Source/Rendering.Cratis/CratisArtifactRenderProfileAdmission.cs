@@ -31,7 +31,7 @@ static class CratisArtifactRenderProfileAdmission
         => Matches(profile, applicationName, null, profileVersion, out admittedOptions, out mismatch);
 
     // Downstream of the facade the version is already admitted, so a profile exactly equal to any known profile is accepted.
-    static bool MatchesAnyKnownVersion(ArtifactRenderProfile profile, string applicationName, ExecutableSemanticModel? model, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
+    internal static bool MatchesAnyKnownVersion(ArtifactRenderProfile profile, string applicationName, ExecutableSemanticModel? model, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
     {
         if (Matches(profile, applicationName, model, null, out admittedOptions, out mismatch))
         {

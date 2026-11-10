@@ -10,7 +10,7 @@ internal static partial class SemanticCratisAdmission
     /// </summary>
     /// <remarks>
     /// Codes are permanent, so the constant stays as the record of what the code meant. Stage refused such a query while the pinned
-    /// Arc release read every rendered query from the application's own MongoDB database. Arc 22.182.0 reads a read model marked
+    /// Arc release read every rendered query from the application's own MongoDB database. Arc 22.184.0 reads a read model marked
     /// <c language="csharp">[Sink("name")]</c> from that sink's server, so the query renders and this refusal is no longer emitted from the Stage release
     /// that pins it. Note that <see cref="SemanticVersionFeatures.SecretReadModelProperty"/> also uses the number for an unrelated warning.
     /// </remarks>

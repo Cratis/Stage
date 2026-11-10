@@ -137,7 +137,7 @@ internal static partial class SemanticCratisAdmission
             }
         }
 
-        foreach (var query in slice.Queries.Where(query => ValidateQueryAuthorization(context, query, diagnostics)))
+        foreach (var query in slice.Queries.Where(query => ValidateQueryAuthorization(context, query, diagnostics) && Policies.SemanticQueryNarrowingRendering.Admits(context, query, diagnostics)))
         {
             var readModel = slice.ReadModels.SingleOrDefault(_ => _.Id == query.ReadModel);
             if (context.PerformedQueries.Contains(query.Id))

@@ -2,9 +2,9 @@
 # Regenerate: STAGE_WRITE_FRAMEWORK_NAME_CATALOG=1 dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --filter "FullyQualifiedName~for_FrameworkNameCatalog"
 format	1
 scaffold	3
-pin	Cratis	22.182.0
-pin	Cratis.Arc.Chronicle.Testing	22.182.0
-pin	Cratis.Arc.MongoDB	22.182.0
+pin	Cratis	22.184.0
+pin	Cratis.Arc.Chronicle.Testing	22.184.0
+pin	Cratis.Arc.MongoDB	22.184.0
 pin	Cratis.Choreography	2.2.0
 pin	Cratis.Choreography.Chronicle	2.2.0
 pin	Cratis.Chronicle	19.144.0
@@ -26,18 +26,18 @@ package	AS	Azure.Security.KeyVault.Certificates	4.6.0
 package	AS	Azure.Security.KeyVault.Secrets	4.6.0
 package	AS	BouncyCastle.Cryptography	2.7.0
 package	AS	Castle.Core	5.2.1
-package	AS	Cratis	22.182.0
-package	AS	Cratis.Arc	22.182.0
-package	AS	Cratis.Arc.Chronicle	22.182.0
-package	AS	Cratis.Arc.Chronicle.CodeAnalysis	22.182.0
-package	AS	Cratis.Arc.Chronicle.Testing	22.182.0
-package	AS	Cratis.Arc.Core	22.182.0
-package	AS	Cratis.Arc.Core.CodeAnalysis	22.182.0
-package	AS	Cratis.Arc.MongoDB	22.182.0
-package	AS	Cratis.Arc.ProxyGenerator.Build	22.182.0
-package	AS	Cratis.Arc.Screenplay.Embedded	22.182.0
-package	AS	Cratis.Arc.Swagger	22.182.0
-package	AS	Cratis.Arc.Testing	22.182.0
+package	AS	Cratis	22.184.0
+package	AS	Cratis.Arc	22.184.0
+package	AS	Cratis.Arc.Chronicle	22.184.0
+package	AS	Cratis.Arc.Chronicle.CodeAnalysis	22.184.0
+package	AS	Cratis.Arc.Chronicle.Testing	22.184.0
+package	AS	Cratis.Arc.Core	22.184.0
+package	AS	Cratis.Arc.Core.CodeAnalysis	22.184.0
+package	AS	Cratis.Arc.MongoDB	22.184.0
+package	AS	Cratis.Arc.ProxyGenerator.Build	22.184.0
+package	AS	Cratis.Arc.Screenplay.Embedded	22.184.0
+package	AS	Cratis.Arc.Swagger	22.184.0
+package	AS	Cratis.Arc.Testing	22.184.0
 package	AS	Cratis.Choreography	2.2.0
 package	AS	Cratis.Choreography.Chronicle	2.2.0
 package	AS	Cratis.Choreography.Storage	2.2.0
@@ -3217,6 +3217,7 @@ type	AS	Cratis.Arc.Queries	IQueryRenderer	interface
 type	AS	Cratis.Arc.Queries	IQueryRendererFor`1	interface
 type	AS	Cratis.Arc.Queries	IQueryRenderers	interface
 type	AS	Cratis.Arc.Queries	IQueryRequestReader	interface
+type	AS	Cratis.Arc.Queries	IQueryRowNarrowing	interface
 type	AS	Cratis.Arc.Queries	IReadModelInterceptors	interface
 type	AS	Cratis.Arc.Queries	IWebSocketConnectionHandler	interface
 type	AS	Cratis.Arc.Queries	IWebSocketMessageSender	interface
@@ -3284,6 +3285,7 @@ type	AS	Cratis.Arc.Queries	QueryRequestEnvelope	class
 type	AS	Cratis.Arc.Queries	QueryRequestEnvelope+PagingRequest	class
 type	AS	Cratis.Arc.Queries	QueryRequestEnvelope+SortingRequest	class
 type	AS	Cratis.Arc.Queries	QueryResult	class
+type	AS	Cratis.Arc.Queries	QueryRowNarrowing`2	class
 type	AS	Cratis.Arc.Queries	QueryStringQueryRequestReader	class
 type	AS	Cratis.Arc.Queries	QuerySubscriber	class
 type	AS	Cratis.Arc.Queries	QuerySubscriptionAggregate	class
@@ -3303,7 +3305,9 @@ type	AS	Cratis.Arc.Queries	SortDirection	enum
 type	AS	Cratis.Arc.Queries	SortDirectionIsNotRecognized	class
 type	AS	Cratis.Arc.Queries	SortField	class
 type	AS	Cratis.Arc.Queries	Sorting	class
+type	AS	Cratis.Arc.Queries	StateAwareEmissionGuard`1	class
 type	AS	Cratis.Arc.Queries	UnableToResolveReadModelFromCommandContext	class
+type	AS	Cratis.Arc.Queries	UnsupportedQueryRowNarrowing	class
 type	AS	Cratis.Arc.Queries	WebSocketConnectionHandler	class
 type	AS	Cratis.Arc.Queries	WebSocketMessage	class
 type	AS	Cratis.Arc.Queries	WebSocketMessageType	enum
@@ -13892,7 +13896,7 @@ extensions	AS	Cratis.Arc.Identity	GetActor GetClaims GetClaimsRaw GetClientPrinc
 extensions	AS	Cratis.Arc.Introspection	MapIntrospectionEndpoints
 extensions	AS	Cratis.Arc.MongoDB	AddClassMap AddConventionPackFilter ApplyConventions GetTypeString ToMongoClientSettings UnmapAllMembersExcept WithCamelCaseNamingPolicy WithDatabaseResolver WithNamingPolicy WithServerResolver
 extensions	AS	Cratis.Arc.OpenApi	MapOpenApi
-extensions	AS	Cratis.Arc.Queries	Count CreateClientEnumerableObservableFrom CreateClientEnumerableObservableSSEFrom CreateClientObservableFrom CreateClientObservableSSEFrom GetObservableQueryHttpOptions GetPagingInfo GetQueryArguments GetSortingInfo HandleWebSocketHeadersForMultipleProxies InterceptEmission IsAnonymousAllowed IsAsyncEnumerableResult IsQuery IsStreamingResult IsSubjectResult MapObservableQueryDemultiplexerEndpoints MapQueryEndpoints OrderBy OrderByDescending SetResponseStatusCode Skip Take
+extensions	AS	Cratis.Arc.Queries	Count CreateClientEnumerableObservableFrom CreateClientEnumerableObservableSSEFrom CreateClientObservableFrom CreateClientObservableSSEFrom GetObservableQueryHttpOptions GetPagingInfo GetQueryArguments GetSortingInfo HandleWebSocketHeadersForMultipleProxies InterceptEmission IsAnonymousAllowed IsAsyncEnumerableResult IsQuery IsStreamingResult IsSubjectResult MapObservableQueryDemultiplexerEndpoints MapQueryEndpoints OrderBy OrderByDescending SetResponseStatusCode Skip Take Where
 extensions	AS	Cratis.Arc.Queries.ControllerBased	AddScopedControllerQueryAuthorization
 extensions	AS	Cratis.Arc.Queries.ModelBound	IsReadModel IsValidQueryFor
 extensions	AS	Cratis.Arc.Swagger	AddConcepts
@@ -14457,6 +14461,7 @@ base	AS	Cratis.Arc.Queries.QueryRequestEnvelope	System.Object	Arguments Paging S
 base	AS	Cratis.Arc.Queries.QueryRequestEnvelope+PagingRequest	System.Object	Deconstruct EqualityContract Equals GetHashCode Page PageSize PrintMembers ToString	-
 base	AS	Cratis.Arc.Queries.QueryRequestEnvelope+SortingRequest	System.Object	Deconstruct Direction EqualityContract Equals Field GetHashCode PrintMembers ToString	-
 base	AS	Cratis.Arc.Queries.QueryResult	System.Object	ChangeSet CorrelationId Data Error ExceptionMessages ExceptionStackTrace FromException HasExceptions IsAuthorized IsReady IsSuccess IsValid MergeWith MissingPerformer NotReady Paging ReleaseScope Success Unauthorized ValidationResults WithValidationError	-
+base	AS	Cratis.Arc.Queries.QueryRowNarrowing`2	System.Object	AppliesTo GetAllowedKeys GetPredicate Key	-
 base	AS	Cratis.Arc.Queries.QueryStringQueryRequestReader	System.Object	EndpointNamePrefix HttpMethod IncludeInApiDescription Read RequestBodyType ResponseCacheControl	-
 base	AS	Cratis.Arc.Queries.QueryValidator`1	Cratis.Arc.Validation.DiscoverableValidator`1	-	-
 base	AS	Cratis.Arc.Queries.QueryableQueryRenderer	System.Object	Execute	-
@@ -14467,7 +14472,9 @@ base	AS	Cratis.Arc.Queries.RegisteredReadModelTypes	System.Object	Contains Types
 base	AS	Cratis.Arc.Queries.SortDirectionIsNotRecognized	System.Exception	Member ValidationResult Value	-
 base	AS	Cratis.Arc.Queries.SortField	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode NotSet PrintMembers	-
 base	AS	Cratis.Arc.Queries.Sorting	System.Object	Deconstruct Direction EqualityContract Equals Field GetHashCode None PrintMembers ToString	-
+base	AS	Cratis.Arc.Queries.StateAwareEmissionGuard`1	System.Object	Decide GetKey Guard OnDenied Read	-
 base	AS	Cratis.Arc.Queries.UnableToResolveReadModelFromCommandContext	System.Exception	ReadModelType ValidationResult	-
+base	AS	Cratis.Arc.Queries.UnsupportedQueryRowNarrowing	System.Exception	-	-
 base	AS	Cratis.Arc.Queries.WebSocketConnectionHandler	System.Object	HandleIncomingMessages Send SendMessage	-
 base	AS	Cratis.Arc.Queries.WebSocketMessage	System.Object	CreateData Data Ping Pong Timestamp Type	-
 base	AS	Cratis.Arc.Screenplay.Embedded.Generation.EmbeddedDocument	System.Object	Deconstruct EqualityContract Equals GetHashCode Id Kind Namespace ParentId PrintMembers ResourceName Title ToString	-

@@ -19,13 +19,13 @@ static class CratisArtifactRenderProfileAdmission
     internal const string ProjectInputPrefix = "cratis-scaffold:text:";
 
     public static bool Matches(ArtifactRenderRequest request, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
-        => CratisRenderProfileVersions.MatchesAnyKnownVersion((string? v, out CratisRenderingOptions? o, out string m) => Matches(request, v, out o, out m), out admittedOptions, out mismatch);
+        => CratisRenderProfileVersions.MatchesAnyKnownVersion((v, out o, out m) => Matches(request, v, out o, out m), out admittedOptions, out mismatch);
 
     internal static bool Matches(ArtifactRenderRequest request, string? profileVersion, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
         => Matches(new ProfileAdmissionTarget(request.Profile, request.Model.Application.Name, request.Model, profileVersion), out admittedOptions, out mismatch);
 
     internal static bool MatchesScaffold(ArtifactRenderProfile profile, string applicationName, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
-        => CratisRenderProfileVersions.MatchesAnyKnownVersion((string? v, out CratisRenderingOptions? o, out string m) => Matches(new ProfileAdmissionTarget(profile, applicationName, null, v), out o, out m), out admittedOptions, out mismatch);
+        => CratisRenderProfileVersions.MatchesAnyKnownVersion((v, out o, out m) => Matches(new ProfileAdmissionTarget(profile, applicationName, null, v), out o, out m), out admittedOptions, out mismatch);
 
     internal static bool Matches(ProfileAdmissionTarget target, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
     {
@@ -122,7 +122,7 @@ static class CratisArtifactRenderProfileAdmission
         string.Equals(profile.Renderer, CratisRendering.RendererId, StringComparison.Ordinal) &&
         string.Equals(profile.RendererVersion, CratisRendering.RendererVersion, StringComparison.Ordinal);
 
-    static bool TryCreateExpected(ProfileAdmissionTarget target, CratisRenderingOptions options, ApprovedPackageSet? approvedPackages, CratisBackendApplicationScaffoldProfile? scaffoldProfile, out ArtifactRenderProfile? expected, out string mismatch)
+    static bool TryCreateExpected(ProfileAdmissionTarget target, CratisRenderingOptions options, ApprovedPackageSet? approvedPackages, CratisBackendApplicationScaffoldProfile scaffoldProfile, out ArtifactRenderProfile? expected, out string mismatch)
     {
         expected = null;
         mismatch = string.Empty;
@@ -278,7 +278,6 @@ static class CratisArtifactRenderProfileAdmission
 
         return true;
     }
-
 
     static bool TryAdmitServiceLayout(ArtifactRenderProfile profile, CratisRenderingOptions options, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
     {

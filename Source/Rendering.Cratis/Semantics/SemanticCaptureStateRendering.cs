@@ -65,17 +65,10 @@ internal static class SemanticCaptureStateRendering
             .Line($"    (previous.ContainsKey(field) && !{plan["Same"]}(previous.GetValueOrDefault(field), current.GetValueOrDefault(field)));")
             .BlankLine();
 
-    static void RenderFields(CSharpCodeBuilder builder, SemanticCapture capture, SemanticCaptureMemberPlan plan) =>
-        builder.Line($"static string {plan["Text"]}(object? value) => (value is null ? null : {plan["ConceptValue"]}(value) ?? value) switch")
-            .Line("{")
-            .Line("    null => string.Empty,")
-            .Line("    string text => text,")
-            .Line("    bool flag => flag ? \"true\" : \"false\",")
-            .Line($"    global::System.IConvertible number => global::System.Convert.ToDecimal(number, {Invariant}).ToString(\"0.############################\", {Invariant}),")
-            .Line("    _ => string.Empty")
-            .Line("};")
-            .BlankLine()
-            .OpenBlock($"static object? {plan["ConceptValue"]}(object value)")
+    static void RenderFields(CSharpCodeBuilder builder, SemanticCapture capture, SemanticCaptureMemberPlan plan)
+    {
+        RenderText(builder, plan);
+        builder.OpenBlock($"static object? {plan["ConceptValue"]}(object value)")
             .OpenBlock("for (var type = value.GetType(); type is not null; type = type.BaseType)")
             .Line("if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(global::Cratis.Concepts.ConceptAs<>)) return type.GetProperty(\"Value\")!.GetValue(value);")
             .EndBlock()
@@ -87,6 +80,24 @@ internal static class SemanticCaptureStateRendering
             .Line($"sealed class {plan["MissingCaptureField"]}(string field) : global::System.Exception({Literal($"Capture '{capture.Name}' has no value for field '")} + field + \"' in the state remembered for this key.\");")
             .Line($"sealed class {plan["EmptyCaptureKey"]}() : global::System.Exception({Literal($"Capture '{capture.Name}' received an event with an empty key '{capture.Key}'.")});")
             .BlankLine();
+    }
+
+    static void RenderText(CSharpCodeBuilder builder, SemanticCaptureMemberPlan plan)
+    {
+        builder.OpenBlock($"static string {plan["Text"]}(object? value)");
+        SemanticCaptureNumberRendering.Render(builder);
+        builder.Line($"return (value is null ? null : {plan["ConceptValue"]}(value) ?? value) switch")
+            .Line("{")
+            .Line("    null => string.Empty,")
+            .Line("    string text => text,")
+            .Line("    bool flag => flag ? \"true\" : \"false\",")
+            .Line($"    double number => Number(number, 14).ToString(\"0.############################\", {Invariant}),")
+            .Line($"    float number => Number(number, 6).ToString(\"0.############################\", {Invariant}),")
+            .Line($"    global::System.IConvertible number => global::System.Convert.ToDecimal(number, {Invariant}).ToString(\"0.############################\", {Invariant}),")
+            .Line("    _ => string.Empty")
+            .Line("};")
+            .EndBlock().BlankLine();
+    }
 
     static void RenderPrevious(CSharpCodeBuilder builder, SemanticCapture capture, SemanticCaptureMemberPlan plan, string eventTypes)
     {

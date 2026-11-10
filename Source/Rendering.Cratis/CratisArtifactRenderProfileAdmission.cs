@@ -30,17 +30,6 @@ static class CratisArtifactRenderProfileAdmission
     internal static bool MatchesScaffold(ArtifactRenderProfile profile, string applicationName, string? profileVersion, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
         => Matches(profile, applicationName, null, profileVersion, out admittedOptions, out mismatch);
 
-    // Downstream of the facade the version is already admitted, so a profile exactly equal to any known profile is accepted.
-    internal static bool MatchesAnyKnownVersion(ArtifactRenderProfile profile, string applicationName, ExecutableSemanticModel? model, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
-    {
-        if (Matches(profile, applicationName, model, null, out admittedOptions, out mismatch))
-        {
-            return true;
-        }
-
-        return Matches(profile, applicationName, model, CratisBackendApplicationScaffoldProfile.Current.Version, out admittedOptions, out _);
-    }
-
     internal static bool TryGetOptions(ArtifactRenderProfile profile, out CratisRenderingOptions? options)
     {
         options = null;
@@ -80,6 +69,17 @@ static class CratisArtifactRenderProfileAdmission
         {
             return false;
         }
+    }
+
+    // Downstream of the facade the version is already admitted, so a profile exactly equal to any known profile is accepted.
+    static bool MatchesAnyKnownVersion(ArtifactRenderProfile profile, string applicationName, ExecutableSemanticModel? model, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
+    {
+        if (Matches(profile, applicationName, model, null, out admittedOptions, out mismatch))
+        {
+            return true;
+        }
+
+        return Matches(profile, applicationName, model, CratisBackendApplicationScaffoldProfile.Current.Version, out admittedOptions, out _);
     }
 
     // The application realization and how the realized application trusts the identity AuthProxy forwards.

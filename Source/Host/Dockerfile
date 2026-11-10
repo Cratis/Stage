@@ -31,7 +31,7 @@ ENV STAGE_PRIMEUI_LICENSE=$STAGE_PRIMEUI_LICENSE
 RUN npm run build
 
 # Stage runs on .NET 11 while the bundled Chronicle kernel retains its .NET 10 runtime.
-FROM mcr.microsoft.com/dotnet/aspnet:11.0.0-rc.3 AS stage-runtime
+FROM mcr.microsoft.com/dotnet/aspnet:11.0-resolute AS stage-runtime
 
 # The Chronicle base image is the kernel (Cratis.Chronicle.Server in /app). Storage is fully in-memory, so no
 # database is required to run a play session — the container is self-contained on its own.

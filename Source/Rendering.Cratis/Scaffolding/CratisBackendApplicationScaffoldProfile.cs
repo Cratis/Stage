@@ -89,19 +89,6 @@ public sealed class CratisBackendApplicationScaffoldProfile
         ScaffoldPackageVersions.Chronicle);
 
     /// <summary>
-    /// Finds the profile for a scaffold version.
-    /// </summary>
-    /// <param name="version">The scaffold version. Null selects version 3 (net10.0); version 4 (net11.0) is used only when "4" is passed explicitly.</param>
-    /// <returns>The profile, or null when the version is unknown.</returns>
-    public static CratisBackendApplicationScaffoldProfile? ForVersion(string? version) => version switch
-    {
-        null => Version3,
-        CurrentVersion => Current,
-        RetainedVersion => Version3,
-        _ => null
-    };
-
-    /// <summary>
     /// Gets the scaffold contract version carried by every generated input.
     /// </summary>
     public string Version { get; }
@@ -177,6 +164,19 @@ public sealed class CratisBackendApplicationScaffoldProfile
     /// wildcard, a range or a prerelease from either registry.
     /// </remarks>
     public CratisFrontendPackageSet FrontendPackageSet { get; }
+
+    /// <summary>
+    /// Finds the profile for a scaffold version.
+    /// </summary>
+    /// <param name="version">The scaffold version. Null selects version 3 (net10.0); version 4 (net11.0) is used only when "4" is passed explicitly.</param>
+    /// <returns>The profile, or null when the version is unknown.</returns>
+    public static CratisBackendApplicationScaffoldProfile? ForVersion(string? version) => version switch
+    {
+        null => Version3,
+        CurrentVersion => Current,
+        RetainedVersion => Version3,
+        _ => null
+    };
 
     /// <summary>
     /// Creates a validated immutable scaffold profile for in-assembly contract verification.

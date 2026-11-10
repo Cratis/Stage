@@ -478,6 +478,17 @@ internal static partial class PureTransitionAdmission
     internal static MetadataReference[] AnalysisReferences() =>
         ReferenceDirectoryOverride.Value is { } referenceDirectory ? LoadReferences(referenceDirectory) : _references.Value;
 
+    /// <summary>Gets the embedded reference assemblies for a scaffold profile target framework (net10.0 for version 3, net11.0 for version 4).</summary>
+    /// <param name="targetFramework">The profile's exact target framework moniker.</param>
+    /// <returns>The audited reference assemblies.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when no audited reference assemblies exist for the target framework.</exception>
+    internal static MetadataReference[] AnalysisReferences(string targetFramework) => targetFramework switch
+    {
+        "net11.0" => ReferenceDirectoryOverride.Value is { } referenceDirectory ? LoadReferences(referenceDirectory) : _references11.Value,
+        "net10.0" => AnalysisReferences(),
+        _ => throw new InvalidOperationException($"No audited reference assemblies exist for target framework '{targetFramework}'; pure transitions cannot be analysed.")
+    };
+
     // Only authored Common concepts/composites can opt out of the conservative name guard.
     // Referenced types (including primitive CLR names) and slice-local peers never opt out.
     static bool IsUnambiguousCommonType(
@@ -559,14 +570,6 @@ internal static partial class PureTransitionAdmission
     static bool IsUnboundQualifier(SymbolInfo info, SimpleNameSyntax name) =>
         info.Symbol is null && info.CandidateSymbols.IsEmpty &&
         name.Parent is MemberAccessExpressionSyntax { Expression: var expression } && expression == name;
-
-    /// <summary>Gets the embedded reference assemblies for a scaffold profile target framework (net10.0 for version 3, net11.0 for version 4).</summary>
-    internal static MetadataReference[] AnalysisReferences(string targetFramework) => targetFramework switch
-    {
-        "net11.0" => ReferenceDirectoryOverride.Value is { } referenceDirectory ? LoadReferences(referenceDirectory) : _references11.Value,
-        "net10.0" => AnalysisReferences(),
-        _ => throw new InvalidOperationException($"No audited reference assemblies exist for target framework '{targetFramework}'; pure transitions cannot be analysed.")
-    };
 
     static MetadataReference[] LoadEmbeddedReferences() => LoadEmbeddedReferences(ReferencePackVersion, "net10.0");
 

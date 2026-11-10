@@ -123,6 +123,10 @@
         <EmbeddedResource Include="../Stage/Runtime/PortableTenantValues.cs" LogicalName="PortableTenantValues.cs" />
         <EmbeddedResource Include="../Stage/Runtime/AmbiguousTenant.cs" LogicalName="AmbiguousTenant.cs" />
     </ItemGroup>
+    <PropertyGroup>
+        <!-- The SDK's implicit targeting-pack download of the same package (another version) is intended to coexist. -->
+        <NoWarn>$(NoWarn);NU1505</NoWarn>
+    </PropertyGroup>
     <ItemGroup>
         <!-- The net11.0 reference pack is downloaded from NuGet (not referenced: one project cannot reference two versions
              of one package) so the embedded set never depends on an SDK install. A missing pack fails restore. -->

@@ -19,16 +19,27 @@ static class CratisArtifactRenderProfileAdmission
     const string ProjectInputPrefix = "cratis-scaffold:text:";
 
     public static bool Matches(ArtifactRenderRequest request, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
-        => Matches(request.Profile, request.Model.Application.Name, request.Model, null, out admittedOptions, out mismatch);
+        => MatchesAnyKnownVersion(request.Profile, request.Model.Application.Name, request.Model, out admittedOptions, out mismatch);
 
     internal static bool Matches(ArtifactRenderRequest request, string? profileVersion, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
         => Matches(request.Profile, request.Model.Application.Name, request.Model, profileVersion, out admittedOptions, out mismatch);
 
     internal static bool MatchesScaffold(ArtifactRenderProfile profile, string applicationName, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
-        => Matches(profile, applicationName, null, null, out admittedOptions, out mismatch);
+        => MatchesAnyKnownVersion(profile, applicationName, null, out admittedOptions, out mismatch);
 
     internal static bool MatchesScaffold(ArtifactRenderProfile profile, string applicationName, string? profileVersion, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
         => Matches(profile, applicationName, null, profileVersion, out admittedOptions, out mismatch);
+
+    // Downstream of the facade the version is already admitted, so a profile exactly equal to any known profile is accepted.
+    static bool MatchesAnyKnownVersion(ArtifactRenderProfile profile, string applicationName, ExecutableSemanticModel? model, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
+    {
+        if (Matches(profile, applicationName, model, null, out admittedOptions, out mismatch))
+        {
+            return true;
+        }
+
+        return Matches(profile, applicationName, model, CratisBackendApplicationScaffoldProfile.Current.Version, out admittedOptions, out _);
+    }
 
     internal static bool TryGetOptions(ArtifactRenderProfile profile, out CratisRenderingOptions? options)
     {

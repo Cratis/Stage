@@ -28,7 +28,7 @@ internal static class SemanticReactionBodyAdmission
         {
             MetadataReference[] references =
             [
-                .. PureTransitionAdmission.AnalysisReferences(),
+                .. PureTransitionAdmission.AnalysisReferences(context.TargetFramework),
                 SemanticGenerationBodyAdmission.FundamentalsReference,
                 SemanticGenerationBodyAdmission.ChronicleReference
             ];

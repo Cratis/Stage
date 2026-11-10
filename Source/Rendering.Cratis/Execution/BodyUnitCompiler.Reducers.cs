@@ -23,7 +23,7 @@ public static partial class BodyUnitCompiler
             var (descriptor, body, refusal) = BodyUnitAdmission.AdmitReducer(context, requirement);
             if (refusal is not null) return refusal;
             var unit = compilation.Render(context, descriptor!, body!);
-            MetadataReference[] references = [.. PureTransitionAdmission.AnalysisReferences(), SemanticGenerationBodyAdmission.FundamentalsReference, SemanticGenerationBodyAdmission.ChronicleReference];
+            MetadataReference[] references = [.. PureTransitionAdmission.AnalysisReferences(context.TargetFramework), SemanticGenerationBodyAdmission.FundamentalsReference, SemanticGenerationBodyAdmission.ChronicleReference];
             var build = new UnitBuild(unit.Sources, references, Microsoft.CodeAnalysis.CSharp.LanguageVersion.Latest, (hash, peSha) =>
                 new BodyUnitEntry(requirement.RequirementId, requirement.Role.ToString(), true, UnitHash: hash, PeSha256: peSha, EntryType: unit.EntryType, EntryMethod: unit.EntryMethod, WrapperType: $"{context.TypedContextsNamespace}.{context.ContextNames.ContextWrapper(descriptor!)}")
                 {

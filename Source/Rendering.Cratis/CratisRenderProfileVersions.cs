@@ -39,6 +39,34 @@ static class CratisRenderProfileVersions
     }
 
     /// <summary>
+    /// Creates the base render profile for an optional scaffold profile version.
+    /// </summary>
+    /// <param name="name">The application name.</param>
+    /// <param name="options">The rendering options.</param>
+    /// <param name="profileVersion">The scaffold profile version, or null for the default.</param>
+    /// <returns>The render profile.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the scaffold profile version is unsupported.</exception>
+    internal static ArtifactRenderProfile CreateProfile(string name, CratisRenderingOptions options, string? profileVersion)
+    {
+        if (profileVersion is null) return CratisRendering.CreateProfile(name, options);
+        var scaffold = CratisBackendApplicationScaffoldProfile.ForVersion(profileVersion)
+            ?? throw new InvalidOperationException($"The scaffold profile version '{profileVersion}' is not supported.");
+        return CratisRendering.CreateProfile(name, options, null, null, null, null, CratisRendering.ListsPrimeReact(null), scaffold);
+    }
+
+    /// <summary>
+    /// Gets the target framework of the scaffold profile recorded by a render profile, falling back to the version 3 framework.
+    /// </summary>
+    /// <param name="profile">The render profile.</param>
+    /// <returns>The target framework moniker used to select the audited reference pack.</returns>
+    internal static string TargetFramework(ArtifactRenderProfile profile)
+    {
+        var project = profile.Inputs.FirstOrDefault(input => input.Name.StartsWith(CratisArtifactRenderProfileAdmission.ProjectInputPrefix, StringComparison.Ordinal) && input.Name.EndsWith(".csproj", StringComparison.Ordinal));
+        var scaffold = project is null ? null : CratisBackendApplicationScaffoldProfile.ForVersion(project.Version);
+        return (scaffold ?? CratisBackendApplicationScaffoldProfile.Version3).TargetFramework;
+    }
+
+    /// <summary>
     /// Resolves the scaffold profile for a version and checks it against the version recorded by the supplied profile.
     /// </summary>
     /// <param name="profile">The supplied profile.</param>

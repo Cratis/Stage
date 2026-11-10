@@ -159,7 +159,7 @@ internal static class SemanticCommandBodyAdmission
         var source = SemanticBodyCompilation.ImplicitUsings + string.Join(Environment.NewLine, imports.Select(@namespace => $"using {@namespace};")) + SemanticValidationContextRuntime.AnalysisDeclarations(context) + string.Join(Environment.NewLine, eventTypes) +
             $"namespace {ownNamespace} {{ internal class HandlerProbe {{ {builder} }} }}";
         var tree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(Microsoft.CodeAnalysis.CSharp.LanguageVersion.Preview));
-        var compilation = SemanticBodyCompilation.Create("CommandBodyProbe", tree);
+        var compilation = SemanticBodyCompilation.Create("CommandBodyProbe", tree, context.TargetFramework);
         var model = compilation.GetSemanticModel(tree);
         var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single(method => method.Identifier.ValueText == SemanticCommandHandlerRendering.Method(command, context));
         var unavailable = method.DescendantNodes().OfType<ExpressionSyntax>().Any(expression =>

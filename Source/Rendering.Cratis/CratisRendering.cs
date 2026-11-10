@@ -442,7 +442,7 @@ public static partial class CratisRendering
         bool usesPrimeReact) =>
         CreateProfile(applicationName, options, scene, stringsFiles, defaultLocale, approvedPackages, usesPrimeReact, Dependencies);
 
-    static ArtifactRenderProfile CreateProfile(
+    internal static ArtifactRenderProfile CreateProfile(
         string applicationName,
         CratisRenderingOptions options,
         SceneApplication? scene,

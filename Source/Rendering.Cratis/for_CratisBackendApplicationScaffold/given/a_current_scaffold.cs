@@ -17,9 +17,11 @@ public class a_current_scaffold : Specification
     protected ImmutableArray<ArtifactRenderInput> _first;
     protected ImmutableArray<ArtifactRenderInput> _second;
 
+    protected virtual CratisBackendApplicationScaffoldProfile ProfileUnderTest => CratisBackendApplicationScaffoldProfile.Current;
+
     void Establish()
     {
-        _profile = CratisBackendApplicationScaffoldProfile.Current;
+        _profile = ProfileUnderTest;
         _request = CratisBackendApplicationScaffoldRequest.Create("MyApp", "MyApp", "MyApp", _profile);
         var scaffold = new CratisBackendApplicationScaffold();
         _first = scaffold.Create(_request);

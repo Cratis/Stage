@@ -19,6 +19,7 @@ public partial class when_creating_for_a_repository_root : a_current_scaffold
     string _workflow = null!;
     string _dependabot = null!;
     string _readme = null!;
+    string _retainedWorkflow = null!;
 
     void Because()
     {
@@ -29,6 +30,7 @@ public partial class when_creating_for_a_repository_root : a_current_scaffold
         _workflow = Text(Input(".github/workflows/build.yml"));
         _dependabot = Text(Input(".github/dependabot.yml"));
         _readme = Text(Input("README.md"));
+        _retainedWorkflow = Text(scaffold.Create(CratisBackendApplicationScaffoldRequest.Create("MyApp", "MyApp", "MyApp", CratisBackendApplicationScaffoldProfile.Version3).WithRepositoryRoot()).Single(input => PathOf(input) == ".github/workflows/build.yml"));
     }
 
     [Fact] void should_add_only_the_workflow_and_dependabot_files_to_the_default_roster() => _root.Select(PathOf).Order(StringComparer.Ordinal).SequenceEqual(_first.Select(PathOf).Concat([".github/dependabot.yml", ".github/workflows/build.yml"]).Order(StringComparer.Ordinal)).ShouldBeTrue();
@@ -48,7 +50,8 @@ public partial class when_creating_for_a_repository_root : a_current_scaffold
     [Fact] void should_not_use_secrets() => _workflow.ShouldNotContain("secrets.");
     [Fact] void should_build_the_solution_for_debug_and_release() => (_workflow.Contains("dotnet build MyApp.slnx -c Debug --no-restore") && _workflow.Contains("dotnet build MyApp.slnx -c Release\n")).ShouldBeTrue();
     [Fact] void should_run_the_specifications_from_the_application_without_rebuilding() => _workflow.ShouldContain("dotnet test MyApp.csproj -c Debug --no-build");
-    [Fact] void should_derive_the_sdk_version_from_the_target_framework() => _workflow.ShouldContain("dotnet-version: 10.0.x");
+    [Fact] void should_derive_the_sdk_version_from_the_target_framework() => _workflow.ShouldContain("dotnet-version: 11.0.x");
+    [Fact] void should_derive_the_retained_sdk_version_from_the_retained_target_framework() => _retainedWorkflow.ShouldContain("dotnet-version: 10.0.x");
     [Fact] void should_generate_the_proxies_before_building_the_frontend() => _workflow.IndexOf("dotnet build MyApp.csproj", StringComparison.Ordinal).ShouldBeLessThan(_workflow.IndexOf("npm run build", StringComparison.Ordinal));
     [Fact] void should_install_the_frontend_with_npm() => _workflow.ShouldContain("npm install --no-audit --no-fund");
     [Fact] void should_update_only_github_actions_weekly() => _dependabot.ShouldEqual("version: 2\nupdates:\n  - package-ecosystem: github-actions\n    directory: /\n    schedule:\n      interval: weekly\n");

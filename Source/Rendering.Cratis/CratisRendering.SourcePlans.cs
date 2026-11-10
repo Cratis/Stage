@@ -68,7 +68,7 @@ public static partial class CratisRendering
         var prepared = Prepare(options, scaffoldOnly: true);
         if (prepared.Diagnostic is not null) return CratisPlanResult.Create(options.ApplicationName, [], [prepared.Diagnostic]);
         var profile = prepared.Profile!;
-        if (!CratisArtifactRenderProfileAdmission.MatchesScaffold(profile, options.ApplicationName, out var admittedOptions, out var mismatch))
+        if (!CratisArtifactRenderProfileAdmission.MatchesScaffold(profile, options.ApplicationName, options.ProfileVersion, out var admittedOptions, out var mismatch))
         {
             return CratisPlanResult.Create(options.ApplicationName, [], [ProfileError(mismatch)]);
         }
@@ -137,7 +137,7 @@ public static partial class CratisRendering
             TypedContextDescriptors = loaded.TypedContextDescriptors,
             ReleaseBaseline = loaded.ReleaseBaseline
         };
-        if (!CratisArtifactRenderProfileAdmission.Matches(request, out var admittedOptions, out var mismatch))
+        if (!CratisArtifactRenderProfileAdmission.Matches(request, options.ProfileVersion, out var admittedOptions, out var mismatch))
         {
             return CratisPlanResult.Create(options.ApplicationName, [], [.. sourceDiagnostics, ProfileError(mismatch)], loaded.Model.Revision);
         }

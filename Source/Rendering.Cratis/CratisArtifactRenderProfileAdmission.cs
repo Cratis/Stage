@@ -19,10 +19,16 @@ static class CratisArtifactRenderProfileAdmission
     const string ProjectInputPrefix = "cratis-scaffold:text:";
 
     public static bool Matches(ArtifactRenderRequest request, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
-        => Matches(request.Profile, request.Model.Application.Name, request.Model, out admittedOptions, out mismatch);
+        => Matches(request.Profile, request.Model.Application.Name, request.Model, null, out admittedOptions, out mismatch);
+
+    internal static bool Matches(ArtifactRenderRequest request, string? profileVersion, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
+        => Matches(request.Profile, request.Model.Application.Name, request.Model, profileVersion, out admittedOptions, out mismatch);
 
     internal static bool MatchesScaffold(ArtifactRenderProfile profile, string applicationName, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
-        => Matches(profile, applicationName, null, out admittedOptions, out mismatch);
+        => Matches(profile, applicationName, null, null, out admittedOptions, out mismatch);
+
+    internal static bool MatchesScaffold(ArtifactRenderProfile profile, string applicationName, string? profileVersion, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
+        => Matches(profile, applicationName, null, profileVersion, out admittedOptions, out mismatch);
 
     internal static bool TryGetOptions(ArtifactRenderProfile profile, out CratisRenderingOptions? options)
     {
@@ -84,7 +90,7 @@ static class CratisArtifactRenderProfileAdmission
         return true;
     }
 
-    static bool Matches(ArtifactRenderProfile profile, string applicationName, ExecutableSemanticModel? model, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
+    static bool Matches(ArtifactRenderProfile profile, string applicationName, ExecutableSemanticModel? model, string? profileVersion, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
     {
         admittedOptions = null;
         if (!string.Equals(profile.Target, CratisRendering.TargetId, StringComparison.Ordinal) ||
@@ -107,10 +113,23 @@ static class CratisArtifactRenderProfileAdmission
             return false;
         }
 
+        if (CratisBackendApplicationScaffoldProfile.ForVersion(profileVersion) is not { } scaffoldProfile)
+        {
+            mismatch = $"The scaffold profile version '{profileVersion}' is not supported.";
+            return false;
+        }
+
+        var recordedVersion = profile.Inputs.First(input => input.Name.StartsWith(ProjectInputPrefix, StringComparison.Ordinal) && input.Name.EndsWith(".csproj", StringComparison.Ordinal)).Version;
+        if (profileVersion is not null && !string.Equals(recordedVersion, scaffoldProfile.Version, StringComparison.Ordinal))
+        {
+            mismatch = $"The scaffold profile version '{profileVersion}' conflicts with the version '{recordedVersion}' recorded by the supplied profile.";
+            return false;
+        }
+
         ArtifactRenderProfile expected;
         try
         {
-            expected = CratisRendering.CreateProfile(applicationName, options!, null, null, null, approvedPackages, ListsPrimeReact(profile));
+            expected = CratisRendering.CreateProfile(applicationName, options!, null, null, null, approvedPackages, ListsPrimeReact(profile), scaffoldProfile);
         }
         catch (InvalidCratisBackendApplicationScaffold)
         {

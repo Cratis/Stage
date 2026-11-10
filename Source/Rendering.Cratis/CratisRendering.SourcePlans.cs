@@ -190,9 +190,21 @@ public static partial class CratisRendering
         {
             return (null, CratisPlanResult.Error("STAGE-PLAN-020", "Domain must contain valid relative C# name segments, without traversal or empty segments."));
         }
+        if (CratisBackendApplicationScaffoldProfile.ForVersion(options.ProfileVersion) is not { } scaffoldProfile)
+        {
+            return (null, CratisPlanResult.Error("STAGE-PLAN-032", $"The scaffold profile version '{options.ProfileVersion}' is not supported."));
+        }
         try
         {
-            var profile = CreateProfile(options.ApplicationName, new(options.ProjectName, options.RootNamespace) { RepositoryRoot = options.RepositoryRoot, ServiceLayout = options.ServiceLayout });
+            var profile = CreateProfile(
+                options.ApplicationName,
+                new(options.ProjectName, options.RootNamespace) { RepositoryRoot = options.RepositoryRoot, ServiceLayout = options.ServiceLayout },
+                null,
+                null,
+                null,
+                null,
+                ListsPrimeReact(null),
+                scaffoldProfile);
             if (DomainPlacementInput.IsReserved(domain, profile))
             {
                 return (null, CratisPlanResult.Error("STAGE-PLAN-021", "Domain collides with an application-root scaffold or reserved folder."));

@@ -18,7 +18,7 @@ public class when_comparing_scaffold_global_usings_with_the_catalog : Specificat
 
     void Because()
     {
-        var profile = CratisBackendApplicationScaffoldProfile.Current;
+        var profile = CratisBackendApplicationScaffoldProfile.Version3;
         var file = new CratisBackendApplicationScaffold().Create(CratisBackendApplicationScaffoldRequest.Create("Shop", "Shop", RootNamespace, profile))
             .Single(input => input.Name.EndsWith("GlobalUsings.cs", StringComparison.Ordinal));
         _scaffold =

@@ -13,8 +13,8 @@ public class when_reading_the_checked_in_catalog : Specification
 
     void Because() => _catalog = FrameworkNameCatalog.Current;
 
-    [Fact] void should_be_generated_for_the_current_scaffold_version() => _catalog.Content.ScaffoldVersion.ShouldEqual(CratisBackendApplicationScaffoldProfile.Current.Version);
-    [Fact] void should_record_the_current_scaffold_pins() => Pins(_catalog.Content.Pins).ShouldEqual(Pins(ScaffoldPins.Of(CratisBackendApplicationScaffoldProfile.Current)));
+    [Fact] void should_be_generated_for_the_current_scaffold_version() => _catalog.Content.ScaffoldVersion.ShouldEqual(CratisBackendApplicationScaffoldProfile.Version3.Version);
+    [Fact] void should_record_the_current_scaffold_pins() => Pins(_catalog.Content.Pins).ShouldEqual(Pins(ScaffoldPins.Of(CratisBackendApplicationScaffoldProfile.Version3)));
     [Fact]
     void should_restore_every_pinned_package_at_its_pinned_version() =>
         _catalog.Content.Pins.Where(pin => pin.Key is not ("TargetFramework" or "TargetingPackVersion") &&

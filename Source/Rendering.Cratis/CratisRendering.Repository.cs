@@ -13,7 +13,7 @@ public static partial class CratisRendering
     /// composition, the docker-compose export, and an Aspire application host in <c language="text">Source/Composition/</c>.
     /// </summary>
     /// <param name="options">The repository name and the services, each rendered with <see cref="CratisPlanOptions.ServiceLayout"/>.</param>
-    /// <returns>The repository artifacts and digest, or STAGE-PLAN-029 and no artifacts when the options are invalid.</returns>
+    /// <returns>The repository artifacts and digest, or STAGE-PLAN-029 (invalid options) or STAGE-PLAN-032 (unknown profile version) and no artifacts.</returns>
     public static CratisPlanResult PlanRepository(CratisRepositoryPlanOptions options)
     {
         var invalid = CratisRepositoryScaffold.Validate(options);
@@ -22,6 +22,11 @@ public static partial class CratisRendering
             return CratisPlanResult.Create(options?.RepositoryName ?? string.Empty, [], [CratisPlanResult.Error("STAGE-PLAN-029", invalid)]);
         }
 
-        return CratisPlanResult.Create(options.RepositoryName, [.. CratisRepositoryScaffold.Render(options, CratisBackendApplicationScaffoldProfile.Current)], []);
+        if (CratisBackendApplicationScaffoldProfile.ForVersion(options.ProfileVersion) is not { } profile)
+        {
+            return CratisPlanResult.Create(options.RepositoryName, [], [CratisPlanResult.Error("STAGE-PLAN-032", $"The scaffold profile version '{options.ProfileVersion}' is not supported.")]);
+        }
+
+        return CratisPlanResult.Create(options.RepositoryName, [.. CratisRepositoryScaffold.Render(options, profile)], []);
     }
 }

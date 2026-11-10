@@ -33,7 +33,7 @@ static class FrameworkNameCatalogGenerator
     public static FrameworkNameCatalogContent Generate(ScaffoldedProject application, ScaffoldedProject specifications)
     {
         ScaffoldedProject[] projects = [application, specifications];
-        var profile = CratisBackendApplicationScaffoldProfile.Current;
+        var profile = CratisBackendApplicationScaffoldProfile.Version3;
         var usings = Usings(projects);
         var imported = usings.Where(@using => @using.Kind == CatalogUsingKind.Namespace).Select(@using => @using.Target).ToHashSet(StringComparer.Ordinal);
         bool Records(string @namespace) => @namespace.Length == 0 || imported.Contains(@namespace) ||

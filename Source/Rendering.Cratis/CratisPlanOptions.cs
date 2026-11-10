@@ -94,4 +94,10 @@ public sealed record CratisPlanOptions(string ApplicationName, string ProjectNam
     /// Scaffold-only planning includes its strings catalog but reports Scene output as application-scope only.
     /// </summary>
     public ArtifactRenderProfile? Profile { get; init; }
+
+    /// <summary>
+    /// Gets the recorded scaffold profile version of an existing application, or null for a brand-new application, which uses the current profile.
+    /// An unknown version is refused with STAGE-PLAN-032 rather than silently planned with another profile.
+    /// </summary>
+    public string? ProfileVersion { get; init; }
 }

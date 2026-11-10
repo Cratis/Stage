@@ -571,7 +571,7 @@ internal static partial class PureTransitionAdmission
 
     static MetadataReference[] LoadReferences(string refDirectory)
     {
-        var framework = CratisBackendApplicationScaffoldProfile.Current.TargetFramework;
+        var framework = CratisBackendApplicationScaffoldProfile.Version3.TargetFramework;
         var paths = Directory.Exists(refDirectory) ? Directory.GetFiles(refDirectory, "*.dll") : [];
         if (paths.Length == 0)
             throw new InvalidOperationException($"Reference assemblies {ReferencePackVersion} for target framework '{framework}' are unavailable; pure transitions cannot be analysed.");

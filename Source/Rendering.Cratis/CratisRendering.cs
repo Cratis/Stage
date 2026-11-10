@@ -439,7 +439,18 @@ public static partial class CratisRendering
         IReadOnlyDictionary<string, string>? stringsFiles,
         string? defaultLocale,
         ApprovedPackageSet? approvedPackages,
-        bool usesPrimeReact)
+        bool usesPrimeReact) =>
+        CreateProfile(applicationName, options, scene, stringsFiles, defaultLocale, approvedPackages, usesPrimeReact, Dependencies);
+
+    static ArtifactRenderProfile CreateProfile(
+        string applicationName,
+        CratisRenderingOptions options,
+        SceneApplication? scene,
+        IReadOnlyDictionary<string, string>? stringsFiles,
+        string? defaultLocale,
+        ApprovedPackageSet? approvedPackages,
+        bool usesPrimeReact,
+        CratisBackendApplicationScaffoldProfile scaffoldProfile)
     {
         if (options is null)
         {
@@ -465,7 +476,7 @@ public static partial class CratisRendering
             applicationName,
             options.ProjectName,
             options.RootNamespace,
-            Dependencies);
+            scaffoldProfile);
         if (approvedPackages is { IsEmpty: false })
         {
             request = request.WithApprovedPackages(approvedPackages);
@@ -489,7 +500,7 @@ public static partial class CratisRendering
             {
                 CratisArtifactRenderInput.CreateText(
                     SceneCompositionInput.RelativePath,
-                    Dependencies.CratisPackageVersion,
+                    scaffoldProfile.CratisPackageVersion,
                     CanonicalSceneJson.Serialize(scene))
             };
         if ((stringsFiles is null) != (defaultLocale is null))

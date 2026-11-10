@@ -145,6 +145,34 @@ internal static partial class SemanticCratisAdmission
             admitted &= ValidateOpaquePolicy(context, policy, site, diagnostics);
         }
 
+        return admitted && ValidateStatePolicies(context, authorization, site, diagnostics);
+    }
+
+    static bool ValidateStatePolicies(SemanticApplicationContext context, SemanticAuthorization authorization, AuthorizationSite site, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        var admitted = true;
+        foreach (var (policy, reference) in SemanticStatePolicyRendering.Referenced(authorization, context))
+        {
+            var scope = SemanticStatePolicyRendering.Scope(policy, reference, context);
+            foreach (var read in policy.Reads)
+            {
+                var source = SemanticStatePolicyRendering.Source(reference, read);
+                var property = SemanticClaimTargets.Property(context, site.Properties, source);
+                if (!context.ReadModels.ContainsKey(read.ReadModel) || property is not { Type.IsCollection: false } ||
+                    SemanticClaimTargets.Primitive(context, property) is not (SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid or SemanticPrimitiveType.Date or SemanticPrimitiveType.DateTime))
+                {
+                    diagnostics.Add(Error("STAGE-ESM-015", $"Authorization of '{site.Name}' reads '{read.Name}' of policy '{policy.Name}' by '{source}', which is not a text, Uuid, Date or DateTime value the operation carries.", site.Id));
+                    admitted = false;
+                }
+            }
+
+            foreach (var state in SemanticStatePolicyRendering.Leaves(policy.Condition).Where(state => !SemanticStatePolicyRendering.CanRender(state, context, scope)))
+            {
+                diagnostics.Add(Error("STAGE-ESM-015", $"Policy '{policy.Name}' used by '{site.Name}' has a state condition Stage cannot render.", site.Id));
+                admitted = false;
+            }
+        }
+
         return admitted;
     }
 
@@ -327,7 +355,7 @@ internal static partial class SemanticCratisAdmission
 
     static bool CanRender(SemanticPolicyCondition condition) => condition switch
     {
-        SemanticAuthenticatedCondition or SemanticOpaquePolicyCondition => true,
+        SemanticAuthenticatedCondition or SemanticOpaquePolicyCondition or SemanticStatePolicyCondition => true,
         SemanticRoleCondition { Role: not null } => true,
         SemanticClaimCondition claim => CanRender(claim),
         SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.And or SemanticLogicalOperator.Or } logical =>

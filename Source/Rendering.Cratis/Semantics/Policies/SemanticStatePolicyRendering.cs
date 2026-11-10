@@ -14,7 +14,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.Policies;
 /// <remarks>
 /// The generated policy reads each declared read model by the key the authorized operation supplies. An absent key,
 /// an absent instance and a failing read all make that policy unavailable, and an unavailable policy denies, as the
-/// reference evaluator does. A policy that is unavailable never becomes <c>false</c> under negation, so absence cannot allow.
+/// reference evaluator does. A policy that is unavailable never becomes <see langword="false"/> under negation, so absence cannot allow.
 /// </remarks>
 internal static class SemanticStatePolicyRendering
 {

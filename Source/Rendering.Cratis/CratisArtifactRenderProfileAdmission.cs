@@ -75,6 +75,47 @@ static class CratisArtifactRenderProfileAdmission
             TryAdmitServiceLayout(profile, strictOptions!, out admittedOptions, out mismatch);
     }
 
+    internal static bool TryGetOptions(ArtifactRenderProfile profile, out CratisRenderingOptions? options)
+    {
+        options = null;
+        var projectInputs = profile.Inputs
+            .Where(input => input.Name.StartsWith(ProjectInputPrefix, StringComparison.Ordinal) &&
+                            input.Name.EndsWith(".csproj", StringComparison.Ordinal) &&
+                            !input.Name[ProjectInputPrefix.Length..].Contains('/') &&
+                            !input.Name[ProjectInputPrefix.Length..].Contains('\\'))
+            .ToArray();
+        if (projectInputs.Length != 1)
+        {
+            return false;
+        }
+
+        var relativePath = projectInputs[0].Name[ProjectInputPrefix.Length..];
+        if (relativePath.Contains('/') || relativePath.Contains('\\'))
+        {
+            return false;
+        }
+
+        try
+        {
+            var project = XDocument.Parse(new UTF8Encoding(false, true).GetString(projectInputs[0].Bytes.AsSpan()));
+            var rootNamespaces = project.Descendants("RootNamespace").Select(_ => _.Value).ToArray();
+            if (rootNamespaces.Length != 1)
+            {
+                return false;
+            }
+
+            options = new(relativePath[..^".csproj".Length], rootNamespaces[0])
+            {
+                RepositoryRoot = profile.Inputs.Any(input => input.Name.StartsWith($"{ProjectInputPrefix}{CratisContinuousIntegration.Directory}", StringComparison.Ordinal))
+            };
+            return true;
+        }
+        catch (Exception exception) when (exception is DecoderFallbackException or XmlException)
+        {
+            return false;
+        }
+    }
+
     static bool IsCratisTargetAndRenderer(ArtifactRenderProfile profile) =>
         string.Equals(profile.Target, CratisRendering.TargetId, StringComparison.Ordinal) &&
         string.Equals(profile.TargetVersion, CratisRendering.TargetVersion, StringComparison.Ordinal) &&
@@ -217,47 +258,6 @@ static class CratisArtifactRenderProfileAdmission
         }
 
         return CratisStrictProfileInput.TryAdmit(profile, options with { Refusals = refusals, FileHeader = fileHeader }, out strictOptions, out mismatch);
-    }
-
-    internal static bool TryGetOptions(ArtifactRenderProfile profile, out CratisRenderingOptions? options)
-    {
-        options = null;
-        var projectInputs = profile.Inputs
-            .Where(input => input.Name.StartsWith(ProjectInputPrefix, StringComparison.Ordinal) &&
-                            input.Name.EndsWith(".csproj", StringComparison.Ordinal) &&
-                            !input.Name[ProjectInputPrefix.Length..].Contains('/') &&
-                            !input.Name[ProjectInputPrefix.Length..].Contains('\\'))
-            .ToArray();
-        if (projectInputs.Length != 1)
-        {
-            return false;
-        }
-
-        var relativePath = projectInputs[0].Name[ProjectInputPrefix.Length..];
-        if (relativePath.Contains('/') || relativePath.Contains('\\'))
-        {
-            return false;
-        }
-
-        try
-        {
-            var project = XDocument.Parse(new UTF8Encoding(false, true).GetString(projectInputs[0].Bytes.AsSpan()));
-            var rootNamespaces = project.Descendants("RootNamespace").Select(_ => _.Value).ToArray();
-            if (rootNamespaces.Length != 1)
-            {
-                return false;
-            }
-
-            options = new(relativePath[..^".csproj".Length], rootNamespaces[0])
-            {
-                RepositoryRoot = profile.Inputs.Any(input => input.Name.StartsWith($"{ProjectInputPrefix}{CratisContinuousIntegration.Directory}", StringComparison.Ordinal))
-            };
-            return true;
-        }
-        catch (Exception exception) when (exception is DecoderFallbackException or XmlException)
-        {
-            return false;
-        }
     }
 
     // The application realization and how the realized application trusts the identity AuthProxy forwards.

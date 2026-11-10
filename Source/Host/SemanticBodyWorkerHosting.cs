@@ -34,6 +34,9 @@ internal static class SemanticBodyWorkerHosting
             start.ArgumentList.Add($"--body-worker-{name}");
             start.ArgumentList.Add(value);
         }
+        if (settings.ProfileVersion is null) return;
+        start.ArgumentList.Add("--body-worker-profile-version");
+        start.ArgumentList.Add(settings.ProfileVersion);
     }
 
     internal static async Task<SemanticBodyExecution?> Start(LoadedSemanticModel loaded, string modelPath, SemanticBodyWorkerOptions settings, List<SemanticModelLoadDiagnostic> notes)
@@ -46,7 +49,7 @@ internal static class SemanticBodyWorkerHosting
             return null;
         }
         await using var compiler = new BodyWorkerSupervisor(options);
-        var manifest = await compiler.CompileAsync(modelPath, settings.CatalogPath, loaded.Model.Application.Name).ConfigureAwait(false);
+        var manifest = await compiler.CompileAsync(modelPath, settings.CatalogPath, loaded.Model.Application.Name, settings.ProfileVersion).ConfigureAwait(false);
         if (manifest.Revision != loaded.Plan.Revision.ToString())
         {
             notes.Add(new(BodyDiagnostics.WorkerFailed, manifest.Entries.FirstOrDefault()?.DiagnosticMessage ?? "Body worker returned a different model revision."));

@@ -43,7 +43,8 @@ public class with_the_default_composition : a_register_project_render_request
     // Recomputed for Chronicle 19.144.0 and Screenplay 6.4.0: only the scaffold pins change.
     // Recomputed for Arc 22.182.0: only the Arc pins in Directory.Packages.props and package.json change.
     // Recomputed for Screenplay 6.14.0: only the Screenplay pins in Directory.Packages.props and the scaffold catalog change.
-    const string Before = "3659461d1e04f4a7e9885ae74fbccbb55698fcb05fca82a278dc1178405ed8b1";
+    // Recomputed for Arc 22.184.0: only the Arc pins in Directory.Packages.props and package.json change.
+    const string Before = "3d3562ca693bd0098dd8b8772e6ed7c8bf6e3fb09a1b6258561e1981bc65d229";
 
     ArtifactRenderPlan _plan = null!;
 

@@ -387,7 +387,7 @@ internal static class SemanticSurfaceLedger
 
         // ESM v44-v47: a policy that decides from recorded state renders as a fail-closed Arc policy that reads each declared read model
         // by the key the operation supplies; absence, a failing read or a failing decision denies. A collection query that narrows its rows
-        // is refused until it renders as an Arc row narrowing (Cratis/Stage#1049), because dropping the narrowing would return every row.
+        // renders as an Arc row narrowing (Stage#1049) that evaluates the policy per row before sorting, paging and counting.
         Add(entries, "SemanticPolicy", rendered, "Reads Inputs");
         Add(entries, "SemanticPolicyRead", rendered, "Name ReadModel By");
         Add(entries, "SemanticPolicyInput", rendered, "Name Type");
@@ -395,7 +395,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticPolicyReference", rendered, "Mappings");
         Add(entries, "SemanticStatePolicyCondition", rendered, "Condition");
         Add(entries, "SemanticComparisonOperator", rendered, "Contains StartsWith");
-        Add(entries, "SemanticKeyedQuery", rejected("STAGE-ESM-016"), "Narrowing");
+        Add(entries, "SemanticKeyedQuery", rendered, "Narrowing");
 
         // ESM v42 screens are a stack-neutral UI contract; the backend target renders none of them and no screen changes a command, query or event.
         Add(entries, "SemanticSlice", ignored("Screens are a stack-neutral UI contract; the Cratis backend target renders none of them."), "Screens");

@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Text.Json;
 using Cratis.Chronicle.Events;
 using Cratis.Chronicle.EventSequences;
+using Cratis.Chronicle.Testing;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Execution;
@@ -108,6 +109,13 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
             SemanticRecordCommandResponse record => new SemanticRecordExecutionResponse([.. record.Fields.Select(field => new SemanticExecutionResponseField(field.Name, inputs[field.Source]))]),
             _ => null
         };
+    }
+
+    // The instances a policy that reads recorded state decides from: the read models the specification gave and the ones the facts so far project.
+    internal IEnumerable<SemanticReadModelInstance> ReadModelInstances(SemanticId readModel)
+    {
+        var defaults = new Defaults(new SemanticClientArtifactsProvider([.. plan.Events.Keys.Select(runtimeTypes.For)]));
+        return SemanticRunProjections.ForReadModel(plan, readModel, this, runtimeTypes, defaults).Select(projected => new SemanticReadModelInstance(projected.ReadModel, projected.Key, projected.Values));
     }
 
     internal Task Append(SemanticSpecificationEvent fact, CancellationToken cancellationToken) => Append(fact, fact.EventSource?.Value ?? SemanticValue.Null, cancellationToken);

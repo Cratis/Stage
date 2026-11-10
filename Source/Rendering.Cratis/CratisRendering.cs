@@ -123,7 +123,7 @@ public static partial class CratisRendering
     /// <summary>
     /// Gets the exact dependency and runtime pins carried by the current profile.
     /// </summary>
-    public static CratisBackendApplicationScaffoldProfile Dependencies => CratisBackendApplicationScaffoldProfile.Current;
+    public static CratisBackendApplicationScaffoldProfile Dependencies => CratisBackendApplicationScaffoldProfile.Version3;
 
     /// <summary>
     /// Gets the catalog a <c language="csharp">ui profile</c> resolves against: the shipped packages and the approved ones.
@@ -439,7 +439,18 @@ public static partial class CratisRendering
         IReadOnlyDictionary<string, string>? stringsFiles,
         string? defaultLocale,
         ApprovedPackageSet? approvedPackages,
-        bool usesPrimeReact)
+        bool usesPrimeReact) =>
+        CreateProfile(applicationName, options, scene, stringsFiles, defaultLocale, approvedPackages, usesPrimeReact, Dependencies);
+
+    internal static ArtifactRenderProfile CreateProfile(
+        string applicationName,
+        CratisRenderingOptions options,
+        SceneApplication? scene,
+        IReadOnlyDictionary<string, string>? stringsFiles,
+        string? defaultLocale,
+        ApprovedPackageSet? approvedPackages,
+        bool usesPrimeReact,
+        CratisBackendApplicationScaffoldProfile scaffoldProfile)
     {
         if (options is null)
         {
@@ -451,21 +462,13 @@ public static partial class CratisRendering
             throw new InvalidCratisBackendApplicationScaffold("Every file header line must be non-null plain text without line breaks, control, private-use or bidirectional formatting characters.");
         }
 
-        if (scene is not null)
-        {
-            var errors = scene.ConversionDiagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ToArray();
-            if (errors.Length > 0)
-            {
-                throw new InvalidArtifactRenderContract(string.Join(Environment.NewLine, errors.Select(error => $"{error.Code}: {error.Message}")));
-            }
-            SceneRuntimeAdmission.RequireSupported(scene);
-        }
+        RequireValidScene(scene);
 
         var request = CratisBackendApplicationScaffoldRequest.Create(
             applicationName,
             options.ProjectName,
             options.RootNamespace,
-            Dependencies);
+            scaffoldProfile);
         if (approvedPackages is { IsEmpty: false })
         {
             request = request.WithApprovedPackages(approvedPackages);
@@ -483,15 +486,7 @@ public static partial class CratisRendering
 
         var backend = new CratisBackendApplicationScaffold().Create(request);
         var frontend = new CratisFrontendApplicationScaffold().Create(request);
-        var composed = scene is null
-            ? []
-            : new[]
-            {
-                CratisArtifactRenderInput.CreateText(
-                    SceneCompositionInput.RelativePath,
-                    Dependencies.CratisPackageVersion,
-                    CanonicalSceneJson.Serialize(scene))
-            };
+        var composed = ComposedSceneInputs(scene, scaffoldProfile);
         if ((stringsFiles is null) != (defaultLocale is null))
         {
             throw new InvalidCratisBackendApplicationScaffold("Both strings files and a default locale are required together.");
@@ -509,4 +504,31 @@ public static partial class CratisRendering
         var profile = SignedForwardedIdentityInput.With(ArtifactRenderProfile.Create(TargetId, TargetVersion, RendererId, RendererVersion, inputs), options.SignedForwardedIdentity);
         return FileHeaderInput.With(ServiceLayoutInput.With(profile, options), options.FileHeader);
     }
+
+    static void RequireValidScene(SceneApplication? scene)
+    {
+        if (scene is null)
+        {
+            return;
+        }
+
+        var errors = scene.ConversionDiagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ToArray();
+        if (errors.Length > 0)
+        {
+            throw new InvalidArtifactRenderContract(string.Join(Environment.NewLine, errors.Select(error => $"{error.Code}: {error.Message}")));
+        }
+
+        SceneRuntimeAdmission.RequireSupported(scene);
+    }
+
+    static ArtifactRenderInput[] ComposedSceneInputs(SceneApplication? scene, CratisBackendApplicationScaffoldProfile scaffoldProfile)
+        => scene is null
+            ? []
+            :
+            [
+                CratisArtifactRenderInput.CreateText(
+                    SceneCompositionInput.RelativePath,
+                    scaffoldProfile.CratisPackageVersion,
+                    CanonicalSceneJson.Serialize(scene))
+            ];
 }

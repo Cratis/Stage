@@ -12,7 +12,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisBackendApplicationScaffold;
 
-public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
+public class when_freezing_the_emitted_backend_bytes : a_version_3_scaffold
 {
     // Re-frozen when specifications moved into the application project, compiled in Debug only.
     // Re-frozen for #424: the scaffold places using directives outside the namespace.

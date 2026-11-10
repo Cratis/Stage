@@ -34,7 +34,7 @@ static class CatalogScaffold
     /// <returns>The application project as application files and as specification files see it.</returns>
     public static async Task<(ScaffoldedProject Application, ScaffoldedProject Specifications)> Restore(DirectoryInfo directory)
     {
-        var request = CratisBackendApplicationScaffoldRequest.Create(ProjectName, ProjectName, ProjectName, CratisBackendApplicationScaffoldProfile.Current);
+        var request = CratisBackendApplicationScaffoldRequest.Create(ProjectName, ProjectName, ProjectName, CratisBackendApplicationScaffoldProfile.Version3);
         foreach (var input in new CratisBackendApplicationScaffold().Create(request))
         {
             var path = Path.Combine(directory.FullName, input.Name["cratis-scaffold:text:".Length..]);

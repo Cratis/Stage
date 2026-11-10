@@ -16,7 +16,8 @@ internal static class SemanticDependencyReferences
         SemanticGraphEdge:Properties
         SemanticModule:Features
         SemanticFeature:Features Slices
-        SemanticSlice:Commands Constraints Events Projections Queries ReadModels Specifications Reducers Reactions Captures
+        SemanticScreen:Id Data Actions Navigation
+        SemanticSlice:Commands Constraints Events Projections Queries ReadModels Specifications Reducers Reactions Captures Screens
         """,
         [SemanticDependencyKind.TypeReference] = """
         SemanticCompositeType:Properties
@@ -49,6 +50,12 @@ internal static class SemanticDependencyReferences
         SemanticScalarCommandResponse:Source Type
         SemanticRecordCommandResponse:Fields
         SemanticCommandResponseField:Source Type
+        SemanticScreenData:Query
+        SemanticScreenAction:Command Inputs Then
+        SemanticScreenInput:Property
+        SemanticScreenNavigation:Screen
+        SemanticProjectionChildren:Ordering
+        SemanticProjectionChildrenOrdering:SortBy
         """,
         [SemanticDependencyKind.ProducedEvent] = """
         SemanticProducedEvent:EventContract Mappings Destination DestinationType When Condition Route
@@ -135,9 +142,13 @@ internal static class SemanticDependencyReferences
         SemanticSpecificationResponseField:Value
         """,
         [SemanticDependencyKind.Policy] = """
-        SemanticPolicyReference:Name
+        SemanticPolicyReference:Name Mappings
         SemanticLogicalAuthorization:Left Right
-        SemanticPolicy:Condition
+        SemanticPolicy:Condition Reads Inputs
+        SemanticStatePolicyCondition:Condition
+        SemanticPolicyRead:ReadModel
+        SemanticPolicyInput:Type
+        SemanticKeyedQuery:Narrowing
         SemanticLogicalPolicyCondition:Left Right
         SemanticNotPolicyCondition:Operand
         """,

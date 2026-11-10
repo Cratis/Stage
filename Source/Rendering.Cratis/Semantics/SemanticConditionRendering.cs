@@ -101,6 +101,16 @@ internal static class SemanticConditionRendering
             return $"({DateOperand(comparison.Left, date, context)}.CompareTo({DateOperand(comparison.Right, date, context)}) {ComparisonSymbol(comparison.Operator)} 0)";
         }
 
+        if (comparison.Operator is SemanticComparisonOperator.StartsWith)
+        {
+            return $"{Operand(comparison.Left, context)}.StartsWith({Operand(comparison.Right, context)}, global::System.StringComparison.Ordinal)";
+        }
+
+        if (comparison.Operator is SemanticComparisonOperator.Contains)
+        {
+            return $"global::System.Linq.Enumerable.Contains({TextElements(comparison.Left, context)}, {Operand(comparison.Right, context)})";
+        }
+
         var concept = ComparisonConcept(comparison, context);
         var uuid = IsUuid(comparison.Left, context.Properties, context.Application, context.Reads) || IsUuid(comparison.Right, context.Properties, context.Application, context.Reads);
         var left = ComparisonOperand(comparison.Left, concept, uuid, context);
@@ -193,6 +203,17 @@ internal static class SemanticConditionRendering
                 SemanticBooleanValue => SemanticPrimitiveType.Boolean,
                 _ => SemanticPrimitiveType.DecimalNumber
             };
+
+    // The text elements of a collection property: a concept over text contributes its value, so membership compares text with text.
+    static string TextElements(SemanticConditionOperand operand, SemanticConditionRenderingContext context)
+    {
+        var collection = Operand(operand, context);
+        var property = Resolve(operand, context.Properties, context.Reads);
+
+        return property?.Type.Kind == SemanticTypeReferenceKind.Concept
+            ? $"global::System.Linq.Enumerable.Select({collection}, element => element.Value)"
+            : collection;
+    }
 
     static string Operand(SemanticConditionOperand operand, SemanticConditionRenderingContext context)
     {

@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using Cratis.Screenplay.Syntax;
+using Cratis.Stage.Contracts;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Types;
@@ -92,7 +93,7 @@ public static class SpecificationValues
             "DateTimeOffset" when value is string text => $"DateTimeOffset.Parse({CSharpCodeBuilder.StringLiteral(text)}, CultureInfo.InvariantCulture)",
             "bool" when value is bool boolean => boolean ? "true" : "false",
             "int" when value is int or long or double or decimal && Integral(value) is { } integer => integer.ToString(CultureInfo.InvariantCulture),
-            "decimal" when value is int or long or double or decimal => $"{Convert.ToDecimal(value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture)}m",
+            "decimal" when value is int or long or double or decimal => $"{LegacyNumberLowering.From(value).ToString(CultureInfo.InvariantCulture)}m",
             _ => null,
         };
 
@@ -122,7 +123,7 @@ public static class SpecificationValues
     /// <returns>The integer, or <see langword="null"/>.</returns>
     static int? Integral(object value)
     {
-        var number = Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+        var number = LegacyNumberLowering.From(value);
         return number == decimal.Truncate(number) && number >= int.MinValue && number <= int.MaxValue
             ? (int)number
             : null;

@@ -2,7 +2,6 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Collections;
-using System.Globalization;
 using Scriban;
 using Scriban.Functions;
 using Scriban.Runtime;
@@ -128,7 +127,7 @@ internal static class LockedBuiltins
             null => 0,
             string text => string.CompareOrdinal(text, (string)right!),
             bool boolean => boolean.CompareTo((bool)right!),
-            _ when Rank(left) == 2 => Convert.ToDecimal(left, CultureInfo.InvariantCulture).CompareTo(Convert.ToDecimal(right, CultureInfo.InvariantCulture)),
+            _ when Rank(left) == 2 => global::Cratis.Stage.Contracts.LegacyNumberLowering.From(left).CompareTo(global::Cratis.Stage.Contracts.LegacyNumberLowering.From(right)),
             _ => throw new TemplateRefusal(new(TemplateCodes.Input, "array.sort keys must be primitive JSON values.", string.Empty, 0, 0))
         };
     }

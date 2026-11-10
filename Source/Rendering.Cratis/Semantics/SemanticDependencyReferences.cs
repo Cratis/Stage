@@ -16,6 +16,9 @@ internal static class SemanticDependencyReferences
         SemanticGraphEdge:Properties
         SemanticModule:Features
         SemanticFeature:Features Slices
+        SemanticApplication:Agents
+        SemanticAgents:Operations
+        SemanticAgentOperation:Operation
         SemanticScreen:Id Data Actions Navigation
         SemanticSlice:Commands Constraints Events Projections Queries ReadModels Specifications Reducers Reactions Captures Screens
         """,

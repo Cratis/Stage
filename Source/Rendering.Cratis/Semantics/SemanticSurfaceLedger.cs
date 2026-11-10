@@ -397,6 +397,20 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticComparisonOperator", rendered, "Contains StartsWith");
         Add(entries, "SemanticKeyedQuery", rendered, "Narrowing");
 
+        // ESM v48 agent exposure declares which executable operations an agent may call, and with what token and scope. It is a contract for the
+        // Studio/MCP surface that exposes the application, not behavior of the generated backend, which neither renders nor refuses it.
+        Add(entries, "SemanticApplication", ignored("Agent exposure is a contract for the hosting surface; the generated backend neither renders nor refuses it."), "Agents");
+        Add(entries, "SemanticAgents", ignored("Agent exposure is a contract for the hosting surface."), "TokenKind Operations");
+        Add(entries, "SemanticAgentOperation", ignored("Agent exposure is a contract for the hosting surface."), "Kind Operation Scope Description");
+        Add(entries, "SemanticAgentOperationKind", ignored("Agent exposure is a contract for the hosting surface."), "Command Query");
+        Add(entries, "SemanticAgentScope", ignored("Agent exposure is a contract for the hosting surface."), "Read Write");
+        Add(entries, "SemanticAgentTokenKind", ignored("Agent exposure is a contract for the hosting surface."), "Personal");
+
+        // ESM v49 compares a recorded property with the caller's identifier. Stage has no mapping from Arc's principal to that identifier yet
+        // (Cratis/Stage#1061), so a policy that uses it, and a caller fixture that names one, are refused rather than rendered with a guessed claim.
+        Add(entries, "SemanticConditionOperand", rejected("STAGE-ESM-016"), "CallerId");
+        Add(entries, "SemanticCaller", rejected("STAGE-ESM-016"), "Id");
+
         // ESM v42 screens are a stack-neutral UI contract; the backend target renders none of them and no screen changes a command, query or event.
         Add(entries, "SemanticSlice", ignored("Screens are a stack-neutral UI contract; the Cratis backend target renders none of them."), "Screens");
         Add(entries, "SemanticScreen", ignored("Screens are a stack-neutral UI contract; the Cratis backend target renders none of them."), "Id Name Title Description Data Actions Navigation Layout");

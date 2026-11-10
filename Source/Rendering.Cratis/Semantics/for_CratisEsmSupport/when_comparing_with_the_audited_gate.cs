@@ -56,7 +56,9 @@ public class when_comparing_with_the_audited_gate : Specification
         (new(44, 0), new(44, 0)),
         (new(45, 0), new(45, 0)),
         (new(46, 0), new(46, 0)),
-        (new(47, 0), new(47, 0))
+        (new(47, 0), new(47, 0)),
+        (new(48, 0), new(48, 0)),
+        (new(49, 0), new(49, 0))
     ];
 
     readonly List<string> _descriptorMismatches = [];

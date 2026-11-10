@@ -16,113 +16,18 @@ namespace Cratis.Stage.Rendering.Cratis;
 
 static class CratisArtifactRenderProfileAdmission
 {
-    const string ProjectInputPrefix = "cratis-scaffold:text:";
+    internal const string ProjectInputPrefix = "cratis-scaffold:text:";
 
     public static bool Matches(ArtifactRenderRequest request, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
-        => MatchesAnyKnownVersion(request.Profile, request.Model.Application.Name, request.Model, out admittedOptions, out mismatch);
+        => CratisRenderProfileVersions.MatchesAnyKnownVersion((string? v, out CratisRenderingOptions? o, out string m) => Matches(request, v, out o, out m), out admittedOptions, out mismatch);
 
     internal static bool Matches(ArtifactRenderRequest request, string? profileVersion, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
         => Matches(request.Profile, request.Model.Application.Name, request.Model, profileVersion, out admittedOptions, out mismatch);
 
     internal static bool MatchesScaffold(ArtifactRenderProfile profile, string applicationName, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
-        => MatchesAnyKnownVersion(profile, applicationName, null, out admittedOptions, out mismatch);
+        => CratisRenderProfileVersions.MatchesAnyKnownVersion((string? v, out CratisRenderingOptions? o, out string m) => Matches(profile, applicationName, null, v, out o, out m), out admittedOptions, out mismatch);
 
-    internal static bool MatchesScaffold(ArtifactRenderProfile profile, string applicationName, string? profileVersion, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
-        => Matches(profile, applicationName, null, profileVersion, out admittedOptions, out mismatch);
-
-    internal static bool TryGetOptions(ArtifactRenderProfile profile, out CratisRenderingOptions? options)
-    {
-        options = null;
-        var projectInputs = profile.Inputs
-            .Where(input => input.Name.StartsWith(ProjectInputPrefix, StringComparison.Ordinal) &&
-                            input.Name.EndsWith(".csproj", StringComparison.Ordinal) &&
-                            !input.Name[ProjectInputPrefix.Length..].Contains('/') &&
-                            !input.Name[ProjectInputPrefix.Length..].Contains('\\'))
-            .ToArray();
-        if (projectInputs.Length != 1)
-        {
-            return false;
-        }
-
-        var relativePath = projectInputs[0].Name[ProjectInputPrefix.Length..];
-        if (relativePath.Contains('/') || relativePath.Contains('\\'))
-        {
-            return false;
-        }
-
-        try
-        {
-            var project = XDocument.Parse(new UTF8Encoding(false, true).GetString(projectInputs[0].Bytes.AsSpan()));
-            var rootNamespaces = project.Descendants("RootNamespace").Select(_ => _.Value).ToArray();
-            if (rootNamespaces.Length != 1)
-            {
-                return false;
-            }
-
-            options = new(relativePath[..^".csproj".Length], rootNamespaces[0])
-            {
-                RepositoryRoot = profile.Inputs.Any(input => input.Name.StartsWith($"{ProjectInputPrefix}{CratisContinuousIntegration.Directory}", StringComparison.Ordinal))
-            };
-            return true;
-        }
-        catch (Exception exception) when (exception is DecoderFallbackException or XmlException)
-        {
-            return false;
-        }
-    }
-
-    // Downstream of the facade the version is already admitted, so a profile exactly equal to any known profile is accepted.
-    static bool MatchesAnyKnownVersion(ArtifactRenderProfile profile, string applicationName, ExecutableSemanticModel? model, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
-    {
-        if (Matches(profile, applicationName, model, null, out admittedOptions, out mismatch))
-        {
-            return true;
-        }
-
-        return Matches(profile, applicationName, model, CratisBackendApplicationScaffoldProfile.Current.Version, out admittedOptions, out _);
-    }
-
-    // The application realization and how the realized application trusts the identity AuthProxy forwards.
-    static bool TryReadRealization(ArtifactRenderProfile profile, out string mismatch)
-    {
-        mismatch = string.Empty;
-        if (!Realization.ApplicationRealizationInput.TryRead(profile, out _))
-        {
-            mismatch = "The Cratis profile carries an invalid or duplicate application realization.";
-            return false;
-        }
-
-        if (!SignedForwardedIdentityInput.TryRead(profile, out _))
-        {
-            mismatch = "The Cratis profile carries an invalid or duplicate signed forwarded identity input.";
-            return false;
-        }
-
-        return true;
-    }
-
-    static bool TryResolveScaffoldProfile(ArtifactRenderProfile profile, string? profileVersion, [NotNullWhen(true)] out CratisBackendApplicationScaffoldProfile? scaffoldProfile, out string mismatch)
-    {
-        mismatch = string.Empty;
-        scaffoldProfile = CratisBackendApplicationScaffoldProfile.ForVersion(profileVersion);
-        if (scaffoldProfile is null)
-        {
-            mismatch = $"The scaffold profile version '{profileVersion}' is not supported.";
-            return false;
-        }
-
-        var recordedVersion = profile.Inputs.First(input => input.Name.StartsWith(ProjectInputPrefix, StringComparison.Ordinal) && input.Name.EndsWith(".csproj", StringComparison.Ordinal)).Version;
-        if (profileVersion is not null && !string.Equals(recordedVersion, scaffoldProfile.Version, StringComparison.Ordinal))
-        {
-            mismatch = $"The scaffold profile version '{profileVersion}' conflicts with the version '{recordedVersion}' recorded by the supplied profile.";
-            scaffoldProfile = null;
-            return false;
-        }
-
-        return true;
-    }
-
-    static bool Matches(ArtifactRenderProfile profile, string applicationName, ExecutableSemanticModel? model, string? profileVersion, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
+    internal static bool Matches(ArtifactRenderProfile profile, string applicationName, ExecutableSemanticModel? model, string? profileVersion, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
     {
         admittedOptions = null;
         if (!string.Equals(profile.Target, CratisRendering.TargetId, StringComparison.Ordinal) ||
@@ -145,7 +50,7 @@ static class CratisArtifactRenderProfileAdmission
             return false;
         }
 
-        if (!TryResolveScaffoldProfile(profile, profileVersion, out var scaffoldProfile, out mismatch))
+        if (!CratisRenderProfileVersions.TryResolve(profile, profileVersion, out var scaffoldProfile, out mismatch))
         {
             return false;
         }
@@ -279,6 +184,67 @@ static class CratisArtifactRenderProfileAdmission
 
         return TryAdmitServiceLayout(profile, strictOptions, out admittedOptions, out mismatch);
     }
+
+    internal static bool TryGetOptions(ArtifactRenderProfile profile, out CratisRenderingOptions? options)
+    {
+        options = null;
+        var projectInputs = profile.Inputs
+            .Where(input => input.Name.StartsWith(ProjectInputPrefix, StringComparison.Ordinal) &&
+                            input.Name.EndsWith(".csproj", StringComparison.Ordinal) &&
+                            !input.Name[ProjectInputPrefix.Length..].Contains('/') &&
+                            !input.Name[ProjectInputPrefix.Length..].Contains('\\'))
+            .ToArray();
+        if (projectInputs.Length != 1)
+        {
+            return false;
+        }
+
+        var relativePath = projectInputs[0].Name[ProjectInputPrefix.Length..];
+        if (relativePath.Contains('/') || relativePath.Contains('\\'))
+        {
+            return false;
+        }
+
+        try
+        {
+            var project = XDocument.Parse(new UTF8Encoding(false, true).GetString(projectInputs[0].Bytes.AsSpan()));
+            var rootNamespaces = project.Descendants("RootNamespace").Select(_ => _.Value).ToArray();
+            if (rootNamespaces.Length != 1)
+            {
+                return false;
+            }
+
+            options = new(relativePath[..^".csproj".Length], rootNamespaces[0])
+            {
+                RepositoryRoot = profile.Inputs.Any(input => input.Name.StartsWith($"{ProjectInputPrefix}{CratisContinuousIntegration.Directory}", StringComparison.Ordinal))
+            };
+            return true;
+        }
+        catch (Exception exception) when (exception is DecoderFallbackException or XmlException)
+        {
+            return false;
+        }
+    }
+
+    // The application realization and how the realized application trusts the identity AuthProxy forwards.
+    static bool TryReadRealization(ArtifactRenderProfile profile, out string mismatch)
+    {
+        mismatch = string.Empty;
+        if (!Realization.ApplicationRealizationInput.TryRead(profile, out _))
+        {
+            mismatch = "The Cratis profile carries an invalid or duplicate application realization.";
+            return false;
+        }
+
+        if (!SignedForwardedIdentityInput.TryRead(profile, out _))
+        {
+            mismatch = "The Cratis profile carries an invalid or duplicate signed forwarded identity input.";
+            return false;
+        }
+
+        return true;
+    }
+
 
     static bool TryAdmitServiceLayout(ArtifactRenderProfile profile, CratisRenderingOptions options, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
     {

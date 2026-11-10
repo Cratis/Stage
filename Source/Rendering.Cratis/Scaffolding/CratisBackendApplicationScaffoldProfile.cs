@@ -89,13 +89,13 @@ public sealed class CratisBackendApplicationScaffoldProfile
         ScaffoldPackageVersions.Chronicle);
 
     /// <summary>
-    /// Finds the retained profile for a recorded scaffold version.
+    /// Finds the profile for a scaffold version.
     /// </summary>
-    /// <param name="version">The recorded scaffold version, or null for a brand-new application, which gets <see cref="Current"/>.</param>
+    /// <param name="version">The scaffold version. Null selects version 3 (net10.0); version 4 (net11.0) is used only when "4" is passed explicitly.</param>
     /// <returns>The profile, or null when the version is unknown.</returns>
     public static CratisBackendApplicationScaffoldProfile? ForVersion(string? version) => version switch
     {
-        null => Current,
+        null => Version3,
         CurrentVersion => Current,
         RetainedVersion => Version3,
         _ => null

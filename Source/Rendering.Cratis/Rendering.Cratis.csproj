@@ -123,11 +123,19 @@
         <EmbeddedResource Include="../Stage/Runtime/PortableTenantValues.cs" LogicalName="PortableTenantValues.cs" />
         <EmbeddedResource Include="../Stage/Runtime/AmbiguousTenant.cs" LogicalName="AmbiguousTenant.cs" />
     </ItemGroup>
+    <PropertyGroup>
+        <PureTransitionReferencePackVersion11>11.0.0</PureTransitionReferencePackVersion11>
+        <Net11ReferencePackDirectory Condition="'$(Net11ReferencePackDirectory)' == ''">$(HOME)/.dotnet11/packs/Microsoft.NETCore.App.Ref/$(PureTransitionReferencePackVersion11)/ref/net11.0</Net11ReferencePackDirectory>
+    </PropertyGroup>
     <ItemGroup>
         <!-- Embed the pinned 10.0.12 reference pack; the resource version must match
              PureTransitionAdmission.ReferencePackVersion and Directory.Packages.props.
              WithCulture prevents System.IO.dll from becoming a spurious IO satellite assembly. -->
         <EmbeddedResource Include="$(PkgMicrosoft_NETCore_App_Ref)/ref/net10.0/*.dll" LogicalName="PureTransitionReferences.$(PureTransitionReferencePackVersion).%(Filename)%(Extension)" WithCulture="false" />
+        <!-- The version 4 (net11.0) profile analyses against the 11.0.0 pack, embedded with its own resource version so
+             version 3 stays bound to net10.0. Not yet a NuGet package offline, so it comes from the net11 SDK pack;
+             override Net11ReferencePackDirectory where the SDK lives elsewhere. -->
+        <EmbeddedResource Include="$(Net11ReferencePackDirectory)/*.dll" Condition="Exists('$(Net11ReferencePackDirectory)')" LogicalName="PureTransitionReferences.$(PureTransitionReferencePackVersion11).%(Filename)%(Extension)" WithCulture="false" />
         <EmbeddedResource Include="$(PkgCratis_Fundamentals)/lib/net10.0/Cratis.Fundamentals.dll" LogicalName="GenerationReferences.Cratis.Fundamentals.dll" WithCulture="false" />
         <EmbeddedResource Include="$(PkgCratis_Chronicle)/lib/net10.0/Cratis.Chronicle.dll" LogicalName="GenerationReferences.Cratis.Chronicle.dll" WithCulture="false" />
         <EmbeddedResource Include="$(PkgSystem_Reactive)/ref/net8.0/System.Reactive.dll" LogicalName="GenerationReferences.System.Reactive.dll" WithCulture="false" />

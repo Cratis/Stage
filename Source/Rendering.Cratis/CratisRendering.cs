@@ -123,7 +123,7 @@ public static partial class CratisRendering
     /// <summary>
     /// Gets the exact dependency and runtime pins carried by the current profile.
     /// </summary>
-    public static CratisBackendApplicationScaffoldProfile Dependencies => CratisBackendApplicationScaffoldProfile.Current;
+    public static CratisBackendApplicationScaffoldProfile Dependencies => CratisBackendApplicationScaffoldProfile.Version3;
 
     /// <summary>
     /// Gets the catalog a <c language="csharp">ui profile</c> resolves against: the shipped packages and the approved ones.

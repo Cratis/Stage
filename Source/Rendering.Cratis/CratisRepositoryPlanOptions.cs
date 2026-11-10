@@ -14,7 +14,7 @@ namespace Cratis.Stage.Rendering.Cratis;
 public sealed record CratisRepositoryPlanOptions(string RepositoryName, ImmutableArray<string> Services)
 {
     /// <summary>
-    /// Gets the recorded scaffold profile version of an existing repository, or null for a brand-new repository, which uses the current profile.
+    /// Gets the recorded scaffold profile version of an existing repository. Null selects version 3 (net10.0); version 4 (net11.0) is used only when "4" is passed explicitly.
     /// An unknown version is refused with STAGE-PLAN-032 rather than silently planned with another profile.
     /// </summary>
     public string? ProfileVersion { get; init; }

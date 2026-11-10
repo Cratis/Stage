@@ -20,6 +20,9 @@ internal static partial class PureTransitionAdmission
     // Exact net10.0 reference pack audited for reducer binding. Never silently substitute a newer pack.
     internal const string ReferencePackVersion = "10.0.12";
 
+    // Exact net11.0 reference pack for the version 4 scaffold profile. Version 3 stays bound to net10.0.
+    internal const string ReferencePackVersion11 = "11.0.0";
+
     // Exact BCL signatures, not broad type/name categories. The parity fixtures must cover each entry.
     internal static readonly IReadOnlySet<string> AuditedMemberSignatures = new HashSet<string>(StringComparer.Ordinal)
     {
@@ -122,6 +125,9 @@ internal static partial class PureTransitionAdmission
     // These are the 10.0.12 package's assemblies embedded in the renderer, independent of
     // the installed SDK or host runtime. Never fall back to another installed SDK pack.
     internal static readonly Lazy<MetadataReference[]> _references = new(LoadEmbeddedReferences);
+
+    // The 11.0.0 pack embedded for the version 4 (net11.0) profile; loaded only when that profile is analysed.
+    internal static readonly Lazy<MetadataReference[]> _references11 = new(() => LoadEmbeddedReferences(ReferencePackVersion11, "net11.0"));
 
     // Isolated override for failure-path specifications; it does not alter the cached production pack.
     internal static readonly AsyncLocal<string?> ReferenceDirectoryOverride = new();
@@ -554,14 +560,24 @@ internal static partial class PureTransitionAdmission
         info.Symbol is null && info.CandidateSymbols.IsEmpty &&
         name.Parent is MemberAccessExpressionSyntax { Expression: var expression } && expression == name;
 
-    static MetadataReference[] LoadEmbeddedReferences()
+    /// <summary>Gets the embedded reference assemblies for a scaffold profile target framework (net10.0 for version 3, net11.0 for version 4).</summary>
+    internal static MetadataReference[] AnalysisReferences(string targetFramework) => targetFramework switch
+    {
+        "net11.0" => ReferenceDirectoryOverride.Value is { } referenceDirectory ? LoadReferences(referenceDirectory) : _references11.Value,
+        "net10.0" => AnalysisReferences(),
+        _ => throw new InvalidOperationException($"No audited reference assemblies exist for target framework '{targetFramework}'; pure transitions cannot be analysed.")
+    };
+
+    static MetadataReference[] LoadEmbeddedReferences() => LoadEmbeddedReferences(ReferencePackVersion, "net10.0");
+
+    static MetadataReference[] LoadEmbeddedReferences(string packVersion, string framework)
     {
         var assembly = typeof(PureTransitionAdmission).Assembly;
         var resources = assembly.GetManifestResourceNames()
-            .Where(name => name.StartsWith($"PureTransitionReferences.{ReferencePackVersion}.", StringComparison.Ordinal) && name.EndsWith(".dll", StringComparison.Ordinal))
+            .Where(name => name.StartsWith($"PureTransitionReferences.{packVersion}.", StringComparison.Ordinal) && name.EndsWith(".dll", StringComparison.Ordinal))
             .Order(StringComparer.Ordinal).ToArray();
         if (resources.Length == 0)
-            throw new InvalidOperationException($"Reference assemblies {ReferencePackVersion} for target framework 'net10.0' are unavailable; pure transitions cannot be analysed.");
+            throw new InvalidOperationException($"Reference assemblies {packVersion} for target framework '{framework}' are unavailable; pure transitions cannot be analysed.");
         return [.. resources.Select(name =>
         {
             using var stream = assembly.GetManifestResourceStream(name)!;

@@ -38,6 +38,9 @@ public sealed record BodyWorkerRequest(string Id, string Kind)
     /// <summary>Gets the application name used to preserve the loaded model's identity.</summary>
     public string? ApplicationName { get; init; }
 
+    /// <summary>Gets the scaffold profile version whose target framework selects the reference pack, or null for the default version 3.</summary>
+    public string? ProfileVersion { get; init; }
+
     /// <summary>Gets the cache path holding compiled units.</summary>
     public string? CacheDirectory { get; init; }
 

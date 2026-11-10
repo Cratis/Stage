@@ -45,7 +45,7 @@ internal static partial class PureValidationAdmission
             MetadataReference[] references;
             try
             {
-                references = PureTransitionAdmission.AnalysisReferences();
+                references = PureTransitionAdmission.AnalysisReferences(context.TargetFramework);
             }
             catch (InvalidOperationException exception)
             {

@@ -130,7 +130,7 @@ internal static class SemanticQueryContextRuntime
         MetadataReference[] references;
         try
         {
-            references = AnalysisReferences(query);
+            references = AnalysisReferences(context, query);
         }
         catch (InvalidOperationException exception)
         {
@@ -165,8 +165,8 @@ internal static class SemanticQueryContextRuntime
     static string AnalysisUsings(SemanticKeyedQuery query) => ImplicitUsings +
         (query.Delivery == SemanticQueryDelivery.Live ? "global using System.Reactive.Linq;\n" : string.Empty);
 
-    static MetadataReference[] AnalysisReferences(SemanticKeyedQuery query) =>
-        [.. PureTransitionAdmission.AnalysisReferences(), SemanticGenerationBodyAdmission.FundamentalsReference,
+    static MetadataReference[] AnalysisReferences(SemanticApplicationContext context, SemanticKeyedQuery query) =>
+        [.. PureTransitionAdmission.AnalysisReferences(context.TargetFramework), SemanticGenerationBodyAdmission.FundamentalsReference,
             .. query.Delivery == SemanticQueryDelivery.Live ? new MetadataReference[] { SemanticGenerationBodyAdmission.ReactiveReference } : []];
 
     static string Parameters(SemanticKeyedQuery query, SemanticTypeSystem types)

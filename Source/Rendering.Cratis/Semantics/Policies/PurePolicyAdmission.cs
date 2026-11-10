@@ -35,7 +35,7 @@ internal static class PurePolicyAdmission
         var compilation = CSharpCompilation.Create(
             "PurePolicyAnalysis",
             [CSharpSyntaxTree.ParseText(declarations, options), tree],
-            PureTransitionAdmission.AnalysisReferences(),
+            PureTransitionAdmission.AnalysisReferences(context.TargetFramework),
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
         var model = compilation.GetSemanticModel(tree);
         var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>()

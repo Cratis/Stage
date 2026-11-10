@@ -61,11 +61,11 @@ public class when_refusing_generated_source_finalization
     void should_respect_suppressed_warnings_and_ignore_hidden_diagnostics_in_the_compiler_policy()
     {
         var tree = CSharpSyntaxTree.ParseText(SemanticBodyCompilation.ImplicitUsings + "using System.Text;\n#pragma warning disable CS0219\ninternal class Probe { public void Run() { int unused = 42; } }");
-        var compilation = SemanticBodyCompilation.Create("SuppressionProbe", tree);
+        var compilation = SemanticBodyCompilation.Create("SuppressionProbe", tree, "net10.0");
         Assert.Empty(compilation.GetDiagnostics().Where(SemanticBodyCompilation.IsFailure));
         Assert.Contains(compilation.GetDiagnostics(), diagnostic => diagnostic.Severity == DiagnosticSeverity.Hidden && !SemanticBodyCompilation.IsFailure(diagnostic));
         var unsuppressed = CSharpSyntaxTree.ParseText(tree.ToString().Replace("#pragma warning disable CS0219", string.Empty, StringComparison.Ordinal));
-        Assert.Contains(SemanticBodyCompilation.Create("UnsuppressedProbe", unsuppressed).GetDiagnostics(), diagnostic => diagnostic.Id == "CS0219" && SemanticBodyCompilation.IsFailure(diagnostic));
+        Assert.Contains(SemanticBodyCompilation.Create("UnsuppressedProbe", unsuppressed, "net10.0").GetDiagnostics(), diagnostic => diagnostic.Id == "CS0219" && SemanticBodyCompilation.IsFailure(diagnostic));
     }
 
     [Fact]

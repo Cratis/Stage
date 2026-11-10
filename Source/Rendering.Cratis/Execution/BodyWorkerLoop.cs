@@ -71,7 +71,7 @@ public static class BodyWorkerLoop
         {
             return request.Kind switch
             {
-                "compile" when role == "compile" && request.ModelPath is not null && request.CacheDirectory is not null => new(request.Id) { Manifest = BodyUnitCompiler.Compile(await SemanticModelLoader.LoadFromPathAsync(request.ModelPath, request.CatalogPath, request.ApplicationName).ConfigureAwait(false), request.CacheDirectory) },
+                "compile" when role == "compile" && request.ModelPath is not null && request.CacheDirectory is not null => new(request.Id) { Manifest = BodyUnitCompiler.Compile(await SemanticModelLoader.LoadFromPathAsync(request.ModelPath, request.CatalogPath, request.ApplicationName).ConfigureAwait(false), request.CacheDirectory, request.ProfileVersion) },
                 "evaluate" or "validate" or "reduce" when role == "execute" => Invoke(request),
                 "shutdown" => new(request.Id),
                 _ => Failure(request.Id)

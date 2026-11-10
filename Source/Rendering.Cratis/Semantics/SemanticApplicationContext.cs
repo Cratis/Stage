@@ -48,6 +48,7 @@ internal sealed partial class SemanticApplicationContext
         PassiveReadModels = passiveReadModels;
         Sinks = Realization.SinksInput.TryRead(request.Profile, request.Model, out var sinks) ? sinks : Contracts.Semantics.RealizedSinks.None;
         Strings = StringsCatalogInput.From(request.Profile);
+        TargetFramework = CratisRenderProfileVersions.TargetFramework(request.Profile);
         ReducerConventionInput.TryRead(request.Profile, Application.Name, out var reducerConvention);
         ReducerConvention = reducerConvention;
         var metadata = request.Profile.Inputs.SingleOrDefault(input => input.Name == AuthoringMetadataInput.Name);
@@ -189,6 +190,11 @@ internal sealed partial class SemanticApplicationContext
     /// Gets the folder and project name that carry the application's own public events.
     /// </summary>
     internal string ContractsFolder { get; }
+
+    /// <summary>
+    /// Gets the target framework of the selected scaffold profile, which selects the audited reference pack for pure body analysis.
+    /// </summary>
+    internal string TargetFramework { get; }
 
     /// <summary>
     /// Gets the own public events and the declarations they need, which render into the contracts project.

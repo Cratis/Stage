@@ -327,7 +327,7 @@ internal static partial class PureTransitionAdmission
         var compilation = CSharpCompilation.Create(
             "PureTransitionAnalysis",
             [declarationTree, tree],
-            ReferenceDirectoryOverride.Value is { } referenceDirectory ? LoadReferences(referenceDirectory) : _references.Value,
+            AnalysisReferences(context.TargetFramework),
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
         var semanticModel = compilation.GetSemanticModel(tree);
         var referencedTypes = MethodTypeReferences(tree, semanticModel, $"{helperName}");
@@ -488,6 +488,11 @@ internal static partial class PureTransitionAdmission
         "net10.0" => AnalysisReferences(),
         _ => throw new InvalidOperationException($"No audited reference assemblies exist for target framework '{targetFramework}'; pure transitions cannot be analysed.")
     };
+
+    /// <summary>Gets the reference pack version embedded for a target framework, used to key compiled-unit caches.</summary>
+    /// <param name="targetFramework">The profile's exact target framework moniker.</param>
+    /// <returns>The pack version.</returns>
+    internal static string ReferencePackVersionFor(string targetFramework) => targetFramework == "net11.0" ? ReferencePackVersion11 : ReferencePackVersion;
 
     // Only authored Common concepts/composites can opt out of the conservative name guard.
     // Referenced types (including primitive CLR names) and slice-local peers never opt out.

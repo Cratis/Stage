@@ -22,7 +22,7 @@ public class when_two_framework_namespaces_share_a_type_name
         Assert.DoesNotContain("using System.Timers;", source);
         Assert.DoesNotContain("global::System.Threading.Timer", source);
         var tree = CSharpSyntaxTree.ParseText(SemanticBodyCompilation.ImplicitUsings + source);
-        var compilation = SemanticBodyCompilation.Create("TimerAliases", tree);
+        var compilation = SemanticBodyCompilation.Create("TimerAliases", tree, "net10.0");
         Assert.Empty(compilation.GetDiagnostics().Where(SemanticBodyCompilation.IsFailure));
         var order = compilation.GetTypeByMetadataName("Shop.Orders.Order");
         var first = (IPropertySymbol)Assert.Single(order.GetMembers("First"));

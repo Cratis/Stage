@@ -68,7 +68,7 @@ public static partial class CratisRendering
         var prepared = Prepare(options, scaffoldOnly: true);
         if (prepared.Diagnostic is not null) return CratisPlanResult.Create(options.ApplicationName, [], [prepared.Diagnostic]);
         var profile = prepared.Profile!;
-        if (!CratisArtifactRenderProfileAdmission.Matches(profile, options.ApplicationName, null, options.ProfileVersion, out var admittedOptions, out var mismatch))
+        if (!CratisArtifactRenderProfileAdmission.Matches(new ProfileAdmissionTarget(profile, options.ApplicationName, null, options.ProfileVersion), out var admittedOptions, out var mismatch))
         {
             return CratisPlanResult.Create(options.ApplicationName, [], [ProfileError(mismatch)]);
         }

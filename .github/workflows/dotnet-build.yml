@@ -974,7 +974,8 @@ jobs:
 
       - name: Build the generated backend for serving
         working-directory: ${{ runner.temp }}/generated-react
-        run: dotnet build Workspaces.csproj --configuration Release --nologo
+        # The Debug build above already generated and checked the proxies the frontend imports; this build only serves.
+        run: dotnet build Workspaces.csproj --configuration Release --nologo -p:CratisProxiesOutputPath=
 
       - name: Install the browser harness
         working-directory: Verification/generated-react-browser
@@ -1063,7 +1064,8 @@ jobs:
 
       - name: Build the generated backend for serving
         working-directory: ${{ runner.temp }}/generated-blueprint-templates
-        run: dotnet build Workspaces.csproj --configuration Release --nologo
+        # The Debug build above already generated and checked the proxies the frontend imports; this build only serves.
+        run: dotnet build Workspaces.csproj --configuration Release --nologo -p:CratisProxiesOutputPath=
 
       - name: Install the browser harness
         working-directory: Verification/generated-react-browser

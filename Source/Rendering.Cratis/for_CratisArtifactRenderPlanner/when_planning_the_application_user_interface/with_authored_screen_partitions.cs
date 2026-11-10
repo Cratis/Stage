@@ -44,7 +44,7 @@ public class with_authored_screen_partitions : a_partitioned_screen_plan
     // Recomputed for Arc 22.182.0: only the Arc pins in Directory.Packages.props and package.json change.
     // Recomputed for Screenplay 6.14.0: only the Screenplay pins in Directory.Packages.props and the scaffold catalog change.
     // Recomputed for Arc 22.184.0: only the Arc pins in Directory.Packages.props and package.json change.
-    const string Before = "6586d8bc6b431d527b21deb63bb96fa4a82ce6c6c7ddc8c35574086e0147e772";
+    const string Before = "590fd79d0a6505a08ef5a6056a2022b1594a3f684898925c00168480c5177b6a";
 
     void Because() => _application = AppPlan(_profile);
 

@@ -49,6 +49,7 @@ public class when_checking_pattern_and_random_fixtures : Specification
     public void should_check_inclusive_integral_random_bounds(double value, bool expected)
     {
         var concept = a_pattern_random_model.Model().Application.Concepts.Single(concept => concept.Name == "Ticket") with { Generation = new("random") { Minimum = -2, Maximum = 2 } };
+        // These fixed fixtures are integers or 0.5, exactly representable in both binary and decimal.
         SemanticGenerationShapes.Matches(concept, SemanticValue.Number((decimal)value)).ShouldEqual(expected);
         SemanticGenerationShapes.Matches(concept, SemanticValue.Text(value.ToString(System.Globalization.CultureInfo.InvariantCulture))).ShouldBeFalse();
     }

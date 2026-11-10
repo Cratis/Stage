@@ -86,7 +86,7 @@ internal static class SemanticQueryNarrowingRendering
                 .Using("Cratis.Arc.Queries");
             builder.Summary($"Narrows the rows of the query '{query.Name}' to those the policy '{policy.Name}' allows for the recorded state.")
                 .OpenBlock($"public sealed class {className}(global::Cratis.Chronicle.ReadModels.IReadModels readModels) : global::Cratis.Arc.Queries.QueryRowNarrowing<{typeName}, {keyType}>")
-                .Line($"/// <inheritdoc/>")
+                .Line("/// <inheritdoc/>")
                 .Line($"protected override global::System.Linq.Expressions.Expression<global::System.Func<{typeName}, {keyType}>> Key => row => row.{keyMember};")
                 .BlankLine()
                 .Line("/// <inheritdoc/>")
@@ -123,8 +123,8 @@ internal static class SemanticQueryNarrowingRendering
                 .Line($"if ({available} && {condition}) allowed.Add(row.{keyMember});")
                 .EndBlock()
                 .Line("return allowed;")
-                .EndBlock();
-            builder.BlankLine()
+                .EndBlock()
+                .BlankLine()
                 .Line("// Module initialization registers the narrowing with the services, without assembly scanning.")
                 .Line("#pragma warning disable CA2255 // Generated application registration is intentionally initialized at module load.")
                 .Line("[global::System.Runtime.CompilerServices.ModuleInitializer]")

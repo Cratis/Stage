@@ -94,8 +94,8 @@ public class when_strict_planning_retains_performer_metadata : given.a_source_pl
         Assert.False(_defaultLegacy.Strict);
         Assert.Same(_defaultLegacy, _defaultAccepted);
 
-        // Recomputed for Screenplay 6.0.0, Scene 5.0.0, Chronicle 19.142.0 and Arc 22.176.0 scaffold pins.
-        Assert.Equal("3d5373f403b2760fe481462860b2de006adc8fab4128b14e43e5af937ebb69bb", _defaultLegacy.Digest);
+        // Recomputed for Arc 22.184.0 scaffold pins.
+        Assert.Equal("c48ad61005b30177fd53fd0885d24659d82b13c3218bb2f570847ac0cf7cac25", _defaultLegacy.Digest);
         Assert.DoesNotContain(_normal.Plan.Diagnostics, diagnostic => diagnostic.Code.StartsWith("STAGE-DEGRADE-", StringComparison.Ordinal));
         Assert.Equal(ArtifactRenderOutcome.Partial, _normal.Plan.Outcome);
         Assert.Null(_normal.Plan.Inventory);

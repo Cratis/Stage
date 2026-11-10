@@ -243,7 +243,7 @@ internal static class SemanticSurfaceLedger
         // Passivity is carried by SemanticCompilation.PassiveReadModels through PassiveReadModelsInput,
         // not portable ESM; the attribute and fluent projection flag are rendered for #208.
         // Named sinks are carried by SemanticCompilation.Sinks, ReadModelSinks and GraphSinks through SinksInput, not portable ESM;
-        // [Sink] is rendered on read models and graph records, and a query over a read model in a named sink refuses STAGE-ESM-069.
+        // [Sink] is rendered on read models and graph records, and a query over a read model in a named sink renders: Arc reads it from the sink's server.
         Add(entries, "SemanticReadModel", rendered, "Id Name Properties");
         Add(entries, "SemanticProjection", rendered, "Id Name ReadModel Transitions");
         Add(entries, "SemanticProjection", rendered, "Scope");
@@ -384,6 +384,36 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticCallerClaim", rendered, "Type Value");
         Add(entries, "SemanticPolicy", rendered, "Condition Name");
         Add(entries, "SemanticPolicyReference", rendered, "Name");
+
+        // ESM v44-v47: a policy that decides from recorded state renders as a fail-closed Arc policy that reads each declared read model
+        // by the key the operation supplies; absence, a failing read or a failing decision denies. A collection query that narrows its rows
+        // renders as an Arc row narrowing (Stage#1049) that evaluates the policy per row before sorting, paging and counting.
+        Add(entries, "SemanticPolicy", rendered, "Reads Inputs");
+        Add(entries, "SemanticPolicyRead", rendered, "Name ReadModel By");
+        Add(entries, "SemanticPolicyInput", rendered, "Name Type");
+        Add(entries, "SemanticPolicyInputMapping", rendered, "Input Property");
+        Add(entries, "SemanticPolicyReference", rendered, "Mappings");
+        Add(entries, "SemanticStatePolicyCondition", rendered, "Condition");
+        Add(entries, "SemanticComparisonOperator", rendered, "Contains StartsWith");
+        Add(entries, "SemanticKeyedQuery", rendered, "Narrowing");
+
+        // ESM v42 screens are a stack-neutral UI contract; the backend target renders none of them and no screen changes a command, query or event.
+        Add(entries, "SemanticSlice", ignored("Screens are a stack-neutral UI contract; the Cratis backend target renders none of them."), "Screens");
+        Add(entries, "SemanticScreen", ignored("Screens are a stack-neutral UI contract; the Cratis backend target renders none of them."), "Id Name Title Description Data Actions Navigation Layout");
+        Add(entries, "SemanticScreenData", ignored("Screens are a stack-neutral UI contract."), "Query By Fields");
+        Add(entries, "SemanticScreenField", ignored("Screens are a stack-neutral UI contract."), "Label Property");
+        Add(entries, "SemanticScreenAction", ignored("Screens are a stack-neutral UI contract."), "Command Label Subject Inputs When Then");
+        Add(entries, "SemanticScreenInput", ignored("Screens are a stack-neutral UI contract."), "Property From");
+        Add(entries, "SemanticScreenNavigation", ignored("Screens are a stack-neutral UI contract."), "Screen Trigger Opens By");
+        Add(entries, "SemanticScreenLayout", ignored("Screens are a stack-neutral UI contract."), "Fits Regions");
+        Add(entries, "SemanticScreenRegion", ignored("Screens are a stack-neutral UI contract."), "Name Kind Title Shows Actions Regions");
+
+        // ESM v43 set-once mappings and ordered children collections change projection behavior that Stage does not render.
+        Add(entries, "SemanticProjectionOperation", rejected("STAGE-ESM-016"), "SetOnce");
+        Add(entries, "SemanticProjectionChildren", rejected("STAGE-ESM-016"), "Ordering");
+        Add(entries, "SemanticProjectionChildrenOrdering", rejected("STAGE-ESM-016"), "Direction Placement SortBy");
+        Add(entries, "SemanticChildrenPlacement", rejected("STAGE-ESM-016"), "Append Prepend Sorted Unknown");
+        Add(entries, "SemanticSortDirection", rejected("STAGE-ESM-016"), "Ascending Descending Unknown");
         Add(entries, "SemanticClaimCondition", rendered, "Claim TargetKind Value");
         Add(entries, "SemanticClaimTargetKind", rendered, "Literal Subject Artifact");
         Add(entries, "SemanticRoleCondition", rendered, "Role");

@@ -239,10 +239,11 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         }
 
         artifacts.AddRange(SemanticEventSourceArtifactRenderer.Selected(context, slices).Select(source => Artifact(SemanticEventSourceArtifactRenderer.Render(source, context))));
-        if (SemanticPolicyNames.Operations(slices, context.Application.Policies).Count != 0)
+        if (SemanticPolicyNames.Operations(slices, context.Application.Policies).Count != 0 || SemanticQueryNarrowingRendering.Narrowed(context, slices).Any())
         {
             artifacts.AddRange(SemanticPolicyArtifactRenderer.Render(context, slices).Select(Artifact));
             artifacts.AddRange(SemanticPolicyArtifactRenderer.RenderOpaque(context, slices).Select(Artifact));
+            artifacts.AddRange(SemanticQueryNarrowingRendering.Render(context, slices).Select(Artifact));
         }
 
         foreach (var located in slices)

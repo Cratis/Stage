@@ -84,6 +84,8 @@ internal static class a_model_with_named_sinks
     /// <summary>
     /// Gets the digest of a profile's render inputs, as plan provenance records them.
     /// </summary>
+    /// <param name="profile">The profile whose inputs to digest.</param>
+    /// <returns>The digest.</returns>
     internal static string InputDigest(ArtifactRenderProfile profile) =>
         new ArtifactRenderInputProvenance([.. profile.Inputs.Select(input => new ArtifactRenderInputDigest(input.Name, input.Version, input.Sha256))], [], []).Digest;
 

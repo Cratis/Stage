@@ -34,7 +34,7 @@
     <PackageVersion Include="Cratis.Choreography.Chronicle" Version="2.2.0" />
     <PackageVersion Include="Cratis.Chronicle" Version="19.144.0" />
     <!-- Only the multi-service repository scaffold emits this pin (Stage references no Aspire package). It matches the Aspire version of Chronicle and Studio. -->
-    <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.6.4" />
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.6.5" />
     <PackageVersion Include="Cratis.Chronicle.AspNetCore" Version="19.144.0" />
     <PackageVersion Include="Cratis.Chronicle.Contracts" Version="19.144.0" />
     <PackageVersion Include="Cratis.Chronicle.Testing" Version="19.144.0" />

@@ -50,6 +50,12 @@ public static class ExtensionHttpEndpoints
         return endpoints;
     }
 
+    internal static bool Matches(string route, string path)
+    {
+        var prefix = route.StartsWith('/') ? route : "/" + route;
+        return path.Equals(prefix, StringComparison.Ordinal) || path.StartsWith(prefix.TrimEnd('/') + "/", StringComparison.Ordinal);
+    }
+
     static async Task<IResult> Handle(
         HttpContext http,
         string system,
@@ -81,7 +87,7 @@ public static class ExtensionHttpEndpoints
             return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
 
-        var query = http.Request.QueryString.HasValue ? http.Request.QueryString.Value![1..] : string.Empty;
+        var query = http.Request.QueryString.HasValue ? http.Request.QueryString.Value[1..] : string.Empty;
         var headers = http.Request.Headers
             .Where(header => !_notForwarded.Contains(header.Key))
             .Select(header => new InboundHeader(header.Key, [.. header.Value.OfType<string>()]))
@@ -109,7 +115,7 @@ public static class ExtensionHttpEndpoints
         while ((read = await http.Request.Body.ReadAsync(buffer, http.RequestAborted)) > 0)
         {
             if (body.Length + read > MaxBodyBytes) return null;
-            body.Write(buffer, 0, read);
+            await body.WriteAsync(buffer.AsMemory(0, read), http.RequestAborted);
         }
 
         return body.ToArray();
@@ -164,11 +170,5 @@ public static class ExtensionHttpEndpoints
             if (exception.StatusCode == StatusCode.Unavailable) connections.Forget(system);
             return Results.StatusCode(exception.StatusCode == StatusCode.DeadlineExceeded ? StatusCodes.Status504GatewayTimeout : StatusCodes.Status502BadGateway);
         }
-    }
-
-    internal static bool Matches(string route, string path)
-    {
-        var prefix = route.StartsWith('/') ? route : "/" + route;
-        return path.Equals(prefix, StringComparison.Ordinal) || path.StartsWith(prefix.TrimEnd('/') + "/", StringComparison.Ordinal);
     }
 }

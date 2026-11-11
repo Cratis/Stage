@@ -51,6 +51,13 @@ public sealed class InboundDeliveryDispatcher(
     }
 
     /// <inheritdoc/>
+    public override void Dispose()
+    {
+        _wake.Dispose();
+        base.Dispose();
+    }
+
+    /// <inheritdoc/>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
@@ -67,7 +74,7 @@ public sealed class InboundDeliveryDispatcher(
             catch (Exception exception)
             {
                 ExtensionLog.InboundRoundFailed(logger, exception);
-                await Task.Delay(options.Value.Inbound.PollInterval, stoppingToken);
+                await Task.Delay(options.Value.Inbound.PollInterval, time, stoppingToken);
             }
         }
     }

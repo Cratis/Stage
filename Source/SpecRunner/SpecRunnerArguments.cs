@@ -53,6 +53,7 @@ public record SpecRunnerArguments(string ModelPath, string OutputPath, Guid? Sli
     /// <param name="args">The raw command-line arguments (for example <c language="csharp">--model path --output path</c>).</param>
     /// <returns>The parsed <see cref="SpecRunnerArguments"/>.</returns>
     /// <exception cref="MissingArgument">Thrown when a required argument is missing.</exception>
+    /// <exception cref="ArgumentException">Thrown when the body worker profile version is not supported.</exception>
     public static SpecRunnerArguments Parse(string[] args)
     {
         var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -84,7 +85,14 @@ public record SpecRunnerArguments(string ModelPath, string OutputPath, Guid? Sli
             Scope = values.GetValueOrDefault("scope"),
             CatalogPath = values.GetValueOrDefault("catalog"),
             ApplicationName = values.GetValueOrDefault("application"),
-            ProfileVersion = values.GetValueOrDefault("body-worker-profile-version")
+            ProfileVersion = ReadProfileVersion(values.GetValueOrDefault("body-worker-profile-version"))
         };
     }
+
+    static string? ReadProfileVersion(string? value) => value switch
+    {
+        null => null,
+        "3" or "4" => value,
+        _ => throw new ArgumentException($"--body-worker-profile-version '{value}' is not a supported scaffold profile version. Supported versions are 3 and 4; omit it for version 3.")
+    };
 }

@@ -46,6 +46,11 @@ public static partial class Program
             await error.WriteLineAsync("Usage: Cratis.Stage.SpecRunner --model <play-file-or-directory> --output <results.json> [--slice <guid>] [--spec <guid>]");
             return 2;
         }
+        catch (ArgumentException exception)
+        {
+            await error.WriteLineAsync(exception.Message);
+            return 2;
+        }
 
         if (string.Equals(arguments.Engine, "semantic", StringComparison.OrdinalIgnoreCase))
         {

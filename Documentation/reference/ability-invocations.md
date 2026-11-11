@@ -29,7 +29,7 @@ that syntax and the extension protocol plug into them without changing the runti
 | Seam | What fills it |
 | --- | --- |
 | `IAbilityCatalog` | One `AbilityDescriptor` per ability a model's systems declare: the ability and its contract major, its effect class, the outcomes it can end in, the locked package digest, and its attempt policy. |
-| `IAbilityBackend` | The extension protocol. The runtime hands it an `AbilityCall` and gets an `AbilityResult` back. Without extension packages loaded, `NoAbilityBackend` answers that nothing was sent. |
+| `IAbilityBackend` | The extension protocol. The runtime hands it an `AbilityCall` and gets an `AbilityResult` back. With `Stage:Extensions:HostPort` set, `GrpcAbilityBackend` calls the backend over the [extension protocol](../extensions/protocol.md); otherwise `NoAbilityBackend` answers that nothing was sent. |
 | `IInvocationOriginHandler` | One handler per origin kind, which takes the outcome back to the behavior that asked for it. |
 
 Until a catalog is registered, the runtime has no abilities and refuses every request to invoke one.

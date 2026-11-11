@@ -95,6 +95,20 @@ internal static class SemanticRunScopedMappings
                         throw Refused(mapping);
                     }
                     break;
+                case SemanticProjectionOperation.SetOnce:
+                    if (mapping.Source is SemanticProjectionLiteral onceLiteral)
+                    {
+                        from.SetOnce(property).ToValue((TValue)SemanticRuntimeTypes.ConvertValue(onceLiteral.Value, typeof(TValue))!);
+                    }
+                    else if (source is not null)
+                    {
+                        from.SetOnce(property).To(new PropertyPath(source));
+                    }
+                    else
+                    {
+                        throw Refused(mapping);
+                    }
+                    break;
                 case SemanticProjectionOperation.Add:
                 case SemanticProjectionOperation.Subtract:
                     if (mapping.Source is SemanticProjectionLiteral { Value: SemanticNumberValue { Value: 0m } }) break;
@@ -127,6 +141,10 @@ internal static class SemanticRunScopedMappings
         {
             children.NoAutoMap();
             children.IdentifiedBy(new PropertyPath(properties.Single(property => property.Id == child.IdentifiedBy).Name));
+            if (child.Ordering is { } ordering)
+            {
+                ApplyOrdering(children, ordering, properties);
+            }
             foreach (var from in child.Scope.From)
             {
                 typeof(SemanticRunScopedMappings).GetMethod(nameof(DefineChildEvent), BindingFlags.NonPublic | BindingFlags.Static)!
@@ -227,6 +245,27 @@ internal static class SemanticRunScopedMappings
 
     static SemanticProjectionLoweringRefused Refused(SemanticProjectionMapping mapping, Exception? cause = null) =>
         new(new NotSupportedException($"Scoped {mapping.Operation} mapping with source kind '{mapping.Source?.GetType().Name ?? "none"}' is not admitted.", cause));
+
+    // Chronicle's ordering takes a typed property expression, so the sort property of the element type is read by reflection.
+    static void ApplyOrdering<TParent, TChild>(IChildrenBuilder<TParent, TChild> children, SemanticProjectionChildrenOrdering ordering, IReadOnlyList<SemanticProperty> properties)
+    {
+        if (ordering.Placement == SemanticChildrenPlacement.Prepend)
+        {
+            children.Prepend();
+            return;
+        }
+
+        var name = properties.Single(property => property.Id == ordering.SortBy[0]).Name;
+        var type = typeof(TChild).GetProperty(name)!.PropertyType;
+        var method = typeof(SemanticRunScopedMappings).GetMethod(nameof(Sort), BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(typeof(TParent), typeof(TChild), type);
+        method.Invoke(null, BindingFlags.DoNotWrapExceptions, null, [children, name, ordering.Direction == SemanticSortDirection.Descending], null);
+    }
+
+    static void Sort<TParent, TChild, TValue>(IChildrenBuilder<TParent, TChild> children, string name, bool descending)
+    {
+        if (descending) children.OrderByDescending(Property<TChild, TValue>(name));
+        else children.OrderBy(Property<TChild, TValue>(name));
+    }
 
     static Expression<Func<T, TValue>> Property<T, TValue>(string name)
     {

@@ -5,11 +5,11 @@ scaffold	3
 pin	Cratis	22.184.0
 pin	Cratis.Arc.Chronicle.Testing	22.184.0
 pin	Cratis.Arc.MongoDB	22.184.0
-pin	Cratis.Choreography	2.2.0
-pin	Cratis.Choreography.Chronicle	2.2.0
-pin	Cratis.Chronicle	19.144.0
-pin	Cratis.Chronicle.AspNetCore	19.144.0
-pin	Cratis.Chronicle.Testing	19.144.0
+pin	Cratis.Choreography	2.3.1
+pin	Cratis.Choreography.Chronicle	2.3.1
+pin	Cratis.Chronicle	19.155.1
+pin	Cratis.Chronicle.AspNetCore	19.155.1
+pin	Cratis.Chronicle.Testing	19.155.1
 pin	Cratis.Screenplay	6.18.0
 pin	Cratis.Screenplay.Matching	6.18.0
 pin	Cratis.Specifications	5.2.3
@@ -38,16 +38,16 @@ package	AS	Cratis.Arc.ProxyGenerator.Build	22.184.0
 package	AS	Cratis.Arc.Screenplay.Embedded	22.184.0
 package	AS	Cratis.Arc.Swagger	22.184.0
 package	AS	Cratis.Arc.Testing	22.184.0
-package	AS	Cratis.Choreography	2.2.0
-package	AS	Cratis.Choreography.Chronicle	2.2.0
+package	AS	Cratis.Choreography	2.3.1
+package	AS	Cratis.Choreography.Chronicle	2.3.1
 package	AS	Cratis.Choreography.Storage	2.2.0
 package	AS	Cratis.Choreography.Storage.MongoDB	2.1.2
-package	AS	Cratis.Chronicle	19.144.0
-package	AS	Cratis.Chronicle.AspNetCore	19.144.0
-package	AS	Cratis.Chronicle.CodeAnalysis	19.144.0
-package	AS	Cratis.Chronicle.Connections	19.144.0
-package	AS	Cratis.Chronicle.Testing	19.144.0
-package	AS	Cratis.Fundamentals	7.33.1
+package	AS	Cratis.Chronicle	19.155.1
+package	AS	Cratis.Chronicle.AspNetCore	19.155.1
+package	AS	Cratis.Chronicle.CodeAnalysis	19.155.1
+package	AS	Cratis.Chronicle.Connections	19.155.1
+package	AS	Cratis.Chronicle.Testing	19.155.1
+package	AS	Cratis.Fundamentals	7.34.0
 package	AS	Cratis.Metrics.Roslyn	7.33.1
 package	AS	Cratis.Observability.SourceGenerators	7.33.1
 package	AS	Cratis.Screenplay	6.18.0

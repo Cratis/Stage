@@ -20,11 +20,12 @@ Stage admits a model whose language and semantic versions are the same audited p
 | 36, 37, 38 | Audited |
 | 39 | Refused |
 | 40, 41 | Audited |
+| 43 to 49 | Audited |
 | 32.x minor versions (for example 32.1) | Admitted with a warning that Stage has not audited the pair |
-| Any other version, including 33.x, 34.x and 42 or later | Refused |
+| Any other version, including 33.x, 34.x, 42 and 50 or later | Refused |
 | Language and semantic versions that differ | Refused |
 
-ESM 37 is the command clock, 38 adds graphs and 40 adds graph queries. The models of 37, 38, 40 and 41 are
+ESM 37 is the command clock, 38 adds graphs, 40 adds graph queries, 43 adds set-once projection mappings and ordered children, 44 to 47 add policies that decide from recorded state and row narrowing, and 48 and 49 add agents and the caller's identifier. The models of 37, 38, 40, 41 and 43 to 49 are
 admitted, but Stage checks each member they populate against its audit ledger. A member that is not audited is
 handled as described in the next section.
 
@@ -72,3 +73,9 @@ whose meaning it cannot check.
 A form field that uses `choose from query` becomes a plain input, because the Scene form field has no place for
 the picker yet. When a diagnostics collector is supplied, Stage reports the gap as the warning
 `STAGE-SCENE-FORM-004`. The model is not refused.
+
+## Set-once mappings and ordered children (ESM 43)
+
+A `set once` projection mapping renders as Chronicle's `SetOnce`: the property keeps the first value it receives and later events leave it alone. A children collection renders its ordering: `insert last` is Chronicle's default, `insert first` renders `Prepend()`, and `sort by` renders `OrderBy` or `OrderByDescending` on the child property. The specification runner runs both and agrees with Screenplay's reference runner. A set-once mapping from the event source identity, or into a collection, is refused as an unsupported mapping.
+
+A projection that sets a property once from who caused the event (`set once openedBy = $causedBy.name`) is still refused, because Screenplay does not yet admit event context other than the event source identity and the occurred time in these scopes (Cratis/Stage#1083).

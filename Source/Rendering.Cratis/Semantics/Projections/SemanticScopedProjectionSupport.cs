@@ -190,6 +190,13 @@ internal static class SemanticScopedProjectionSupport
             return false;
         }
 
+        // A set-once mapping keeps the first value it receives, so it takes exactly the sources a plain set takes.
+        if (mapping.Operation == SemanticProjectionOperation.SetOnce)
+        {
+            return mapping.Source is not SemanticProjectionEventSourceIdentity && !target.Type.IsCollection &&
+                MappingSupported(mapping with { Operation = SemanticProjectionOperation.Set }, targets, @event, context, identity, keyIsEventSource, fromBlock);
+        }
+
         return mapping.Operation switch
         {
             SemanticProjectionOperation.Clear => target.Type.IsOptional && mapping.Source is null,
@@ -380,7 +387,7 @@ internal static class SemanticScopedProjectionSupport
         SemanticId? identity)
     {
         // A running total starts at zero where nothing was set: the first fact that touches it is what establishes it.
-        var paths = mappings.Where(mapping => mapping.Operation is SemanticProjectionOperation.Set or SemanticProjectionOperation.Add or
+        var paths = mappings.Where(mapping => mapping.Operation is SemanticProjectionOperation.Set or SemanticProjectionOperation.SetOnce or SemanticProjectionOperation.Add or
                 SemanticProjectionOperation.Subtract or SemanticProjectionOperation.Increment or SemanticProjectionOperation.Decrement)
             .Select(mapping => mapping.Target.ToArray()).ToArray();
         return Required(properties, context, [], paths, identity);

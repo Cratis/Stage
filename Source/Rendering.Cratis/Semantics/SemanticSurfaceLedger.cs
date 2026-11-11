@@ -423,12 +423,12 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticScreenLayout", ignored("Screens are a stack-neutral UI contract."), "Fits Regions");
         Add(entries, "SemanticScreenRegion", ignored("Screens are a stack-neutral UI contract."), "Name Kind Title Shows Actions Regions");
 
-        // ESM v43 set-once mappings and ordered children collections change projection behavior that Stage does not render.
-        Add(entries, "SemanticProjectionOperation", rejected("STAGE-ESM-016"), "SetOnce");
-        Add(entries, "SemanticProjectionChildren", rejected("STAGE-ESM-016"), "Ordering");
-        Add(entries, "SemanticProjectionChildrenOrdering", rejected("STAGE-ESM-016"), "Direction Placement SortBy");
-        Add(entries, "SemanticChildrenPlacement", rejected("STAGE-ESM-016"), "Append Prepend Sorted Unknown");
-        Add(entries, "SemanticSortDirection", rejected("STAGE-ESM-016"), "Ascending Descending Unknown");
+        // ESM v43 set-once mappings and ordered children collections render as Chronicle projection behavior (SetOnce, Prepend, OrderBy).
+        Add(entries, "SemanticProjectionOperation", rendered, "SetOnce");
+        Add(entries, "SemanticProjectionChildren", rendered, "Ordering");
+        Add(entries, "SemanticProjectionChildrenOrdering", rendered, "Direction Placement SortBy");
+        Add(entries, "SemanticChildrenPlacement", rendered, "Append Prepend Sorted Unknown");
+        Add(entries, "SemanticSortDirection", rendered, "Ascending Descending Unknown");
         Add(entries, "SemanticClaimCondition", rendered, "Claim TargetKind Value");
         Add(entries, "SemanticClaimTargetKind", rendered, "Literal Subject Artifact");
         Add(entries, "SemanticRoleCondition", rendered, "Role");

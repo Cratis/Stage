@@ -87,7 +87,7 @@ public sealed class ExtensionBackendService(ExtensionDefinition definition) : Ex
         if (route.Handler is null) return new InboundHttpResponse { Status = 404 };
 
         var headers = request.Headers.ToDictionary(header => header.Name, header => header.Values.ToArray(), StringComparer.OrdinalIgnoreCase);
-        var reply = await route.Handler(new HttpCall(request.Method, request.Path, request.Query, headers, request.Body.Memory.ToArray()), context.CancellationToken);
+        var reply = await route.Handler(new HttpCall(request.Method, request.Path, request.Query, headers, request.Body.Memory.ToArray(), request.Context?.InvocationId ?? string.Empty, request.Context?.Attempt ?? 0), context.CancellationToken);
         var response = new InboundHttpResponse { Status = reply.Status, Body = ByteString.CopyFrom(reply.Body.Span) };
         foreach (var header in reply.Headers ?? new Dictionary<string, string[]>())
         {

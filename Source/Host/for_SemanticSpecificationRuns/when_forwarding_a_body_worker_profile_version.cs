@@ -24,6 +24,6 @@ public class when_forwarding_a_body_worker_profile_version : Specification
         SemanticBodyWorkerHosting.AddBodyWorkerArguments(_without, new(true, "worker.dll"));
     }
 
-    [Fact] void should_forward_the_profile_version_when_set() => _with.ArgumentList.TakeLast(2).ShouldEqual(new[] { "--body-worker-profile-version", "4" });
+    [Fact] void should_forward_the_profile_version_when_set() => _with.ArgumentList.TakeLast(2).ShouldEqual(["--body-worker-profile-version", "4"]);
     [Fact] void should_not_forward_a_profile_version_when_unset() => _without.ArgumentList.ShouldNotContain("--body-worker-profile-version");
 }

@@ -42,8 +42,7 @@ internal static class SemanticEmptyQuerySpecificationRenderer
             .Line("_scenario.Services.AddSingleton<global::Cratis.Chronicle.ReadModels.IReadModels>(readModels);");
         if (specification.GivenCaller is { } caller)
         {
-            var claims = caller.Roles.Select(role => $"new global::System.Security.Claims.Claim(global::System.Security.Claims.ClaimTypes.Role, {CSharpCodeBuilder.StringLiteral(role)})")
-                .Concat(caller.Claims.Select(claim => $"new global::System.Security.Claims.Claim({CSharpCodeBuilder.StringLiteral(claim.Type)}, {CSharpCodeBuilder.StringLiteral(claim.Value)})"));
+            var claims = Policies.SemanticStatePolicyRendering.CallerClaims(caller);
             builder.Line($"_principal = new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([{string.Join(", ", claims)}], {(caller.Authenticated ? "\"Screenplay\"" : "null")}));")
                 .Line("_scenario.Services.AddSingleton<global::Cratis.Arc.Authorization.ICurrentPrincipalAccessor>(_principalAccessor);");
         }

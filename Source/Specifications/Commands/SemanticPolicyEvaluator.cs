@@ -72,7 +72,13 @@ internal static class SemanticPolicyEvaluator
             }
         }
 
-        return Condition(policy.Condition, plan, caller, principal, artifact, subject, properties, state) == true;
+        if (UsesCallerId(policy.Condition) && string.IsNullOrEmpty(caller.Id))
+        {
+            // A caller that cannot say who it is gives nothing to compare, so the policy is unavailable and denies, as the generated policy does.
+            return false;
+        }
+
+        return Condition(WithCallerId(policy.Condition, caller.Id), plan, caller, principal, artifact, subject, properties, state) == true;
     }
 
     static Dictionary<string, IReadOnlyDictionary<SemanticId, SemanticValue>>? ReadState(SemanticPolicy policy, SemanticPolicyReference reference, IReadOnlyDictionary<string, SemanticValue> artifact, Func<SemanticId, IEnumerable<SemanticReadModelInstance>>? instances)
@@ -97,6 +103,39 @@ internal static class SemanticPolicyEvaluator
 
         return state;
     }
+
+    static bool UsesCallerId(SemanticPolicyCondition condition) => condition switch
+    {
+        SemanticStatePolicyCondition state => UsesCallerId(state.Condition),
+        SemanticNotPolicyCondition not => UsesCallerId(not.Operand),
+        SemanticLogicalPolicyCondition logical => UsesCallerId(logical.Left) || UsesCallerId(logical.Right),
+        _ => false
+    };
+
+    static bool UsesCallerId(SemanticCondition condition) => condition switch
+    {
+        SemanticComparison comparison => comparison.Left.CallerId || comparison.Right.CallerId,
+        SemanticLogicalCondition logical => UsesCallerId(logical.Left) || UsesCallerId(logical.Right),
+        _ => false
+    };
+
+    static SemanticPolicyCondition WithCallerId(SemanticPolicyCondition condition, string? id) => condition switch
+    {
+        SemanticStatePolicyCondition state => state with { Condition = WithCallerId(state.Condition, id) },
+        SemanticNotPolicyCondition not => not with { Operand = WithCallerId(not.Operand, id) },
+        SemanticLogicalPolicyCondition logical => logical with { Left = WithCallerId(logical.Left, id), Right = WithCallerId(logical.Right, id) },
+        _ => condition
+    };
+
+    static SemanticCondition WithCallerId(SemanticCondition condition, string? id) => condition switch
+    {
+        SemanticComparison comparison => comparison with { Left = CallerId(comparison.Left, id), Right = CallerId(comparison.Right, id) },
+        SemanticLogicalCondition logical => logical with { Left = WithCallerId(logical.Left, id), Right = WithCallerId(logical.Right, id) },
+        _ => condition
+    };
+
+    static SemanticConditionOperand CallerId(SemanticConditionOperand operand, string? id) =>
+        operand.CallerId ? new SemanticConditionOperand(default, id is null ? SemanticValue.Null : SemanticValue.Text(id)) : operand;
 
     // Decision 0091: a refused key is missing even if prior facts project an instance at that key.
     static bool IsRefused(SemanticValue key) => key switch

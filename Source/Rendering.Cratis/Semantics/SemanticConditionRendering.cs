@@ -40,6 +40,9 @@ internal static class SemanticConditionRendering
 
     static bool CanRender(SemanticConditionOperand operand, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context, SemanticReadScope? reads)
     {
+        // The caller's identifier is a text value read from the authorized principal; the binder only admits it beside a required text property.
+        if (operand.CallerId) return reads is not null;
+
         if (!operand.Property.IsSet)
         {
             return operand.Value is SemanticNumberValue or SemanticBooleanValue ||
@@ -180,6 +183,7 @@ internal static class SemanticConditionRendering
 
     static string ComparisonOperand(SemanticConditionOperand operand, SemanticConcept? concept, bool uuid, SemanticConditionRenderingContext context)
     {
+        if (operand.CallerId) return Policies.SemanticStatePolicyRendering.CallerId(context.Application);
         if (operand.Property.IsSet) return Operand(operand, context);
         if (concept is not null) return new SemanticTypeSystem(context.Application).Value(operand.Value!, SemanticTypeReference.ForConcept(concept.Id));
 
@@ -217,6 +221,7 @@ internal static class SemanticConditionRendering
 
     static string Operand(SemanticConditionOperand operand, SemanticConditionRenderingContext context)
     {
+        if (operand.CallerId) return Policies.SemanticStatePolicyRendering.CallerId(context.Application);
         if (!operand.Property.IsSet) return LiteralOperand(operand.Value);
 
         return operand.Read is { } read

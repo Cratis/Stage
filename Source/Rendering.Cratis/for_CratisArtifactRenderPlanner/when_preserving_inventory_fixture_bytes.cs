@@ -15,6 +15,8 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 /// </summary>
 public class when_preserving_inventory_fixture_bytes
 {
+    // Re-frozen for Cratis/Stage#1061: the shared policy runtime reads the caller's identifier, which moves only the fixtures that render policies.
+    // Re-frozen for Cratis/Stage#1061: the shared policy runtime reads the caller's identifier, which moves only the fixtures that render policies.
     // Re-frozen for Cratis/Stage#850: only the policy runtime concept-base comparisons changed.
     // Re-frozen for Cratis/Stage#850: owner-local validation bodies.
     // Recaptured by the owning spec for train 11's merged pins and rendering deliveries.
@@ -27,9 +29,9 @@ public class when_preserving_inventory_fixture_bytes
         ["cascade with trigger"] = "04e736a9cf97cb632bb249c68e83a3f296fc3bb9d1c5cc9950590475f329d317",
         ["case table"] = "eff1bfc1d51a7079b4582ed7039a26e848b95f3324195ae0a68324876896ff1b",
         ["composite keys"] = "af1b26578875184d42bb0509e3eab5f820e3ecf80ca016da7e1dcf911915c6cf",
-        ["denied query"] = "0ef36305266c161bcb212f830aec9fe364e2a0bd27ee4a8e0968461016b12ba6",
+        ["denied query"] = "aeb6e6fc16de0ed7395284ab3f361b96dfc7b671caf9eba17dca5995888aa2b1",
         ["folder"] = "6996ab793768002e51955d76f14b3c58ee97d282571896c5bec9a8bb2aac3764",
-        ["policy typed contexts"] = "e7e9b22f85acb6ac36332ebfec5e1a55000270f9effd4f63565930905a7a045d",
+        ["policy typed contexts"] = "32a0647d8fe508b5cc688cf45ebb72c86418e3f3a19785e84f1fd0876327d985",
         ["query"] = "11c4175df1bad828d9d7287b273e4b79ff197cb392357416427a46b71d274155",
         ["reaction production"] = "afea75a256f6f03a22f236b95a028cee2f6fd315aa58e0c9f9c8993326c29f6d",
         ["redelivery"] = "2a6a28bdff8d41c41a4a1946bd8f5765ee148fbb4cb8bb3e1e4bd12b68647f0a",

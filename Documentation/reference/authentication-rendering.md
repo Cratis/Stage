@@ -124,6 +124,18 @@ Stage renders only AuthProxy's `Cratis:AuthProxy:Application` contract, so confi
 
 To rotate a key, add the new key at every receiver first, then switch AuthProxy to the new key id and secret, wait out the replay window and remove the old key. AuthProxy's forwarded identity signing documentation describes the details.
 
+## The caller's identifier in a policy
+
+A policy that reads recorded state can compare a property with the identifier of whoever is asking, as in `article.author == $identity.id`. The generated policy reads that identifier from the principal Arc authorized:
+
+1. The `urn:cratis:identity:subject` claim, which AuthProxy forwards as the subject the identity provider gave.
+2. Otherwise the name identifier claim.
+3. Otherwise the `sub` claim.
+
+The first of those the principal carries decides. A principal that carries none of them, or two different values of the same claim, has no identifier, and a policy that compares with it is unavailable, so it denies. `!=` is no exception: a caller that cannot say who it is is not allowed because it differs from the author.
+
+An application that identifies callers another way supplies the identifier itself by implementing the partial method `ResolveCallerId` on the generated `PolicyValues` class; leaving the identifier unset keeps the default above. In a specification, `id "alice"` on the caller puts that value in the name identifier claim of the principal the generated test uses.
+
 ## Personas
 
 A persona holds policies. `Personas.cs` records, per persona, the smallest set of roles and claims that satisfies all of its policies, in the order Screenplay's persona callers use. `Personas.Holds` is true for a caller who has all of them. A persona whose policies are not requirements on authentication, roles or claims cannot be reduced to roles and claims, is never matched and is reported as `STAGE-AUTH-002`.

@@ -124,13 +124,38 @@ internal static class SemanticPolicyArtifactRenderer
         // Reflection is limited to the declared public property path, using ordinal names. Missing values
         // deny; an empty-string text target matches an empty claim. Uuid, Date and DateTime targets must be canonical.
         builder.Summary("Evaluates policy claim targets and three-valued authorization expressions.")
-            .OpenBlock("internal static class PolicyValues")
+            .OpenBlock("internal static partial class PolicyValues")
             .Summary("Matches a claim against the target using ordinal value comparison.")
             .Parameter("context", "The authorization context.").Parameter("claim", "The claim type.").Parameter("target", "The expected claim value.")
             .Returns("Whether a matching claim exists; false when the target is missing.")
             .ExpressionMember(
                 "public static bool Match(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, string claim, string? target)",
                 "target is not null && context.Principal.Claims.Any(value => global::System.String.Equals(value.Type, claim, global::System.StringComparison.OrdinalIgnoreCase) && global::System.String.Equals(value.Value, target, global::System.StringComparison.Ordinal))");
+
+        // The caller's identifier is the subject the identity provider gave, as the generated MemberIdentity reads it. An application that
+        // declares another resolution implements ResolveCallerId; a principal with no identifier, or two that disagree, has none, and a
+        // policy that compares with it is unavailable, so it denies.
+        builder.Summary("Lets an application declare how the caller's identifier is read from the authorized principal.")
+            .Parameter("context", "The authorization context.").Parameter("identifier", "The identifier, left unset to use the default resolution.")
+            .Line("static partial void ResolveCallerId(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, ref string? identifier);")
+            .BlankLine()
+            .Summary("Reads the caller's identifier from the authorized principal.")
+            .Parameter("context", "The authorization context.")
+            .Returns("The identifier, or null when the principal carries none.")
+            .OpenBlock("public static string? CallerId(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context)")
+            .Line("string? identifier = null;")
+            .Line("ResolveCallerId(context, ref identifier);")
+            .Line("if (identifier is null)")
+            .Line("{")
+            .Line("    foreach (var type in new[] { \"urn:cratis:identity:subject\", global::System.Security.Claims.ClaimTypes.NameIdentifier, \"sub\" })")
+            .Line("    {")
+            .Line("        var values = context.Principal.Claims.Where(claim => claim.Type == type && claim.Value.Length > 0).Select(claim => claim.Value).Distinct(global::System.StringComparer.Ordinal).ToArray();")
+            .Line("        if (values.Length == 1) { identifier = values[0]; break; }")
+            .Line("        if (values.Length > 1) return null;")
+            .Line("    }")
+            .Line("}")
+            .Line("return string.IsNullOrEmpty(identifier) ? null : identifier;")
+            .EndBlock().BlankLine();
 
         // Always emit Screenplay's three-valued helpers: shared bytes never depend on selected operations.
         // Missing targets stay unknown under negation; only a definite true allows.

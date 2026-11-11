@@ -29,6 +29,34 @@ internal static class SemanticStatePolicyRendering
         return [.. result.DistinctBy(item => Prefix(item.Item2))];
     }
 
+    // The caller's identifier as the generated policy reads it. A policy that uses it is unavailable when the principal carries none, so the
+    // null-forgiving access here is never reached with a missing identifier.
+    internal static string CallerId(SemanticApplicationContext context) => $"{PolicyValuesName(context)}.CallerId(context)!";
+
+    // The claims a specification's caller carries, as C# expressions: its roles, its claims and, when it names one, its identifier as the name identifier.
+    internal static IEnumerable<string> CallerClaims(SemanticCaller caller)
+    {
+        var claims = caller.Roles.Select(role => $"new global::System.Security.Claims.Claim(global::System.Security.Claims.ClaimTypes.Role, {CSharpCodeBuilder.StringLiteral(role)})")
+            .Concat(caller.Claims.Select(claim => $"new global::System.Security.Claims.Claim({CSharpCodeBuilder.StringLiteral(claim.Type)}, {CSharpCodeBuilder.StringLiteral(claim.Value)})"));
+
+        return caller.Id is { } id
+            ? claims.Append($"new global::System.Security.Claims.Claim(global::System.Security.Claims.ClaimTypes.NameIdentifier, {CSharpCodeBuilder.StringLiteral(id)})")
+            : claims;
+    }
+
+    internal static bool UsesCallerId(SemanticPolicy policy) =>
+        Leaves(policy.Condition).Any(leaf => UsesCallerId(leaf.Condition));
+
+    static bool UsesCallerId(SemanticCondition condition) => condition switch
+    {
+        SemanticComparison comparison => comparison.Left.CallerId || comparison.Right.CallerId,
+        SemanticLogicalCondition logical => UsesCallerId(logical.Left) || UsesCallerId(logical.Right),
+        _ => false
+    };
+
+    static string PolicyValuesName(SemanticApplicationContext context) =>
+        context.Domain.Count == 0 ? "PolicyValues" : $"global::{context.RootNamespace}.GeneratedPolicies.PolicyValues";
+
     internal static string Prefix(SemanticPolicyReference reference) =>
         Identifiers.ToCamelCase(reference.Name) + string.Concat(reference.Mappings.Select(mapping => $"_{mapping.Input}_{mapping.Property.Replace('.', '_')}"));
 
@@ -92,6 +120,11 @@ internal static class SemanticStatePolicyRendering
         var types = new SemanticTypeSystem(context);
         var available = Available(reference);
         builder.Line($"var {available} = true;");
+        if (UsesCallerId(policy))
+        {
+            builder.Line($"if ({PolicyValuesName(context)}.CallerId(context) is null) {available} = false;");
+        }
+
         foreach (var read in policy.Reads)
         {
             var view = context.ReadModels[read.ReadModel];
@@ -120,7 +153,7 @@ internal static class SemanticStatePolicyRendering
             SemanticPrimitiveType.DateTime => ", dateTimeTarget: true",
             _ => string.Empty
         };
-        var values = context.Domain.Count == 0 ? "PolicyValues" : $"global::{context.RootNamespace}.GeneratedPolicies.PolicyValues";
+        var values = PolicyValuesName(context);
 
         return command
             ? $"{values}.Path((context.Resource as global::Cratis.Arc.Commands.CommandContext)?.Command, {System.Text.Json.JsonSerializer.Serialize(context.MemberNames.PropertyPath(properties, source))}{targetType})"

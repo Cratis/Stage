@@ -18,7 +18,7 @@ public class and_the_query_is_a_keyed_lookup : live_projects
 
     async Task Because()
     {
-        var subject = (IObservable<DynamicReadModel?>)(await Perform("LiveProject", new QueryArguments { ["projectId"] = "project-1" }));
+        var subject = (IObservable<DynamicReadModel?>)await Perform("LiveProject", new QueryArguments { ["projectId"] = "project-1" });
         var emissions = Observe(subject, out _subscription);
         _before = await Next(emissions);
         await Register("project-1", "Screenplay");

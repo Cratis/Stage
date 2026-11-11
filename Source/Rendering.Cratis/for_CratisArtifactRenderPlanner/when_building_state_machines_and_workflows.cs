@@ -13,7 +13,7 @@ public class when_building_state_machines_and_workflows(when_building_state_mach
 {
     [Fact] void should_build_debug_without_warnings() => fixture.DebugWarnings.ShouldBeEmpty();
     [Fact] void should_build_release_without_warnings() => fixture.ReleaseWarnings.ShouldBeEmpty();
-    [Fact] void should_run_generated_specs() => fixture.Results.Select(result => result.Outcome).ShouldContainOnly(Enumerable.Repeat("Passed", 4).ToArray());
+    [Fact] void should_run_generated_specs() => fixture.Results.Select(result => result.Outcome).ShouldContainOnly([.. Enumerable.Repeat("Passed", 4)]);
 
     public class context : a_generated_invoice_application
     {

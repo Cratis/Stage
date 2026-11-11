@@ -10,7 +10,7 @@ public class when_resolving_secret_rule_paths : Specification
 {
     const string Marked = "{\"type\":\"string\",\"x-conceptAttributes\":{\"sensitive\":\"\"}}";
 
-    static readonly string Schema = $"{{\"type\":\"object\",\"properties\":{{\"password\":{Marked},\"note\":{{\"type\":\"string\"}},\"credentials\":{{\"type\":\"object\",\"properties\":{{\"password\":{Marked},\"note\":{{\"type\":\"string\"}}}}}},\"history\":{{\"type\":\"array\",\"items\":{{\"type\":\"object\",\"properties\":{{\"password\":{Marked},\"note\":{{\"type\":\"string\"}}}}}}}},\"node\":{{\"type\":\"object\",\"properties\":{{\"child\":{{\"type\":\"object\"}}}}}}}}}}";
+    const string Schema = $"{{\"type\":\"object\",\"properties\":{{\"password\":{Marked},\"note\":{{\"type\":\"string\"}},\"credentials\":{{\"type\":\"object\",\"properties\":{{\"password\":{Marked},\"note\":{{\"type\":\"string\"}}}}}},\"history\":{{\"type\":\"array\",\"items\":{{\"type\":\"object\",\"properties\":{{\"password\":{Marked},\"note\":{{\"type\":\"string\"}}}}}}}},\"node\":{{\"type\":\"object\",\"properties\":{{\"child\":{{\"type\":\"object\"}}}}}}}}}}";
 
     [Fact] void should_treat_a_top_level_secret_as_secret() => SensitiveValues.IsSecretPath(Schema, "password").ShouldBeTrue();
     [Fact] void should_ignore_the_casing_of_the_path() => SensitiveValues.IsSecretPath(Schema, "PASSWORD").ShouldBeTrue();

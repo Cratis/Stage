@@ -73,8 +73,11 @@ public class when_running_state_reading_policies : Specification
     readonly List<string> _differences = [];
     int _executed;
 
-    [Fact] void should_run_every_specification() => _executed.ShouldEqual(4);
-    [Fact] void should_match_the_reference_for_every_plan() => Assert.True(_differences.Count == 0, string.Join(Environment.NewLine, _differences));
+    [Fact]
+    public void should_run_every_specification() => _executed.ShouldEqual(4);
+
+    [Fact]
+    public void should_match_the_reference_for_every_plan() => Assert.True(_differences.Count == 0, string.Join(Environment.NewLine, _differences));
 
     protected async Task Because()
     {

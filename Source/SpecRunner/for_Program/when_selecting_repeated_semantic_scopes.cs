@@ -26,7 +26,7 @@ public class when_selecting_repeated_semantic_scopes : Specification
     {
         var path = Path.Combine(_folder, "results.json");
         _exit = await Program.Run(["--engine", "semantic", "--model", _folder, "--output", path, "--scope", First, "--scope", Second], TextWriter.Null, TextWriter.Null);
-        _report = (await SemanticSpecificationRunReportFile.ReadFromFile(path));
+        _report = await SemanticSpecificationRunReportFile.ReadFromFile(path);
     }
 
     [Fact] void should_complete_the_run() => _exit.ShouldEqual(0);

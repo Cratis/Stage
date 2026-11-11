@@ -36,7 +36,7 @@ internal static class SharedValidationBodies
     static string OldText(SemanticApplicationContext context, SemanticTypedContextDescriptor[] descriptors)
     {
         var builder = context.CodeBuilder().Namespace(context.TypedContextsNamespace);
-        foreach (var owner in descriptors.Select(descriptor => descriptor.OperationId!.Value).Distinct().Where(owner => context.Commands.ContainsKey(owner)))
+        foreach (var owner in descriptors.Select(descriptor => descriptor.OperationId!.Value).Distinct().Where(context.Commands.ContainsKey))
             builder.Using(SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(owner).Path));
         builder.OpenBlock("internal static class ValidationBodies");
         foreach (var descriptor in descriptors) OldBody(builder, context, descriptor);
@@ -87,7 +87,7 @@ internal static class SharedValidationBodies
         text = text.Replace($"global::{SemanticValidationContextRuntime.RulesType(context, owner)}.", $"global::{context.TypedContextsNamespace}.ValidationBodies.", StringComparison.Ordinal);
 
         // Rendered text is simplified, so the reference is the bare class name; the word boundary keeps other identifiers intact.
-        return Regex.Replace(text, $@"(?<![\w.]){Regex.Escape(context.ContextNames.ContextRules(owner))}\.", "ValidationBodies.");
+        return Regex.Replace(text, $@"(?<![\w.]){Regex.Escape(context.ContextNames.ContextRules(owner))}\.", "ValidationBodies.", RegexOptions.None, TimeSpan.FromSeconds(5));
     }
 
     static Dictionary<string, string> Methods(string text) => CSharpSyntaxTree.ParseText(text).GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>()

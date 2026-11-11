@@ -13,7 +13,7 @@ namespace Cratis.Stage.Specifications.given;
 public static class StructuredValueText
 {
     /// <summary>
-    /// Writes <c>&lt;property&gt; = &lt;scalar&gt;</c>, or the property followed by the object or list as an indented block.
+    /// Writes "&lt;property&gt; = &lt;scalar&gt;", or the property followed by the object or list as an indented block.
     /// </summary>
     /// <param name="property">The property the value is assigned to.</param>
     /// <param name="json">The value, described as JSON by the test; a token that is not JSON is written as it is.</param>

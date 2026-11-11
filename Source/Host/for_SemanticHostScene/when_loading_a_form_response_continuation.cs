@@ -29,6 +29,7 @@ public class when_loading_a_form_response_continuation : Specification
         var path = Path.Combine(_directory, "Projects.play");
         File.WriteAllText(path, Source);
         _scene = SemanticHostScene.Load(path, compiled_plan.From(Source).Model);
+
         // The screen's action runs the command through the form, so the form's continuation travels on the action, not on an inline form.
         var action = _scene.Screens.Single(screen => screen.Name == "Overview").SlotContent.Values.SelectMany(elements => elements)
             .OfType<ExternalComponent>()

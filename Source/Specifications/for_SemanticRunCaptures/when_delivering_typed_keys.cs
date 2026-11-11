@@ -24,7 +24,7 @@ public class when_delivering_typed_keys : Specification
     {
         var model = SemanticModelSerializer.Deserialize(EsmGoldenVectors.Get(32).Bytes.AsSpan());
         var keyType = concept ? SemanticTypeReference.ForConcept(model.Application.Concepts.Single().Id) : SemanticTypeReference.ForPrimitive(primitive);
-        SemanticValue key = primitive == SemanticPrimitiveType.WholeNumber ? SemanticValue.Number(42) : new SemanticTextValue("3fa85f64-5717-4562-b3fc-2c963f66afa6");
+        var key = primitive == SemanticPrimitiveType.WholeNumber ? SemanticValue.Number(42) : new SemanticTextValue("3fa85f64-5717-4562-b3fc-2c963f66afa6");
         var plan = WithKey(model, keyType, key);
         var specification = plan.Specifications.Values.Single();
         var reference = new SemanticSpecificationRunner().Run(plan, specification.Id);
@@ -40,10 +40,10 @@ public class when_delivering_typed_keys : Specification
         var appended = specification.WhenAppended!;
         await context.Append(new(appended.EventContract, appended.Values), SemanticValue.Null, CancellationToken.None);
         (await captures.Deliver(0, _ => Task.FromResult<SemanticRunReactionFailure?>(null), CancellationToken.None)).ShouldBeNull();
-        var fact = context.Facts.Last();
+        var fact = context.Facts[^1];
         fact.EventSource!.Type.ShouldEqual(keyType);
         fact.EventSource.Value.ShouldEqual(key);
-        fact.EventSource.ShouldEqual(reference.Execution.World.Facts.Last().Context!.EventSource);
+        fact.EventSource.ShouldEqual(reference.Execution.World.Facts[^1].Context!.EventSource);
         context.Facts.Count.ShouldEqual(reference.Execution.World.Facts.Length);
     }
 

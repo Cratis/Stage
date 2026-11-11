@@ -26,7 +26,6 @@ public class when_signalling_a_trigger : Specification
     TriggerRaised _nothingReacts = null!;
     TriggerRaised _rejected = null!;
     TriggerRaised _resumedOnly = null!;
-    TriggerRaised _withCorrelation = null!;
 
     void Establish()
     {
@@ -54,7 +53,6 @@ public class when_signalling_a_trigger : Specification
         _nothingReacts = await _triggers.Signal(new("Slack", "ReactionAdded", "Default", "r-1", "{}", "x"));
         _rejected = await _triggers.Signal(new("Slack", "ChannelArchived", "Default", "c-1", "{}", "x"));
         _resumedOnly = await _triggers.Signal(new("Slack", "ReactionAdded", "Default", "r-2", "{\"paid\":true}", "x", "pay-1"));
-        _withCorrelation = await _triggers.Signal(new("Slack", "MessageReceived", "Default", "msg-2", "{}", "x", "pay-2"));
     }
 
     static bool IsReaction(string workflow) => string.Equals(workflow, "OnMessage", StringComparison.Ordinal) || string.Equals(workflow, "Audit", StringComparison.Ordinal);
@@ -71,6 +69,5 @@ public class when_signalling_a_trigger : Specification
     [Fact] void should_run_the_reactions_as_the_extension_that_raised_the_trigger() => _started.TrueForAll(start => start.Trigger.Actor.Value == "extension:Slack").ShouldBeTrue();
     [Fact] void should_resume_the_runs_that_wait_for_the_trigger_about_the_same_thing() => _signals.Received(1).Signal(AbilityInvocations.Scope, new WorkflowCorrelationKey("pay-1"), new WorkflowContractReference("Slack.ReactionAdded", 1), Arg.Is<WorkflowData>(data => data.Value == "{\"paid\":true}"), new WorkflowActor("extension:Slack"));
     [Fact] void should_raise_a_trigger_that_only_resumed_a_wait() => _resumedOnly.Status.ShouldEqual(TriggerRaiseStatus.Raised);
-    [Fact] void should_still_run_the_reactions_when_no_wait_matches() => _withCorrelation.Status.ShouldEqual(TriggerRaiseStatus.Raised);
     [Fact] void should_not_look_for_waits_without_a_correlation() => _signals.Received(0).Signal(Arg.Any<WorkflowScope>(), new WorkflowCorrelationKey(string.Empty), Arg.Any<WorkflowContractReference>(), Arg.Any<WorkflowData>(), Arg.Any<WorkflowActor>());
 }

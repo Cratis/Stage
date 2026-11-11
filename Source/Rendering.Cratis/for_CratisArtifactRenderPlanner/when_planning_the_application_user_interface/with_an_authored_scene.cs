@@ -43,7 +43,7 @@ public class with_an_authored_scene : a_screen_composition_render
     // Recomputed for Screenplay 6.14.0: only the Screenplay pins in Directory.Packages.props and the scaffold catalog change.
     // Recomputed for Arc 22.184.0: only the Arc pins in Directory.Packages.props and package.json change.
     // Recomputed for Screenplay 6.18.0: only the Screenplay pins in Directory.Packages.props and the scaffold catalog change.
-    const string Before = "697a9575b204e6afef67e04ff2501541ad819c776f2a68452471daeb189db038";
+    const string Before = "fbdfaf7c549b4feb7c3d558ce551314f1a6201c485bae89bf344037cb8a7bfe2";
 
     ArtifactRenderPlan _plan = null!;
 

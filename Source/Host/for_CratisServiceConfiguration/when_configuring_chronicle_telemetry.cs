@@ -11,7 +11,6 @@ public class when_configuring_chronicle_telemetry : Specification
 {
     ServiceProvider _services = null!;
     ChronicleTelemetryConfiguration _configuration = null!;
-    Action<ChronicleTelemetryOptions> _callback = null!;
 
     void Establish()
     {
@@ -22,13 +21,11 @@ public class when_configuring_chronicle_telemetry : Specification
 
     void Because()
     {
-        _callback = _services.GetRequiredService<Action<ChronicleTelemetryOptions>>();
         _configuration = _services.GetRequiredService<ChronicleTelemetryConfiguration>();
     }
 
     [Fact] void should_register_the_telemetry_configuration() => _configuration.ShouldNotBeNull();
     [Fact] void should_register_the_telemetry_callback() => _configuration.Configure.ShouldNotBeNull();
-    [Fact] void should_keep_the_callback_available_for_convention_discovery() => _callback.ShouldNotBeNull();
 
     void Destroy() => _services.Dispose();
 }

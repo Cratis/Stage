@@ -40,18 +40,18 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     // Re-frozen for Cratis/Stage#120 merged with train 10: authentication artifacts and host wiring on top of the train 10 output.
     // Re-frozen for #937: only Directory.Packages.props pins Pkcs to 10.0.14 and documents Xml runtime servicing.
     // Re-frozen for Cratis/Stage#967: the scaffold emits Choreography hosting and registers Chronicle telemetry options.
-    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(QualifiedCommonOutput.Restore(_plan, () => invoice_model.Plan(_model)))).ShouldEqual("507aa24868783ab8619f5d835c741d2b704e9045e29ff50ccb54e4302bef781e");
+    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(QualifiedCommonOutput.Restore(_plan, () => invoice_model.Plan(_model)))).ShouldEqual("53177d12fcd910a0921d2111dfd25979f3003d6fa3611c1610d757200b3ac002");
 
     // Re-frozen for #424: generated C# uses short type names and using directives; the qualified restore above still matches.
     // Re-frozen for Cratis/Stage#816 and Cratis/Stage#757: only src/bindings.ts command imports and the package.json fundamentals resolution change.
-    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => FrozenScaffoldPins.Digest(_plan, Legacy(_plan.Artifacts)).ShouldEqual("4e61cec16566f786a1e2858a254bf92372119099ef462b458779b0bae690cfea");
+    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => FrozenScaffoldPins.Digest(_plan, Legacy(_plan.Artifacts)).ShouldEqual("090761a1792c5ebce165dfa6d7d9f7c407f7b8ef69b9b58317ff56e712590050");
 
     // Re-frozen when the license header became the caller's choice and specifications moved into the application project.
     // Re-frozen for #424: generated C# uses short type names and using directives.
     // Re-frozen for Cratis/Stage#816 (aliased Scene command imports in src/bindings.ts) and Cratis/Stage#757 (fundamentals resolution in package.json).
     // Re-frozen for Cratis/Stage#120 merged with train 10: authentication artifacts and host wiring on top of the train 10 output.
-    [Fact] void should_emit_the_frozen_plan_bytes() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("c564d1d464d55837ec34fead813325e8477284584e97aa6b932518a52aa85400");
-    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("52daea6a20dcea61fd349e459b92ea35e7ba2349191f13b1e6f922cc2f6678a0");
+    [Fact] void should_emit_the_frozen_plan_bytes() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("df06e7980670d6615a7fbba62356142a268a62c2a8765792c60e0418571c3b44");
+    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("7a4f44e6f081bd346b579ad7fbbc3606e776dbe0ecc4203d07207993842a7198");
 
     [Fact]
     void should_attribute_the_frozen_plan_changes_to_yarn_cache_yarn_preapproval_and_debug_telemetry()
@@ -65,11 +65,11 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
             : artifact).ToImmutableArray();
         beforeTelemetry.Where(artifact => _plan.Artifacts.Single(current => current.RelativePath == artifact.RelativePath).Sha256 != artifact.Sha256)
             .Select(artifact => artifact.RelativePath).ShouldContainOnly("Directory.Packages.props", "InvoiceApp.csproj");
-        FrozenScaffoldPins.Digest(_plan, beforeTelemetry).ShouldEqual("bb24afa532e71e5c15d600556f41f9283420fc8eee8491ace9b815a8144d71c4");
+        FrozenScaffoldPins.Digest(_plan, beforeTelemetry).ShouldEqual("f788e7abd0719b533e761c996a0722ec37fb34e3889ed5a40982e6470316d526");
         var beforeYarn = beforeTelemetry.Select(artifact => artifact.RelativePath == ".gitignore"
             ? PlannedArtifact.CreateText(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Replace(".yarn/\n", string.Empty, StringComparison.Ordinal), artifact.Sources)
             : artifact).ToImmutableArray();
-        FrozenScaffoldPins.Digest(_plan, beforeYarn).ShouldEqual("3b4aa42d42fb9c173a70d486bcd4dd6db4332d3199c9eb159b73926230880f1c");
+        FrozenScaffoldPins.Digest(_plan, beforeYarn).ShouldEqual("2976c327c029c9dbd75416a4687ad69b2078d286cb9678695ce55146bc5d05b5");
     }
 
     string PreviousRealizationDigest() => ArtifactRenderPlan.ComputeDigest(

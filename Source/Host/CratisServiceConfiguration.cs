@@ -132,7 +132,7 @@ public static class CratisServiceConfiguration
             }
         }
 
-        builder.Services.AddSingleton<Action<ChronicleTelemetryOptions>>(_ => { });
+        builder.Services.AddSingleton(new ChronicleTelemetryConfiguration(_ => { }));
         StageHttpRouteOptions.AlignIntrospection(builder.Services);
 
         builder.AddCratisOpenTelemetry();

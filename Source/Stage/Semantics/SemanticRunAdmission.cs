@@ -82,32 +82,8 @@ public static partial class SemanticRunAdmission
     /// <param name="application">The application the feature belongs to.</param>
     /// <param name="feature">The feature found by <see cref="ModelFeatures(SemanticApplication)"/>.</param>
     /// <returns>The note describing what is and is not executed, or null when the live runtime does not run the construct at all.</returns>
-    public static string? RunsAround(SemanticApplication application, SemanticAdmissionFeature feature)
-    {
-        if (feature.Details.StartsWith($"{SemanticVersionFeatures.PublicEvents}:", StringComparison.Ordinal) && IsKind(feature, "event", "projection"))
-        {
-            return $"{SemanticVersionFeatures.PublicEvents}: Published to the outbox only: the sandbox appends the public event to its own event store's outbox, never to its event log; nothing outside the sandbox reads it unless another application is run against the same kernel. Projection shapes the evaluator cannot fold refuse the affected command instead of appending.";
-        }
-
-        if (feature.Details.StartsWith($"{SemanticVersionFeatures.ForeignEvents}:", StringComparison.Ordinal) && IsKind(feature, "event", "capture"))
-        {
-            return $"{SemanticVersionFeatures.ForeignEvents}: Inbound translation runs on what reaches the application's inbox: foreign events arrive through seeds or through the event store's subscription to the origin store's outbox; captures do not poll external sources.";
-        }
-
-        if (feature.Details.StartsWith($"{SemanticVersionFeatures.Automation}:", StringComparison.Ordinal) &&
-            (IsKind(feature, "capture") || (IsKind(feature, "slice") && SemanticVersionFeatures.Slices(application)
-                .Any(slice => slice.Id.ToString() == feature.Artifact && slice.Kind == SemanticSliceKind.Translate))))
-        {
-            return $"{SemanticVersionFeatures.Automation}: Translation integrations are not executed in the sandbox: inbound facts require seeds; outbound event projections publish locally only.";
-        }
-
-        if (feature.Details.StartsWith($"{GraphsNotProjected}:", StringComparison.Ordinal) && IsKind(feature, "graph"))
-        {
-            return $"{GraphsNotProjected}: Graphs are projected by the kernel's graph sink: the sandbox registers each graph and its projection with the kernel it runs against, embedded or external, and the kernel writes the nodes and edges. The sandbox itself does not read a graph back, and graph specifications are decided by Screenplay's reference graph runner.";
-        }
-
-        return null;
-    }
+    public static string? RunsAround(SemanticApplication application, SemanticAdmissionFeature feature) =>
+        PublicEventNote(feature) ?? ForeignEventNote(feature) ?? AutomationNote(application, feature) ?? GraphNote(feature);
 
     /// <summary>
     /// Finds the graph declarations, graph projections and graph specifications of the application, which the live runtime does not project.
@@ -116,7 +92,7 @@ public static partial class SemanticRunAdmission
     /// <returns>One note when the application declares any graph construct.</returns>
     public static IEnumerable<SemanticAdmissionFeature> GraphFeatures(SemanticApplication application)
     {
-        if (application.Graphs.IsDefaultOrEmpty && application.GraphProjections.IsDefaultOrEmpty && application.GraphSpecifications.IsDefaultOrEmpty) yield break;
+        if (!DeclaresGraphs(application)) yield break;
         yield return new(
             application.Id.ToString(),
             "graph",
@@ -155,122 +131,7 @@ public static partial class SemanticRunAdmission
     /// <param name="specification">The specification.</param>
     /// <param name="bodies">The optional compiled bodies.</param>
     /// <returns>The first unsupported capability, or null.</returns>
-    public static SemanticUnsupportedCapability? Check(SemanticExecutionPlan plan, SemanticSpecification specification, SemanticBodyExecution? bodies)
-    {
-        static SemanticUnsupportedCapability Block(StageExecutionCapability capability, SemanticId id, string details) => new(capability, id.ToString(), details);
-        if (ModelRefusal(plan, specification) is { } modelRefusal) return modelRefusal;
-
-        // A specification runs only its own slice (Screenplay decision 0115): admit what that slice runs, not other slices' reactions or captures.
-        if (plan.IsolatedSlice is null && plan.SliceOf(specification.Id) is { } owner) plan = plan.IsolatedTo(owner);
-        var slices = plan.Model.Application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices).ToArray();
-        if (LaterVersionConstruct(plan, slices, specification) is { } later) return later;
-        if (SemanticRunTranslationAdmission.Check(plan, specification) is { } translation) return translation;
-
-        // Runtime contracts keep authored property names, not the renderer's PascalCase members.
-        // Case-insensitive duplicates still make JSON binding and Chronicle payloads ambiguous.
-        foreach (var slice in slices)
-        {
-            var collidingEvent = slice.Events.FirstOrDefault(@event => !RuntimePropertyNamesAreUnique(@event.Properties));
-            if (collidingEvent is not null)
-            {
-                var referenced = slices.SelectMany(candidate => candidate.Projections)
-                    .Any(projection => ProjectionReferencedEventNamesAreUnique.Contracts(projection).Contains(collidingEvent.Id));
-                return Block(
-                    referenced ? StageExecutionCapability.Projection : StageExecutionCapability.Command,
-                    collidingEvent.Id,
-                    "Event property names are not unique under case-insensitive runtime JSON binding.");
-            }
-            var collidingCommand = slice.Commands.FirstOrDefault(command => !RuntimePropertyNamesAreUnique(command.Properties));
-            if (collidingCommand is not null) return Block(StageExecutionCapability.Command, collidingCommand.Id, "Command property names are not unique under case-insensitive runtime JSON binding.");
-            var collidingReadModel = slice.ReadModels.FirstOrDefault(readModel => !RuntimePropertyNamesAreUnique(readModel.Properties));
-            if (collidingReadModel is not null) return Block(StageExecutionCapability.Projection, collidingReadModel.Id, "Read-model property names are not unique under case-insensitive runtime JSON binding.");
-        }
-        var collidingType = plan.Model.Application.Types.FirstOrDefault(type => !RuntimePropertyNamesAreUnique(type.Properties));
-        if (collidingType is not null) return Block(StageExecutionCapability.Command, collidingType.Id, "Type property names are not unique under case-insensitive runtime JSON binding.");
-        if (SemanticImplementationReach.ForSpecification(plan, specification, bodies) is { } implementation) return implementation;
-        if (specification.GivenCaller is { Authenticated: false } caller && (!caller.Roles.IsEmpty || !caller.Claims.IsEmpty))
-        {
-            return Block(StageExecutionCapability.Authorization, specification.Id, "An unauthenticated caller cannot carry roles or claims; Arc supplies an empty guest principal.");
-        }
-        if (specification.GivenCaller?.Claims.Any(claim => string.Equals(claim.Type, ClaimTypes.Role, StringComparison.OrdinalIgnoreCase)) == true)
-        {
-            return Block(StageExecutionCapability.Authorization, specification.Id, "Role-URI claim types cannot be used as claims; roles and claims are separate in Screenplay.");
-        }
-        if (specification.WhenAppended is { } appended)
-        {
-            if (!plan.Events.TryGetValue(appended.EventContract, out var appendedContract)) return Block(StageExecutionCapability.PlanIssue, appended.EventContract, "The appended event is not in the plan.");
-            if (EventValueRefusal(plan, appendedContract, appended.Values) is { } appendedRefusal) return Block(StageExecutionCapability.Occurrence, appended.EventContract, appendedRefusal);
-        }
-        foreach (var given in specification.GivenEvents)
-        {
-            if (!plan.Events.TryGetValue(given.EventContract, out var givenContract)) return Block(StageExecutionCapability.PlanIssue, given.EventContract, "The Given event is not in the plan.");
-            if (EventValueRefusal(plan, givenContract, given.Values) is { } givenRefusal) return Block(StageExecutionCapability.Command, given.EventContract, givenRefusal);
-        }
-        if (specification.WhenAppended is not null) return SemanticRunReactionAdmission.CheckProjections(plan, specification, specification.GivenEvents.Select(given => given.EventContract).Append(specification.WhenAppended.EventContract));
-        if (specification.When is not { } when)
-        {
-            return SemanticRunReactionAdmission.CheckProjections(plan, specification, specification.GivenEvents.Select(given => given.EventContract));
-        }
-        if (!plan.Commands.TryGetValue(when.Command, out var command)) return Block(StageExecutionCapability.Command, when.Command, "The command is not in the plan.");
-        if (CommandPlanRefusal(plan, command) is { } commandRefusal) return commandRefusal;
-        if (CommandValidationRefusal(plan, command) is { } validationRefusal)
-        {
-            return Block(StageExecutionCapability.Command, command.Id, validationRefusal);
-        }
-        var valueContext = new SemanticApplicationContext(plan);
-        var valueRefusal = command.Properties.Select(property => SemanticValueShapeAdmission.Refusal(valueContext, property.Type, bodies)).FirstOrDefault(refusal => refusal is not null);
-        if (valueRefusal is not null)
-        {
-            return Block(StageExecutionCapability.Command, command.Id, valueRefusal);
-        }
-
-        // A described handler determines its own productions. Only history can be projected before its body is reached.
-        if (command.Handler is not null)
-        {
-            if (command.Validations.Any(rule => !SupportedRule(rule, bodies)))
-            {
-                return Block(StageExecutionCapability.Command, command.Id, "A command validation rule is not admitted.");
-            }
-
-            return SemanticRunReactionAdmission.CheckProjections(plan, specification, specification.GivenEvents.Select(given => given.EventContract));
-        }
-
-        // Projections never run for expected rejection/denial, whether the command rejects or reports an acceptance mismatch.
-        var produced = specification.ThenErrors.IsEmpty && !specification.ThenDenied
-            ? SemanticProductionConditions.Taken(command, when, plan.Model.Application).Select(produce => produce.EventContract) : [];
-        var reachableEvents = specification.GivenEvents.Select(given => given.EventContract).Concat(produced).ToHashSet();
-        if (SemanticRunReactionAdmission.CheckProjections(plan, specification, reachableEvents) is { } projectionBlock) return projectionBlock;
-
-        foreach (var production in command.Produces)
-        {
-            if (!plan.Events.TryGetValue(production.EventContract, out var eventContract)) return Block(StageExecutionCapability.Command, command.Id, "The produced event is not in the plan.");
-            if (EventValueRefusal(plan, eventContract) is { } eventRefusal) return Block(StageExecutionCapability.Command, command.Id, eventRefusal);
-        }
-
-        if (command.Validations.Any(rule => !SupportedRule(rule, bodies)))
-        {
-            return Block(StageExecutionCapability.Command, command.Id, "A command validation rule is not admitted.");
-        }
-
-        if (command.Produces.Any(produced => produced.Condition is not null || produced.Mappings.Any(mapping => mapping.Source is not (SemanticValueExpression or SemanticReadPathExpression or SemanticResolvedExpression { Root: SemanticExpressionRootKind.Command, Source: SemanticExpressionSourceKind.Property }) &&
-                !(mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred } &&
-                    (SemanticSpecificationClock.TryGetOccurrence(specification, out _) || !specification.ThenErrors.IsEmpty || specification.ThenDenied)))))
-        {
-            return Block(StageExecutionCapability.Command, command.Id, "Expression conditions or non-command mappings are not admitted.");
-        }
-
-        if (command.Produces.Any(produced => produced.Destination is not null and not (SemanticValueExpression or SemanticResolvedExpression { Root: SemanticExpressionRootKind.Command })))
-        {
-            return Block(StageExecutionCapability.Command, command.Id, "The destination expression is not admitted.");
-        }
-
-        // A routed command can reject its route before reaching identity allocation; defer that decision to execution.
-        if (specification.ThenErrors.IsEmpty && command.Route is null && when.EventSource is null && command.Destination?.Value is null && SemanticProductionConditions.Taken(command, when, plan.Model.Application).Any(produced => produced.Destination is null))
-        {
-            return Block(StageExecutionCapability.IdentityAllocation, command.Id, "An accepted command requires an explicit destination.");
-        }
-        return null;
-    }
+    public static SemanticUnsupportedCapability? Check(SemanticExecutionPlan plan, SemanticSpecification specification, SemanticBodyExecution? bodies) => CheckSpecification(plan, specification, bodies);
 
     /// <summary>
     /// Checks a concrete reaction fact before it can reach per-run projection replay.
@@ -388,28 +249,30 @@ public static partial class SemanticRunAdmission
 
     internal static string? CommandValidationRefusal(SemanticExecutionPlan plan, SemanticCommand command)
     {
-        foreach (var rule in command.Validations.Where(rule => rule.Kind is SemanticValidationRuleKind.AllGreaterThan or SemanticValidationRuleKind.AllGreaterThanOrEqual))
-        {
-            var property = command.Properties.FirstOrDefault(property => property.Id == rule.Property);
-            var description = $"Command '{command.Name}' validation '{rule.Kind}' on property '{property?.Name ?? rule.Property.ToString()}'";
-            if (rule.Operand is not SemanticNumberValue)
-            {
-                return $"{description} requires a numeric operand.";
-            }
-            var type = property?.Type;
-            var primitive = type?.Kind switch
-            {
-                SemanticTypeReferenceKind.Concept => plan.Model.Application.Concepts.FirstOrDefault(concept => concept.Id == type.Target)?.Primitive,
-                SemanticTypeReferenceKind.Primitive => type.Primitive,
-                _ => null
-            };
-            if (type?.IsCollection != true || primitive is not (SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber))
-            {
-                return $"{description} requires a collection of numeric primitives or concepts.";
-            }
-        }
+        return command.Validations
+            .Where(rule => rule.Kind is SemanticValidationRuleKind.AllGreaterThan or SemanticValidationRuleKind.AllGreaterThanOrEqual)
+            .Select(rule => AllRuleRefusal(plan, command, rule))
+            .FirstOrDefault(refusal => refusal is not null);
+    }
 
-        return null;
+    static string? AllRuleRefusal(SemanticExecutionPlan plan, SemanticCommand command, SemanticValidationRule rule)
+    {
+        var property = command.Properties.FirstOrDefault(property => property.Id == rule.Property);
+        var description = $"Command '{command.Name}' validation '{rule.Kind}' on property '{property?.Name ?? rule.Property.ToString()}'";
+        if (rule.Operand is not SemanticNumberValue) return $"{description} requires a numeric operand.";
+
+        return IsNumericCollection(plan, property?.Type) ? null : $"{description} requires a collection of numeric primitives or concepts.";
+    }
+
+    static bool IsNumericCollection(SemanticExecutionPlan plan, SemanticTypeReference? type)
+    {
+        var primitive = type?.Kind switch
+        {
+            SemanticTypeReferenceKind.Concept => plan.Model.Application.Concepts.FirstOrDefault(concept => concept.Id == type.Target)?.Primitive,
+            SemanticTypeReferenceKind.Primitive => type.Primitive,
+            _ => null
+        };
+        return type?.IsCollection == true && primitive is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber;
     }
 
     static IEnumerable<SemanticAdmissionFeature> ModelFeatures(ExecutableSemanticModel model, Func<SemanticUnknownMember, bool> include)
@@ -426,17 +289,25 @@ public static partial class SemanticRunAdmission
     static SemanticScopedMember? ScopedClockMember(ExecutableSemanticModel model, SemanticUnknownMember member)
     {
         if (member.Member == "SemanticReadModel.PropertyOrder") return new(member, "readModel", null);
-        if (member.Member.StartsWith("SemanticApplication.", StringComparison.Ordinal) || member.Member.StartsWith("SemanticTimeZone.", StringComparison.Ordinal))
-        {
-            return string.Equals(member.Member, "SemanticApplication.TimeZone", StringComparison.Ordinal) || string.Equals(member.Member, "SemanticApplication.ContextMembers", StringComparison.Ordinal) || member.Member.StartsWith("SemanticTimeZone.", StringComparison.Ordinal) ? new(member, "application", null) : null;
-        }
+        if (IsApplicationScoped(member)) return IsClockApplicationMember(member) ? new(member, "application", null) : null;
         if (!_clockMemberPrefixes.Any(prefix => member.Member.StartsWith(prefix, StringComparison.Ordinal))) return null;
-        if (CommandSegment.Match(member.Path) is { Success: true } command)
-        {
-            var owner = SemanticVersionFeatures.Slices(model.Application).FirstOrDefault(slice => slice.Id == member.Owner);
-            return owner?.Commands.ElementAtOrDefault(int.Parse(command.Groups["index"].Value, System.Globalization.CultureInfo.InvariantCulture)) is { } found ? new(member, "command", found) : null;
-        }
+        if (CommandSegment.Match(member.Path) is { Success: true } command) return ScopedCommandMember(model, member, command);
+
         return member.Path.Contains(".Specifications[", StringComparison.Ordinal) ? new(member, "specification", null) : null;
+    }
+
+    static bool IsApplicationScoped(SemanticUnknownMember member) =>
+        member.Member.StartsWith("SemanticApplication.", StringComparison.Ordinal) || member.Member.StartsWith("SemanticTimeZone.", StringComparison.Ordinal);
+
+    static bool IsClockApplicationMember(SemanticUnknownMember member) =>
+        string.Equals(member.Member, "SemanticApplication.TimeZone", StringComparison.Ordinal) ||
+        string.Equals(member.Member, "SemanticApplication.ContextMembers", StringComparison.Ordinal) ||
+        member.Member.StartsWith("SemanticTimeZone.", StringComparison.Ordinal);
+
+    static SemanticScopedMember? ScopedCommandMember(ExecutableSemanticModel model, SemanticUnknownMember member, Match command)
+    {
+        var owner = SemanticVersionFeatures.Slices(model.Application).FirstOrDefault(slice => slice.Id == member.Owner);
+        return owner?.Commands.ElementAtOrDefault(int.Parse(command.Groups["index"].Value, System.Globalization.CultureInfo.InvariantCulture)) is { } found ? new(member, "command", found) : null;
     }
 
     static SemanticUnsupportedCapability? ModelRefusal(SemanticExecutionPlan plan, SemanticSpecification specification) =>
@@ -547,23 +418,21 @@ public static partial class SemanticRunAdmission
     static string? EventValueRefusal(SemanticExecutionPlan plan, SemanticEventContract eventContract, IEnumerable<SemanticPropertyValue>? values = null)
     {
         var context = new SemanticApplicationContext(plan);
-        foreach (var property in eventContract.Properties)
-        {
-            if (SemanticValueShapeAdmission.PayloadRefusal(context, property.Type) is { } refusal) return refusal;
-        }
+        var payloadRefusal = eventContract.Properties.Select(property => SemanticValueShapeAdmission.PayloadRefusal(context, property.Type)).FirstOrDefault(refusal => refusal is not null);
+        if (payloadRefusal is not null) return payloadRefusal;
+
         var properties = eventContract.Properties.ToLookup(property => property.Id);
-        foreach (var value in values ?? [])
+        return (values ?? []).Select(value => EventValueRefusal(context, eventContract, properties, value)).FirstOrDefault(refusal => refusal is not null);
+    }
+
+    static string? EventValueRefusal(SemanticApplicationContext context, SemanticEventContract eventContract, ILookup<SemanticId, SemanticProperty> properties, SemanticPropertyValue value)
+    {
+        if (properties[value.TargetProperty].ToArray() is not [var property])
         {
-            if (properties[value.TargetProperty].ToArray() is not [var property])
-            {
-                return $"Event '{eventContract.Name}' payload property '{value.TargetProperty}' must identify exactly one declared property.";
-            }
-            if (!EventValueMatches(context, property.Type, value.Value))
-            {
-                return "An event payload value does not match its declared structure.";
-            }
+            return $"Event '{eventContract.Name}' payload property '{value.TargetProperty}' must identify exactly one declared property.";
         }
-        return null;
+
+        return EventValueMatches(context, property.Type, value.Value) ? null : "An event payload value does not match its declared structure.";
     }
 
     static bool EventValueMatches(SemanticApplicationContext context, SemanticTypeReference type, SemanticValue value)
@@ -574,6 +443,35 @@ public static partial class SemanticRunAdmission
         return value is SemanticCompositeValue composite && composite.Properties.All(member =>
             context.Types[type.Target].Properties.FirstOrDefault(property => property.Id == member.TargetProperty) is { } property && EventValueMatches(context, property.Type, member.Value));
     }
+
+    static string? PublicEventNote(SemanticAdmissionFeature feature) =>
+        HasTag(feature, SemanticVersionFeatures.PublicEvents) && IsKind(feature, "event", "projection")
+            ? $"{SemanticVersionFeatures.PublicEvents}: Published to the outbox only: the sandbox appends the public event to its own event store's outbox, never to its event log; nothing outside the sandbox reads it unless another application is run against the same kernel. Projection shapes the evaluator cannot fold refuse the affected command instead of appending."
+            : null;
+
+    static string? ForeignEventNote(SemanticAdmissionFeature feature) =>
+        HasTag(feature, SemanticVersionFeatures.ForeignEvents) && IsKind(feature, "event", "capture")
+            ? $"{SemanticVersionFeatures.ForeignEvents}: Inbound translation runs on what reaches the application's inbox: foreign events arrive through seeds or through the event store's subscription to the origin store's outbox; captures do not poll external sources."
+            : null;
+
+    static string? AutomationNote(SemanticApplication application, SemanticAdmissionFeature feature) =>
+        HasTag(feature, SemanticVersionFeatures.Automation) && (IsKind(feature, "capture") || IsTranslateSlice(application, feature))
+            ? $"{SemanticVersionFeatures.Automation}: Translation integrations are not executed in the sandbox: inbound facts require seeds; outbound event projections publish locally only."
+            : null;
+
+    static bool IsTranslateSlice(SemanticApplication application, SemanticAdmissionFeature feature) =>
+        IsKind(feature, "slice") && SemanticVersionFeatures.Slices(application)
+            .Any(slice => slice.Id.ToString() == feature.Artifact && slice.Kind == SemanticSliceKind.Translate);
+
+    static string? GraphNote(SemanticAdmissionFeature feature) =>
+        HasTag(feature, GraphsNotProjected) && IsKind(feature, "graph")
+            ? $"{GraphsNotProjected}: Graphs are projected by the kernel's graph sink: the sandbox registers each graph and its projection with the kernel it runs against, embedded or external, and the kernel writes the nodes and edges. The sandbox itself does not read a graph back, and graph specifications are decided by Screenplay's reference graph runner."
+            : null;
+
+    static bool HasTag(SemanticAdmissionFeature feature, string tag) => feature.Details.StartsWith($"{tag}:", StringComparison.Ordinal);
+
+    static bool DeclaresGraphs(SemanticApplication application) =>
+        !application.Graphs.IsDefaultOrEmpty || !application.GraphProjections.IsDefaultOrEmpty || !application.GraphSpecifications.IsDefaultOrEmpty;
 
     static bool IsKind(SemanticAdmissionFeature feature, params string[] kinds) =>
         kinds.Any(kind => string.Equals(feature.Kind, kind, StringComparison.Ordinal));

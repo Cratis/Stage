@@ -202,7 +202,8 @@ class SpecShardsTests(unittest.TestCase):
         self.assertEqual(1, workflow.count(command))
         self.assertIn(command, jobs["preflight"])
         self.assertNotIn("setup-dotnet", jobs["preflight"])
-        for name in ("dotnet-build", "specs", "reducer-mongo", "generated-name-matrix", "standalone-generated-application",
+        for name in ("dotnet-build", "frontend", "release-pack", "specs", "reducer-mongo", "generated-name-matrix",
+                     "standalone-generated-application",
                      "live-custom-packages", "generated-react", "generated-react-blueprint-templates", "build"):
             self.assertRegex(jobs[name], r"needs: (?:\[[^\]\n]*)?preflight\b")
         aggregate = jobs["build"]
@@ -212,11 +213,20 @@ class SpecShardsTests(unittest.TestCase):
         for variable, job in gated:
             self.assertIn(variable + ": ${{ needs." + job + ".result }}", aggregate)
         check = re.search(r"run: (test .+)", aggregate)[1]
+        # Frontend and Release/pack run beside the Debug build; asserted singly to keep the product small.
+        extra = (("FRONTEND_RESULT", "frontend"), ("RELEASE_PACK_RESULT", "release-pack"))
+        for variable, job in extra:
+            self.assertIn(variable + ": ${{ needs." + job + ".result }}", aggregate)
+        passing = {variable: "success" for variable, _ in gated + extra}
         for results in product(("success", "failure", "skipped", "cancelled"), repeat=len(gated)):
             with self.subTest(results=results):
-                environment = dict(zip((variable for variable, _ in gated), results))
+                environment = {**passing, **dict(zip((variable for variable, _ in gated), results))}
                 self.assertEqual(all(result == "success" for result in results),
                                  subprocess.run(["sh", "-c", check], env=environment).returncode == 0)
+        for variable, _ in extra:
+            for result in ("failure", "skipped", "cancelled", ""):
+                with self.subTest(variable=variable, result=result):
+                    self.assertNotEqual(0, subprocess.run(["sh", "-c", check], env={**passing, variable: result}).returncode)
 
     @staticmethod
     def write_trx(path, results, assembly="Cratis.Stage.Rendering.Cratis.dll"):

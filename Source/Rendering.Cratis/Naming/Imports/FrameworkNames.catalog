@@ -5,13 +5,13 @@ scaffold	3
 pin	Cratis	22.184.0
 pin	Cratis.Arc.Chronicle.Testing	22.184.0
 pin	Cratis.Arc.MongoDB	22.184.0
-pin	Cratis.Choreography	2.2.0
-pin	Cratis.Choreography.Chronicle	2.2.0
-pin	Cratis.Chronicle	19.144.0
-pin	Cratis.Chronicle.AspNetCore	19.144.0
-pin	Cratis.Chronicle.Testing	19.144.0
-pin	Cratis.Screenplay	6.18.0
-pin	Cratis.Screenplay.Matching	6.18.0
+pin	Cratis.Choreography	2.5.0
+pin	Cratis.Choreography.Chronicle	2.5.0
+pin	Cratis.Chronicle	19.148.0
+pin	Cratis.Chronicle.AspNetCore	19.148.0
+pin	Cratis.Chronicle.Testing	19.148.0
+pin	Cratis.Screenplay	6.19.0
+pin	Cratis.Screenplay.Matching	6.19.0
 pin	Cratis.Specifications	5.2.3
 pin	Cratis.Specifications.XUnit	5.2.3
 pin	Microsoft.NET.Test.Sdk	18.11.0
@@ -38,21 +38,21 @@ package	AS	Cratis.Arc.ProxyGenerator.Build	22.184.0
 package	AS	Cratis.Arc.Screenplay.Embedded	22.184.0
 package	AS	Cratis.Arc.Swagger	22.184.0
 package	AS	Cratis.Arc.Testing	22.184.0
-package	AS	Cratis.Choreography	2.2.0
-package	AS	Cratis.Choreography.Chronicle	2.2.0
-package	AS	Cratis.Choreography.Storage	2.2.0
+package	AS	Cratis.Choreography	2.5.0
+package	AS	Cratis.Choreography.Chronicle	2.5.0
+package	AS	Cratis.Choreography.Storage	2.5.0
 package	AS	Cratis.Choreography.Storage.MongoDB	2.1.2
-package	AS	Cratis.Chronicle	19.144.0
-package	AS	Cratis.Chronicle.AspNetCore	19.144.0
-package	AS	Cratis.Chronicle.CodeAnalysis	19.144.0
-package	AS	Cratis.Chronicle.Connections	19.144.0
-package	AS	Cratis.Chronicle.Testing	19.144.0
+package	AS	Cratis.Chronicle	19.148.0
+package	AS	Cratis.Chronicle.AspNetCore	19.148.0
+package	AS	Cratis.Chronicle.CodeAnalysis	19.148.0
+package	AS	Cratis.Chronicle.Connections	19.148.0
+package	AS	Cratis.Chronicle.Testing	19.148.0
 package	AS	Cratis.Fundamentals	7.33.1
 package	AS	Cratis.Metrics.Roslyn	7.33.1
 package	AS	Cratis.Observability.SourceGenerators	7.33.1
-package	AS	Cratis.Screenplay	6.18.0
-package	AS	Cratis.Screenplay.Contexts	6.18.0
-package	AS	Cratis.Screenplay.Matching	6.18.0
+package	AS	Cratis.Screenplay	6.19.0
+package	AS	Cratis.Screenplay.Contexts	6.19.0
+package	AS	Cratis.Screenplay.Matching	6.19.0
 package	AS	Cratis.Specifications	5.2.3
 package	AS	Cratis.Specifications.XUnit	5.2.3
 package	AS	DnsClient	1.8.0
@@ -191,7 +191,7 @@ package	AS	Polly	8.6.4
 package	AS	Polly.Core	8.6.5
 package	AS	Polly.Extensions	8.6.5
 package	AS	Polly.RateLimiting	8.4.2
-package	AS	SharpCompress	0.50.7
+package	AS	SharpCompress	0.50.8
 package	AS	Snappier	1.3.1
 package	AS	Swashbuckle.AspNetCore	10.2.3
 package	AS	Swashbuckle.AspNetCore.Swagger	10.2.3
@@ -419,6 +419,7 @@ namespace	AS	Cratis.Choreography.Chronicle.Hosting
 namespace	AS	Cratis.Choreography.Chronicle.StateMachines
 namespace	AS	Cratis.Choreography.Chronicle.Workflows
 namespace	AS	Cratis.Choreography.Chronicle.Workflows.Listing
+namespace	AS	Cratis.Choreography.Collaboration
 namespace	AS	Cratis.Choreography.Hosting
 namespace	AS	Cratis.Choreography.Jobs
 namespace	AS	Cratis.Choreography.Jobs.Placement
@@ -534,6 +535,7 @@ namespace	AS	Cratis.Chronicle.Contracts.EventTypes
 namespace	AS	Cratis.Chronicle.Contracts.Events
 namespace	AS	Cratis.Chronicle.Contracts.Events.Constraints
 namespace	AS	Cratis.Chronicle.Contracts.ExternalServices
+namespace	AS	Cratis.Chronicle.Contracts.Federation
 namespace	AS	Cratis.Chronicle.Contracts.Host
 namespace	AS	Cratis.Chronicle.Contracts.Identities
 namespace	AS	Cratis.Chronicle.Contracts.Jobs
@@ -677,6 +679,7 @@ namespace	AS	Cratis.Chronicle.Services.EventTypes
 namespace	AS	Cratis.Chronicle.Services.Events
 namespace	AS	Cratis.Chronicle.Services.Events.Constraints
 namespace	AS	Cratis.Chronicle.Services.ExternalServices
+namespace	AS	Cratis.Chronicle.Services.Federation
 namespace	AS	Cratis.Chronicle.Services.Host
 namespace	AS	Cratis.Chronicle.Services.Identities
 namespace	AS	Cratis.Chronicle.Services.Jobs
@@ -2037,6 +2040,7 @@ namespace	AS	OrleansCodeGen.Cratis
 namespace	AS	OrleansCodeGen.Cratis.Choreography
 namespace	AS	OrleansCodeGen.Cratis.Choreography.Chronicle
 namespace	AS	OrleansCodeGen.Cratis.Choreography.Chronicle.StateMachines
+namespace	AS	OrleansCodeGen.Cratis.Choreography.Collaboration
 namespace	AS	OrleansCodeGen.Cratis.Choreography.Jobs
 namespace	AS	OrleansCodeGen.Cratis.Choreography.Jobs.Placement
 namespace	AS	OrleansCodeGen.Cratis.Choreography.Patching
@@ -2067,6 +2071,7 @@ namespace	AS	OrleansCodeGen.Cratis.Chronicle.EventStores
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.EventTypes
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Events
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Events.Constraints
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Federation
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Generations
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Generations.Enablement
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Namespaces
@@ -3529,9 +3534,11 @@ type	AS	Cratis.Choreography.Chronicle.Workflows	ChronicleWorkflowExecutionScopes
 type	AS	Cratis.Choreography.Chronicle.Workflows	ChronicleWorkflowRunJournal	class
 type	AS	Cratis.Choreography.Chronicle.Workflows	CronExpression	class
 type	AS	Cratis.Choreography.Chronicle.Workflows	EventSourcedWorkflowsOptions	class
+type	AS	Cratis.Choreography.Chronicle.Workflows	IWorkflowCompletions	interface
 type	AS	Cratis.Choreography.Chronicle.Workflows	IWorkflowSignals	interface
 type	AS	Cratis.Choreography.Chronicle.Workflows	InvalidCronExpression	class
 type	AS	Cratis.Choreography.Chronicle.Workflows	StateMachineIsNotAGrain	class
+type	AS	Cratis.Choreography.Chronicle.Workflows	WorkflowCompletions	class
 type	AS	Cratis.Choreography.Chronicle.Workflows	WorkflowEventTrigger	class
 type	AS	Cratis.Choreography.Chronicle.Workflows	WorkflowSchedule	class
 type	AS	Cratis.Choreography.Chronicle.Workflows	WorkflowScheduleService	class
@@ -3542,7 +3549,24 @@ type	AS	Cratis.Choreography.Chronicle.Workflows.Listing	WorkflowRun	class
 type	AS	Cratis.Choreography.Chronicle.Workflows.Listing	WorkflowRunExecution	class
 type	AS	Cratis.Choreography.Chronicle.Workflows.Listing	WorkflowRunReducer	class
 type	AS	Cratis.Choreography.Chronicle.Workflows.Listing	WorkflowRunWait	class
+type	AS	Cratis.Choreography.Collaboration	CollaborationHub	class
+type	AS	Cratis.Choreography.Collaboration	CollaborationOptions	class
+type	AS	Cratis.Choreography.Collaboration	CollaborationParticipant	class
+type	AS	Cratis.Choreography.Collaboration	CollaborationRoomGrain	class
+type	AS	Cratis.Choreography.Collaboration	CollaborationRoster	class
+type	AS	Cratis.Choreography.Collaboration	CollaborationUnavailable	class
+type	AS	Cratis.Choreography.Collaboration	Collaborator	class
+type	AS	Cratis.Choreography.Collaboration	ICollaborationBackplane	interface
+type	AS	Cratis.Choreography.Collaboration	ICollaborationHub	interface
+type	AS	Cratis.Choreography.Collaboration	ICollaborationParticipantResolver	interface
+type	AS	Cratis.Choreography.Collaboration	ICollaborationRoomGrain	interface
+type	AS	Cratis.Choreography.Collaboration	ICollaborationRoomObserver	interface
+type	AS	Cratis.Choreography.Collaboration	ILocalCollaborationDelivery	interface
+type	AS	Cratis.Choreography.Collaboration	LocalCollaborationBackplane	class
+type	AS	Cratis.Choreography.Collaboration	OrleansCollaborationBackplane	class
 type	AS	Cratis.Choreography.Hosting	ClusteringMode	enum
+type	AS	Cratis.Choreography.Hosting	CollaborationEndpointExtensions	static
+type	AS	Cratis.Choreography.Hosting	CollaborationServiceCollectionExtensions	static
 type	AS	Cratis.Choreography.Hosting	CratisChoreographyOptions	class
 type	AS	Cratis.Choreography.Hosting	CratisChoreographySiloBuilderExtensions	static
 type	AS	Cratis.Choreography.Hosting	GrainStorageMode	enum
@@ -3846,8 +3870,10 @@ type	AS	Cratis.Choreography.Workflows.Definitions	StructuralAdmissionPolicy	clas
 type	AS	Cratis.Choreography.Workflows.Definitions	WorkflowAdmissionRejection	class
 type	AS	Cratis.Choreography.Workflows.Definitions	WorkflowCatalogVersion	class
 type	AS	Cratis.Choreography.Workflows.Definitions	WorkflowDefinitionSnapshot	class
+type	AS	Cratis.Choreography.Workflows.Execution	IWorkflowCapabilityGates	interface
 type	AS	Cratis.Choreography.Workflows.Execution	IWorkflowNodeStep	interface
 type	AS	Cratis.Choreography.Workflows.Execution	IWorkflowWaveJob	interface
+type	AS	Cratis.Choreography.Workflows.Execution	WorkflowCapabilityGates	class
 type	AS	Cratis.Choreography.Workflows.Execution	WorkflowNodePerformance	class
 type	AS	Cratis.Choreography.Workflows.Execution	WorkflowNodeStep	class
 type	AS	Cratis.Choreography.Workflows.Execution	WorkflowNodeStepState	class
@@ -3903,6 +3929,7 @@ type	AS	Cratis.Choreography.Workflows.Runs	WorkflowNodeFailed	class
 type	AS	Cratis.Choreography.Workflows.Runs	WorkflowNodeInputPinned	class
 type	AS	Cratis.Choreography.Workflows.Runs	WorkflowNodeOperationCompleted	class
 type	AS	Cratis.Choreography.Workflows.Runs	WorkflowNodeOutcomeAmbiguous	class
+type	AS	Cratis.Choreography.Workflows.Runs	WorkflowNodeReconciled	class
 type	AS	Cratis.Choreography.Workflows.Runs	WorkflowNodeScheduled	class
 type	AS	Cratis.Choreography.Workflows.Runs	WorkflowNodeSkipped	class
 type	AS	Cratis.Choreography.Workflows.Runs	WorkflowNodeSucceeded	class
@@ -3958,6 +3985,7 @@ type	AS	Cratis.Choreography.Workflows.Triggers	WorkflowTrigger	class
 type	AS	Cratis.Choreography.Workflows.Triggers	WorkflowTriggerKind	enum
 type	AS	Cratis.Choreography.Workflows.Waits	WaitDeadline	class
 type	AS	Cratis.Choreography.Workflows.Waits	WaitKind	enum
+type	AS	Cratis.Choreography.Workflows.Waits	WorkflowCompletionKey	class
 type	AS	Cratis.Choreography.Workflows.Waits	WorkflowWaitId	class
 type	AS	Cratis.Chronicle	ActivatedArtifact	class
 type	AS	Cratis.Chronicle	ActivatedArtifact`1	class
@@ -4157,6 +4185,7 @@ type	AS	Cratis.Chronicle.Confidentiality	SecurityMetadataType	class
 type	AS	Cratis.Chronicle.Connections	AmbiguousAuthenticationMode	class
 type	AS	Cratis.Chronicle.Connections	AuthenticationClientInterceptor	class
 type	AS	Cratis.Chronicle.Connections	AuthenticationMode	enum
+type	AS	Cratis.Chronicle.Connections	CertificateAuthorityDoesNotExist	class
 type	AS	Cratis.Chronicle.Connections	CertificateDoesNotExist	class
 type	AS	Cratis.Chronicle.Connections	CertificateLoader	static
 type	AS	Cratis.Chronicle.Connections	ChronicleConnection	class
@@ -4190,6 +4219,7 @@ type	AS	Cratis.Chronicle.Connections	ITokenProvider	interface
 type	AS	Cratis.Chronicle.Connections	InProcessAwareGrpcClientProxiesClientFactory	class
 type	AS	Cratis.Chronicle.Connections	IncompatibleServerException	class
 type	AS	Cratis.Chronicle.Connections	InsecureTokenEndpoint	class
+type	AS	Cratis.Chronicle.Connections	InvalidCertificateAuthority	class
 type	AS	Cratis.Chronicle.Connections	InvalidCertificateOrPassword	class
 type	AS	Cratis.Chronicle.Connections	InvalidServerAddress	class
 type	AS	Cratis.Chronicle.Connections	InvalidUserInfo	class
@@ -4206,6 +4236,7 @@ type	AS	Cratis.Chronicle.Connections	TokenEndpointDiscoveryFailed	class
 type	AS	Cratis.Chronicle.Connections	UnableToResolveClientUri	class
 type	AS	Cratis.Chronicle.Connections	UnknownClusterType	class
 type	AS	Cratis.Chronicle.Connections	UnknownLoadBalancerStrategy	class
+type	AS	Cratis.Chronicle.Connections	UnsupportedCertificateAuthorityFormat	class
 type	AS	Cratis.Chronicle.Diagnostics	EventSourceIdTracing	enum
 type	AS	Cratis.Chronicle.Diagnostics	IdentifierHasher	class
 type	AS	Cratis.Chronicle.Diagnostics	InvalidIdentifierHashKey	class
@@ -13933,8 +13964,8 @@ extensions	AS	Cratis.Choreography	AddCompleteSerializer AddCratisChoreographySer
 extensions	AS	Cratis.Choreography.Chronicle.Hosting	AddEventSourcedStateMachines AddEventSourcedWorkflows
 extensions	AS	Cratis.Choreography.Chronicle.StateMachines	GetEventSourcedStateMachine
 extensions	AS	Cratis.Choreography.Chronicle.Workflows	StartWorkflow
-extensions	AS	Cratis.Choreography.Hosting	AddCratisChoreography AddCratisChoreographyJobsRecovery AddCratisChoreographyPatching AddCratisChoreographyPatchingServices AddCratisChoreographyWorkflows AddJobAdmission AddJobPlacement AddJobStepPlacement UseJobStepParallelismFromSiloMetadata
-extensions	AS	Cratis.Choreography.Jobs	AcquiringJobStepSlot AllStepsNotCompletedSuccessfully AlreadyStopped BeginJobScope BeginJobStepScope BeginJobsManagerScope BeginTestRun CannotResumeJobBecauseAlreadyRunning CannotResumeJobBecauseCompleted CannotResumeUnpreparedJob ChangingStatus CleaningUpDeadJobs CompletedJobStepIsNoLongerTracked DeletingJob ErrorPreparingJobStep ErrorPreparingJobSteps ErrorResumingJob Failed FailedHandlingCompletedJobStep FailedOnCompleted FailedOnCompletedWhileNoJobSteps FailedPerforming FailedPreparing FailedPreparingJobStep FailedReconcilingProgressFromJobSteps FailedRecordingJobStepAsFailed FailedReportJobStepFailure FailedReportJobStepSuccess FailedReportingJobStepCancelled FailedResumingJob FailedStartingJobStep FailedStartingJobStepsInBackground FailedSubscribingToJobStep FailedToCleanUpOrphanedStepPlans FailedToDeleteJob FailedToGetJobSteps FailedToGetJobsForCleanup FailedToGetStepCountForJob FailedToRemoveForJob FailedToRemoveJob FailedToRemoveStoredStepPlan FailedToRemoveTerminalJob FailedToRemoveTerminalJobSteps FailedToReportFailure FailedToResumeJobSteps FailedToSetTotalSteps FailedToStopJob FailedToWriteState FailedUnexpectedly FailedUpdatingFailedSteps FailedUpdatingStateAfterHandlingCompletion FailedUpdatingStateAfterHandlingJobStepCompletion FailedUpdatingSuccessfulSteps FailedWritingState FailedWritingStatusChange FinalizingJobLeftRunningAfterAllStepsCompleted FinalizingStopAfterItsSiloWentAway FinalizingStoppedJobWithNothingLeftToRun FoundDeadJobs FoundTerminalJobs GetClrTypeForOrThrow GetForOrThrow GetJobsManager GetRequestClrTypeForOrThrow HandleUnexpectedPerformJobStepFailure IgnoringLateStepOutcome JobCannotBeResumed JobCannotBeStoppedIsNotRunning JobCompleted JobCouldNotBeFound JobErrorOccurred JobIsAlreadyBeingRemoved JobIsCompletedAndCannotBeRemovedOrStopped JobIsNotRunning JobNotAdmitted JobStepWasAlreadyStarted NoDeadJobsFound NoJobStepsToStart NotResumingJobBecauseItIsNotRunning NotStartingJobStepsForJobThatIsNoLongerPreparing Pausing PerformingWorkFailedPersistState PrepareJobStepsForRunning PreparingJobSteps Rehydrating ReleasingJobStepSlot Removing ReportFailurePerformingWork RestartingStepsStoppedBeforeLastResume Resuming ResumingJob ResumingJobIfRunning RetryingFailedSteps SkippedTerminalJobRemoval SkippingJobDueToStepCountError StartPrepareFailed Starting StartingJob StepFailed StepStopped StepSuccessfullyCompleted StopIsWaitingForSteps Stopping StoppingJob UnableToGetAllJobs UnableToGetJob UnableToGetJobs UnknownError
+extensions	AS	Cratis.Choreography.Hosting	AddCratisChoreography AddCratisChoreographyJobsRecovery AddCratisChoreographyPatching AddCratisChoreographyPatchingServices AddCratisChoreographyWorkflows AddCratisCollaboration AddCratisCollaborationOrleans AddJobAdmission AddJobPlacement AddJobStepPlacement MapCratisCollaboration UseJobStepParallelismFromSiloMetadata
+extensions	AS	Cratis.Choreography.Jobs	AcquiringJobStepSlot AllStepsNotCompletedSuccessfully AlreadyStopped BeginJobScope BeginJobStepScope BeginJobsManagerScope BeginTestRun CannotResumeJobBecauseAlreadyRunning CannotResumeJobBecauseCompleted CannotResumeUnpreparedJob ChangingStatus CleaningUpDeadJobs CompletedJobStepIsNoLongerTracked DeletingJob ErrorPreparingJobStep ErrorPreparingJobSteps ErrorResumingJob Failed FailedHandlingCompletedJobStep FailedOnCompleted FailedOnCompletedWhileNoJobSteps FailedPerforming FailedPreparing FailedPreparingJobStep FailedReconcilingProgressFromJobSteps FailedRecordingJobStepAsFailed FailedReportJobStepFailure FailedReportJobStepSuccess FailedReportingJobStepCancelled FailedResumingJob FailedStartingJobStep FailedStartingJobStepsInBackground FailedSubscribingToJobStep FailedToCleanUpOrphanedStepPlans FailedToDeleteJob FailedToGetJobSteps FailedToGetJobsForCleanup FailedToGetStepCountForJob FailedToRemoveForJob FailedToRemoveJob FailedToRemoveStoredStepPlan FailedToRemoveTerminalJob FailedToRemoveTerminalJobSteps FailedToReportFailure FailedToResumeJobSteps FailedToSetTotalSteps FailedToStopJob FailedToWriteState FailedUnexpectedly FailedUpdatingFailedSteps FailedUpdatingStateAfterHandlingCompletion FailedUpdatingStateAfterHandlingJobStepCompletion FailedUpdatingSuccessfulSteps FailedWritingState FailedWritingStatusChange FinalizingJobLeftRunningAfterAllStepsCompleted FinalizingJobLeftStartingStepsAfterAllStepsCompleted FinalizingStopAfterItsSiloWentAway FinalizingStoppedJobWithNothingLeftToRun FoundDeadJobs FoundStartingJobsWithAllStepsCompleted FoundTerminalJobs GetClrTypeForOrThrow GetForOrThrow GetJobsManager GetRequestClrTypeForOrThrow HandleUnexpectedPerformJobStepFailure IgnoringLateStepOutcome JobCannotBeResumed JobCannotBeStoppedIsNotRunning JobCompleted JobCouldNotBeFound JobErrorOccurred JobIsAlreadyBeingRemoved JobIsCompletedAndCannotBeRemovedOrStopped JobIsNotRunning JobNotAdmitted JobStepWasAlreadyStarted NoDeadJobsFound NoJobStepsToStart NotResumingJobBecauseItIsNotRunning NotStartingJobStepsForJobThatIsNoLongerPreparing Pausing PerformingWorkFailedPersistState PrepareJobStepsForRunning PreparingJobSteps Rehydrating ReleasingJobStepSlot Removing ReportFailurePerformingWork RestartingStepsStoppedBeforeLastResume Resuming ResumingJob ResumingJobIfRunning RetryingFailedSteps SkippedTerminalJobRemoval SkippingJobDueToStepCountError StartPrepareFailed Starting StartingJob StepFailed StepStopped StepSuccessfullyCompleted StopIsWaitingForSteps Stopping StoppingJob UnableToGetAllJobs UnableToGetJob UnableToGetJobs UnknownError
 extensions	AS	Cratis.Choreography.Jobs.Stages	Current Plan Reconcile StoppedBy
 extensions	AS	Cratis.Choreography.Json	DeserializeIfNecessary
 extensions	AS	Cratis.Choreography.Operations	AddCratisChoreographyOperations
@@ -14626,10 +14657,18 @@ base	AS	Cratis.Choreography.Chronicle.Workflows.Listing.WorkflowRunExecution	Sys
 base	AS	Cratis.Choreography.Chronicle.Workflows.Listing.WorkflowRunReducer	System.Object	On	-
 base	AS	Cratis.Choreography.Chronicle.Workflows.Listing.WorkflowRunWait	System.Object	Deconstruct EqualityContract Equals Execution GetHashCode PrintMembers ToString Wait	-
 base	AS	Cratis.Choreography.Chronicle.Workflows.StateMachineIsNotAGrain	System.Exception	-	-
+base	AS	Cratis.Choreography.Chronicle.Workflows.WorkflowCompletions	System.Object	Complete	-
 base	AS	Cratis.Choreography.Chronicle.Workflows.WorkflowEventTrigger	System.Object	Deconstruct Define EqualityContract Equals EventType GetHashCode PrintMembers Reactor ToString Workflow	-
 base	AS	Cratis.Choreography.Chronicle.Workflows.WorkflowSchedule	System.Object	Cron Deconstruct EqualityContract Equals GetHashCode Name PrintMembers Scope ToString Workflow	-
 base	AS	Cratis.Choreography.Chronicle.Workflows.WorkflowScheduleService	Microsoft.Extensions.Hosting.BackgroundService	ExecuteAsync Interval MaximumCatchUp StartDue	-
 base	AS	Cratis.Choreography.Chronicle.Workflows.WorkflowSignals	System.Object	Signal	-
+base	AS	Cratis.Choreography.Collaboration.CollaborationHub	System.Object	DeliverIdle DeliverJoined DeliverLeft DeliverPresence DeliverReconnect DeliverRejoin JoinedSessions Run	-
+base	AS	Cratis.Choreography.Collaboration.CollaborationOptions	System.Object	DefaultPath Path	-
+base	AS	Cratis.Choreography.Collaboration.CollaborationParticipant	System.Object	Deconstruct DisplayName EqualityContract Equals GetHashCode GroupKey HasAvatar PrintMembers ToString UserId	-
+base	AS	Cratis.Choreography.Collaboration.CollaborationRoomGrain	Orleans.Grain	Idle Join Leave OnActivateAsync Presence Refresh Subscribe Unsubscribe	-
+base	AS	Cratis.Choreography.Collaboration.CollaborationUnavailable	System.Object	EqualityContract Equals GetHashCode PrintMembers ToString	-
+base	AS	Cratis.Choreography.Collaboration.Collaborator	System.Object	Area Color Deconstruct DisplayName EqualityContract Equals GetHashCode HasAvatar IsIdle PrintMembers SessionId SurfaceId ToString UserId X Y	-
+base	AS	Cratis.Choreography.Collaboration.LocalCollaborationBackplane	System.Object	Attach Idle Join Leave Presence Release	-
 base	AS	Cratis.Choreography.Hosting.CratisChoreographyOptions	System.Object	ClusterId Clustering ConfigurePatching ConfigureWorkflows ConnectionString DatabaseName Enabled Local Patching ServiceId Storage Workflows	-
 base	AS	Cratis.Choreography.Jobs.ClusterManifestJobStepPlanStorageSupport	System.Object	IsSupportedByEverySilo	-
 base	AS	Cratis.Choreography.Jobs.DeleteJobResult	System.Object	EqualityContract Equals GetHashCode IsDeleted PrintMembers ToString	Deleted NotFound Refused UnknownJobType
@@ -14759,7 +14798,7 @@ base	AS	Cratis.Choreography.Workers.PerformWorkResult`1	System.Object	EqualityCo
 base	AS	Cratis.Choreography.Workflows.Adapters.MoreThanOneWorkflowNodePerformer	System.Exception	-	-
 base	AS	Cratis.Choreography.Workflows.Adapters.WorkflowIdempotencyKey	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
 base	AS	Cratis.Choreography.Workflows.Adapters.WorkflowNodeInvocation	System.Object	Attempt Configuration Deconstruct EqualityContract Equals Evidence Execution GetHashCode IdempotencyKey Input PrintMembers Run ToString	-
-base	AS	Cratis.Choreography.Workflows.Adapters.WorkflowNodeOutcome	System.Object	Ambiguous Deconstruct EqualityContract Equals Evidence Failed GetHashCode Outlet Output PrintMembers Reason Skipped Status Succeeded ToString	-
+base	AS	Cratis.Choreography.Workflows.Adapters.WorkflowNodeOutcome	System.Object	Ambiguous CompletionKey Deconstruct EqualityContract Equals Evidence ExpiresAfter Failed GetHashCode Outlet Output PrintMembers Reason Skipped Status Succeeded Suspended ToString	-
 base	AS	Cratis.Choreography.Workflows.Adapters.WorkflowNodePerformers	System.Object	For	-
 base	AS	Cratis.Choreography.Workflows.Adapters.WorkflowOperationName	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode None PrintMembers	-
 base	AS	Cratis.Choreography.Workflows.Contracts.EvidenceReference	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
@@ -14781,6 +14820,7 @@ base	AS	Cratis.Choreography.Workflows.Definitions.StructuralAdmissionPolicy	Syst
 base	AS	Cratis.Choreography.Workflows.Definitions.WorkflowAdmissionRejection	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode NoActiveVersion PrintMembers	-
 base	AS	Cratis.Choreography.Workflows.Definitions.WorkflowCatalogVersion	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
 base	AS	Cratis.Choreography.Workflows.Definitions.WorkflowDefinitionSnapshot	System.Object	Area Capabilities CatalogVersion Deconstruct EqualityContract Equals GetHashCode Graph PrintMembers Subject ToString Version Workflow	-
+base	AS	Cratis.Choreography.Workflows.Execution.WorkflowCapabilityGates	System.Object	Enter	-
 base	AS	Cratis.Choreography.Workflows.Execution.WorkflowNodePerformance	System.Object	Perform	-
 base	AS	Cratis.Choreography.Workflows.Execution.WorkflowNodeStep	Cratis.Choreography.Jobs.JobStep`3	CompletedWithoutOutput CreateCancelledResultFromCurrentState InitializeState PerformStep PrepareStep	-
 base	AS	Cratis.Choreography.Workflows.Execution.WorkflowNodeStepState	Cratis.Choreography.Storage.Jobs.JobStepState	Item	-
@@ -14822,7 +14862,7 @@ base	AS	Cratis.Choreography.Workflows.Runs.Coordination.WorkflowRoute	System.Obj
 base	AS	Cratis.Choreography.Workflows.Runs.Coordination.WorkflowRunState	System.Object	Admission Branches Clone ExecutionFor Executions FanOuts Graph Inputs IsAdmitted IsCancelled IsOver LastWave NextDueAt OpenWaits Operations Outcome PendingJobStops Routes Run Status UnroutedFailure	-
 base	AS	Cratis.Choreography.Workflows.Runs.MalformedNodeExecutionKey	System.Exception	-	-
 base	AS	Cratis.Choreography.Workflows.Runs.NodeExecutionKey	System.Object	Branch Deconstruct EqualityContract Equals GetHashCode Node Parse PrintMembers RootOf ToString Visit	-
-base	AS	Cratis.Choreography.Workflows.Runs.NodeExecutionSnapshot	System.Object	Attempt Deconstruct EqualityContract Equals Execution GetHashCode Outlet PrintMembers Status ToString	-
+base	AS	Cratis.Choreography.Workflows.Runs.NodeExecutionSnapshot	System.Object	Attempt Deconstruct EqualityContract Equals Execution GetHashCode IdempotencyKey Outlet PrintMembers Reason Status ToString	-
 base	AS	Cratis.Choreography.Workflows.Runs.WorkflowAdmission	System.Object	Admitted Deconstruct EqualityContract Equals GetHashCode PrintMembers Rejected Rejections Run To ToString	-
 base	AS	Cratis.Choreography.Workflows.Runs.WorkflowAttempt	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals First GetHashCode Next PrintMembers	-
 base	AS	Cratis.Choreography.Workflows.Runs.WorkflowBranch	System.Object	Deconstruct EqualityContract Equals GetHashCode Item Key PrintMembers ToString	-
@@ -14837,6 +14877,7 @@ base	AS	Cratis.Choreography.Workflows.Runs.WorkflowNodeFailed	System.Object	Atte
 base	AS	Cratis.Choreography.Workflows.Runs.WorkflowNodeInputPinned	System.Object	Deconstruct EqualityContract Equals Execution GetHashCode Input PrintMembers ToString	-
 base	AS	Cratis.Choreography.Workflows.Runs.WorkflowNodeOperationCompleted	System.Object	Attempt Deconstruct EqualityContract Equals Execution GetHashCode Operation Output PrintMembers ToString	-
 base	AS	Cratis.Choreography.Workflows.Runs.WorkflowNodeOutcomeAmbiguous	System.Object	Attempt Deconstruct EqualityContract Equals Execution GetHashCode PrintMembers Reason ToString	-
+base	AS	Cratis.Choreography.Workflows.Runs.WorkflowNodeReconciled	System.Object	Actor Attempt Deconstruct EqualityContract Equals Execution GetHashCode PrintMembers ToString	-
 base	AS	Cratis.Choreography.Workflows.Runs.WorkflowNodeScheduled	System.Object	Attempt Deconstruct EqualityContract Equals Execution GetHashCode Job PrintMembers ToString Wave	-
 base	AS	Cratis.Choreography.Workflows.Runs.WorkflowNodeSkipped	System.Object	Deconstruct EqualityContract Equals Execution GetHashCode PrintMembers Reason ToString	-
 base	AS	Cratis.Choreography.Workflows.Runs.WorkflowNodeSucceeded	System.Object	Attempt Deconstruct EqualityContract Equals Evidence Execution GetHashCode Outlet Output PrintMembers ToString	-
@@ -14845,7 +14886,7 @@ base	AS	Cratis.Choreography.Workflows.Runs.WorkflowRunAdmitted	System.Object	Are
 base	AS	Cratis.Choreography.Workflows.Runs.WorkflowRunCancelled	System.Object	Deconstruct EqualityContract Equals GetHashCode PrintMembers Reason ToString	-
 base	AS	Cratis.Choreography.Workflows.Runs.WorkflowRunCouldNotBeRecorded	System.Exception	-	-
 base	AS	Cratis.Choreography.Workflows.Runs.WorkflowRunFailed	System.Object	Deconstruct EqualityContract Equals GetHashCode PrintMembers Reason ToString	-
-base	AS	Cratis.Choreography.Workflows.Runs.WorkflowRunGrain	Orleans.Grain	Admit Cancel CompleteNode CompleteOperation ExpireDueWaits FailAttempt GetOperationOutput GetSnapshot OnActivateAsync OnDeactivateAsync ReceiveReminder ResolveWait Resume StartDueRetries Tend TryStartInvocation	-
+base	AS	Cratis.Choreography.Workflows.Runs.WorkflowRunGrain	Orleans.Grain	Admit Cancel CompleteNode CompleteOperation ExpireDueWaits FailAttempt GetOperationOutput GetSnapshot OnActivateAsync OnDeactivateAsync ReceiveReminder Reconcile ResolveWait Resume StartDueRetries Tend TryStartInvocation	-
 base	AS	Cratis.Choreography.Workflows.Runs.WorkflowRunNeedsReconciliation	System.Object	EqualityContract Equals GetHashCode PrintMembers ToString	-
 base	AS	Cratis.Choreography.Workflows.Runs.WorkflowRunSnapshot	System.Object	Deconstruct EqualityContract Equals Executions GetHashCode IsAdmitted Of OpenWaits PrintMembers Run Status ToString	-
 base	AS	Cratis.Choreography.Workflows.Runs.WorkflowRunSucceeded	System.Object	EqualityContract Equals GetHashCode PrintMembers ToString	-
@@ -14863,6 +14904,7 @@ base	AS	Cratis.Choreography.Workflows.Sweeping.WorkflowScopes	System.Object	GetA
 base	AS	Cratis.Choreography.Workflows.Triggers.TriggerSourceKey	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
 base	AS	Cratis.Choreography.Workflows.Triggers.WorkflowTrigger	System.Object	Actor Causation Contract Correlation Deconstruct Deduplication EqualityContract Equals Evidence GetHashCode Kind OccurredAt Payload PrintMembers Source Subject ToString	-
 base	AS	Cratis.Choreography.Workflows.Waits.WaitDeadline	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode IsDueAt None PrintMembers	-
+base	AS	Cratis.Choreography.Workflows.Waits.WorkflowCompletionKey	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode None PrintMembers	-
 base	AS	Cratis.Choreography.Workflows.Waits.WorkflowWaitId	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
 base	AS	Cratis.Choreography.Workflows.WorkflowActor	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers System	-
 base	AS	Cratis.Choreography.Workflows.WorkflowAreaKey	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
@@ -14874,7 +14916,7 @@ base	AS	Cratis.Choreography.Workflows.WorkflowRunKey	System.Object	Deconstruct E
 base	AS	Cratis.Choreography.Workflows.WorkflowScope	Cratis.Concepts.ConceptAs`1	Deconstruct Default EqualityContract Equals GetHashCode PrintMembers	-
 base	AS	Cratis.Choreography.Workflows.WorkflowStarter	System.Object	GetRun Start	-
 base	AS	Cratis.Choreography.Workflows.WorkflowVersion	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode None PrintMembers	-
-base	AS	Cratis.Choreography.Workflows.WorkflowsOptions	System.Object	IdleBeforeResume JobsScope Scopes Sweep SweepInterval SweepStartupDelay WakeRunsItself	-
+base	AS	Cratis.Choreography.Workflows.WorkflowsOptions	System.Object	CapabilityLimits IdleBeforeResume JobsScope Scopes Sweep SweepInterval SweepStartupDelay WakeRunsItself	-
 base	AS	Cratis.Chronicle.ActivatedArtifact	System.Object	DisposeAsync Instance	-
 base	AS	Cratis.Chronicle.ActivatedArtifact`1	Cratis.Chronicle.ActivatedArtifact	Instance	-
 base	AS	Cratis.Chronicle.AspNetCore.Auditing.CausationMiddleware	System.Object	CausationHostProperty CausationMethodProperty CausationOriginProperty CausationProtocolProperty CausationQueryProperty CausationRefererProperty CausationRouteProperty CausationRouteTemplateProperty CausationRouteValuePrefix CausationSchemeProperty CausationType InvokeAsync	-
@@ -14975,9 +15017,10 @@ base	AS	Cratis.Chronicle.Confidentiality.SecurityMetadataResolver	System.Object	
 base	AS	Cratis.Chronicle.Confidentiality.SecurityMetadataType	Cratis.Concepts.ConceptAs`1	Deconstruct EncryptedGlobal EncryptedNamespace EncryptedSubject EqualityContract Equals GetHashCode PrintMembers	-
 base	AS	Cratis.Chronicle.Connections.AmbiguousAuthenticationMode	System.Exception	-	-
 base	AS	Cratis.Chronicle.Connections.AuthenticationClientInterceptor	Grpc.Core.Interceptors.Interceptor	AsyncClientStreamingCall AsyncDuplexStreamingCall AsyncServerStreamingCall AsyncUnaryCall AuthorizationMetadataKey BlockingUnaryCall	-
+base	AS	Cratis.Chronicle.Connections.CertificateAuthorityDoesNotExist	System.Exception	-	-
 base	AS	Cratis.Chronicle.Connections.CertificateDoesNotExist	System.Exception	-	-
-base	AS	Cratis.Chronicle.Connections.ChronicleConnectionString	System.Object	ApiKey AuthenticationMode CertificatePassword CertificatePath Default Development DevelopmentClient DevelopmentClientSecret DisableTls HiddenConnectionString IsSrv LoadBalancer Password Redact Redacted ServerAddress ServerAddresses Serverless SkipCompatibilityCheck SkipKeepAlive SkipTlsValidation SrvNameServer ToString Username WithApiKey WithCredentials	-
-base	AS	Cratis.Chronicle.Connections.ChronicleConnectionStringBuilder	System.Data.Common.DbConnectionStringBuilder	ApiKey AuthenticationMode Build BuildRedacted CertificatePassword CertificatePath DisableTls Host IsSrv LoadBalancer NoAuthentication Password Port Scheme ServerAddresses Serverless SkipCompatibilityCheck SkipKeepAlive SkipTlsValidation SrvNameServer Username	-
+base	AS	Cratis.Chronicle.Connections.ChronicleConnectionString	System.Object	ApiKey AuthenticationMode CaCertificatePath CertificatePassword CertificatePath Default Development DevelopmentClient DevelopmentClientSecret DisableTls HiddenConnectionString IsSrv LoadBalancer Password Redact Redacted ServerAddress ServerAddresses Serverless SkipCompatibilityCheck SkipKeepAlive SkipTlsValidation SrvNameServer ToString Username WithApiKey WithCredentials	-
+base	AS	Cratis.Chronicle.Connections.ChronicleConnectionStringBuilder	System.Data.Common.DbConnectionStringBuilder	ApiKey AuthenticationMode Build BuildRedacted CaCertificatePath CertificatePassword CertificatePath DisableTls Host IsSrv LoadBalancer NoAuthentication Password Port Scheme ServerAddresses Serverless SkipCompatibilityCheck SkipKeepAlive SkipTlsValidation SrvNameServer Username	-
 base	AS	Cratis.Chronicle.Connections.ChronicleConnectionStringConverter	System.ComponentModel.TypeConverter	CanConvertFrom CanConvertTo ConvertFrom ConvertTo	-
 base	AS	Cratis.Chronicle.Connections.ChronicleServerAddress	System.Object	Deconstruct EqualityContract Equals GetHashCode Host Port PrintMembers ToString	-
 base	AS	Cratis.Chronicle.Connections.ChronicleServerAddressResolver	System.Object	Resolve SrvServicePrefix	-
@@ -14995,6 +15038,7 @@ base	AS	Cratis.Chronicle.Connections.FileSystemCachingTokenProvider	System.Objec
 base	AS	Cratis.Chronicle.Connections.InProcessAwareGrpcClientProxiesClientFactory	ProtoBuf.Grpc.Configuration.ClientFactory	BinderConfiguration CreateClient	-
 base	AS	Cratis.Chronicle.Connections.IncompatibleServerException	System.Exception	-	-
 base	AS	Cratis.Chronicle.Connections.InsecureTokenEndpoint	System.Exception	-	-
+base	AS	Cratis.Chronicle.Connections.InvalidCertificateAuthority	System.Exception	-	-
 base	AS	Cratis.Chronicle.Connections.InvalidCertificateOrPassword	System.Exception	-	-
 base	AS	Cratis.Chronicle.Connections.InvalidServerAddress	System.Exception	-	-
 base	AS	Cratis.Chronicle.Connections.InvalidUserInfo	System.Exception	-	-
@@ -15010,6 +15054,7 @@ base	AS	Cratis.Chronicle.Connections.TokenEndpointDiscoveryFailed	System.Excepti
 base	AS	Cratis.Chronicle.Connections.UnableToResolveClientUri	System.Exception	-	-
 base	AS	Cratis.Chronicle.Connections.UnknownClusterType	System.Exception	-	-
 base	AS	Cratis.Chronicle.Connections.UnknownLoadBalancerStrategy	System.Exception	-	-
+base	AS	Cratis.Chronicle.Connections.UnsupportedCertificateAuthorityFormat	System.Exception	-	-
 base	AS	Cratis.Chronicle.DefaultClientArtifactsProvider	System.Object	AdditionalEventInformationProviders ClosesStreamEventTypes ComplianceForPropertiesProviders ComplianceForTypesProviders ConstraintTypes Default EventSeeders EventSources EventTypeMigrators EventTypes GraphElements GraphProjections ModelBoundProjections OccurrenceHandlers Projections ReactorMiddlewares Reactors ReadModelReactors Reducers RemoveConstraintEventTypes SecurityForPropertiesProviders SecurityForTypesProviders Triggers UniqueConstraints UniqueEventTypeConstraints	-
 base	AS	Cratis.Chronicle.DefaultEventStoreNamespaceResolver	System.Object	Resolve	-
 base	AS	Cratis.Chronicle.DefaultServiceProvider	System.Object	CreateScope Dispose GetKeyedService GetRequiredKeyedService GetService IsKeyedService IsService ServiceProvider	-
@@ -15554,7 +15599,7 @@ base	AS	Cratis.Chronicle.Testing.ReadModels.ReadModelSubstitution	System.Object	
 base	AS	Cratis.Chronicle.Testing.ReadModels.ReadModelsForTesting	System.Object	DehydrateSession GetInstanceById GetInstances GetSnapshotsById GetWatcherFor Materialized Observe Register Release Watch	-
 base	AS	Cratis.Chronicle.Testing.ReadModels.ReducerFailed	System.Exception	-	-
 base	AS	Cratis.Chronicle.Testing.ReadModels.UnsubscribedEventSeeded	System.Exception	-	-
-base	AS	Cratis.Chronicle.Tls	System.Object	CertificatePassword CertificatePath SkipCertificateValidation	-
+base	AS	Cratis.Chronicle.Tls	System.Object	CaCertificatePath CertificatePassword CertificatePath SkipCertificateValidation	-
 base	AS	Cratis.Chronicle.Transactions.AppendCondition	System.Object	After Deconstruct EqualityContract Equals EventSourceId EventSourceType EventStreamId EventStreamType EventTypes ExpectsNoMatchingEvent GetHashCode Label Origins PrintMembers Reads ToString	-
 base	AS	Cratis.Chronicle.Transactions.ConcurrencyScopeOriginNotValidForEvents	System.Exception	-	-
 base	AS	Cratis.Chronicle.Transactions.ConflictingConcurrencyScopesForLabel	System.Exception	ScopeLabel	-

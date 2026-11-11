@@ -123,7 +123,7 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     // Re-captured by execution for train 11 merge (#209/#857 with #925): native guards on Scene 4.87.0 and merged scaffold/runtime output.
     // Re-frozen for Screenplay 6 and Scene 5: only the scene and the WorkItemList screen fragment change.
     // Re-frozen for Scene 5.1.0: only the scene and the WorkItemList screen fragment change (the icon-only toolbar item).
-    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(_qualified)).ShouldEqual("2d01cf833d87c85cb1b38c67d6aa33abeafa6725db31e3946ee55f848e634c34");
+    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(_qualified)).ShouldEqual("88622942b0f62916a21867676316c5ceb918fc7a6800a4f92b01b6e662d86f9d");
 
     // Re-frozen when the license header became the caller's choice and specifications moved into the application project.
     // Re-frozen for #424: generated C# uses short type names and using directives above the namespace.
@@ -136,7 +136,7 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     // Re-captured by execution for train 11 merge (#209/#857 with #925): native guards on Scene 4.87.0 and merged scaffold/runtime output.
     // Re-frozen for Screenplay 6 and Scene 5: only the scene and the WorkItemList screen fragment change.
     // Re-frozen for Scene 5.1.0: only the scene and the WorkItemList screen fragment change (the icon-only toolbar item).
-    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("fbca6b5a71fecce13aeaf3f9287a20d2302a50e686af821142b26e8fd74ed60f");
+    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("c2440b49586e736e575ae2e69ff75602265e66197158894a8d1ed5df040e2c03");
 
     // The #209 restoration removed 34 details bytes and 273 list bytes on Scene 4.86.0.
     // Train 11 adds the authored submit navigation: details 9773 -> 9929; list 6402 -> 6555; comments is unchanged.

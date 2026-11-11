@@ -414,6 +414,18 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticProjectionChildrenOrdering", rejected("STAGE-ESM-016"), "Direction Placement SortBy");
         Add(entries, "SemanticChildrenPlacement", rejected("STAGE-ESM-016"), "Append Prepend Sorted Unknown");
         Add(entries, "SemanticSortDirection", rejected("STAGE-ESM-016"), "Ascending Descending Unknown");
+
+        // ESM v48 agent allowlists have no rendered agent surface yet (Cratis/Stage#982), and ESM v49 caller identifiers need the
+        // Arc principal mapped to the caller identifier before a policy may compare them (Cratis/Stage#1061). Both stay refused;
+        // a model without agents, without a caller-identifier operand and without a specification caller id is gated out.
+        Add(entries, "SemanticApplication", rejected("STAGE-ESM-016"), "Agents");
+        Add(entries, "SemanticAgents", rejected("STAGE-ESM-016"), "Operations TokenKind");
+        Add(entries, "SemanticAgentOperation", rejected("STAGE-ESM-016"), "Description Kind Operation Scope");
+        Add(entries, "SemanticAgentOperationKind", rejected("STAGE-ESM-016"), "Command Query");
+        Add(entries, "SemanticAgentScope", rejected("STAGE-ESM-016"), "Read Write");
+        Add(entries, "SemanticAgentTokenKind", rejected("STAGE-ESM-016"), "Personal");
+        Add(entries, "SemanticConditionOperand", rejected("STAGE-ESM-016"), "CallerId");
+        Add(entries, "SemanticCaller", rejected("STAGE-ESM-016"), "Id");
         Add(entries, "SemanticClaimCondition", rendered, "Claim TargetKind Value");
         Add(entries, "SemanticClaimTargetKind", rendered, "Literal Subject Artifact");
         Add(entries, "SemanticRoleCondition", rendered, "Role");

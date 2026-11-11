@@ -23,5 +23,10 @@ public enum InvocationOriginKind
     /// <summary>
     /// A state machine entering a state: the effect completes, and a failure stops the entry for the operator.
     /// </summary>
-    StateMachineEntry = 2
+    StateMachineEntry = 2,
+
+    /// <summary>
+    /// A person's interaction with an extension component on a screen. The browser waits for the outcome on its request, so settling takes it nowhere else.
+    /// </summary>
+    ScreenInteraction = 3
 }

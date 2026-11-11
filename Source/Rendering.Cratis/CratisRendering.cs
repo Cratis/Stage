@@ -452,7 +452,7 @@ public static partial class CratisRendering
     /// <param name="defaultLocale">The locale required to contain every referenced message key.</param>
     /// <param name="approvedPackages">The custom runtime packages the application approved, or null for none.</param>
     /// <param name="usesPrimeReact">Whether the ui profile lists <c language="text">PrimeReact</c>.</param>
-    /// <param name="scaffoldProfileVersion">The scaffold profile version, one of <see cref="CratisBackendApplicationScaffoldProfile.SupportedVersions"/>, or null for the version 3 default.</param>
+    /// <param name="scaffoldProfileVersion">The scaffold profile version, "3" or "4", or null for the version 3 default.</param>
     /// <returns>The immutable Cratis render profile.</returns>
     /// <remarks>
     /// Version 3 targets net10.0 and stays the default. Version 4 targets net11.0 and is used only when "4" is passed.

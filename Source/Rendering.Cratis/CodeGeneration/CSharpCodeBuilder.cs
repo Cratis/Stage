@@ -16,6 +16,10 @@ namespace Cratis.Stage.Rendering.Cratis.CodeGeneration;
 /// </summary>
 public class CSharpCodeBuilder
 {
+    static readonly HashSet<string> _directives = new(
+        ["if", "elif", "else", "endif", "define", "undef", "region", "endregion", "pragma", "nullable", "warning", "error", "line"],
+        StringComparer.Ordinal);
+
     readonly HashSet<string> _usings = [with(comparer: StringComparer.Ordinal)];
     readonly StringBuilder _body = new();
     readonly InlineCodeTokens _inline = new();
@@ -168,7 +172,8 @@ public class CSharpCodeBuilder
     public CSharpCodeBuilder Attribute(string attribute) => Line($"[{attribute}]");
 
     /// <summary>
-    /// Emits a raw line of source text at the current indent level.
+    /// Emits a raw line of source text at the current indent level. A preprocessor directive is emitted at column 0,
+    /// where the formatter places it, so generated files pass a whitespace format check unchanged.
     /// </summary>
     /// <param name="text">The line to emit; an empty string emits a blank line.</param>
     /// <returns>The builder, for chaining.</returns>
@@ -177,6 +182,10 @@ public class CSharpCodeBuilder
         if (text.Length == 0)
         {
             _body.AppendLine();
+        }
+        else if (IsPreprocessorDirective(text))
+        {
+            _body.AppendLine(text.TrimStart());
         }
         else
         {
@@ -309,6 +318,19 @@ public class CSharpCodeBuilder
     }
 
     internal static string NormalizeLineComment(string text) => text.ReplaceLineEndings(" ");
+
+    internal static bool IsPreprocessorDirective(string text)
+    {
+        var trimmed = text.AsSpan().TrimStart();
+        if (trimmed.Length < 2 || trimmed[0] != '#')
+        {
+            return false;
+        }
+
+        var keyword = trimmed[1..].TrimStart();
+        var end = keyword.IndexOfAny(' ', '\t');
+        return _directives.Contains((end < 0 ? keyword : keyword[..end]).ToString());
+    }
 
     internal static string NormalizeDocumentation(string text) => string.Join(
         '\n',

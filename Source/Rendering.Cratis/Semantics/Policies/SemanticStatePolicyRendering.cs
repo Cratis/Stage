@@ -47,16 +47,6 @@ internal static class SemanticStatePolicyRendering
     internal static bool UsesCallerId(SemanticPolicy policy) =>
         Leaves(policy.Condition).Any(leaf => UsesCallerId(leaf.Condition));
 
-    static bool UsesCallerId(SemanticCondition condition) => condition switch
-    {
-        SemanticComparison comparison => comparison.Left.CallerId || comparison.Right.CallerId,
-        SemanticLogicalCondition logical => UsesCallerId(logical.Left) || UsesCallerId(logical.Right),
-        _ => false
-    };
-
-    static string PolicyValuesName(SemanticApplicationContext context) =>
-        context.Domain.Count == 0 ? "PolicyValues" : $"global::{context.RootNamespace}.GeneratedPolicies.PolicyValues";
-
     internal static string Prefix(SemanticPolicyReference reference) =>
         Identifiers.ToCamelCase(reference.Name) + string.Concat(reference.Mappings.Select(mapping => $"_{mapping.Input}_{mapping.Property.Replace('.', '_')}"));
 
@@ -163,6 +153,16 @@ internal static class SemanticStatePolicyRendering
     static string QueryPath(string path) => path.Split('.') is { Length: > 1 } parts
         ? $"{Identifiers.ToCamelCase(parts[0])}.{string.Join('.', parts.Skip(1).Select(Identifiers.ToPascalCase))}"
         : Identifiers.ToCamelCase(path);
+
+    static bool UsesCallerId(SemanticCondition condition) => condition switch
+    {
+        SemanticComparison comparison => comparison.Left.CallerId || comparison.Right.CallerId,
+        SemanticLogicalCondition logical => UsesCallerId(logical.Left) || UsesCallerId(logical.Right),
+        _ => false
+    };
+
+    static string PolicyValuesName(SemanticApplicationContext context) =>
+        context.Domain.Count == 0 ? "PolicyValues" : $"global::{context.RootNamespace}.GeneratedPolicies.PolicyValues";
 
     static void Collect(SemanticAuthorization? authorization, SemanticApplicationContext context, List<(SemanticPolicy, SemanticPolicyReference)> result)
     {

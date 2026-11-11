@@ -82,34 +82,8 @@ public static partial class SemanticRunAdmission
     /// <param name="application">The application the feature belongs to.</param>
     /// <param name="feature">The feature found by <see cref="ModelFeatures(SemanticApplication)"/>.</param>
     /// <returns>The note describing what is and is not executed, or null when the live runtime does not run the construct at all.</returns>
-public static string? RunsAround(SemanticApplication application, SemanticAdmissionFeature feature) =>
+    public static string? RunsAround(SemanticApplication application, SemanticAdmissionFeature feature) =>
         PublicEventNote(feature) ?? ForeignEventNote(feature) ?? AutomationNote(application, feature) ?? GraphNote(feature);
-
-    static string? PublicEventNote(SemanticAdmissionFeature feature) =>
-        HasTag(feature, SemanticVersionFeatures.PublicEvents) && IsKind(feature, "event", "projection")
-            ? $"{SemanticVersionFeatures.PublicEvents}: Published to the outbox only: the sandbox appends the public event to its own event store's outbox, never to its event log; nothing outside the sandbox reads it unless another application is run against the same kernel. Projection shapes the evaluator cannot fold refuse the affected command instead of appending."
-            : null;
-
-    static string? ForeignEventNote(SemanticAdmissionFeature feature) =>
-        HasTag(feature, SemanticVersionFeatures.ForeignEvents) && IsKind(feature, "event", "capture")
-            ? $"{SemanticVersionFeatures.ForeignEvents}: Inbound translation runs on what reaches the application's inbox: foreign events arrive through seeds or through the event store's subscription to the origin store's outbox; captures do not poll external sources."
-            : null;
-
-    static string? AutomationNote(SemanticApplication application, SemanticAdmissionFeature feature) =>
-        HasTag(feature, SemanticVersionFeatures.Automation) && (IsKind(feature, "capture") || IsTranslateSlice(application, feature))
-            ? $"{SemanticVersionFeatures.Automation}: Translation integrations are not executed in the sandbox: inbound facts require seeds; outbound event projections publish locally only."
-            : null;
-
-    static bool IsTranslateSlice(SemanticApplication application, SemanticAdmissionFeature feature) =>
-        IsKind(feature, "slice") && SemanticVersionFeatures.Slices(application)
-            .Any(slice => slice.Id.ToString() == feature.Artifact && slice.Kind == SemanticSliceKind.Translate);
-
-    static string? GraphNote(SemanticAdmissionFeature feature) =>
-        HasTag(feature, GraphsNotProjected) && IsKind(feature, "graph")
-            ? $"{GraphsNotProjected}: Graphs are projected by the kernel's graph sink: the sandbox registers each graph and its projection with the kernel it runs against, embedded or external, and the kernel writes the nodes and edges. The sandbox itself does not read a graph back, and graph specifications are decided by Screenplay's reference graph runner."
-            : null;
-
-    static bool HasTag(SemanticAdmissionFeature feature, string tag) => feature.Details.StartsWith($"{tag}:", StringComparison.Ordinal);
 
     /// <summary>
     /// Finds the graph declarations, graph projections and graph specifications of the application, which the live runtime does not project.
@@ -125,9 +99,6 @@ public static string? RunsAround(SemanticApplication application, SemanticAdmiss
             nameof(StageExecutionCapability.Projection),
             $"{GraphsNotProjected}: The application declares {application.Graphs.Length} graph(s) and {application.GraphProjections.Length} graph projection(s), which this runtime registers with the kernel's graph sink and does not read back.");
     }
-
-    static bool DeclaresGraphs(SemanticApplication application) =>
-        !application.Graphs.IsDefaultOrEmpty || !application.GraphProjections.IsDefaultOrEmpty || !application.GraphSpecifications.IsDefaultOrEmpty;
 
     /// <summary>
     /// Finds later-version constructs in a command.
@@ -472,6 +443,35 @@ public static string? RunsAround(SemanticApplication application, SemanticAdmiss
         return value is SemanticCompositeValue composite && composite.Properties.All(member =>
             context.Types[type.Target].Properties.FirstOrDefault(property => property.Id == member.TargetProperty) is { } property && EventValueMatches(context, property.Type, member.Value));
     }
+
+    static string? PublicEventNote(SemanticAdmissionFeature feature) =>
+        HasTag(feature, SemanticVersionFeatures.PublicEvents) && IsKind(feature, "event", "projection")
+            ? $"{SemanticVersionFeatures.PublicEvents}: Published to the outbox only: the sandbox appends the public event to its own event store's outbox, never to its event log; nothing outside the sandbox reads it unless another application is run against the same kernel. Projection shapes the evaluator cannot fold refuse the affected command instead of appending."
+            : null;
+
+    static string? ForeignEventNote(SemanticAdmissionFeature feature) =>
+        HasTag(feature, SemanticVersionFeatures.ForeignEvents) && IsKind(feature, "event", "capture")
+            ? $"{SemanticVersionFeatures.ForeignEvents}: Inbound translation runs on what reaches the application's inbox: foreign events arrive through seeds or through the event store's subscription to the origin store's outbox; captures do not poll external sources."
+            : null;
+
+    static string? AutomationNote(SemanticApplication application, SemanticAdmissionFeature feature) =>
+        HasTag(feature, SemanticVersionFeatures.Automation) && (IsKind(feature, "capture") || IsTranslateSlice(application, feature))
+            ? $"{SemanticVersionFeatures.Automation}: Translation integrations are not executed in the sandbox: inbound facts require seeds; outbound event projections publish locally only."
+            : null;
+
+    static bool IsTranslateSlice(SemanticApplication application, SemanticAdmissionFeature feature) =>
+        IsKind(feature, "slice") && SemanticVersionFeatures.Slices(application)
+            .Any(slice => slice.Id.ToString() == feature.Artifact && slice.Kind == SemanticSliceKind.Translate);
+
+    static string? GraphNote(SemanticAdmissionFeature feature) =>
+        HasTag(feature, GraphsNotProjected) && IsKind(feature, "graph")
+            ? $"{GraphsNotProjected}: Graphs are projected by the kernel's graph sink: the sandbox registers each graph and its projection with the kernel it runs against, embedded or external, and the kernel writes the nodes and edges. The sandbox itself does not read a graph back, and graph specifications are decided by Screenplay's reference graph runner."
+            : null;
+
+    static bool HasTag(SemanticAdmissionFeature feature, string tag) => feature.Details.StartsWith($"{tag}:", StringComparison.Ordinal);
+
+    static bool DeclaresGraphs(SemanticApplication application) =>
+        !application.Graphs.IsDefaultOrEmpty || !application.GraphProjections.IsDefaultOrEmpty || !application.GraphSpecifications.IsDefaultOrEmpty;
 
     static bool IsKind(SemanticAdmissionFeature feature, params string[] kinds) =>
         kinds.Any(kind => string.Equals(feature.Kind, kind, StringComparison.Ordinal));

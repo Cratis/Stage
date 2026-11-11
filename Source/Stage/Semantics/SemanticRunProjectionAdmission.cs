@@ -345,6 +345,7 @@ internal static partial class SemanticRunProjectionAdmission
         return mapping.Operation switch
         {
             SemanticProjectionOperation.Set => mapping.Source is SemanticProjectionEventProperty or SemanticProjectionEventSourceIdentity or SemanticProjectionLiteral,
+            SemanticProjectionOperation.SetOnce => mapping.Source is SemanticProjectionEventProperty or SemanticProjectionLiteral,
             SemanticProjectionOperation.Add or SemanticProjectionOperation.Subtract => mapping.Source is SemanticProjectionEventProperty { Path.Length: 1 } or SemanticProjectionLiteral,
             SemanticProjectionOperation.Increment or SemanticProjectionOperation.Decrement => mapping.Source is null,
             _ => false

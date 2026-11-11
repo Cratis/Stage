@@ -156,6 +156,7 @@ internal static class SemanticScopedProjectionRenderer
             code.OpenBlock($"{receiver}.Children<{elementName}>(model => model.{Identifiers.ToPascalCase(property.Name)}, children =>")
                 .Line("children.NoAutoMap();")
                 .Line($"children.IdentifiedBy(item => item.{Identifiers.ToPascalCase(identity.Name)});");
+            RenderOrdering(code, children.Ordering, type.Properties);
             RenderScope(code, children.Scope, context, type.Properties, "children");
             code.EndBlock().Line(");");
         }
@@ -239,6 +240,9 @@ internal static class SemanticScopedProjectionRenderer
                 SemanticProjectionOperation.Set when mapping.Source is SemanticProjectionEventSourceIdentity => $"Set(model => model.{target}).ToEventSourceId()",
                 SemanticProjectionOperation.Set when mapping.Source is SemanticProjectionLiteral literal => $"Set(model => model.{target}).ToValue({Literal(literal, mapping.Target, targets, context)})",
                 SemanticProjectionOperation.Set => $"Set(model => model.{target}).To({source})",
+                SemanticProjectionOperation.SetOnce when mapping.Source is SemanticProjectionEventContextValue value => $"SetOnce(model => model.{target}).ToEventContextProperty(c => c.{SemanticScopedProjectionSupport.EventContextProperty(value)})",
+                SemanticProjectionOperation.SetOnce when mapping.Source is SemanticProjectionLiteral literal => $"SetOnce(model => model.{target}).ToValue({Literal(literal, mapping.Target, targets, context)})",
+                SemanticProjectionOperation.SetOnce => $"SetOnce(model => model.{target}).To({source})",
                 SemanticProjectionOperation.Add => $"Add(model => model.{target}).With({source})",
                 SemanticProjectionOperation.Subtract => $"Subtract(model => model.{target}).With({source})",
                 SemanticProjectionOperation.Increment => $"Increment(model => model.{target})",
@@ -247,6 +251,21 @@ internal static class SemanticScopedProjectionRenderer
                 _ => throw UnsupportedSemanticRendering.For(nameof(SemanticProjectionOperation), mapping.Operation)
             };
             code.Line($"{receiver}.{expression};");
+        }
+    }
+
+    // Where a new child is placed: Chronicle keeps the order when a child is added and never moves an existing one.
+    static void RenderOrdering(CSharpCodeBuilder code, SemanticProjectionChildrenOrdering? ordering, IReadOnlyList<SemanticProperty> elementProperties)
+    {
+        switch (ordering?.Placement)
+        {
+            case SemanticChildrenPlacement.Prepend:
+                code.Line("children.Prepend();");
+                break;
+            case SemanticChildrenPlacement.Sorted:
+                var path = string.Join('.', ordering.SortBy.Select(id => Identifiers.ToPascalCase(elementProperties.Single(property => property.Id == id).Name)));
+                code.Line($"children.{(ordering.Direction == SemanticSortDirection.Descending ? "OrderByDescending" : "OrderBy")}(item => item.{path});");
+                break;
         }
     }
 

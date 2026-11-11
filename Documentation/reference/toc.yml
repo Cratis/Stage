@@ -24,6 +24,8 @@
   href: reaction-rendering.md
 - name: State machines and workflows
   href: state-machines-and-workflows.md
+- name: Durable ability invocations
+  href: ability-invocations.md
 - name: Event-source routing
   href: event-source-routing.md
 - name: Protected reads rendering

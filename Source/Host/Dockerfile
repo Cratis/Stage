@@ -40,7 +40,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:11.0-resolute AS stage-runtime
 # Stage is built against have to be the same version, or the two drift apart silently between releases.
 # Keep the DEVELOPMENT kernel flavor and its shell/apt/tini runtime; the bare-version image is chiseled.
 # Verification/verify-runtime-compatibility.py enforces the release version and required development flavor.
-FROM cratis/chronicle:19.144.0-development
+FROM cratis/chronicle:19.148.0-development
 
 # Merge the .NET 11 runtime and host into the existing installation without removing .NET 10.
 COPY --from=stage-runtime /usr/share/dotnet/ /usr/share/dotnet/

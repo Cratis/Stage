@@ -71,6 +71,8 @@ public class when_enumerating_the_mapped_endpoints
     [InlineData("/stage/semantic/specifications/run")]
     [InlineData("/stage/lifecycles")]
     [InlineData("/stage/lifecycles/workflows/review/subjects/1/approvals/approve")]
+    [InlineData("/stage/invocations")]
+    [InlineData("/stage/invocations/inv-1/reconciliation")]
     public async Task should_answer_404_for_tooling(string path)
     {
         await using var app = await PublishedApp();

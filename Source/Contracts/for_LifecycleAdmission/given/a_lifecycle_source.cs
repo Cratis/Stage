@@ -103,7 +103,7 @@ public static class a_lifecycle_source
           state Draft initial
             on InvoiceSent -> Sent
           state Sent
-            entering send ChargeFee
+            entering invokes ChargeFee
             entering start Collect
             on InvoiceMarkedOverdue when overdue == true -> Overdue
             on InvoicePaid -> Paid
@@ -123,7 +123,7 @@ public static class a_lifecycle_source
             when append InvoiceSent
               for "9c858901-8a57-4791-81fe-4c455b099bc9"
             then is Sent
-            then sends ChargeFee
+            then invokes ChargeFee
             then starts Collect
 
           specification AnOverdueInvoiceIsOverdue
@@ -145,7 +145,7 @@ public static class a_lifecycle_source
           for Invoice
           trigger when InvoiceLifecycle enters Sent
             -> ChargeLateFee
-          action ChargeLateFee sends ChargeFee attempts 3 timeout 30 seconds retry after 5 seconds
+          action ChargeLateFee invokes ChargeFee attempts 3 timeout 30 seconds retry after 5 seconds
             next -> Pause
             failed -> Approve
           wait Pause for 2 days
@@ -156,7 +156,7 @@ public static class a_lifecycle_source
           foreach EachLine over lines parallel 2
             each -> TagLine
             completed -> Await
-          action TagLine sends TagInvoice
+          action TagLine invokes TagInvoice
             next -> AllTagged
           join AllTagged all
           wait Await for InvoicePaid expires after 7 days
@@ -166,9 +166,9 @@ public static class a_lifecycle_source
             approved -> Write
             rejected -> Plan
             expired -> Write
-          action Write sends WriteOff
-          action Plan sends OfferPlan
-          action Done sends TagInvoice
+          action Write invokes WriteOff
+          action Plan invokes OfferPlan
+          action Done invokes TagInvoice
 
           specification APaidInvoiceIsTagged
             given InvoiceRegistered
@@ -183,10 +183,10 @@ public static class a_lifecycle_source
             when append InvoiceSent
               for "9c858901-8a57-4791-81fe-4c455b099bc9"
             outcome Await resumed
-            then sends ChargeFee
-            then sends TagInvoice
-            then sends TagInvoice
-            then sends TagInvoice
+            then invokes ChargeFee
+            then invokes TagInvoice
+            then invokes TagInvoice
+            then invokes TagInvoice
             then completes
 
           specification NoPaymentIsWrittenOff
@@ -203,10 +203,10 @@ public static class a_lifecycle_source
               for "9c858901-8a57-4791-81fe-4c455b099bc9"
             outcome Await expired
             outcome Approve approved
-            then sends ChargeFee
-            then sends TagInvoice
-            then sends TagInvoice
-            then sends WriteOff
+            then invokes ChargeFee
+            then invokes TagInvoice
+            then invokes TagInvoice
+            then invokes WriteOff
             then completes
 
           specification TheRunWaits
@@ -221,9 +221,9 @@ public static class a_lifecycle_source
               for "9c858901-8a57-4791-81fe-4c455b099bc9"
             when append InvoiceSent
               for "9c858901-8a57-4791-81fe-4c455b099bc9"
-            then sends ChargeFee
-            then sends TagInvoice
-            then sends TagInvoice
+            then invokes ChargeFee
+            then invokes TagInvoice
+            then invokes TagInvoice
             then waits at Await
         """;
 
@@ -315,7 +315,7 @@ public static class a_lifecycle_source
           state Draft initial
             on InvoiceSent -> Sent
           state Sent
-            entering send ChargeFee
+            entering invokes ChargeFee
             entering start Collect
             on InvoiceMarkedOverdue when overdue == true -> Overdue
             on InvoicePaid -> Paid
@@ -335,7 +335,7 @@ public static class a_lifecycle_source
             when append InvoiceSent
               for "9c858901-8a57-4791-81fe-4c455b099bc9"
             then is Sent
-            then sends ChargeFee
+            then invokes ChargeFee
             then starts Collect
 
           specification AnOverdueInvoiceIsOverdue
@@ -357,7 +357,7 @@ public static class a_lifecycle_source
           for Invoice
           trigger when InvoiceLifecycle enters Sent
             -> ChargeLateFee
-          action ChargeLateFee sends ChargeFee attempts 3 timeout 30 seconds retry after 5 seconds
+          action ChargeLateFee invokes ChargeFee attempts 3 timeout 30 seconds retry after 5 seconds
             next -> Pause
             failed -> Done
           wait Pause for 2 days
@@ -365,8 +365,8 @@ public static class a_lifecycle_source
           wait Await for InvoicePaid expires after 7 days
             resumed -> Done
             expired -> Write
-          action Write sends WriteOff
-          action Done sends TagInvoice
+          action Write invokes WriteOff
+          action Done invokes TagInvoice
 
           specification APaidInvoiceIsTagged
             given InvoiceRegistered
@@ -377,8 +377,8 @@ public static class a_lifecycle_source
             when append InvoiceSent
               for "9c858901-8a57-4791-81fe-4c455b099bc9"
             outcome Await resumed
-            then sends ChargeFee
-            then sends TagInvoice
+            then invokes ChargeFee
+            then invokes TagInvoice
             then completes
 
           specification NoPaymentIsWrittenOff
@@ -390,8 +390,8 @@ public static class a_lifecycle_source
             when append InvoiceSent
               for "9c858901-8a57-4791-81fe-4c455b099bc9"
             outcome Await expired
-            then sends ChargeFee
-            then sends WriteOff
+            then invokes ChargeFee
+            then invokes WriteOff
             then completes
 
         workflow Nudge
@@ -399,7 +399,7 @@ public static class a_lifecycle_source
           for Invoice
           trigger Overdue on InvoiceMarkedOverdue
             -> Remind
-          action Remind sends TagInvoice
+          action Remind invokes TagInvoice
 
           specification AnOverdueInvoiceIsTagged
             given InvoiceRegistered
@@ -409,7 +409,7 @@ public static class a_lifecycle_source
                   sku = "A"
             when append InvoiceMarkedOverdue
               for "9c858901-8a57-4791-81fe-4c455b099bc9"
-            then sends TagInvoice
+            then invokes TagInvoice
             then completes
         """;
 

@@ -442,6 +442,40 @@ public static partial class CratisRendering
         bool usesPrimeReact) =>
         CreateProfile(applicationName, options, scene, stringsFiles, defaultLocale, approvedPackages, usesPrimeReact, Dependencies);
 
+    /// <summary>
+    /// Creates the complete immutable target profile for an explicit scaffold profile version.
+    /// </summary>
+    /// <param name="applicationName">The semantic application name used for persistent stores.</param>
+    /// <param name="options">The explicit project and root namespace choices.</param>
+    /// <param name="scene">The optional composed Scene.</param>
+    /// <param name="stringsFiles">Relative file names and original contents of companion .strings files, or null for no catalog.</param>
+    /// <param name="defaultLocale">The locale required to contain every referenced message key.</param>
+    /// <param name="approvedPackages">The custom runtime packages the application approved, or null for none.</param>
+    /// <param name="usesPrimeReact">Whether the ui profile lists <c language="text">PrimeReact</c>.</param>
+    /// <param name="scaffoldProfileVersion">The scaffold profile version, one of <see cref="CratisBackendApplicationScaffoldProfile.SupportedVersions"/>, or null for the version 3 default.</param>
+    /// <returns>The immutable Cratis render profile.</returns>
+    /// <remarks>
+    /// Version 3 targets net10.0 and stays the default. Version 4 targets net11.0 and is used only when "4" is passed.
+    /// The created profile records its version, so the artifact render planner admits it and a plan requesting the same version accepts it.
+    /// </remarks>
+    /// <exception cref="InvalidCratisBackendApplicationScaffold">Thrown when the scaffold profile version is not supported, or the options, strings input or approved packages are invalid.</exception>
+    /// <exception cref="InvalidArtifactRenderContract">The Scene contains conversion errors.</exception>
+    public static ArtifactRenderProfile CreateProfile(
+        string applicationName,
+        CratisRenderingOptions options,
+        SceneApplication? scene,
+        IReadOnlyDictionary<string, string>? stringsFiles,
+        string? defaultLocale,
+        ApprovedPackageSet? approvedPackages,
+        bool usesPrimeReact,
+        string? scaffoldProfileVersion)
+    {
+        var scaffoldProfile = CratisBackendApplicationScaffoldProfile.ForVersion(scaffoldProfileVersion)
+            ?? throw new InvalidCratisBackendApplicationScaffold(
+                $"The scaffold profile version '{scaffoldProfileVersion}' is not supported. Supported versions are {string.Join(", ", CratisBackendApplicationScaffoldProfile.SupportedVersions.Select(version => $"'{version}'"))}.");
+        return CreateProfile(applicationName, options, scene, stringsFiles, defaultLocale, approvedPackages, usesPrimeReact, scaffoldProfile);
+    }
+
     internal static ArtifactRenderProfile CreateProfile(
         string applicationName,
         CratisRenderingOptions options,

@@ -39,7 +39,8 @@ public class when_preserving_inventory_fixture_bytes
         ["scoped projections"] = "0086d60f22b0bc801b81e5a78e059c76136f964f406a486f7079cbfbd4624da9",
         ["single"] = "6996ab793768002e51955d76f14b3c58ee97d282571896c5bec9a8bb2aac3764",
         ["strings"] = "9e335a6105e41d4cb86a45309c30e105dc7dea0fbfac08d5cb93ad5ee12fbc0e",
-        ["translation specification"] = "0c3509e08dc77b7d55facbd6cb0cfb4c440ade0e3b228c529f6a87ca0728b6ac",
+        // Recaptured for the .NET 11 train: capture state text now freezes the .NET 10 double-to-decimal conversion; reverting that change alone restores 0c3509e0.
+        ["translation specification"] = "fd083ddaf289ab6aab231dbfb95913c3139e6b08f6cb1c8af96da06290e0ab50",
         ["validation typed contexts"] = "b55728602123b752696506bd7a75cdfaaad59a3eed5b79b23c3170aead151bed",
     };
 

@@ -16,6 +16,9 @@ internal static class SemanticDependencyReferences
         SemanticGraphEdge:Properties
         SemanticModule:Features
         SemanticFeature:Features Slices
+        SemanticApplication:Agents
+        SemanticAgents:Operations
+        SemanticAgentOperation:Operation
         SemanticScreen:Id Data Actions Navigation
         SemanticSlice:Commands Constraints Events Projections Queries ReadModels Specifications Reducers Reactions Captures Screens
         """,
@@ -198,13 +201,6 @@ internal static class SemanticDependencyReferences
     {
         var entries = new Dictionary<string, SemanticDependencyClassification>(StringComparer.Ordinal);
         foreach (var group in _groups) Add(entries, group.Value, new(group.Key));
-
-        // ESM v48 agent allowlists name commands and queries, but Stage renders no agent surface yet (Cratis/Stage#982).
-        foreach (var member in new[] { "SemanticApplication.Agents", "SemanticAgents.Operations", "SemanticAgentOperation.Operation" })
-        {
-            entries.Add(member, new(null, RefusalReason: "agent operation allowlists are not rendered yet (STAGE-ESM-016)."));
-        }
-
         return entries;
     }
 

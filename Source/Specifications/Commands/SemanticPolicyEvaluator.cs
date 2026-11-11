@@ -5,6 +5,7 @@ using System.Security.Claims;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
+using Cratis.Stage.Specifications.Comparison;
 
 namespace Cratis.Stage.Specifications.Commands;
 
@@ -16,7 +17,7 @@ internal static class SemanticPolicyEvaluator
 
     internal static ClaimsPrincipal SystemPrincipal(SemanticCaller caller) => Build(caller, SystemAuthentication);
 
-    internal static bool Allows(SemanticAuthorization? authorization, SemanticExecutionPlan plan, SemanticCaller? caller, ClaimsPrincipal principal, SemanticCommand command, SemanticSpecification specification)
+    internal static bool Allows(SemanticAuthorization? authorization, SemanticExecutionPlan plan, SemanticCaller? caller, ClaimsPrincipal principal, SemanticCommand command, SemanticSpecification specification, Func<SemanticId, IEnumerable<SemanticReadModelInstance>>? instances = null)
     {
         if (authorization is null || SemanticAnonymousAccess.IsAnonymous(authorization, plan.Model.Application.Policies)) return true;
         if (SemanticAnonymousAccess.NestsAnonymous(authorization, plan.Model.Application.Policies)) return false;
@@ -26,10 +27,10 @@ internal static class SemanticPolicyEvaluator
             .Where(pair => pair.value is not null).ToDictionary(pair => pair.property.Name, pair => pair.value!, StringComparer.Ordinal);
         var subject = command.Properties.Where(property => property.IsIdentifier)
             .Select(property => values.FirstOrDefault(value => value.TargetProperty == property.Id)?.Value).FirstOrDefault(value => value is not null);
-        return Authorization(authorization, plan, caller, principal, artifact, subject, command.Properties);
+        return Authorization(authorization, plan, caller, principal, artifact, subject, command.Properties, instances);
     }
 
-    internal static bool Allows(SemanticKeyedQuery query, SemanticValue key, SemanticExecutionPlan plan, SemanticCaller? caller)
+    internal static bool Allows(SemanticKeyedQuery query, SemanticValue key, SemanticExecutionPlan plan, SemanticCaller? caller, Func<SemanticId, IEnumerable<SemanticReadModelInstance>>? instances = null)
     {
         if (query.Authorization is null || SemanticAnonymousAccess.IsAnonymous(query.Authorization, plan.Model.Application.Policies)) return true;
         if (SemanticAnonymousAccess.NestsAnonymous(query.Authorization, plan.Model.Application.Policies)) return false;
@@ -40,7 +41,7 @@ internal static class SemanticPolicyEvaluator
         var properties = query.Argument is null ? Array.Empty<SemanticProperty>()
             : [new SemanticProperty(query.Argument.Id, query.Argument.Name, query.Argument.Type, false)];
 
-        return Authorization(query.Authorization, plan, caller, Principal(caller), artifact, key, properties);
+        return Authorization(query.Authorization, plan, caller, Principal(caller), artifact, key, properties, instances);
     }
 
     static ClaimsPrincipal Build(SemanticCaller caller, string authentication)
@@ -52,28 +53,81 @@ internal static class SemanticPolicyEvaluator
         return new(new ClaimsIdentity(claims, caller.Authenticated ? authentication : null, ClaimTypes.Name, roleClaim));
     }
 
-    static bool Authorization(SemanticAuthorization authorization, SemanticExecutionPlan plan, SemanticCaller caller, ClaimsPrincipal principal, IReadOnlyDictionary<string, SemanticValue> artifact, SemanticValue? subject, IEnumerable<SemanticProperty> properties) => authorization switch
+    // A policy that reads recorded state decides from the instances the specification gave and the facts have projected. A read that finds no instance
+    // denies: state that is not recorded never allows, as in Screenplay's reference evaluator.
+    static bool PolicyAllows(SemanticPolicy policy, SemanticPolicyReference reference, SemanticExecutionPlan plan, SemanticCaller caller, ClaimsPrincipal principal, IReadOnlyDictionary<string, SemanticValue> artifact, SemanticValue? subject, IEnumerable<SemanticProperty> properties, Func<SemanticId, IEnumerable<SemanticReadModelInstance>>? instances)
+    {
+        if (policy.Condition is SemanticOpaquePolicyCondition)
+        {
+            throw new OpaquePolicyReached(reference.Name);
+        }
+
+        IReadOnlyDictionary<string, IReadOnlyDictionary<SemanticId, SemanticValue>>? state = null;
+        if (!policy.Reads.IsDefaultOrEmpty)
+        {
+            state = ReadState(policy, reference, artifact, instances);
+            if (state is null)
+            {
+                return false;
+            }
+        }
+
+        return Condition(policy.Condition, plan, caller, principal, artifact, subject, properties, state) == true;
+    }
+
+    static Dictionary<string, IReadOnlyDictionary<SemanticId, SemanticValue>>? ReadState(SemanticPolicy policy, SemanticPolicyReference reference, IReadOnlyDictionary<string, SemanticValue> artifact, Func<SemanticId, IEnumerable<SemanticReadModelInstance>>? instances)
+    {
+        var state = new Dictionary<string, IReadOnlyDictionary<SemanticId, SemanticValue>>(StringComparer.Ordinal);
+        foreach (var read in policy.Reads)
+        {
+            var source = reference.Mappings.IsDefaultOrEmpty ? read.By : reference.Mappings.FirstOrDefault(mapping => mapping.Input == read.By)?.Property ?? read.By;
+            if (instances is null || !artifact.TryGetValue(source, out var key) || IsRefused(key))
+            {
+                return null;
+            }
+
+            var instance = instances(read.ReadModel).FirstOrDefault(candidate => SemanticExpectationComparer.AreEqual(candidate.Key, key));
+            if (instance is null)
+            {
+                return null;
+            }
+
+            state[read.Name] = instance.Values.ToDictionary(value => value.TargetProperty, value => value.Value);
+        }
+
+        return state;
+    }
+
+    // Decision 0091: a refused key is missing even if prior facts project an instance at that key.
+    static bool IsRefused(SemanticValue key) => key switch
+    {
+        SemanticTextValue text => string.IsNullOrWhiteSpace(text.Value) || text.Value == "*" ||
+            text.Value.Contains('#', StringComparison.Ordinal) || char.IsWhiteSpace(text.Value[0]) || char.IsWhiteSpace(text.Value[^1]),
+        SemanticCompositeValue composite => composite.Properties.Any(property => IsRefused(property.Value)),
+        _ => false
+    };
+
+    static bool Authorization(SemanticAuthorization authorization, SemanticExecutionPlan plan, SemanticCaller caller, ClaimsPrincipal principal, IReadOnlyDictionary<string, SemanticValue> artifact, SemanticValue? subject, IEnumerable<SemanticProperty> properties, Func<SemanticId, IEnumerable<SemanticReadModelInstance>>? instances) => authorization switch
     {
         // As in Screenplay's reference evaluator, only a definite true allows: an unknown policy result denies.
-        SemanticPolicyReference reference => plan.Model.Application.Policies.Single(policy => policy.Name == reference.Name).Condition is SemanticOpaquePolicyCondition
-            ? throw new OpaquePolicyReached(reference.Name)
-            : Condition(plan.Model.Application.Policies.Single(policy => policy.Name == reference.Name).Condition, plan, caller, principal, artifact, subject, properties) == true,
-        SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.And } logical => Authorization(logical.Left, plan, caller, principal, artifact, subject, properties) && Authorization(logical.Right, plan, caller, principal, artifact, subject, properties),
-        SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.Or } logical => Authorization(logical.Left, plan, caller, principal, artifact, subject, properties) || Authorization(logical.Right, plan, caller, principal, artifact, subject, properties),
+        SemanticPolicyReference reference => PolicyAllows(plan.Model.Application.Policies.Single(policy => policy.Name == reference.Name), reference, plan, caller, principal, artifact, subject, properties, instances),
+        SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.And } logical => Authorization(logical.Left, plan, caller, principal, artifact, subject, properties, instances) && Authorization(logical.Right, plan, caller, principal, artifact, subject, properties, instances),
+        SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.Or } logical => Authorization(logical.Left, plan, caller, principal, artifact, subject, properties, instances) || Authorization(logical.Right, plan, caller, principal, artifact, subject, properties, instances),
         _ => throw new UnsupportedSemanticMapping()
     };
 
     // Three-valued (Kleene) policy logic over bool?: null is unknown, and/or decide on a definite operand in either
     // order, and not keeps unknown unknown. Plain Boolean negation would turn a negated unknown claim comparison into an allow.
-    static bool? Condition(SemanticPolicyCondition condition, SemanticExecutionPlan plan, SemanticCaller caller, ClaimsPrincipal principal, IReadOnlyDictionary<string, SemanticValue> artifact, SemanticValue? subject, IEnumerable<SemanticProperty> properties) => condition switch
+    static bool? Condition(SemanticPolicyCondition condition, SemanticExecutionPlan plan, SemanticCaller caller, ClaimsPrincipal principal, IReadOnlyDictionary<string, SemanticValue> artifact, SemanticValue? subject, IEnumerable<SemanticProperty> properties, IReadOnlyDictionary<string, IReadOnlyDictionary<SemanticId, SemanticValue>>? state) => condition switch
     {
         SemanticAnonymousCondition => true,
         SemanticAuthenticatedCondition => principal.Identity?.IsAuthenticated == true,
         SemanticRoleCondition role => principal.IsInRole(role.Role),
         SemanticClaimCondition claim => principal.Identity?.AuthenticationType == SystemAuthentication ? null : ClaimMatches(claim, plan, caller, artifact, subject, properties),
-        SemanticNotPolicyCondition not => Not(Condition(not.Operand, plan, caller, principal, artifact, subject, properties)),
-        SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.And } logical => And(Condition(logical.Left, plan, caller, principal, artifact, subject, properties), Condition(logical.Right, plan, caller, principal, artifact, subject, properties)),
-        SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.Or } logical => Or(Condition(logical.Left, plan, caller, principal, artifact, subject, properties), Condition(logical.Right, plan, caller, principal, artifact, subject, properties)),
+        SemanticNotPolicyCondition not => Not(Condition(not.Operand, plan, caller, principal, artifact, subject, properties, state)),
+        SemanticStatePolicyCondition recorded => state is not null && SemanticConditionEvaluator.Evaluate(recorded.Condition, new Dictionary<SemanticId, SemanticValue>(), null, state),
+        SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.And } logical => And(Condition(logical.Left, plan, caller, principal, artifact, subject, properties, state), Condition(logical.Right, plan, caller, principal, artifact, subject, properties, state)),
+        SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.Or } logical => Or(Condition(logical.Left, plan, caller, principal, artifact, subject, properties, state), Condition(logical.Right, plan, caller, principal, artifact, subject, properties, state)),
         _ => throw new UnsupportedSemanticMapping()
     };
 

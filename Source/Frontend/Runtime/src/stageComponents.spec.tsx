@@ -847,9 +847,11 @@ describe('a synthesized action', () => {
         fireEvent.blur(screen.getByLabelText('Amount'));
         fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Register invoice' }));
 
-        await waitFor(() => expect(fetchMock).toHaveBeenCalled());
-        expect(String(fetchMock.mock.calls[0][0])).toContain('/api/sales/invoices/register-invoice');
-        expect(fetchMock.mock.calls[0][1]).toEqual(expect.objectContaining({
+        // The action also asks the server, before it runs, whether the command is available; that pre-flight is not the command.
+        const submitted = () => fetchMock.mock.calls.filter(([url]) => !String(url).endsWith('/validate'));
+        await waitFor(() => expect(submitted()).not.toHaveLength(0));
+        expect(String(submitted()[0][0])).toContain('/api/sales/invoices/register-invoice');
+        expect(submitted()[0][1]).toEqual(expect.objectContaining({
             method: 'POST',
             body: JSON.stringify({ invoiceNumber: 'INV-7', amount: 13 }),
         }));
@@ -926,6 +928,7 @@ describe('a synthesized action', () => {
                 return Promise.resolve({ ok: true, json: async () => (queryResult({ data: rows })) });
             }
 
+            if (init?.method === 'POST' && url.endsWith('/validate')) return Promise.resolve({ ok: true, json: async () => commandResult() });
             if (init?.method === 'POST') {
                 commandAnswered = true;
                 readsWhenAnswered = queryReads;

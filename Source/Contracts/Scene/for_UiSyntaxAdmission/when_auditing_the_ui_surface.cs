@@ -15,7 +15,6 @@ public class when_auditing_the_ui_surface : Specification
     // ReactionProductionMode and CommandReadMode are refused before legacy rendering/execution with STAGE-ESM-043 and STAGE-ESM-044.
     // StateMachines and Workflows (Screenplay 5.1.0) have no UI node: they reach Stage through the executable semantic model, where the runtime and the renderer decide.
     // Users (Screenplay 5.11.0, decision 0141) are development and test identities: the sandbox host reads them from the source to offer to Lens (SandboxUsers), and no rendered application carries them.
-    // Agents (Screenplay 6.15.0) is the explicit agent operation allowlist. Screenplay binds a model that declares it as ESM v48 (v49 when it also uses caller identity), which CratisEsmSupport does not audit, so Stage refuses that model before rendering or running it and no rendered application exposes agent operations.
     // StickyNotes are Studio canvas notes: authoring metadata outside the executable model, so Stage neither renders nor refuses them.
     // TimeZone (Screenplay 4.247.0, decisions 0106/0107) never reaches Stage: the Screenplay binder refuses an application time zone (Cratis/Screenplay#824).
     // Context (Screenplay 5.3.1) is refused by the binder with PLAY0268 before Stage consumes it.
@@ -25,6 +24,7 @@ public class when_auditing_the_ui_surface : Specification
     // RetiredForms is source-span metadata of the Screenplay 5 forms the compiler refuses; it never reaches Stage.
     // Sinks (Screenplay 6.4.0, decision 0146) are realization metadata: Stage reads them from SemanticCompilation.Sinks, ReadModelSinks and GraphSinks, never from this syntax.
     // DesignSystems (Screenplay 6.4.0) are UI configuration the binder defers from the executable model (PLAY0269); Scene has no design system yet, so Stage neither renders nor refuses them.
+    // Agents (the explicit allowlist of operations an agent may call, with its token kind and scopes) declares what the hosting surface exposes; Stage neither renders nor refuses it, and it changes no command, query or event.
     // Storylines (named journeys through the model), screen Visuals (sketches, mockup pages and images) and slice Placements (linked copies of elements declared elsewhere, `shows event <Name>`) are authoring metadata for the canvas: Stage neither renders nor refuses them, and none of them changes a command, query or event.
     // ScreenShowSyntax is the slot it stands in
     // (TemplateSlotPlacement); FormFieldSyntax.Choices is a plain input with a STAGE-SCENE-FORM-004 warning from UiSyntaxAdmission until Scene's form field can carry it.

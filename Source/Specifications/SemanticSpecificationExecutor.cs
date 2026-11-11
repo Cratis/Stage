@@ -242,7 +242,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         var priorFacts = context.Facts.Count;
         var caller = specification.GivenCaller;
         var principal = run.ReactionPrincipal ?? (caller is null ? new ClaimsPrincipal() : SemanticPolicyEvaluator.Principal(caller));
-        var allowed = SemanticPolicyEvaluator.Allows(command.Authorization, run.Plan, caller, principal, command, specification);
+        var allowed = SemanticPolicyEvaluator.Allows(command.Authorization, run.Plan, caller, principal, command, specification, context.ReadModelInstances);
         if (allowed && PrepareCommand(run, collectRefusalDetails) is { } preparation) return preparation;
 
         await using var scenario = new CommandScenario<object>();
@@ -271,7 +271,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         if (SemanticSpecificationClock.TryGetOccurrence(context.Specification, out var instant)) scenario.Clock(instant);
         scenario.Services.AddSingleton(context);
         scenario.Services.AddSingleton<IDiscoverableValidators>(new SemanticCommandValidators(context));
-        scenario.Services.AddSingleton<IAuthorizationEvaluator>(new SemanticArcAuthorization(run.Plan, context.Command, context.Specification, principal, context.CommandType));
+        scenario.Services.AddSingleton<IAuthorizationEvaluator>(new SemanticArcAuthorization(run.Plan, context.Command, context.Specification, principal, context.CommandType, context.ReadModelInstances));
         var principalOverride = new CurrentPrincipalAccessor(new HttpRequestContextAccessor());
         scenario.Services.AddSingleton<ICurrentPrincipalOverride>(principalOverride);
         scenario.Services.AddSingleton<ICurrentPrincipalAccessor>(principalOverride);
@@ -423,7 +423,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         var destinations = context.Destinations.Skip(specification.GivenEvents.Length).ToArray();
         foreach (var assertion in specification.ThenQueries)
         {
-            if (!SemanticPolicyEvaluator.Allows(plan.Queries[assertion.Query], assertion.Key, plan, specification.GivenCaller))
+            if (!SemanticPolicyEvaluator.Allows(plan.Queries[assertion.Query], assertion.Key, plan, specification.GivenCaller, context.ReadModelInstances))
             {
                 return Rejected(slice, specification, SemanticRejection.Unauthorized);
             }

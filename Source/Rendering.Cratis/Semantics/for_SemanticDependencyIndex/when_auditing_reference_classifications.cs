@@ -43,12 +43,6 @@ public class when_auditing_reference_classifications : for_SemanticSurfaceLedger
     [InlineData("SemanticWorkflowNode.Command")]
     void should_classify_lifecycle_references(string member) => SemanticDependencySurface.Classify(member)!.Kind.ShouldNotBeNull();
 
-    [Theory]
-    [InlineData("SemanticApplication.Agents")]
-    [InlineData("SemanticAgents.Operations")]
-    [InlineData("SemanticAgentOperation.Operation")]
-    void should_refuse_agent_references(string member) => SemanticDependencySurface.Classify(member)!.RefusalReason.ShouldNotBeNull();
-
     [Fact] void should_classify_every_reference_carrying_surface_member() => Assert.True(_unclassified.Length == 0, string.Join(Environment.NewLine, _unclassified));
     [Fact] void should_explain_members_without_owner_references() => _unexplained.ShouldBeEmpty();
     [Fact] void should_not_classify_an_unrecognized_reference_member() => SemanticDependencySurface.Classify("SemanticCommand.FutureReadModel").ShouldBeNull();

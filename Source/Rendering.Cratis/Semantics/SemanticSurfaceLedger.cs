@@ -397,6 +397,20 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticComparisonOperator", rendered, "Contains StartsWith");
         Add(entries, "SemanticKeyedQuery", rendered, "Narrowing");
 
+        // ESM v48 agent exposure declares which executable operations an agent may call, and with what token and scope. It is a contract for the
+        // Studio/MCP surface that exposes the application, not behavior of the generated backend, which neither renders nor refuses it.
+        Add(entries, "SemanticApplication", ignored("Agent exposure is a contract for the hosting surface; the generated backend neither renders nor refuses it."), "Agents");
+        Add(entries, "SemanticAgents", ignored("Agent exposure is a contract for the hosting surface."), "TokenKind Operations");
+        Add(entries, "SemanticAgentOperation", ignored("Agent exposure is a contract for the hosting surface."), "Kind Operation Scope Description");
+        Add(entries, "SemanticAgentOperationKind", ignored("Agent exposure is a contract for the hosting surface."), "Command Query");
+        Add(entries, "SemanticAgentScope", ignored("Agent exposure is a contract for the hosting surface."), "Read Write");
+        Add(entries, "SemanticAgentTokenKind", ignored("Agent exposure is a contract for the hosting surface."), "Personal");
+
+        // ESM v49 compares a recorded property with the caller's identifier. Stage has no mapping from Arc's principal to that identifier yet
+        // (Cratis/Stage#1061), so a policy that uses it, and a caller fixture that names one, are refused rather than rendered with a guessed claim.
+        Add(entries, "SemanticConditionOperand", rejected("STAGE-ESM-016"), "CallerId");
+        Add(entries, "SemanticCaller", rejected("STAGE-ESM-016"), "Id");
+
         // ESM v42 screens are a stack-neutral UI contract; the backend target renders none of them and no screen changes a command, query or event.
         Add(entries, "SemanticSlice", ignored("Screens are a stack-neutral UI contract; the Cratis backend target renders none of them."), "Screens");
         Add(entries, "SemanticScreen", ignored("Screens are a stack-neutral UI contract; the Cratis backend target renders none of them."), "Id Name Title Description Data Actions Navigation Layout");
@@ -414,18 +428,6 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticProjectionChildrenOrdering", rejected("STAGE-ESM-016"), "Direction Placement SortBy");
         Add(entries, "SemanticChildrenPlacement", rejected("STAGE-ESM-016"), "Append Prepend Sorted Unknown");
         Add(entries, "SemanticSortDirection", rejected("STAGE-ESM-016"), "Ascending Descending Unknown");
-
-        // ESM v48 agent allowlists have no rendered agent surface yet (Cratis/Stage#982), and ESM v49 caller identifiers need the
-        // Arc principal mapped to the caller identifier before a policy may compare them (Cratis/Stage#1061). Both stay refused;
-        // a model without agents, without a caller-identifier operand and without a specification caller id is gated out.
-        Add(entries, "SemanticApplication", rejected("STAGE-ESM-016"), "Agents");
-        Add(entries, "SemanticAgents", rejected("STAGE-ESM-016"), "Operations TokenKind");
-        Add(entries, "SemanticAgentOperation", rejected("STAGE-ESM-016"), "Description Kind Operation Scope");
-        Add(entries, "SemanticAgentOperationKind", rejected("STAGE-ESM-016"), "Command Query");
-        Add(entries, "SemanticAgentScope", rejected("STAGE-ESM-016"), "Read Write");
-        Add(entries, "SemanticAgentTokenKind", rejected("STAGE-ESM-016"), "Personal");
-        Add(entries, "SemanticConditionOperand", rejected("STAGE-ESM-016"), "CallerId");
-        Add(entries, "SemanticCaller", rejected("STAGE-ESM-016"), "Id");
         Add(entries, "SemanticClaimCondition", rendered, "Claim TargetKind Value");
         Add(entries, "SemanticClaimTargetKind", rendered, "Literal Subject Artifact");
         Add(entries, "SemanticRoleCondition", rendered, "Role");

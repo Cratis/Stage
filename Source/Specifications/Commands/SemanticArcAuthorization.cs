@@ -17,10 +17,11 @@ namespace Cratis.Stage.Specifications.Commands;
 /// <param name="specification">The current specification.</param>
 /// <param name="principal">The caller principal.</param>
 /// <param name="commandType">The generated command type.</param>
-internal sealed class SemanticArcAuthorization(SemanticExecutionPlan plan, SemanticCommand command, SemanticSpecification specification, ClaimsPrincipal principal, Type commandType) : IAuthorizationEvaluator
+/// <param name="instances">The recorded state a policy decides from.</param>
+internal sealed class SemanticArcAuthorization(SemanticExecutionPlan plan, SemanticCommand command, SemanticSpecification specification, ClaimsPrincipal principal, Type commandType, Func<SemanticId, IEnumerable<SemanticReadModelInstance>>? instances = null) : IAuthorizationEvaluator
 {
     /// <inheritdoc/>
-    public bool IsAuthorized(Type type) => type != commandType || SemanticPolicyEvaluator.Allows(command.Authorization, plan, specification.GivenCaller, principal, command, specification);
+    public bool IsAuthorized(Type type) => type != commandType || SemanticPolicyEvaluator.Allows(command.Authorization, plan, specification.GivenCaller, principal, command, specification, instances);
 
     /// <inheritdoc/>
     public bool IsAuthorized(MethodInfo method) => true;

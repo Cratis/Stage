@@ -20,6 +20,7 @@ import { actionVariant } from './humanize';
 import { readableValue } from './readableValue';
 import { createsEntity, humanize, schemaPropertiesOf, type SchemaProperty } from './stageFormSchema';
 import { registeredCommand } from './commandExecutor';
+import { useCommandAvailability } from './commandAvailability';
 import { navigateToScreen } from './stageNavigation';
 import { isGuardedAction, StageSceneGuardedAction as StageGuardedAction } from './stageData';
 import { useRowInteractions } from './stageRowInteractions';
@@ -296,6 +297,9 @@ function StageCommandAction({ element: input, interactions }: RegisteredProps) {
     const command = registeredCommand(text(element, 'command'), text(element, 'typeName'), text(element, 'route'));
     const awaiting = useIdentifiersAwaitingSelection(element, subject);
     const row = subjectRowOf(subject, selectedRows);
+    const { parameters, queryResults } = useStageData();
+    const subjectValues = row ? itemSubjectElement(element, properties, row).properties.subjectValues : undefined;
+    const availability = useCommandAvailability(command, { ...parameters, ...(isRecord(subjectValues) ? subjectValues : {}) }, queryResults);
 
     if (!command) {
         return <Button type='button' data-scene-id={element.id} disabled title='This command is not exposed as an API yet' {...interactions}>{label}</Button>;
@@ -304,6 +308,11 @@ function StageCommandAction({ element: input, interactions }: RegisteredProps) {
     // An explicit `for item` acts on exactly one selected row, even when the screen has no table to select from.
     if (awaiting.length > 0 || awaitsSubjectRow(subject, row)) {
         return <Button type='button' data-scene-id={element.id} disabled title='Select a row first' {...interactions}>{label}</Button>;
+    }
+
+    // The server refused it for the data on the screen, such as the plan of this asset: offered as unavailable, with the reason on hover.
+    if (availability.unavailable) {
+        return <Button type='button' data-scene-id={element.id} data-stage-availability='unavailable' disabled title={availability.reason || 'Not available for this data'} {...interactions}>{label}</Button>;
     }
 
     return <StageCommandDialog element={row ? itemSubjectElement(element, properties, row) : element} label={label} />;

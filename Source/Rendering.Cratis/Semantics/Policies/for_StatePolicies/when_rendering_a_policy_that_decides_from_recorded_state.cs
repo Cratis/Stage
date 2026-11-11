@@ -99,9 +99,19 @@ public class when_rendering_a_policy_that_decides_from_recorded_state : Specific
     static object CreatePlan(Type plan, Type invoiceId, bool enabled)
     {
         var constructor = plan.GetConstructors().OrderByDescending(candidate => candidate.GetParameters().Length).First();
-        var arguments = constructor.GetParameters().Select(parameter => parameter.ParameterType == typeof(bool) ? enabled : parameter.ParameterType == invoiceId ? Activator.CreateInstance(invoiceId, "invoice-one") : null).ToArray();
+        var arguments = constructor.GetParameters().Select(Argument).ToArray();
 
         return constructor.Invoke(arguments);
+
+        object? Argument(ParameterInfo parameter)
+        {
+            if (parameter.ParameterType == typeof(bool))
+            {
+                return enabled;
+            }
+
+            return parameter.ParameterType == invoiceId ? Activator.CreateInstance(invoiceId, "invoice-one") : null;
+        }
     }
 
     public class ReadModelsProxy : DispatchProxy

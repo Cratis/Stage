@@ -4,6 +4,8 @@
         <AssemblyName>Cratis.Stage.Specifications</AssemblyName>
         <RootNamespace>Cratis.Stage.Specifications</RootNamespace>
         <IsPackable>true</IsPackable>
+        <TargetFramework></TargetFramework>
+        <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
         <!-- Type discovery references deprecated structural types from the Stage dependency. -->
         <NoWarn>$(NoWarn);CS0618</NoWarn>
         <!-- Package validation cannot resolve the Chronicle kernel assemblies this package carries, so it stays off. -->

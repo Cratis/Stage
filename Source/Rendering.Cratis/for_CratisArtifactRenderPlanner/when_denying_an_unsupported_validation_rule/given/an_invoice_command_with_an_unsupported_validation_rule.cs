@@ -43,6 +43,7 @@ public class an_invoice_command_with_an_unsupported_validation_rule : Specificat
         {
             Modules = [module with { Features = [feature with { Slices = [slice with { Commands = [command with { Validations = [unsupported is null ? rule with { Kind = (SemanticValidationRuleKind)999 } : unsupported(rule)] }] }] }] }]
         };
+
         // Bypass Screenplay's constructor validation to model an unaudited dependency enum value.
         typeof(ExecutableSemanticModel).GetField("<Application>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(model, application);
         return (model, executionPlan);

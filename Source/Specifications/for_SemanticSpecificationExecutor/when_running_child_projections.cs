@@ -229,7 +229,7 @@ public class when_running_child_projections : Specification
                 source = source.Replace($"        given Labeled\n          for \"{code}\"\n          label = \"{label}\"\n", string.Empty, StringComparison.Ordinal);
         }
         if (action == "implicit-identity") source = source.Replace("            code = code\n", string.Empty, StringComparison.Ordinal);
-        if (action is "missing-parent" or "missing-parent-remove") source = source.Replace("        given Opened\n          for \"parent\"\n          name = \"parent name\"\n", string.Empty, StringComparison.Ordinal);
+        if (string.Equals(action, "missing-parent", StringComparison.Ordinal) || string.Equals(action, "missing-parent-remove", StringComparison.Ordinal)) source = source.Replace("        given Opened\n          for \"parent\"\n          name = \"parent name\"\n", string.Empty, StringComparison.Ordinal);
         if (action == "late-parent")
         {
             const string opened = "        given Opened\n          for \"parent\"\n          name = \"parent name\"\n";

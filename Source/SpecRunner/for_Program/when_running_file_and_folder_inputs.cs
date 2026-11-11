@@ -45,7 +45,7 @@ public class when_running_file_and_folder_inputs : Specification
                   invoiceNumber = ""
         """;
 
-    readonly Dictionary<string, RejectedRun> _rejections = new(StringComparer.Ordinal);
+    readonly Dictionary<string, RejectedRun> _rejections = [with(comparer: StringComparer.Ordinal)];
     readonly string _directory = Path.Combine(Path.GetTempPath(), $"stage runner boundary {Guid.NewGuid():N}");
     CultureInfo _culture = CultureInfo.CurrentCulture;
     CultureInfo? _defaultCulture = CultureInfo.DefaultThreadCurrentCulture;

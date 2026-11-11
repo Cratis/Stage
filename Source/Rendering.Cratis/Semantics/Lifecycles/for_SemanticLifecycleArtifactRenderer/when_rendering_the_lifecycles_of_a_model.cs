@@ -2,13 +2,13 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Text;
-using Cratis.Stage.Rendering.Cratis.CodeGeneration;
-using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Lifecycles;
 using Cratis.Stage.Contracts.Lifecycles.for_LifecycleAdmission.given;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
+using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics.Lifecycles.for_SemanticLifecycleArtifactRenderer;
@@ -27,13 +27,13 @@ public class when_rendering_the_lifecycles_of_a_model : Specification
     string Text(string path) => Encoding.UTF8.GetString(_plan.Artifacts.Single(artifact => artifact.RelativePath == path).Bytes.AsSpan());
 
     [Fact]
-    void should_compile_against_the_orleans_assemblies() => RenderedOutput.Errors(_plan.Artifacts
+    void should_compile_against_the_orleans_assemblies() => RenderedOutput.Errors([.. _plan.Artifacts
         .Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
-        .Select(artifact => new RenderedFile(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))).ToArray()).ShouldBeEmpty();
+        .Select(artifact => new RenderedFile(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan())))]).ShouldBeEmpty();
     [Fact]
-    void should_compile_without_warnings() => RenderedOutput.Warnings(_plan.Artifacts
+    void should_compile_without_warnings() => RenderedOutput.Warnings([.. _plan.Artifacts
         .Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
-        .Select(artifact => new RenderedFile(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))).ToArray()).ShouldBeEmpty();
+        .Select(artifact => new RenderedFile(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan())))]).ShouldBeEmpty();
     [Fact] void should_plan_the_application() => Assert.True(_plan.Success, string.Join(Environment.NewLine, _plan.Diagnostics.Select(diagnostic => $"{diagnostic.Code} {diagnostic.Severity}: {diagnostic.Message}")));
     [Fact] void should_render_the_state_machine_as_an_event_sourced_grain() => Text("Lifecycles/InvoiceLifecycle.cs").ShouldContain("public class InvoiceLifecycle : EventSourcedStateMachine<");
     [Fact] void should_declare_the_transitions_in_order_with_their_guard() => Text("Lifecycles/InvoiceLifecycle.cs").ShouldContain(".When(model => model.Overdue == true).TransitionTo<Overdue>()");

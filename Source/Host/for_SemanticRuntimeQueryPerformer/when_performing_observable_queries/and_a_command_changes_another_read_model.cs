@@ -16,7 +16,7 @@ public class and_a_command_changes_another_read_model : live_projects
 
     async Task Because()
     {
-        var subject = (IObservable<IEnumerable<DynamicReadModel>>)(await Perform("LiveProjects"));
+        var subject = (IObservable<IEnumerable<DynamicReadModel>>)await Perform("LiveProjects");
         var emissions = Observe(subject, out _subscription);
         await Next(emissions);
 

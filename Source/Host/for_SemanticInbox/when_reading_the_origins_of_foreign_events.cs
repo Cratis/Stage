@@ -35,7 +35,7 @@ public class when_reading_the_origins_of_foreign_events : Specification
 
     void Because() => _origins = SemanticInbox.Origins(compiled_plan.From(Source));
 
-    [Fact] void should_name_every_store_a_foreign_event_comes_from() => _origins.Keys.OrderBy(key => key).ShouldEqual(["billing", "shipping"]);
-    [Fact] void should_list_every_event_a_store_publishes_to_this_application() => _origins["shipping"].OrderBy(name => name).ShouldEqual(["ShipmentDispatched", "ShipmentReturned"]);
+    [Fact] void should_name_every_store_a_foreign_event_comes_from() => _origins.Keys.Order().ShouldEqual(["billing", "shipping"]);
+    [Fact] void should_list_every_event_a_store_publishes_to_this_application() => _origins["shipping"].Order().ShouldEqual(["ShipmentDispatched", "ShipmentReturned"]);
     [Fact] void should_not_subscribe_to_a_local_event() => _origins.Values.SelectMany(names => names).ShouldNotContain("OrderDispatched");
 }

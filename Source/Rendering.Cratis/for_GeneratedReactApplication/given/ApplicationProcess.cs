@@ -156,7 +156,9 @@ public static class ApplicationProcess
     static async Task<bool> Drain(Process process, Task standardOutput, Task standardError, CancellationTokenSource pumps)
     {
         var all = Task.WhenAll(standardOutput, standardError);
-        var drained = await Task.WhenAny(all, Task.Delay(_drainBudget)) == all;
+        using var budget = new CancellationTokenSource();
+        var drained = await Task.WhenAny(all, Task.Delay(_drainBudget, budget.Token)) == all;
+        await budget.CancelAsync();
         if (!drained)
         {
             // The output did not close in time: stop the pumps and release their pipes, then wait for them so none outlives the objects they use.

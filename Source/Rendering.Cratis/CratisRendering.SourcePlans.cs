@@ -68,7 +68,7 @@ public static partial class CratisRendering
         var prepared = Prepare(options, scaffoldOnly: true);
         if (prepared.Diagnostic is not null) return CratisPlanResult.Create(options.ApplicationName, [], [prepared.Diagnostic]);
         var profile = prepared.Profile!;
-        if (!CratisArtifactRenderProfileAdmission.MatchesScaffold(profile, options.ApplicationName, out var admittedOptions, out var mismatch))
+        if (!CratisArtifactRenderProfileAdmission.Matches(new ProfileAdmissionTarget(profile, options.ApplicationName, null, options.ProfileVersion), out var admittedOptions, out var mismatch))
         {
             return CratisPlanResult.Create(options.ApplicationName, [], [ProfileError(mismatch)]);
         }
@@ -137,7 +137,7 @@ public static partial class CratisRendering
             TypedContextDescriptors = loaded.TypedContextDescriptors,
             ReleaseBaseline = loaded.ReleaseBaseline
         };
-        if (!CratisArtifactRenderProfileAdmission.Matches(request, out var admittedOptions, out var mismatch))
+        if (!CratisArtifactRenderProfileAdmission.Matches(request, options.ProfileVersion, out var admittedOptions, out var mismatch))
         {
             return CratisPlanResult.Create(options.ApplicationName, [], [.. sourceDiagnostics, ProfileError(mismatch)], loaded.Model.Revision);
         }
@@ -190,9 +190,21 @@ public static partial class CratisRendering
         {
             return (null, CratisPlanResult.Error("STAGE-PLAN-020", "Domain must contain valid relative C# name segments, without traversal or empty segments."));
         }
+        if (CratisBackendApplicationScaffoldProfile.ForVersion(options.ProfileVersion) is not { } scaffoldProfile)
+        {
+            return (null, CratisPlanResult.Error("STAGE-PLAN-032", $"The scaffold profile version '{options.ProfileVersion}' is not supported."));
+        }
         try
         {
-            var profile = CreateProfile(options.ApplicationName, new(options.ProjectName, options.RootNamespace) { RepositoryRoot = options.RepositoryRoot, ServiceLayout = options.ServiceLayout });
+            var profile = CreateProfile(
+                options.ApplicationName,
+                new(options.ProjectName, options.RootNamespace) { RepositoryRoot = options.RepositoryRoot, ServiceLayout = options.ServiceLayout },
+                null,
+                null,
+                null,
+                null,
+                ListsPrimeReact(null),
+                scaffoldProfile);
             if (DomainPlacementInput.IsReserved(domain, profile))
             {
                 return (null, CratisPlanResult.Error("STAGE-PLAN-021", "Domain collides with an application-root scaffold or reserved folder."));

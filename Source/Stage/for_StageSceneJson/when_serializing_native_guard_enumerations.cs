@@ -18,7 +18,7 @@ public class when_serializing_native_guard_enumerations : Specification
     void Because()
     {
         var comparison = new ComparisonGuardCondition(new("item.status"), GuardOperator.Equal, "open", ["open", "closed"]) { EnumerationNumbers = [1, 0] };
-        _wire = JsonSerializer.SerializeToNode(new
+        var value = new
         {
             comparison,
             and = new LogicalGuardCondition(comparison, LogicalGuardOperator.And, comparison),
@@ -27,7 +27,8 @@ public class when_serializing_native_guard_enumerations : Specification
             execute = new GuardedActionFallback(GuardedActionFallbackOutcome.Execute, "CloseWorkItem"),
             trigger = new BuiltInInteractionTrigger(InteractionTriggerKind.DoubleClick),
             destination = new DestinationReference(Kind: DestinationKind.Dialog, Dialog: "Edit")
-        }, StageSceneJson.Options)!;
+        };
+        _wire = JsonSerializer.SerializeToNode(value, StageSceneJson.Options)!;
     }
 
     [Fact] void should_preserve_the_comparison_operator_spelling() => _wire["comparison"]!["operator"]!.GetValue<string>().ShouldEqual("Equal");

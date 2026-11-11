@@ -21,7 +21,7 @@ public class when_running_modeled_and_live_reducers : Specification
     async Task should_agree_between_the_modeled_specifications_and_live_execution()
     {
         var root = Path.GetFullPath("../../../../..", AppContext.BaseDirectory);
-        var worker = Path.Combine(root, "Source", "Host", "bin", "Debug", "net10.0", "bodyworker", "Cratis.Stage.BodyWorker.dll");
+        var worker = Path.Combine(root, "Source", "Host", "bin", "Debug", "net11.0", "bodyworker", "Cratis.Stage.BodyWorker.dll");
         Assert.True(File.Exists(worker), "Build Host in Debug before running the real-worker specifications.");
         var directory = Directory.CreateTempSubdirectory("stage-reducer-conformance-").FullName;
         try

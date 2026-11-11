@@ -8,7 +8,8 @@ namespace Cratis.Stage.Rendering.Cratis.Scaffolding;
 /// </summary>
 public sealed class CratisBackendApplicationScaffoldProfile
 {
-    const string CurrentVersion = "3";
+    const string CurrentVersion = "4";
+    const string RetainedVersion = "3";
 
     CratisBackendApplicationScaffoldProfile(
         string version,
@@ -58,6 +59,23 @@ public sealed class CratisBackendApplicationScaffoldProfile
     /// </remarks>
     public static CratisBackendApplicationScaffoldProfile Current { get; } = Create(
         CurrentVersion,
+        "net11.0",
+        ScaffoldPackageVersions.Cratis,
+        ScaffoldPackageVersions.ArcMongoDB,
+        ScaffoldPackageVersions.ArcChronicleTesting,
+        ScaffoldPackageVersions.Specifications,
+        ScaffoldPackageVersions.SpecificationsXUnit,
+        ScaffoldPackageVersions.TestSdk,
+        ScaffoldPackageVersions.NSubstitute,
+        ScaffoldPackageVersions.Xunit,
+        ScaffoldPackageVersions.XunitRunner,
+        ScaffoldPackageVersions.Chronicle);
+
+    /// <summary>
+    /// Gets the retained version 3 profile (net10.0), kept byte-identical so applications recorded at version 3 keep rendering unchanged.
+    /// </summary>
+    public static CratisBackendApplicationScaffoldProfile Version3 { get; } = Create(
+        RetainedVersion,
         "net10.0",
         ScaffoldPackageVersions.Cratis,
         ScaffoldPackageVersions.ArcMongoDB,
@@ -146,6 +164,19 @@ public sealed class CratisBackendApplicationScaffoldProfile
     /// wildcard, a range or a prerelease from either registry.
     /// </remarks>
     public CratisFrontendPackageSet FrontendPackageSet { get; }
+
+    /// <summary>
+    /// Finds the profile for a scaffold version.
+    /// </summary>
+    /// <param name="version">The scaffold version. Null selects version 3 (net10.0); version 4 (net11.0) is used only when "4" is passed explicitly.</param>
+    /// <returns>The profile, or null when the version is unknown.</returns>
+    public static CratisBackendApplicationScaffoldProfile? ForVersion(string? version) => version switch
+    {
+        null => Version3,
+        CurrentVersion => Current,
+        RetainedVersion => Version3,
+        _ => null
+    };
 
     /// <summary>
     /// Creates a validated immutable scaffold profile for in-assembly contract verification.

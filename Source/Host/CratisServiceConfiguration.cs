@@ -146,7 +146,7 @@ public static class CratisServiceConfiguration
         {
             KernelConnectionGuard.EnsureAllowed(mounted?.ToString() ?? configured.ToString(), published, finalConnection: mounted is not null);
         }
-        var connection = mounted ?? ConnectionFor(new ChronicleConnectionStringBuilder(configured.ToString()), published).ToConnectionString();
+        var connection = mounted ?? ConnectionFor([with(configured.ToString())], published).ToConnectionString();
         if (published is not null)
         {
             KernelConnectionGuard.EnsureAllowed(connection.ToString(), published);

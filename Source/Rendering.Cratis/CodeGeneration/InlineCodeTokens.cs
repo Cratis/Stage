@@ -18,7 +18,7 @@ internal sealed class InlineCodeTokens
 {
     internal const string Prefix = "/*__stage_inline:";
     internal const string Suffix = "__*/";
-    readonly Dictionary<string, InlineCodeSlot> _slots = new(StringComparer.Ordinal);
+    readonly Dictionary<string, InlineCodeSlot> _slots = [with(comparer: StringComparer.Ordinal)];
 
     internal IReadOnlyDictionary<string, InlineCodeSlot> Slots => _slots;
 

@@ -62,14 +62,14 @@ public class when_rendering_a_query_that_narrows_its_rows : Specification
         var id = assembly.GetTypes().Single(type => type.Name == "VesselId");
         var narrowingType = assembly.GetTypes().Single(type => type.Name == "VesselsOnThePlanNarrowing");
         object Id(string value) => Activator.CreateInstance(id, value)!;
-        object Build(Type type, string value, object other) => type.GetConstructors().Single().Invoke([.. type.GetConstructors().Single().GetParameters().Select(parameter => parameter.ParameterType == id ? Id(value) : parameter.ParameterType == typeof(string) ? other : other)]);
+        object Build(Type type, string value, object other) => type.GetConstructors().Single().Invoke([.. type.GetConstructors().Single().GetParameters().Select(parameter => parameter.ParameterType == id ? Id(value) : other)]);
         object Vessel(string value) => Build(vessel, value, value.ToUpperInvariant());
         object Plan(string value, bool enabled) => Build(plan, value, enabled);
         var vessels = new[] { "v1", "v2", "v3", "v4", "v5" }.Select(Vessel).ToList();
         var plans = new Dictionary<string, object> { ["v1"] = Plan("v1", true), ["v2"] = Plan("v2", false), ["v3"] = Plan("v3", true), ["v5"] = Plan("v5", true) };
         var readModels = ReadModelsStandIn.Create(vessel, vessels, plan, plans, unreadable: "v5");
         var narrowing = (IQueryRowNarrowing)Activator.CreateInstance(narrowingType, readModels)!;
-        var context = new QueryContext($"Fleet.Vessels.VesselsOnThePlan", CorrelationId.New(), new Paging(0, 1, true), Sorting.None);
+        var context = new QueryContext("Fleet.Vessels.VesselsOnThePlan", CorrelationId.New(), new Paging(0, 1, true), Sorting.None);
         var predicate = narrowing.GetPredicate(vessel, context).AsTask().GetAwaiter().GetResult();
         Assert.NotNull(predicate);
         var narrowed = typeof(IQueryRowNarrowing).Assembly.GetType("Cratis.Arc.Queries.QueryRowNarrower")!.GetMethod("Narrow", BindingFlags.NonPublic | BindingFlags.Static)!;

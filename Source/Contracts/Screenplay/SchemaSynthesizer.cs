@@ -72,7 +72,7 @@ public sealed class SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax>
     /// </summary>
     public const string ReferenceKeyword = "x-reference";
 
-    readonly HashSet<string> _expanding = new(StringComparer.Ordinal);
+    readonly HashSet<string> _expanding = [with(comparer: StringComparer.Ordinal)];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SchemaSynthesizer"/> class that leaves composite types as open objects.

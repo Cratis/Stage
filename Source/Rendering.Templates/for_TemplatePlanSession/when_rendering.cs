@@ -9,7 +9,7 @@ namespace Cratis.Stage.Rendering.Templates.for_TemplatePlanSession;
 
 public class when_rendering : for_TemplatePreparer.given.a_kit
 {
-    protected static JsonElement Scope => JsonDocument.Parse("{\"model\":{\"name\":\"World\"}}").RootElement.Clone();
+    protected static JsonElement Scope => JsonElement.Parse("{\"model\":{\"name\":\"World\"}}");
 
     [Fact]
     public void should_render_identically_across_artifacts()

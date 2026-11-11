@@ -14,7 +14,7 @@ internal sealed class SemanticHandleLocals(SemanticCommand command)
     readonly HashSet<string> _reserved = new(
         command.Properties.Where(property => property.IsGenerated).Select(property => SemanticCommandResultRendering.PropertyValue(property).TrimStart('@')),
         StringComparer.Ordinal);
-    readonly Dictionary<string, string> _allocated = new(StringComparer.Ordinal);
+    readonly Dictionary<string, string> _allocated = [with(comparer: StringComparer.Ordinal)];
 
     internal string Name(string preferred) => Allocate(preferred, preferred);
 

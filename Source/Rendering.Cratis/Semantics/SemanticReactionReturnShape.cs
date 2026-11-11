@@ -12,10 +12,9 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 // A deliberately bounded syntax proof, not a C# evaluator. Unknown expressions fail closed.
 internal sealed class SemanticReactionReturnShape(SemanticEventContract source, SemanticApplicationContext context)
 {
-    static readonly HashSet<string> _collectionNames = new(StringComparer.Ordinal)
-    {
+    static readonly HashSet<string> _collectionNames = [with(comparer: StringComparer.Ordinal),
         "List", "IEnumerable", "ICollection", "IList", "IReadOnlyCollection", "IReadOnlyList"
-    };
+    ];
 
     readonly Dictionary<string, Shape> _types = TypeShapes(context);
     BlockSyntax _body = null!;

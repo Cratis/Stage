@@ -4,6 +4,8 @@
         <RootNamespace>Cratis.Stage.Rendering.Cratis</RootNamespace>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <IsPackable>true</IsPackable>
+        <TargetFramework></TargetFramework>
+        <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
         <Description>The Cratis Stage Cratis renderer — generates a Cratis Arc + Chronicle vertical-slice application from a compiled Screenplay application.</Description>
     </PropertyGroup>
     <ItemGroup>
@@ -121,6 +123,15 @@
         <EmbeddedResource Include="../Stage/Runtime/PortableTenantValues.cs" LogicalName="PortableTenantValues.cs" />
         <EmbeddedResource Include="../Stage/Runtime/AmbiguousTenant.cs" LogicalName="AmbiguousTenant.cs" />
     </ItemGroup>
+    <PropertyGroup>
+        <!-- The SDK's implicit targeting-pack download of the same package (another version) is intended to coexist. -->
+        <NoWarn>$(NoWarn);NU1505</NoWarn>
+    </PropertyGroup>
+    <ItemGroup>
+        <!-- The net11.0 reference pack is downloaded from NuGet (not referenced: one project cannot reference two versions
+             of one package) so the embedded set never depends on an SDK install. A missing pack fails restore. -->
+        <PackageDownload Include="Microsoft.NETCore.App.Ref" Version="[$(PureTransitionReferencePackVersion11)]" />
+    </ItemGroup>
     <ItemGroup>
         <!-- Embed the pinned 10.0.12 reference pack; the resource version must match
              PureTransitionAdmission.ReferencePackVersion and Directory.Packages.props.
@@ -130,6 +141,21 @@
         <EmbeddedResource Include="$(PkgCratis_Chronicle)/lib/net10.0/Cratis.Chronicle.dll" LogicalName="GenerationReferences.Cratis.Chronicle.dll" WithCulture="false" />
         <EmbeddedResource Include="$(PkgSystem_Reactive)/ref/net8.0/System.Reactive.dll" LogicalName="GenerationReferences.System.Reactive.dll" WithCulture="false" />
     </ItemGroup>
+    <!-- The version 4 (net11.0) profile analyses against the 11.0.0 pack, embedded with its own resource version so
+         version 3 stays bound to net10.0. Items are created at target time so NuGetPackageRoot is always defined;
+         an absent pack fails the build rather than silently dropping the net11 references. -->
+    <Target Name="EmbedNet11ReferencePack" BeforeTargets="AssignTargetPaths">
+        <PropertyGroup>
+            <Net11ReferencePackDirectory>$(NuGetPackageRoot)microsoft.netcore.app.ref/$(PureTransitionReferencePackVersion11)/ref/net11.0/</Net11ReferencePackDirectory>
+        </PropertyGroup>
+        <ItemGroup>
+            <Net11ReferenceAssembly Include="$(Net11ReferencePackDirectory)*.dll" />
+        </ItemGroup>
+        <Error Condition="'@(Net11ReferenceAssembly)' == ''" Text="Microsoft.NETCore.App.Ref $(PureTransitionReferencePackVersion11) reference assemblies not found in $(Net11ReferencePackDirectory); restore the package." />
+        <ItemGroup>
+            <EmbeddedResource Include="@(Net11ReferenceAssembly)" LogicalName="PureTransitionReferences.$(PureTransitionReferencePackVersion11).%(Filename)%(Extension)" Type="Non-Resx" WithCulture="false" />
+        </ItemGroup>
+    </Target>
     <!-- The SDK already loads these analyzers from its framework pack; loading the NuGet
          copy a second time makes the regex generator emit duplicate partial members. -->
     <Target Name="RemoveDuplicateReferencePackAnalyzers" BeforeTargets="CoreCompile">

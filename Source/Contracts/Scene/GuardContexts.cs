@@ -8,7 +8,7 @@ namespace Cratis.Stage.Contracts.Scene;
 /// <summary>Indexes each authored attachment once, including distinct uses of reusable behaviors.</summary>
 internal sealed class GuardContexts : ScreenplaySyntaxWalker
 {
-    readonly Dictionary<SyntaxNode, GuardSubject> _subjects = new(ReferenceEqualityComparer.Instance);
+    readonly Dictionary<SyntaxNode, GuardSubject> _subjects = [with(comparer: ReferenceEqualityComparer.Instance)];
     GuardSubject _current;
 
     internal GuardContexts(ApplicationSyntax syntax)

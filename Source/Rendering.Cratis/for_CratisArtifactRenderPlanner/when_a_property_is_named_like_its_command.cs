@@ -28,7 +28,7 @@ public class when_a_property_is_named_like_its_command : Specification
         var instance = Activator.CreateInstance(type, "payment-1", "paid");
         var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
         var json = JsonSerializer.Serialize(instance, options);
-        Assert.Equal("paid", JsonDocument.Parse(json).RootElement.GetProperty("text_").GetString());
+        Assert.Equal("paid", JsonElement.Parse(json).GetProperty("text_").GetString());
         Assert.Equal(instance, JsonSerializer.Deserialize(json, type, options));
         Assert.Equal("paid", type.GetMethod("Handle").Invoke(instance, null).GetType().GetProperty("Text").GetValue(type.GetMethod("Handle").Invoke(instance, null)));
     }

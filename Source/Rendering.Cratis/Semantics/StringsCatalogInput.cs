@@ -63,7 +63,7 @@ internal static class StringsCatalogInput
 
             if (!locales.TryGetValue(locale, out var entries))
             {
-                entries = new(StringComparer.Ordinal);
+                entries = [with(comparer: StringComparer.Ordinal)];
                 locales.Add(locale, entries);
             }
 
@@ -125,7 +125,7 @@ internal static class StringsCatalogInput
                 return false;
             }
 
-            var value = new Catalog(serialized.DefaultLocale, new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal));
+            var value = new Catalog(serialized.DefaultLocale, [with(comparer: StringComparer.Ordinal)]);
             foreach (var (locale, entries) in serialized.Locales)
             {
                 value.Locales.Add(locale, new SortedDictionary<string, string>(entries, StringComparer.Ordinal));

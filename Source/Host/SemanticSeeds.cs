@@ -11,6 +11,7 @@ using Cratis.Screenplay.Files;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Screenplay.Syntax;
+using Cratis.Stage.Contracts;
 using Cratis.Stage.Contracts.Execution;
 using Cratis.Stage.Contracts.Semantics;
 using Cratis.Stage.Semantics;
@@ -314,8 +315,8 @@ internal static class SemanticSeeds
     static object? Literal(object? value) => value switch
     {
         ExactNumber exact => Normalized(exact.Value),
-        double number when double.IsFinite(number) => Normalized((decimal)number),
-        float or int or long or short or byte or decimal => Normalized(Convert.ToDecimal(value, CultureInfo.InvariantCulture)),
+        double number when double.IsFinite(number) => Normalized(LegacyNumberLowering.FromDouble(number)),
+        float or int or long or short or byte or decimal => Normalized(LegacyNumberLowering.From(value)),
         _ => value
     };
 

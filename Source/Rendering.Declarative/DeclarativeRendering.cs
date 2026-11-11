@@ -86,7 +86,7 @@ sealed record DeclarativeRendering(ImmutableArray<DeclarativeRenderedFile> Files
 
     sealed class FileRenderer(TemplatePlanSession session, IDeclarativeLanguage language, ImmutableHashSet<SemanticId> constructs, DeclarativeBodies bodies, long maxOutputBytes)
     {
-        readonly HashSet<string> _paths = new(StringComparer.OrdinalIgnoreCase);
+        readonly HashSet<string> _paths = [with(comparer: StringComparer.OrdinalIgnoreCase)];
         long _finalBytes;
 
         internal ArtifactRenderDiagnostic? Render(ExpandedOutput expanded, List<DeclarativeRenderedFile> files)

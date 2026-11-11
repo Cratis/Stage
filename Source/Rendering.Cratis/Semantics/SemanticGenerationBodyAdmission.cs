@@ -43,7 +43,7 @@ internal static class SemanticGenerationBodyAdmission
             $"static class {Identifiers.ToPascalCase(concept.Name)} {{ {signature} {{\n";
         var code = prefix + body + "\n} }";
         var tree = CSharpSyntaxTree.ParseText(code, new CSharpParseOptions(Microsoft.CodeAnalysis.CSharp.LanguageVersion.Latest));
-        return WithAnalysisReferences(metadataReferences =>
+        return WithAnalysisReferences(context, metadataReferences =>
         {
             var compilation = CSharpCompilation.Create(
                 "GenerationBodyAnalysis",
@@ -80,12 +80,12 @@ internal static class SemanticGenerationBodyAdmission
         });
     }
 
-    static PureTransitionAdmission.Verdict WithAnalysisReferences(Func<MetadataReference[], PureTransitionAdmission.Verdict> analyze)
+    static PureTransitionAdmission.Verdict WithAnalysisReferences(SemanticApplicationContext context, Func<MetadataReference[], PureTransitionAdmission.Verdict> analyze)
     {
         MetadataReference[] references;
         try
         {
-            references = [.. PureTransitionAdmission.AnalysisReferences(), FundamentalsReference];
+            references = [.. PureTransitionAdmission.AnalysisReferences(context.TargetFramework), FundamentalsReference];
         }
         catch (InvalidOperationException exception)
         {

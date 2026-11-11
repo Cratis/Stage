@@ -7,6 +7,7 @@ using Xunit;
 
 namespace Cratis.Stage.Contracts.Execution.for_ModelRootBodyExecution;
 
+[PerFactSpecificationLifecycle]
 public class when_the_model_root_reverts_after_a_timed_out_revision : given.a_model_root
 {
     [Fact]

@@ -382,11 +382,12 @@ public class when_comparing_scoped_projection_execution(when_comparing_scoped_pr
             code.OpenBlock("var actual = _keys.Select(key =>")
                 .Line("var instance = scenario.InstanceForEventSourceId(new EventSourceId(key));")
                 .Line(view == LiteralView.AllLabelSummary ? "Assert.NotNull(instance);" : "if (instance is null) return null;")
-                .Line(view == LiteralView.NestedJoinSummary
-                    ? "return new { reference = instance.Details?.Reference.Value.ToString(), joined = instance.Details?.Value?.Value };"
-                    : view == LiteralView.AllLabelSummary
-                    ? "return new { projectId = instance.ProjectId.Value.ToString(), label = instance.Label, title = instance.Title.Value, score = instance.Score?.ToString(CultureInfo.InvariantCulture) };"
-                    : "return new { company = instance.Company.Value.ToString(), joined = instance.Joined?.Value, label = instance.Label, score = instance.Score?.ToString(CultureInfo.InvariantCulture) };")
+                .Line(view switch
+                {
+                    LiteralView.NestedJoinSummary => "return new { reference = instance.Details?.Reference.Value.ToString(), joined = instance.Details?.Value?.Value };",
+                    LiteralView.AllLabelSummary => "return new { projectId = instance.ProjectId.Value.ToString(), label = instance.Label, title = instance.Title.Value, score = instance.Score?.ToString(CultureInfo.InvariantCulture) };",
+                    _ => "return new { company = instance.Company.Value.ToString(), joined = instance.Joined?.Value, label = instance.Label, score = instance.Score?.ToString(CultureInfo.InvariantCulture) };"
+                })
                 .EndBlock().Line(");")
                 .Line($"Assert.Equal({JsonSerializer.Serialize(expected)}, JsonSerializer.Serialize(actual));")
                 .EndBlock().EndBlock().Line("#endif");

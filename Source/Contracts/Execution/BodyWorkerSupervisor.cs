@@ -33,13 +33,23 @@ public sealed class BodyWorkerSupervisor(BodyWorkerOptions options) : IBodyWorke
     /// <param name="applicationName">The optional application identity name.</param>
     /// <param name="cancellationToken">The caller cancellation.</param>
     /// <returns>The immutable compilation manifest.</returns>
-    public async Task<BodyUnitManifest> CompileAsync(string modelPath, string? catalogPath, string? applicationName, CancellationToken cancellationToken = default)
+    public Task<BodyUnitManifest> CompileAsync(string modelPath, string? catalogPath, string? applicationName, CancellationToken cancellationToken = default) => CompileAsync(modelPath, catalogPath, applicationName, null, cancellationToken);
+
+    /// <summary>Compiles for the target framework of the given scaffold profile version.</summary>
+    /// <param name="modelPath">The source model path.</param>
+    /// <param name="catalogPath">The optional catalog path.</param>
+    /// <param name="applicationName">The optional application identity name.</param>
+    /// <param name="profileVersion">The scaffold profile version, or null for the default version 3.</param>
+    /// <param name="cancellationToken">The caller cancellation.</param>
+    /// <returns>The immutable compilation manifest.</returns>
+    public async Task<BodyUnitManifest> CompileAsync(string modelPath, string? catalogPath, string? applicationName, string? profileVersion, CancellationToken cancellationToken = default)
     {
         var request = new BodyWorkerRequest(Guid.NewGuid().ToString("N"), "compile")
         {
             ModelPath = Path.GetFullPath(modelPath),
             CatalogPath = catalogPath is null ? null : Path.GetFullPath(catalogPath),
             ApplicationName = applicationName,
+            ProfileVersion = profileVersion,
             CacheDirectory = Path.GetFullPath(options.CacheDirectory)
         };
         var response = await SendAsync(request, cancellationToken).ConfigureAwait(false);

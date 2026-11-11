@@ -7,8 +7,8 @@ namespace Cratis.Stage.Rendering.Kits;
 
 sealed class KitSourceReader(IKitSource source, KitLoadLimits limits, List<KitDiagnostic> diagnostics)
 {
-    readonly Dictionary<string, ImmutableArray<byte>> _files = new(StringComparer.Ordinal);
-    readonly HashSet<string> _paths = new(StringComparer.OrdinalIgnoreCase);
+    readonly Dictionary<string, ImmutableArray<byte>> _files = [with(comparer: StringComparer.Ordinal)];
+    readonly HashSet<string> _paths = [with(comparer: StringComparer.OrdinalIgnoreCase)];
     long _total;
     int _count;
 

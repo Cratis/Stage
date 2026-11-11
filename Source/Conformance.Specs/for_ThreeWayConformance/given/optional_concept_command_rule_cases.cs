@@ -34,17 +34,17 @@ internal static class optional_concept_command_rule_cases
                   specification {{vector.Name}}Absent
                     when Check{{vector.Name}}
                       id = "one"
-                      {{(global::Cratis.Stage.Conformance.Specs.given.StructuredValueText.Assignment("value", vector.Valid, 22))}}
+                      {{Cratis.Stage.Conformance.Specs.given.StructuredValueText.Assignment("value", vector.Valid, 22)}}
                     then returns "one"
                   specification {{vector.Name}}Valid
                     when Check{{vector.Name}}
                       id = "one"
-                      {{(global::Cratis.Stage.Conformance.Specs.given.StructuredValueText.Assignment("value", vector.Valid, 22))}}
+                      {{Cratis.Stage.Conformance.Specs.given.StructuredValueText.Assignment("value", vector.Valid, 22)}}
                     then returns "one"
                   specification {{vector.Name}}Invalid
                     when Check{{vector.Name}}
                       id = "one"
-                      {{(global::Cratis.Stage.Conformance.Specs.given.StructuredValueText.Assignment("value", vector.Invalid, 22))}}
+                      {{Cratis.Stage.Conformance.Specs.given.StructuredValueText.Assignment("value", vector.Invalid, 22)}}
                     then error "{{vector.Message}}"
             """);
         var source = "concept Count : Int\nconcept Amount : Decimal\nconcept Flag : Bool\nmodule Inputs\n  feature Optional\n" + string.Join('\n', slices);

@@ -1,6 +1,6 @@
 ---
 title: Graph rendering
-description: Cratis Stage renders Screenplay graph declarations and graph projections as Chronicle model-bound node and edge records, wires Arc's Neo4j access into the host, renders graph specifications over GraphScenario, and refuses every graph construct it cannot express.
+description: Stage renders Screenplay graph declarations and projections as Chronicle node and edge records, connects the host to Neo4j, and refuses unsupported constructs.
 ---
 
 A Screenplay `graph` declares a property graph, and a `projection ... => graph` builds it from events. Stage renders both for the ESM v38 pair as the model-bound graph types of Chronicle's graph projection API, and connects the generated host to Neo4j. This page describes what is rendered, what is refused and why, and the one piece that waits for a Chronicle release.

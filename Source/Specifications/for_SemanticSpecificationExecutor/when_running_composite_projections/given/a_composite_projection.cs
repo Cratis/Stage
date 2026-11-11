@@ -56,6 +56,7 @@ public class a_composite_projection : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("model"), "model", "Model.play", source);
         var compilation = new SemanticModelCompiler().Compile("CompositeProjections", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
+
         // The source parser reads every literal as a double, so a high-precision literal is restored from the text.
         var plan = exactExpected is null ? SemanticExecutionPlan.Compile(compilation.Value.Model).Plan : ExactNumberLiterals.Plan(compilation.Value.Model, decimal.Parse(exactGiven, CultureInfo.InvariantCulture), decimal.Parse(exactExpected, CultureInfo.InvariantCulture));
         _result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);

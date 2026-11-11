@@ -242,8 +242,8 @@ sealed record CommandFormRuntimeCommand(string Command, string Schema, IReadOnly
 /// <param name="formsByCommand">The forms the screen has, by the command each is for.</param>
 sealed class PlacedForms(IReadOnlyDictionary<string, Form> formsByCommand)
 {
-    readonly HashSet<string> _commands = new(StringComparer.Ordinal);
-    readonly HashSet<string> _usedByActions = new(StringComparer.Ordinal);
+    readonly HashSet<string> _commands = [with(comparer: StringComparer.Ordinal)];
+    readonly HashSet<string> _usedByActions = [with(comparer: StringComparer.Ordinal)];
 
     /// <summary>
     /// Gets the commands whose forms an element placed on the screen presents.

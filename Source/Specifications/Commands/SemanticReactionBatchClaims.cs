@@ -14,8 +14,8 @@ namespace Cratis.Stage.Specifications.Commands;
 internal sealed class SemanticReactionBatchClaims(SemanticExecutionPlan plan, IReadOnlyList<SemanticConstraintEvaluator.Fact> history)
 {
     readonly SemanticConstraint[] _constraints = [.. plan.Constraints.Values.OrderBy(constraint => constraint.Name, StringComparer.Ordinal)];
-    readonly Dictionary<string, List<(SemanticValue Owner, SemanticValue[] Value)>> _reservations = new(StringComparer.Ordinal);
-    readonly Dictionary<string, List<(SemanticValue Owner, bool Open)>> _cycles = new(StringComparer.Ordinal);
+    readonly Dictionary<string, List<(SemanticValue Owner, SemanticValue[] Value)>> _reservations = [with(comparer: StringComparer.Ordinal)];
+    readonly Dictionary<string, List<(SemanticValue Owner, bool Open)>> _cycles = [with(comparer: StringComparer.Ordinal)];
 
     internal SemanticConstraint? Validate(SemanticConstraintEvaluator.Fact candidate)
     {

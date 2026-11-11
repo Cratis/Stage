@@ -85,7 +85,7 @@ internal static class SemanticUnknownMembers
     /// <param name="scope">Optional selected owners, exclusions and gated member defaults.</param>
     sealed class Walker(IReadOnlyDictionary<string, SemanticSurfaceDisposition> ledger, SemanticUnknownMemberScope? scope)
     {
-        readonly HashSet<object> _active = new(ReferenceEqualityComparer.Instance);
+        readonly HashSet<object> _active = [with(comparer: ReferenceEqualityComparer.Instance)];
         readonly List<SemanticUnknownMember> _unknown = [];
 
         internal IEnumerable<SemanticUnknownMember> Unknown => _unknown;

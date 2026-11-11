@@ -32,7 +32,7 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
     readonly List<SemanticSpecificationEvent> _facts = parent?._facts ?? [];
     readonly List<SemanticValue> _destinations = parent?._destinations ?? [];
     readonly List<DateTimeOffset?> _occurrences = parent?._occurrences ?? [];
-    readonly Dictionary<SemanticCommandRoute, SemanticFixtureRoute> _routes = new(ReferenceEqualityComparer.Instance);
+    readonly Dictionary<SemanticCommandRoute, SemanticFixtureRoute> _routes = [with(comparer: ReferenceEqualityComparer.Instance)];
     readonly SemanticBodyRuleSession? _bodyRules = parent is null && options.BodyExecution is { } execution ? new(plan.Model.Application, execution) : null;
 
     internal SemanticRunReads Reads { get; } = new(runtimeTypes);

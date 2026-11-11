@@ -23,5 +23,5 @@ public class with_a_stored_seed_decimal : a_stored_typed_event
     void Because() => _world = SemanticWorldRebuilder.Create(_typedPlan, [_stored], 0);
 
     [Fact] void should_accept_the_stored_seed_event() => _world.Facts.Length.ShouldEqual(1);
-    [Fact] void should_restore_the_stored_decimal_value() => _world.Facts.Single().Values.Select(value => value.Value).ShouldContain(SemanticValue.Number(JsonDocument.Parse(_stored.Content).RootElement.GetProperty("value").GetDecimal()));
+    [Fact] void should_restore_the_stored_decimal_value() => _world.Facts.Single().Values.Select(value => value.Value).ShouldContain(SemanticValue.Number(JsonElement.Parse(_stored.Content).GetProperty("value").GetDecimal()));
 }

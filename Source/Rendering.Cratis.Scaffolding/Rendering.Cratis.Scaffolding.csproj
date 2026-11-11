@@ -4,6 +4,8 @@
         <RootNamespace>Cratis.Stage.Rendering.Cratis.Scaffolding</RootNamespace>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <IsPackable>true</IsPackable>
+        <TargetFramework></TargetFramework>
+        <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
         <Description>Scaffolds the Cratis project a rendered Screenplay application is placed into, from the Cratis templates.</Description>
     </PropertyGroup>
     <ItemGroup>
@@ -17,13 +19,19 @@
     </ItemGroup>
     <!-- Rendering's private Roslyn references do not flow through ProjectReference. ApiCompat
          still needs them to resolve the transitive API graph of both baseline and current packages.
-         Reuse the SDK's resolved references for validation only; do not add package dependencies. -->
+         Reuse the SDK's resolved references for validation only; do not add package dependencies.
+         Package validation runs in the outer (multi-targeted) build, where TargetFramework is empty, so the
+         target batches once per validated framework and asks Rendering for that framework's references. -->
     <Target Name="IncludeRenderingPackageValidationReferences"
             AfterTargets="_GetReferencePathFromInnerProjects"
-            Condition="'$(EnablePackageValidation)' == 'true'">
+            Condition="'$(EnablePackageValidation)' == 'true'"
+            Outputs="%(PackageValidationReferencePath.Identity)">
+        <ItemGroup>
+            <_RenderingPackageValidationReferences Remove="@(_RenderingPackageValidationReferences)" />
+        </ItemGroup>
         <MSBuild Projects="../Rendering.Cratis/Rendering.Cratis.csproj"
                  Targets="GetReferencesForApiCompatValidatePackage"
-                 Properties="Configuration=$(Configuration);TargetFramework=$(TargetFramework);BuildProjectReferences=false">
+                 Properties="Configuration=$(Configuration);TargetFramework=%(PackageValidationReferencePath.Identity);BuildProjectReferences=false">
             <Output TaskParameter="TargetOutputs" ItemName="_RenderingPackageValidationReferences" />
         </MSBuild>
         <ItemGroup>

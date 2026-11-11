@@ -45,7 +45,10 @@ public class when_loading_a_form_field_picker : given.a_model_path
         StageApplication? legacy = null;
         var error = await Catch.Exception(async () =>
         {
-            if (engine == "semantic") (model, scene) = await SemanticHost.LoadModel(_path, issues);
+            if (engine == "semantic")
+            {
+                (model, scene) = await SemanticHost.LoadModel(_path, issues);
+            }
             else
             {
                 legacy = await EventModelHost.LoadModel(_path, issues);
@@ -55,6 +58,6 @@ public class when_loading_a_form_field_picker : given.a_model_path
         error.ShouldBeNull();
         issues.ShouldBeEmpty();
         scene.ShouldNotBeNull();
-        scene!.ConversionDiagnostics.ShouldContain(diagnostic => diagnostic.Code == UiSyntaxAdmission.PickerDiagnosticCode && diagnostic.Path == "reviewer");
+        scene.ConversionDiagnostics.ShouldContain(diagnostic => diagnostic.Code == UiSyntaxAdmission.PickerDiagnosticCode && diagnostic.Path == "reviewer");
     }
 }

@@ -17,6 +17,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_reading_capture_state;
 
+[PerFactSpecificationLifecycle]
 public class with_a_given_only_source_key_specification : given.a_translation_application
 {
     ExecutableSemanticModel Canonical => SemanticModelSerializer.Deserialize(EsmGoldenVectors.Get(33).Bytes.AsSpan());

@@ -6,7 +6,7 @@
 # dockerize.sh) and only copied in here — its output is portable IL, so compiling it under QEMU emulation for
 # the arm64 leg of a multi-arch image build would just waste time for no benefit.
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0
+FROM mcr.microsoft.com/dotnet/aspnet:11.0-resolute
 
 WORKDIR /app
 COPY Source/SpecRunner/out ./

@@ -7,6 +7,7 @@ using Xunit;
 
 namespace Cratis.Stage.Contracts.Execution.for_ModelRootBodyExecution;
 
+[PerFactSpecificationLifecycle]
 public class when_compilation_times_out_once : given.a_model_root
 {
     [Fact]

@@ -1,6 +1,6 @@
 ---
 title: Named sinks
-description: How Cratis Stage carries Screenplay sink declarations into Chronicle when it runs a model and when it renders one, what the published package manifest lists, and how a rendered application reads a read model from its named sink.
+description: How Stage moves Screenplay sink declarations into Chronicle when running or rendering a model, what the manifest lists, and how named-sink reads work.
 ---
 
 A Screenplay model can name the sinks its read models and graphs are stored in. `sink Reporting for readmodels` and `sink People for graphs` declare a sink at the application root, and a `sink <Name>` directive in a read model or a graph chooses one. A read model or graph that names no sink uses the default sink of its kind, so a model without sinks behaves exactly as it always has. The model never names an engine: whoever runs the application maps each name to storage, through Chronicle's [named sinks configuration](/chronicle/hosting/configuration/sinks/).

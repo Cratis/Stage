@@ -41,7 +41,7 @@ public class that_is_refused : a_replay_endpoint
         _unsupported = await Request(OneJourney);
     }
 
-    static JsonElement Problem((int Status, string Body) response) => JsonDocument.Parse(response.Body).RootElement;
+    static JsonElement Problem((int Status, string Body) response) => JsonElement.Parse(response.Body);
 
     [Fact] void should_refuse_a_body_that_is_not_json() => _plainText.Status.ShouldEqual(StatusCodes.Status415UnsupportedMediaType);
     [Fact] void should_refuse_an_invalid_file() => _invalid.Status.ShouldEqual(StatusCodes.Status400BadRequest);

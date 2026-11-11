@@ -16,10 +16,9 @@ internal static class GeneratedPascalCase
 
     // Only the members synthesized *on* a record conflict with the enclosing type name.
     // Inherited object members (including Clone and GetType) do not.
-    static readonly HashSet<string> _recordTypeNames = new(StringComparer.Ordinal)
-    {
+    static readonly HashSet<string> _recordTypeNames = [with(comparer: StringComparer.Ordinal),
         "EqualityContract", "ToString", "Equals", "GetHashCode", "PrintMembers"
-    };
+    ];
 
     internal static IReadOnlyList<string> RecordMembers => _recordMembers;
 

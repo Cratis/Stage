@@ -16,13 +16,64 @@ namespace Cratis.Stage.Rendering.Cratis;
 
 static class CratisArtifactRenderProfileAdmission
 {
-    const string ProjectInputPrefix = "cratis-scaffold:text:";
+    internal const string ProjectInputPrefix = "cratis-scaffold:text:";
 
     public static bool Matches(ArtifactRenderRequest request, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
-        => Matches(request.Profile, request.Model.Application.Name, request.Model, out admittedOptions, out mismatch);
+        => CratisRenderProfileVersions.MatchesAnyKnownVersion((v, out o, out m) => Matches(request, v, out o, out m), out admittedOptions, out mismatch);
+
+    internal static bool Matches(ArtifactRenderRequest request, string? profileVersion, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
+        => Matches(new ProfileAdmissionTarget(request.Profile, request.Model.Application.Name, request.Model, profileVersion), out admittedOptions, out mismatch);
 
     internal static bool MatchesScaffold(ArtifactRenderProfile profile, string applicationName, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
-        => Matches(profile, applicationName, null, out admittedOptions, out mismatch);
+        => CratisRenderProfileVersions.MatchesAnyKnownVersion((v, out o, out m) => Matches(new ProfileAdmissionTarget(profile, applicationName, null, v), out o, out m), out admittedOptions, out mismatch);
+
+    internal static bool Matches(ProfileAdmissionTarget target, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
+    {
+        admittedOptions = null;
+        var profile = target.Profile;
+        if (!IsCratisTargetAndRenderer(profile))
+        {
+            mismatch = $"Expected target '{CratisRendering.TargetId}' version '{CratisRendering.TargetVersion}' and renderer '{CratisRendering.RendererId}' version '{CratisRendering.RendererVersion}'.";
+            return false;
+        }
+
+        if (!TryGetOptions(profile, out var options))
+        {
+            mismatch = "The Cratis profile does not contain one well-formed project input carrying explicit project and root namespace options.";
+            return false;
+        }
+
+        if (!TryGetApprovedPackages(profile, out var approvedPackages, out mismatch))
+        {
+            return false;
+        }
+
+        if (!CratisRenderProfileVersions.TryResolve(profile, target.ProfileVersion, out var scaffoldProfile, out mismatch))
+        {
+            return false;
+        }
+
+        if (!TryCreateExpected(target, options!, approvedPackages, scaffoldProfile, out var expected, out mismatch) ||
+            !TryAdmitScene(profile, target.Model, out mismatch) ||
+            !TryAdmitCatalogs(profile, target.Model, out mismatch) ||
+            !TryAdmitPlacementAndEvidence(target, expected!, out mismatch))
+        {
+            return false;
+        }
+
+        // A composed Scene is application content, so it is admitted separately rather than compared against the
+        // package-owned roster - which is application-agnostic and could never contain one. Every scaffold input
+        // is still matched byte for byte, and at most one Scene payload may accompany them.
+        var scaffold = profile.Inputs.Where(input => !IsComposedScene(input) && !CratisScaffoldProtocolInputs.Contains(input.Name)).ToArray();
+        if (scaffold.Length != expected!.Inputs.Length || !scaffold.Zip(expected.Inputs).All(InputMatches))
+        {
+            mismatch = "The Cratis profile scaffold roster, versions, bytes, or SHA-256 hashes do not match the package-owned profile.";
+            return false;
+        }
+
+        return TryAdmitStrictOptions(profile, options!, expected, out var strictOptions, out mismatch) &&
+            TryAdmitServiceLayout(profile, strictOptions!, out admittedOptions, out mismatch);
+    }
 
     internal static bool TryGetOptions(ArtifactRenderProfile profile, out CratisRenderingOptions? options)
     {
@@ -65,63 +116,30 @@ static class CratisArtifactRenderProfileAdmission
         }
     }
 
-    // The application realization and how the realized application trusts the identity AuthProxy forwards.
-    static bool TryReadRealization(ArtifactRenderProfile profile, out string mismatch)
+    static bool IsCratisTargetAndRenderer(ArtifactRenderProfile profile) =>
+        string.Equals(profile.Target, CratisRendering.TargetId, StringComparison.Ordinal) &&
+        string.Equals(profile.TargetVersion, CratisRendering.TargetVersion, StringComparison.Ordinal) &&
+        string.Equals(profile.Renderer, CratisRendering.RendererId, StringComparison.Ordinal) &&
+        string.Equals(profile.RendererVersion, CratisRendering.RendererVersion, StringComparison.Ordinal);
+
+    static bool TryCreateExpected(ProfileAdmissionTarget target, CratisRenderingOptions options, ApprovedPackageSet? approvedPackages, CratisBackendApplicationScaffoldProfile scaffoldProfile, out ArtifactRenderProfile? expected, out string mismatch)
     {
+        expected = null;
         mismatch = string.Empty;
-        if (!Realization.ApplicationRealizationInput.TryRead(profile, out _))
-        {
-            mismatch = "The Cratis profile carries an invalid or duplicate application realization.";
-            return false;
-        }
-
-        if (!SignedForwardedIdentityInput.TryRead(profile, out _))
-        {
-            mismatch = "The Cratis profile carries an invalid or duplicate signed forwarded identity input.";
-            return false;
-        }
-
-        return true;
-    }
-
-    static bool Matches(ArtifactRenderProfile profile, string applicationName, ExecutableSemanticModel? model, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
-    {
-        admittedOptions = null;
-        if (!string.Equals(profile.Target, CratisRendering.TargetId, StringComparison.Ordinal) ||
-            !string.Equals(profile.TargetVersion, CratisRendering.TargetVersion, StringComparison.Ordinal) ||
-            !string.Equals(profile.Renderer, CratisRendering.RendererId, StringComparison.Ordinal) ||
-            !string.Equals(profile.RendererVersion, CratisRendering.RendererVersion, StringComparison.Ordinal))
-        {
-            mismatch = $"Expected target '{CratisRendering.TargetId}' version '{CratisRendering.TargetVersion}' and renderer '{CratisRendering.RendererId}' version '{CratisRendering.RendererVersion}'.";
-            return false;
-        }
-
-        if (!TryGetOptions(profile, out var options))
-        {
-            mismatch = "The Cratis profile does not contain one well-formed project input carrying explicit project and root namespace options.";
-            return false;
-        }
-
-        if (!TryGetApprovedPackages(profile, out var approvedPackages, out mismatch))
-        {
-            return false;
-        }
-
-        ArtifactRenderProfile expected;
         try
         {
-            expected = CratisRendering.CreateProfile(applicationName, options!, null, null, null, approvedPackages, ListsPrimeReact(profile));
+            expected = CratisRendering.CreateProfile(target.ApplicationName, options, null, null, null, approvedPackages, ListsPrimeReact(target.Profile), scaffoldProfile);
+            return true;
         }
         catch (InvalidCratisBackendApplicationScaffold)
         {
             mismatch = "The Cratis profile contains invalid application, project, or root namespace options.";
             return false;
         }
+    }
 
-        // A composed Scene is application content, so it is admitted separately rather than compared against the
-        // package-owned roster - which is application-agnostic and could never contain one. Every scaffold input
-        // is still matched byte for byte, and at most one Scene payload may accompany them.
-        var scaffold = profile.Inputs.Where(input => !IsComposedScene(input) && !CratisScaffoldProtocolInputs.Contains(input.Name)).ToArray();
+    static bool TryAdmitScene(ArtifactRenderProfile profile, ExecutableSemanticModel? model, out string mismatch)
+    {
         if (profile.Inputs.Count(IsComposedScene) > 1)
         {
             mismatch = "The Cratis profile carries more than one composed Scene payload.";
@@ -134,11 +152,12 @@ static class CratisArtifactRenderProfileAdmission
             return false;
         }
 
-        if (!Scene.ScreenPartitionsInput.TryRead(profile, model, out _, out mismatch))
-        {
-            return false;
-        }
+        return Scene.ScreenPartitionsInput.TryRead(profile, model, out _, out mismatch);
+    }
 
+    static bool TryAdmitCatalogs(ArtifactRenderProfile profile, ExecutableSemanticModel? model, out string mismatch)
+    {
+        mismatch = string.Empty;
         var strings = profile.Inputs.Where(_ => _.Name == StringsCatalogInput.Name).ToArray();
         if (strings.Length > 1 || (strings.Length == 1 && !StringsCatalogInput.TryRead(strings[0], out _)))
         {
@@ -163,6 +182,14 @@ static class CratisArtifactRenderProfileAdmission
             return false;
         }
 
+        return true;
+    }
+
+    static bool TryAdmitPlacementAndEvidence(ProfileAdmissionTarget target, ArtifactRenderProfile expected, out string mismatch)
+    {
+        var profile = target.Profile;
+        var model = target.Model;
+        mismatch = string.Empty;
         var domains = profile.Inputs.Where(input => input.Name == DomainPlacementInput.Name).ToArray();
         if (domains.Length > 1 || (domains.Length == 1 &&
             (!DomainPlacementInput.TryRead(domains[0], out var domain) || DomainPlacementInput.IsReserved(domain, expected))))
@@ -171,7 +198,7 @@ static class CratisArtifactRenderProfileAdmission
             return false;
         }
 
-        if (!ReducerConventionInput.TryRead(profile, applicationName, out _))
+        if (!ReducerConventionInput.TryRead(profile, target.ApplicationName, out _))
         {
             mismatch = "The Cratis profile carries malformed, stale, duplicate or unsupported reducer convention configuration.";
             return false;
@@ -199,12 +226,13 @@ static class CratisArtifactRenderProfileAdmission
             return false;
         }
 
-        if (scaffold.Length != expected.Inputs.Length || !scaffold.Zip(expected.Inputs).All(InputMatches))
-        {
-            mismatch = "The Cratis profile scaffold roster, versions, bytes, or SHA-256 hashes do not match the package-owned profile.";
-            return false;
-        }
+        return true;
+    }
 
+    static bool TryAdmitStrictOptions(ArtifactRenderProfile profile, CratisRenderingOptions options, ArtifactRenderProfile expected, out CratisRenderingOptions? strictOptions, out string mismatch)
+    {
+        strictOptions = null;
+        mismatch = string.Empty;
         var refusalInputs = profile.Inputs.Where(input => input.Name == RefusalModeInput.Name).ToArray();
         var refusals = ArtifactRefusalMode.Refuse;
         if (refusalInputs.Length > 1 || (refusalInputs.Length == 1 && !RefusalModeInput.TryRead(refusalInputs[0], out refusals)))
@@ -229,12 +257,26 @@ static class CratisArtifactRenderProfileAdmission
             return false;
         }
 
-        if (!CratisStrictProfileInput.TryAdmit(profile, options! with { Refusals = refusals, FileHeader = fileHeader }, out var strictOptions, out mismatch))
+        return CratisStrictProfileInput.TryAdmit(profile, options with { Refusals = refusals, FileHeader = fileHeader }, out strictOptions, out mismatch);
+    }
+
+    // The application realization and how the realized application trusts the identity AuthProxy forwards.
+    static bool TryReadRealization(ArtifactRenderProfile profile, out string mismatch)
+    {
+        mismatch = string.Empty;
+        if (!Realization.ApplicationRealizationInput.TryRead(profile, out _))
         {
+            mismatch = "The Cratis profile carries an invalid or duplicate application realization.";
             return false;
         }
 
-        return TryAdmitServiceLayout(profile, strictOptions, out admittedOptions, out mismatch);
+        if (!SignedForwardedIdentityInput.TryRead(profile, out _))
+        {
+            mismatch = "The Cratis profile carries an invalid or duplicate signed forwarded identity input.";
+            return false;
+        }
+
+        return true;
     }
 
     static bool TryAdmitServiceLayout(ArtifactRenderProfile profile, CratisRenderingOptions options, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)

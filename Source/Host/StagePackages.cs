@@ -41,10 +41,9 @@ internal sealed class StagePackages
     /// </summary>
     public const string FilesRoute = "/stage/packages/files";
 
-    static readonly HashSet<string> _servedExtensions = new(StringComparer.OrdinalIgnoreCase)
-    {
+    static readonly HashSet<string> _servedExtensions = [with(comparer: StringComparer.OrdinalIgnoreCase),
         ".js", ".mjs", ".css", ".map", ".json", ".svg", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif", ".ico", ".woff", ".woff2", ".ttf", ".otf"
-    };
+    ];
 
     StagePackages(string root, ApprovedPackageSet set, IReadOnlyDictionary<string, string> modules, IReadOnlyList<string> styles, IReadOnlyList<string> diagnostics)
     {
@@ -165,7 +164,7 @@ internal sealed class StagePackages
     /// <returns>The document.</returns>
     public object ToDocument() => new
     {
-        set = JsonDocument.Parse(ApprovedPackageSetJson.Write(Set)).RootElement.Clone(),
+        set = JsonElement.Parse(ApprovedPackageSetJson.Write(Set)),
         modules = Modules,
         styles = Styles,
         diagnostics = Diagnostics

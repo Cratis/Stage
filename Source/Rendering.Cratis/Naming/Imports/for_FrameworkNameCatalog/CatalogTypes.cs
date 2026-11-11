@@ -12,9 +12,9 @@ namespace Cratis.Stage.Rendering.Cratis.Naming.Imports.for_FrameworkNameCatalog;
 /// <param name="records">Decides whether the catalog records every type of a namespace.</param>
 sealed class CatalogTypes(Func<string, bool> records)
 {
-    readonly Dictionary<string, GeneratedProjects> _namespaces = new(StringComparer.Ordinal);
+    readonly Dictionary<string, GeneratedProjects> _namespaces = [with(comparer: StringComparer.Ordinal)];
     readonly Dictionary<(string Namespace, string MetadataName), (GeneratedProjects Projects, MetadataType Type)> _types = [];
-    readonly Dictionary<string, string> _bases = new(StringComparer.Ordinal);
+    readonly Dictionary<string, string> _bases = [with(comparer: StringComparer.Ordinal)];
 
     /// <summary>
     /// Adds the namespaces and types of one assembly.

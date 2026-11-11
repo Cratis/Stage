@@ -25,22 +25,23 @@ public static partial class BodyUnitCompiler
     /// <remarks>Run uses the new-application convention so admission matches a fresh Cratis render, not a legacy classic profile.</remarks>
     /// <param name="loaded">The resolved immutable semantic model.</param>
     /// <param name="cacheDirectory">The compiled unit cache.</param>
+    /// <param name="profileVersion">The scaffold profile version selecting the target framework, or null for the default version 3.</param>
     /// <returns>The admission and compilation manifest.</returns>
-    public static BodyUnitManifest Compile(LoadedSemanticModel loaded, string cacheDirectory) => Compile(loaded, cacheDirectory, static () => { });
+    public static BodyUnitManifest Compile(LoadedSemanticModel loaded, string cacheDirectory, string? profileVersion = null) => Compile(loaded, cacheDirectory, static () => { }, profileVersion);
 
-    internal static BodyUnitManifest Compile(LoadedSemanticModel loaded, string cacheDirectory, Action emitting)
+    internal static BodyUnitManifest Compile(LoadedSemanticModel loaded, string cacheDirectory, Action emitting, string? profileVersion = null)
     {
         cacheDirectory = BodyWorkerCacheDirectory.Prepare(cacheDirectory);
-        var context = CreateContext(loaded);
+        var context = CreateContext(loaded, profileVersion);
         return new(loaded.Model.Revision.ToString(), [.. loaded.ImplementationRequirements.Select(requirement => CompileUnit(context, requirement, cacheDirectory, emitting))]);
     }
 
-    internal static SemanticApplicationContext CreateContext(LoadedSemanticModel loaded)
+    internal static SemanticApplicationContext CreateContext(LoadedSemanticModel loaded, string? profileVersion = null)
     {
         var name = Identifiers.ToPascalCase(loaded.Model.Application.Name);
         var options = new CratisRenderingOptions(name, name);
         var profile = CratisRendering.WithReducerConvention(
-            CratisRendering.CreateProfile(name, options),
+            CratisRenderProfileVersions.CreateProfile(name, options, profileVersion),
             ReducerConventionInput.Create(loaded.Model.Application.Name, ReducerConvention.Classic with { SelfDefault = true, ModelBoundProjections = true }));
         var request = new ArtifactRenderRequest(loaded.Model, loaded.Plan, profile, new(ArtifactRenderScopeKind.Application, loaded.Model.Application.Id))
         {
@@ -60,7 +61,7 @@ public static partial class BodyUnitCompiler
         try
         {
             var sources = BodyUnitSources.Render(context, descriptor!, body!);
-            var build = new UnitBuild(sources, References(), Microsoft.CodeAnalysis.CSharp.LanguageVersion.CSharp14, (hash, peSha) => new BodyUnitEntry(requirement.RequirementId, requirement.Role.ToString(), true, UnitHash: hash, PeSha256: peSha, EntryType: SemanticValidationContextRuntime.RulesType(context, descriptor!.OperationId!.Value), EntryMethod: SemanticValidationContextRuntime.Method(context, descriptor!), WrapperType: $"{context.TypedContextsNamespace}.{SemanticValidationContextRuntime.Wrapper(context, descriptor!)}")
+            var build = new UnitBuild(sources, References(context), Microsoft.CodeAnalysis.CSharp.LanguageVersion.CSharp14, (hash, peSha) => new BodyUnitEntry(requirement.RequirementId, requirement.Role.ToString(), true, UnitHash: hash, PeSha256: peSha, EntryType: SemanticValidationContextRuntime.RulesType(context, descriptor!.OperationId!.Value), EntryMethod: SemanticValidationContextRuntime.Method(context, descriptor!), WrapperType: $"{context.TypedContextsNamespace}.{SemanticValidationContextRuntime.Wrapper(context, descriptor!)}")
             {
                 BodySha256 = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(body!))),
                 PropertyNames = PropertyNames(context),
@@ -74,10 +75,10 @@ public static partial class BodyUnitCompiler
         }
     }
 
-    static MetadataReference[] References()
+    static MetadataReference[] References(SemanticApplicationContext context)
     {
         // Only emission gets Chronicle metadata; BodyUnitAdmission still uses the renderer's unchanged analysis references.
-        return [.. PureTransitionAdmission.AnalysisReferences(), SemanticGenerationBodyAdmission.FundamentalsReference, SemanticGenerationBodyAdmission.ChronicleReference];
+        return [.. PureTransitionAdmission.AnalysisReferences(context.TargetFramework), SemanticGenerationBodyAdmission.FundamentalsReference, SemanticGenerationBodyAdmission.ChronicleReference];
     }
 
     static BodyUnitEntry Build(UnitScope scope, UnitBuild build)
@@ -115,7 +116,7 @@ public static partial class BodyUnitCompiler
         Add(typeof(BodyUnitCompiler).Module.ModuleVersionId.ToString());
         Add(typeof(SemanticApplication).Assembly.FullName!);
         Add(typeof(CSharpCompilation).Assembly.FullName!);
-        Add($"{BodyWorkerMessages.ProtocolVersion}:{PureTransitionAdmission.ReferencePackVersion}:{language}:Release:NullableEnable:Deterministic");
+        Add($"{BodyWorkerMessages.ProtocolVersion}:{PureTransitionAdmission.ReferencePackVersionFor(context.TargetFramework)}:{context.TargetFramework}:{language}:Release:NullableEnable:Deterministic");
         foreach (var source in sources) Add(source);
         foreach (var reference in references.Where(reference => File.Exists(reference.Display))) hash.AppendData(SHA256.HashData(File.ReadAllBytes(reference.Display!)));
         return Convert.ToHexString(hash.GetHashAndReset());

@@ -10,7 +10,7 @@ public class when_resolving_container_rule_paths : Specification
 {
     const string Marked = "{\"type\":\"string\",\"x-conceptAttributes\":{\"sensitive\":\"\"}}";
 
-    static readonly string Schema = $"{{\"type\":\"object\",\"properties\":{{\"credentials\":{{\"type\":\"object\",\"properties\":{{\"password\":{Marked}}}}},\"history\":{{\"type\":\"array\",\"items\":{{\"type\":\"object\",\"properties\":{{\"password\":{Marked}}}}}}},\"address\":{{\"type\":\"object\",\"properties\":{{\"city\":{{\"type\":\"string\"}}}}}},\"tags\":{{\"type\":\"array\",\"items\":{{\"type\":\"string\"}}}},\"node\":{{\"type\":\"object\"}}}}}}";
+    const string Schema = $"{{\"type\":\"object\",\"properties\":{{\"credentials\":{{\"type\":\"object\",\"properties\":{{\"password\":{Marked}}}}},\"history\":{{\"type\":\"array\",\"items\":{{\"type\":\"object\",\"properties\":{{\"password\":{Marked}}}}}}},\"address\":{{\"type\":\"object\",\"properties\":{{\"city\":{{\"type\":\"string\"}}}}}},\"tags\":{{\"type\":\"array\",\"items\":{{\"type\":\"string\"}}}},\"node\":{{\"type\":\"object\"}}}}}}";
 
     [Fact] void should_treat_a_container_carrying_a_secret_as_secret() => SensitiveValues.IsSecretPath(Schema, "credentials").ShouldBeTrue();
     [Fact] void should_treat_a_list_of_composites_carrying_a_secret_as_secret() => SensitiveValues.IsSecretPath(Schema, "history").ShouldBeTrue();

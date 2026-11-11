@@ -50,10 +50,33 @@ public class TemplateEngineProjectScaffolder : IProjectScaffolder
 
         var packagePath = LocateLocalPackage(PackageId) ?? throw new TemplatePackageNotFound(PackageId);
 
+        using (var settingsLocation = TemplateEngineSettingsLocation.Create())
+        {
+            await Instantiate(new ScaffoldRequest(targetDirectory, projectName, output), packagePath, settingsLocation);
+        }
+
+        await output.WriteLineAsync("Scaffolding complete.");
+        return true;
+    }
+
+    static async Task Instantiate(ScaffoldRequest request, string packagePath, TemplateEngineSettingsLocation settingsLocation)
+    {
         var host = new DefaultTemplateEngineHost("Cratis.Stage.Rendering.Cratis", "1.0.0", builtIns: BuiltInComponents());
-        using var environment = new EngineEnvironmentSettings(host, virtualizeSettings: true);
+        using var environment = new EngineEnvironmentSettings(host, virtualizeSettings: true, settingsLocation: settingsLocation.Path);
         using var packageManager = new TemplatePackageManager(environment);
 
+        await InstallPackage(packageManager, packagePath, request.Output);
+        var template = await SelectTemplate(packageManager);
+        await CreateFromTemplate(environment, template, request);
+
+        if (SampleSlice.Remove(request.TargetDirectory))
+        {
+            await request.Output.WriteLineAsync("Removed the template's sample slice.");
+        }
+    }
+
+    static async Task InstallPackage(TemplatePackageManager packageManager, string packagePath, TextWriter output)
+    {
         await output.WriteLineAsync($"Installing template package from '{packagePath}'...");
         var provider = packageManager.GetBuiltInManagedProvider();
         var installResults = await provider.InstallAsync([new InstallRequest(packagePath)], CancellationToken.None);
@@ -64,6 +87,10 @@ public class TemplateEngineProjectScaffolder : IProjectScaffolder
         }
 
         await packageManager.RebuildTemplateCacheAsync(CancellationToken.None);
+    }
+
+    static async Task<ITemplateInfo> SelectTemplate(TemplatePackageManager packageManager)
+    {
         var templates = await packageManager.GetTemplatesAsync(CancellationToken.None);
 
         // The short name alone stopped identifying one template: Cratis.Templates 1.7.0 groups the C#, Java and
@@ -73,36 +100,31 @@ public class TemplateEngineProjectScaffolder : IProjectScaffolder
             .Where(candidate => candidate.ShortNameList.Contains(TemplateShortName) &&
                 (Language(candidate) is null || string.Equals(Language(candidate), TemplateLanguage, StringComparison.Ordinal)))
             .ToArray();
-        var template = candidates.Length switch
+        return candidates.Length switch
         {
             0 => throw new TemplateNotFound(TemplateShortName),
             1 => candidates[0],
             _ => candidates.OrderByDescending(_ => _.Precedence).First()
         };
+    }
 
+    static async Task CreateFromTemplate(IEngineEnvironmentSettings environment, ITemplateInfo template, ScaffoldRequest request)
+    {
         var parameters = BuildParameters(template);
-        await output.WriteLineAsync($"Applying template '{TemplateShortName}' as '{projectName}' targeting '{parameters[FrameworkParameter]}'...");
+        await request.Output.WriteLineAsync($"Applying template '{TemplateShortName}' as '{request.ProjectName}' targeting '{parameters[FrameworkParameter]}'...");
 
         var creator = new TemplateCreator(environment);
         var result = await creator.InstantiateAsync(
             template,
-            projectName,
-            projectName,
-            targetDirectory.FullName,
+            request.ProjectName,
+            request.ProjectName,
+            request.TargetDirectory.FullName,
             parameters);
 
         if (result.Status != CreationResultStatus.Success)
         {
             throw new ScaffoldingFailed($"Failed to instantiate template '{TemplateShortName}': {result.ErrorMessage}");
         }
-
-        if (SampleSlice.Remove(targetDirectory))
-        {
-            await output.WriteLineAsync("Removed the template's sample slice.");
-        }
-
-        await output.WriteLineAsync("Scaffolding complete.");
-        return true;
     }
 
     /// <summary>

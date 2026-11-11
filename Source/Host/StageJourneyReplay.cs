@@ -292,7 +292,7 @@ internal sealed class StageJourneyRunner(StageRoutes routes, HttpClient client, 
 /// <param name="time">The clock the date tokens read.</param>
 internal sealed partial class StageJourneyBindings(TimeProvider time)
 {
-    readonly Dictionary<string, JsonElement> _values = new(StringComparer.Ordinal);
+    readonly Dictionary<string, JsonElement> _values = [with(comparer: StringComparer.Ordinal)];
     string? _problem;
 
     [GeneratedRegex(@"\$\{(?<name>[^}]+)\}", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture, 1000)]

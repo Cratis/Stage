@@ -278,6 +278,10 @@ Chronicle kernel, so durable state machines and workflows have grains to run on.
 localhost clustering and in-memory grain storage, so it starts without MongoDB and nothing it holds survives the
 container. Jobs, Chronicle-backed event-sourced state machines and the workflow engine are registered.
 
+Set `Stage:Orleans:Storage` to `MongoDB`, with `Stage:Orleans:ConnectionString` and `Stage:Orleans:DatabaseName`, to keep grain state across
+restarts. The ledger of [ability invocations](../reference/ability-invocations.md#durability-of-the-ledger) lives in grain storage, and Stage refuses
+abilities that happen at most once while it is in memory.
+
 The kernel is itself an Orleans silo in the same container and binds the Orleans default ports, so the Stage silo
 listens on its own (`21111` silo, `31000` gateway) and joins a distinct cluster (`cratis-stage`). Override the ports
 with `Stage:Orleans:SiloPort` and `Stage:Orleans:GatewayPort` in `cratis-stage.json` if something else in your
@@ -503,7 +507,7 @@ The semantic engine evaluates validation, requirements, authorization, condition
 before accepting a command. Accepted facts are appended to Chronicle as one batch; a failed append does not
 commit the in-process read-model state. `GET /stage/semantic/admission` lists the model's admitted and
 unsupported artifacts, state machines and workflows included; `GET /stage/lifecycles` reports where state machines are and what
-workflows wait for (see [State machines and workflows](../reference/state-machines-and-workflows.md)). `GET /stage/status` includes `engine: "semantic"`. If Screenplay cannot compile an
+workflows wait for (see [State machines and workflows](../reference/state-machines-and-workflows.md)). `GET /stage/invocations` lists ability invocations and the ones stopped for reconciliation (see [Durable ability invocations](../reference/ability-invocations.md)). `GET /stage/status` includes `engine: "semantic"`. If Screenplay cannot compile an
 executable plan, the host returns `state: "unsupported"` with issues; `/api/**` responds with HTTP 501
 instead of performing a partial model. Only Error-severity compiler diagnostics become blocking
 `Plan` issues. Information and Warning diagnostics are returned separately in the optional `notes`

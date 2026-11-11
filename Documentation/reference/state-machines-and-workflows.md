@@ -9,7 +9,7 @@ check, and what the renderer can generate. Passing a specification does not esta
 or be rendered.
 
 A Screenplay `statemachine` describes where one thing is in its lifecycle and what entering a state does. A `workflow`
-describes a process that sends commands, chooses paths and waits for an event, a deadline or a person's decision. Both are
+describes a process that invokes commands, chooses paths and waits for an event, a deadline or a person's decision. Both are
 top-level declarations admitted from executable semantic model (ESM) v36. The sandbox uses the reference evaluator to derive
 state-machine states and the Cratis Choreography workflow engine to run workflows. That engine runs on Stage's hosted
 Orleans silo, the server that hosts its grains (addressable runtime objects). See [ports and clustering](../docker/index.md)
@@ -23,12 +23,18 @@ machine instance follows the facts for its subject key. Workflows use that same 
 | Construct | Runtime behavior |
 | --- | --- |
 | State machine | Derived from committed facts with the same rule the specifications use: take the first transition on the event, in declaration order, whose guard (condition) holds over the followed read model after that event and whose target the current state allows. Otherwise, leave the state unchanged. |
-| `entering send <Command>` | The runtime sends the command through the semantic runtime, supplying the subject key as the command's identifier. This path does not fill other properties from the followed read model. |
-| `entering start <Workflow>` | The runtime admits a run of a supported workflow on the silo. |
-| Workflow | Each workflow becomes a definition snapshot served by an `IWorkflowDefinitions` source built from the loaded model. Actions send commands, decisions evaluate conditions over the current subject read model, and the engine handles timers and expiries. |
+| `entering invokes <Command>` | The runtime invokes the command through the semantic runtime, supplying the subject key as the command's identifier. This path does not fill other properties from the followed read model. |
+| `entering starts <Workflow>` | The runtime admits a run of a supported workflow on the silo. |
+| Workflow | Each workflow becomes a definition snapshot served by an `IWorkflowDefinitions` source built from the loaded model. Actions invoke commands, decisions evaluate conditions over the current subject read model, and the engine handles timers and expiries. |
 | Event trigger, state trigger | A fact the trigger names, or a machine entering the state it names, admits a run with a deduplication key identifying that subject and triggering occurrence. |
 | `wait ... for <Event>` | The fact resumes the runs waiting at the node for the same subject. |
 | `approval` | The run is suspended until a person decides it. |
+
+A workflow action that invokes a command leaves through `next` when the command is accepted. It reports a command that was handed on and
+rejected, by validation, authorization or a constraint, through `refused`, and a command that could not run, or did not settle, through
+`failed`. The engine retries a `failed` action up to its `attempts`. When the model connects `refused`, a refusal leaves through that outlet;
+when it does not, the refusal fails the node. Abilities of a `system` run the same way, as durable invocations: see
+[Durable ability invocations](ability-invocations.md).
 
 A state's declared transitions determine which target states it allows. For a new event, the evaluator searches transitions
 across the whole machine, not only those written under the current state.

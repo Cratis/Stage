@@ -13,6 +13,7 @@ internal sealed record SemanticBodyWorkerOptions(bool Enabled, string WorkerPath
     internal int MemoryLimitMegabytes { get; init; } = 256;
     internal int CompileTimeoutSeconds { get; init; } = 120;
     internal string? CatalogPath { get; init; }
+    internal string? ProfileVersion { get; init; }
 
     internal static SemanticBodyWorkerOptions From(IConfiguration configuration) => new(
         configuration.GetValue("Stage:BodyWorker:Enabled", true),
@@ -21,8 +22,20 @@ internal sealed record SemanticBodyWorkerOptions(bool Enabled, string WorkerPath
         CacheDirectory = configuration["Stage:BodyWorker:CacheDirectory"] ?? BodyWorkerCacheDirectory.Default,
         CallTimeoutMilliseconds = Math.Clamp(configuration.GetValue("Stage:BodyWorker:CallTimeoutMilliseconds", 2000), 50, 30000),
         MemoryLimitMegabytes = Math.Clamp(configuration.GetValue("Stage:BodyWorker:MemoryLimitMegabytes", 256), 32, 4096),
-        CompileTimeoutSeconds = Math.Clamp(configuration.GetValue("Stage:BodyWorker:CompileTimeoutSeconds", 120), 5, 600)
+        CompileTimeoutSeconds = Math.Clamp(configuration.GetValue("Stage:BodyWorker:CompileTimeoutSeconds", 120), 5, 600),
+        ProfileVersion = ReadProfileVersion(configuration["Stage:BodyWorker:ProfileVersion"])
     };
+
+    internal static string? ReadProfileVersion(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        var version = value.Trim();
+        return version switch
+        {
+            "3" or "4" => version,
+            _ => throw new InvalidOperationException($"Stage:BodyWorker:ProfileVersion '{version}' is not a supported scaffold profile version. Supported versions are 3 and 4; leave it unset for version 3.")
+        };
+    }
 
     internal BodyWorkerOptions Worker() => new(Path.GetFullPath(WorkerPath, AppContext.BaseDirectory), Path.GetFullPath(CacheDirectory))
     {

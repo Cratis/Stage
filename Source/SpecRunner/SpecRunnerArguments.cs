@@ -43,12 +43,40 @@ public record SpecRunnerArguments(string ModelPath, string OutputPath, Guid? Sli
     public string? ApplicationName { get; init; }
 
     /// <summary>
+    /// Gets the optional scaffold profile version forwarded to the body worker, or null for the default version 3.
+    /// </summary>
+    public string? ProfileVersion { get; init; }
+
+    /// <summary>
     /// Parses the supplied command-line arguments.
     /// </summary>
     /// <param name="args">The raw command-line arguments (for example <c language="csharp">--model path --output path</c>).</param>
     /// <returns>The parsed <see cref="SpecRunnerArguments"/>.</returns>
     /// <exception cref="MissingArgument">Thrown when a required argument is missing.</exception>
+    /// <exception cref="ArgumentException">Thrown when the body worker profile version is not supported.</exception>
     public static SpecRunnerArguments Parse(string[] args)
+    {
+        var values = ReadValues(args);
+        var modelPath = values.GetValueOrDefault("model") ?? throw new MissingArgument("model");
+        var outputPath = values.GetValueOrDefault("output") ?? throw new MissingArgument("output");
+
+        return new SpecRunnerArguments(
+            modelPath,
+            outputPath,
+            ReadIdentifier(values, "slice"),
+            ReadIdentifier(values, "spec"))
+        {
+            Engine = values.GetValueOrDefault("engine") ?? "structural",
+            HasStructuralFilter = values.ContainsKey("slice") || values.ContainsKey("spec"),
+            Specification = values.GetValueOrDefault("specification"),
+            Scope = values.GetValueOrDefault("scope"),
+            CatalogPath = values.GetValueOrDefault("catalog"),
+            ApplicationName = values.GetValueOrDefault("application"),
+            ProfileVersion = ReadProfileVersion(values.GetValueOrDefault("body-worker-profile-version"))
+        };
+    }
+
+    static Dictionary<string, string> ReadValues(string[] args)
     {
         var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
@@ -64,21 +92,16 @@ public record SpecRunnerArguments(string ModelPath, string OutputPath, Guid? Sli
             }
         }
 
-        var modelPath = values.GetValueOrDefault("model") ?? throw new MissingArgument("model");
-        var outputPath = values.GetValueOrDefault("output") ?? throw new MissingArgument("output");
-
-        return new SpecRunnerArguments(
-            modelPath,
-            outputPath,
-            values.TryGetValue("slice", out var slice) && Guid.TryParse(slice, out var sliceId) ? sliceId : null,
-            values.TryGetValue("spec", out var spec) && Guid.TryParse(spec, out var specId) ? specId : null)
-        {
-            Engine = values.GetValueOrDefault("engine") ?? "structural",
-            HasStructuralFilter = values.ContainsKey("slice") || values.ContainsKey("spec"),
-            Specification = values.GetValueOrDefault("specification"),
-            Scope = values.GetValueOrDefault("scope"),
-            CatalogPath = values.GetValueOrDefault("catalog"),
-            ApplicationName = values.GetValueOrDefault("application")
-        };
+        return values;
     }
+
+    static Guid? ReadIdentifier(Dictionary<string, string> values, string key) =>
+        values.TryGetValue(key, out var value) && Guid.TryParse(value, out var identifier) ? identifier : null;
+
+    static string? ReadProfileVersion(string? value) => value switch
+    {
+        null => null,
+        "3" or "4" => value,
+        _ => throw new ArgumentException($"--body-worker-profile-version '{value}' is not a supported scaffold profile version. Supported versions are 3 and 4; omit it for version 3.")
+    };
 }

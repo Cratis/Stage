@@ -46,6 +46,11 @@ public static partial class Program
             await error.WriteLineAsync("Usage: Cratis.Stage.SpecRunner --model <play-file-or-directory> --output <results.json> [--slice <guid>] [--spec <guid>]");
             return 2;
         }
+        catch (ArgumentException exception)
+        {
+            await error.WriteLineAsync(exception.Message);
+            return 2;
+        }
 
         if (string.Equals(arguments.Engine, "semantic", StringComparison.OrdinalIgnoreCase))
         {
@@ -95,7 +100,7 @@ public static partial class Program
         var options = ParseBodyWorkerOptions(args);
         if (options is null || loaded.ImplementationRequirements.Length == 0) return null;
         await using var worker = new BodyWorkerSupervisor(options);
-        var manifest = await worker.CompileAsync(arguments.ModelPath, arguments.CatalogPath, loaded.Model.Application.Name);
+        var manifest = await worker.CompileAsync(arguments.ModelPath, arguments.CatalogPath, loaded.Model.Application.Name, arguments.ProfileVersion);
         return SemanticBodyExecution.From(loaded, manifest, () => new BodyWorkerSupervisor(options, manifest));
     }
 

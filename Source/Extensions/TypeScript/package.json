@@ -1,0 +1,40 @@
+{
+  "name": "@cratis/stage-extensions",
+  "version": "1.0.0",
+  "description": "The TypeScript SDK for Cratis Stage extension backends: abilities, inbound HTTP and health over the extension protocol, and Stage's host services for settings, secrets, triggers, answers and telemetry.",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    }
+  },
+  "files": [
+    "dist/src",
+    "proto"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Cratis/Stage.git",
+    "directory": "Source/Extensions/TypeScript"
+  },
+  "scripts": {
+    "sync-proto": "node scripts/sync-proto.mjs",
+    "build": "npm run sync-proto && tsc -p tsconfig.json",
+    "test": "npm run build && node --test dist/test/*.test.js"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.14.0",
+    "@grpc/proto-loader": "^0.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}

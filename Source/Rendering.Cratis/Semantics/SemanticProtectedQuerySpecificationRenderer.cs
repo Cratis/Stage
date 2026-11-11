@@ -51,8 +51,7 @@ internal static class SemanticProtectedQuerySpecificationRenderer
         Write(builder, Seeds(specification, expected, routedReplay, context, types));
 
         var caller = specification.GivenCaller!;
-        var claims = caller.Roles.Select(role => $"new global::System.Security.Claims.Claim(global::System.Security.Claims.ClaimTypes.Role, {CSharpCodeBuilder.StringLiteral(role)})")
-            .Concat(caller.Claims.Select(claim => $"new global::System.Security.Claims.Claim({CSharpCodeBuilder.StringLiteral(claim.Type)}, {CSharpCodeBuilder.StringLiteral(claim.Value)})"));
+        var claims = Policies.SemanticStatePolicyRendering.CallerClaims(caller);
         var authentication = caller.Authenticated ? "\"Screenplay\"" : "null";
         builder.EndBlock().BlankLine()
             .OpenBlock("async global::System.Threading.Tasks.Task Because()")

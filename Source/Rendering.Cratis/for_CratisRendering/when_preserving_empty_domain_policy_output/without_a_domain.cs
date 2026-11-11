@@ -79,10 +79,10 @@ public class without_a_domain : given.a_domain_policy_plan
         // Since #424 the output itself uses short names, so the HEAD pins are reproduced from the qualified restore.
         // Since Cratis/Stage#848 authored bodies are indented to their block; undoing only that indentation reproduces the same pins.
         var unindented = BeforeBodyIndentation(qualified).ToArray();
-        Digest(BeforeInitializerRename(LegacyLicenseHeader.Restore(unindented))).ShouldEqual("CC6123922024E13204531B1E8BF9364ECCB4BD6C5E509A936457D5EC4E506753");
+        Digest(BeforeInitializerRename(BeforeCallerIdentifier(LegacyLicenseHeader.Restore(unindented)))).ShouldEqual("CC6123922024E13204531B1E8BF9364ECCB4BD6C5E509A936457D5EC4E506753");
 
         // Restoring the former license header must reproduce the pins from before headers became optional.
-        Digest(LegacyLicenseHeader.Restore(unindented)).ShouldEqual("462569B15BC832AF18A1E66AFDAA7E822D92A02817123A61C2F144D506C551BD");
+        Digest(BeforeCallerIdentifier(LegacyLicenseHeader.Restore(unindented))).ShouldEqual("462569B15BC832AF18A1E66AFDAA7E822D92A02817123A61C2F144D506C551BD");
         _digest = Digest(result.Artifacts);
         _restoredDigest = Digest(_hashedArtifacts);
         _qualifiedDigest = Digest(qualified);
@@ -96,6 +96,22 @@ public class without_a_domain : given.a_domain_policy_plan
     static string UnindentBody(string text) => text
         .Replace("\n        return new Total(", "\nreturn new Total(", StringComparison.Ordinal)
         .Replace("\n        return context.Identity", "\nreturn context.Identity", StringComparison.Ordinal);
+
+    // The shared policy runtime gained the caller's identifier helper (Cratis/Stage#1061); removing exactly that block and the partial modifier
+    // that carries its application hook reproduces the earlier bytes.
+    static IEnumerable<PlannedArtifact> BeforeCallerIdentifier(IEnumerable<PlannedArtifact> artifacts) => artifacts.Select(artifact =>
+        Encoding.UTF8.GetString(artifact.Bytes.AsSpan()) is var text && text.Contains("ResolveCallerId", StringComparison.Ordinal)
+            ? PlannedArtifact.CreateText(artifact.RelativePath, RemoveCallerIdentifier(text), artifact.Sources)
+            : artifact);
+
+    // The short-named output also imports System.Security.Claims for the name identifier; nothing else in the file uses it.
+    static string RemoveCallerIdentifier(string text) => System.Text.RegularExpressions.Regex.Replace(
+        text.Replace("static partial class PolicyValues", "static class PolicyValues", StringComparison.Ordinal)
+            .Replace("using System.Security.Claims;\n", string.Empty, StringComparison.Ordinal),
+        @"[ \t]*/// <summary>\s*\n[ \t]*/// Lets an application declare.*?return string\.IsNullOrEmpty\(identifier\) \? null : identifier;\s*\n[ \t]*\}\s*\n",
+        string.Empty,
+        System.Text.RegularExpressions.RegexOptions.Singleline,
+        TimeSpan.FromSeconds(1));
 
     static IEnumerable<PlannedArtifact> BeforeInitializerRename(IEnumerable<PlannedArtifact> artifacts) => artifacts.Select(artifact =>
         artifact.RelativePath.StartsWith("GeneratedPolicies/", StringComparison.Ordinal) && artifact.RelativePath.EndsWith("Policy.cs", StringComparison.Ordinal)
@@ -243,7 +259,7 @@ public class without_a_domain : given.a_domain_policy_plan
             .Replace("using Cratis.Concepts;\n", string.Empty, StringComparison.Ordinal)
             .Replace("typeof(ConceptAs<>)", "typeof(global::Cratis.Concepts.ConceptAs<>)", StringComparison.Ordinal)
             .Replace("typeof(EventSourceId<>)", "typeof(global::Cratis.Chronicle.Events.EventSourceId<>)", StringComparison.Ordinal);
-        var restored = QualifiedCommonOutput.BeforeTypeComparison(path, qualified);
+        var restored = RemoveCallerIdentifier(QualifiedCommonOutput.BeforeTypeComparison(path, qualified));
         Assert.Equal(_oldRawHashes[path], Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(restored))));
     }
 
@@ -254,9 +270,10 @@ public class without_a_domain : given.a_domain_policy_plan
 
     // Re-frozen for #424: generated C# uses short type names and using directives; again for Cratis/Stage#848: authored bodies are indented to their block.
     // Re-frozen for Cratis/Stage#850: Policies.cs compares concept bases with typeof.
+    // Re-frozen for Cratis/Stage#1061: the shared policy runtime reads the caller's identifier from the principal.
     // Cratis/Stage#850: the restored output reproduces the previous pin; the emitted output differs only by the readable helper names.
-    [Fact] void should_restore_every_hashed_name_to_the_previous_pin() => _restoredDigest.ShouldEqual("A4FA85887E1AD1AF97F7A353ACF569197B78CCEC652D6A286EE249425C3D0825");
-    [Fact] void should_keep_all_paths_and_bytes() => _digest.ShouldEqual("645DB1FF07D92B539E6D3CB0366071DE979F269CA31665E52A33292C8C153F7A");
-    [Fact] void should_confine_changes_to_common_and_using_placement() => _qualifiedDigest.ShouldEqual("355BBD5F2BA04106DE494150FD9DBED3E201A26C49D18B5AEFFE9A91A370DB21");
+    [Fact] void should_restore_every_hashed_name_to_the_previous_pin() => _restoredDigest.ShouldEqual("CB5113C6BF8B5FC88786D81E5E5DCAE34817C30515FF025CDD5BADD9871677B2");
+    [Fact] void should_keep_all_paths_and_bytes() => _digest.ShouldEqual("E1934997F24489C5DB546858250841205964CA995DAEBA4E56D27EED4B948935");
+    [Fact] void should_confine_changes_to_common_and_using_placement() => _qualifiedDigest.ShouldEqual("19DDADC0074C9A4DB21FFCCC5B867876D9ADC779326625A25C05A704FB845BBC");
 }
 #endif

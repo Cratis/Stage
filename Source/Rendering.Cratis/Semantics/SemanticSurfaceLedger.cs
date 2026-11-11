@@ -406,10 +406,11 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticAgentScope", ignored("Agent exposure is a contract for the hosting surface."), "Read Write");
         Add(entries, "SemanticAgentTokenKind", ignored("Agent exposure is a contract for the hosting surface."), "Personal");
 
-        // ESM v49 compares a recorded property with the caller's identifier. Stage has no mapping from Arc's principal to that identifier yet
-        // (Cratis/Stage#1061), so a policy that uses it, and a caller fixture that names one, are refused rather than rendered with a guessed claim.
-        Add(entries, "SemanticConditionOperand", rejected("STAGE-ESM-016"), "CallerId");
-        Add(entries, "SemanticCaller", rejected("STAGE-ESM-016"), "Id");
+        // ESM v49 compares a recorded property with the caller's identifier. The generated policy reads it from the authorized principal the way
+        // the generated MemberIdentity does (the provider's subject, then the name identifier, then sub), unless the application declares its own
+        // resolution through the ResolveCallerId hook; a principal with none makes the policy unavailable, and an unavailable policy denies.
+        Add(entries, "SemanticConditionOperand", rendered, "CallerId");
+        Add(entries, "SemanticCaller", rendered, "Id");
 
         // ESM v42 screens are a stack-neutral UI contract; the backend target renders none of them and no screen changes a command, query or event.
         Add(entries, "SemanticSlice", ignored("Screens are a stack-neutral UI contract; the Cratis backend target renders none of them."), "Screens");

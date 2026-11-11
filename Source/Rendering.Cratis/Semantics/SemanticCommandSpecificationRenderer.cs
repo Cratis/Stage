@@ -197,8 +197,8 @@ internal static partial class SemanticCommandSpecificationRenderer
             return;
         }
 
-        var claims = caller.Roles.Select(role => $"new global::System.Security.Claims.Claim(global::System.Security.Claims.ClaimTypes.Role, {CSharpCodeBuilder.StringLiteral(role)})")
-            .Concat(caller.Claims.Select(claim => $"new global::System.Security.Claims.Claim({CSharpCodeBuilder.StringLiteral(claim.Type)}, {CSharpCodeBuilder.StringLiteral(claim.Value)})"));
+        var claims = Policies.SemanticStatePolicyRendering.CallerClaims(caller);
+
         var authentication = caller.Authenticated ? "\"Screenplay\"" : "null";
         builder.OpenBlock("async global::System.Threading.Tasks.Task Because()")
             .Line($"var principal = new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([{string.Join(", ", claims)}], {authentication}));")

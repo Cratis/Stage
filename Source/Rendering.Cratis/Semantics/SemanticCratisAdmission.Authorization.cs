@@ -40,7 +40,7 @@ internal static partial class SemanticCratisAdmission
     }
 
     static bool CarriesCredentialsWithoutAuthentication(SemanticSpecification specification) =>
-        specification.GivenCaller is { Authenticated: false } caller && (!caller.Roles.IsEmpty || !caller.Claims.IsEmpty);
+        specification.GivenCaller is { Authenticated: false } caller && (!caller.Roles.IsEmpty || !caller.Claims.IsEmpty || caller.Id is not null);
 
     static bool ValidateCommandAuthorization(SemanticApplicationContext context, SemanticCommand command, List<ArtifactRenderDiagnostic> diagnostics)
     {

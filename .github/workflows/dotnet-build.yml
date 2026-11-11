@@ -518,7 +518,7 @@ jobs:
           # Keeps the generated application's own build and test logs with the uploaded results.
           AI_WORK_KEEP: ${{ github.workspace }}/TestResults/reducer-mongo
         run: >-
-          dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --configuration Debug --no-build
+          dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --configuration Debug --no-build --framework net11.0
           --filter "FullyQualifiedName~when_verifying_billing_mongo_deletion.should_match_model_bound_read_model_query_in_mongo_container_when_configured|FullyQualifiedName~when_verifying_scoped_projections_against_mongo.should_report_both_mongo_shapes_when_configured|FullyQualifiedName~when_verifying_routed_appends_against_mongo.should_append_all_routes_when_configured|FullyQualifiedName~when_verifying_reducer_filters_against_mongo.should_filter_reducer_appends_when_configured|FullyQualifiedName~when_verifying_reactions_against_the_pinned_kernel.should_settle_event_reactions_when_configured|FullyQualifiedName~when_verifying_reducer_migration_against_the_pinned_kernel.should_keep_one_builder_with_the_previous_observer_id_when_configured|FullyQualifiedName~when_verifying_inline_code_against_the_pinned_kernel.should_verify_demo_when_configured|FullyQualifiedName~when_verifying_inline_code_against_the_pinned_kernel.should_verify_min_a3_when_configured|FullyQualifiedName~when_verifying_application_trigger_reactions_against_the_pinned_kernel.should_append_once_per_namespace_and_skip_a_receipted_redelivery_when_configured|FullyQualifiedName~when_verifying_application_trigger_invocations_against_the_pinned_kernel.should_resume_commands_and_retain_refusals_when_configured|FullyQualifiedName~when_verifying_reaction_bodies_against_the_pinned_kernel.should_settle_native_reaction_bodies_when_configured"
           --logger "trx;LogFileName=billing-mongo.trx" --results-directory ./TestResults/reducer-mongo
 
@@ -526,7 +526,7 @@ jobs:
         env:
           STAGE_CHRONICLE_MONGO_CONNECTION: chronicle://localhost:35000
         run: >-
-          dotnet test Source/Host/Host.csproj --configuration Debug --no-build
+          dotnet test Source/Host/Host.csproj --configuration Debug --no-build --framework net11.0
           --filter "FullyQualifiedName~when_reconnecting_against_the_pinned_kernel.should_keep_stage_projections_updating_when_configured|FullyQualifiedName~when_encrypting_against_the_pinned_kernel.should_encrypt_and_release_concepts_when_configured"
           --logger "trx;LogFileName=stage-reconnect.trx" --results-directory ./TestResults/reducer-mongo
 
@@ -744,11 +744,13 @@ jobs:
         if: steps.nuget.outputs.cache-hit != 'true'
         run: dotnet restore --verbosity minimal
 
+      # Generated-application probes share one output folder, ports and containers per job, so they run on one test
+      # framework; running both target frameworks at once races on those shared resources.
       - name: Build, test and serve the standalone generated application
         env:
           AI_WORK_KEEP: ${{ github.workspace }}/TestResults/standalone-generated-application
         run: >-
-          dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --configuration Debug --no-build
+          dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --configuration Debug --no-build --framework net11.0
           --filter "FullyQualifiedName~when_verifying_a_standalone_generated_application"
           --logger "trx;LogFileName=standalone-generated-application.trx" --results-directory ./TestResults/standalone-generated-application
 
@@ -787,7 +789,7 @@ jobs:
           STAGE_EVENT_CONTRACTS_PROOF_ROOT: ${{ runner.temp }}/event-contracts-proof
         run: |
           mkdir -p "$STAGE_EVENT_CONTRACTS_PROOF_ROOT"
-          dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --configuration Debug --no-build \
+          dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --configuration Debug --no-build --framework net11.0 \
             --filter "FullyQualifiedName~when_building_rendered_event_contracts" \
             --logger "trx;LogFileName=event-contracts.trx" --results-directory ./TestResults/standalone-generated-application/event-contracts
 
@@ -955,7 +957,7 @@ jobs:
         env:
           STAGE_GENERATED_REACT_KEEP: ${{ runner.temp }}/generated-react
         run: >-
-          dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --configuration Debug --no-build
+          dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --configuration Debug --no-build --framework net11.0
           --filter "FullyQualifiedName~when_building_the_generated_screen_composition_application"
           --logger "trx;LogFileName=generated-react.trx" --results-directory ./TestResults/generated-react
 
@@ -1046,7 +1048,7 @@ jobs:
         env:
           STAGE_BLUEPRINT_TEMPLATES_KEEP: ${{ runner.temp }}/generated-blueprint-templates
         run: >-
-          dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --configuration Debug --no-build
+          dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --configuration Debug --no-build --framework net11.0
           --filter "FullyQualifiedName~when_building_the_blueprint_templates_application"
           --logger "trx;LogFileName=blueprint-templates.trx" --results-directory ./TestResults/generated-blueprint-templates
 

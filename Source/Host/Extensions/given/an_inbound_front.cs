@@ -40,6 +40,7 @@ public class an_inbound_front : an_extension_protocol
         _front = builder.Build();
         _front.UseRouting();
         ExtensionHttpEndpoints.Map(_front);
+        InboundDeliveryEndpoints.Map(_front);
         await _front.StartAsync();
         _client = new HttpClient { BaseAddress = new Uri(_front.Urls.First()) };
     }

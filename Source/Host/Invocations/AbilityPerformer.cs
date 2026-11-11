@@ -50,7 +50,7 @@ internal sealed class AbilityPerformer(AbilityDescriptor descriptor, IInvocation
         AbilityResult result;
         try
         {
-            result = await backend.Invoke(new(descriptor.Reference, descriptor.Effect, record.Identity, attempt, input, descriptor.PackageDigest), cancellationToken);
+            result = await backend.Invoke(new(descriptor.Reference, descriptor.Effect, record.Identity, attempt, input, descriptor.PackageDigest, descriptor.Timeout, AbilityInvocations.Scope.Value, origin), cancellationToken);
         }
         catch (Exception exception)
         {

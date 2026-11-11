@@ -30,6 +30,7 @@
         image tag must track this version too, so the bundled kernel and the client never drift apart.
     -->
     <!-- The Orleans silo hosted by the Stage runtime and by every rendered application. Cratis.Choreography.Chronicle requires the Chronicle client pinned below. -->
+    <PackageVersion Include="Grpc.AspNetCore" Version="2.83.0" />
     <PackageVersion Include="Cratis.Choreography" Version="2.5.0" />
     <PackageVersion Include="Cratis.Choreography.Chronicle" Version="2.5.0" />
     <PackageVersion Include="Cratis.Chronicle" Version="19.148.0" />

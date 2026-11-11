@@ -9,6 +9,7 @@ using Cratis.Stage.Api;
 using Cratis.Stage.Contracts;
 using Cratis.Stage.Host;
 using Cratis.Stage.Host.Export;
+using Cratis.Stage.Host.Extensions;
 using Cratis.Stage.Host.Published;
 using Cratis.Stage.Host.Workbench;
 using Cratis.Stage.Runtime;
@@ -157,6 +158,7 @@ app.UseRouting();
 app.UseCratisChronicle();
 
 StagePackageEndpoints.Map(app);
+if (app.Services.GetService<ExtensionConnections>() is not null) ExtensionHttpEndpoints.Map(app);
 SemanticReadModelBrowser.MapEventModel(app);
 SemanticHost.MapReadModelBrowserPage(app);
 

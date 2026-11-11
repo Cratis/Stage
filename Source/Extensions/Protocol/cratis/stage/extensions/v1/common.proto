@@ -1,0 +1,57 @@
+// Copyright (c) Cratis. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+syntax = "proto3";
+
+package cratis.stage.extensions.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option csharp_namespace = "Cratis.Stage.Extensions.Protocol";
+option go_package = "github.com/Cratis/Stage/Source/Extensions/Go/protocol/v1;protocolv1";
+option java_multiple_files = true;
+option java_package = "io.cratis.stage.extensions.protocol";
+
+// The version of the protocol this file set defines. Peers are compatible when the major versions match;
+// a minor version only adds fields, messages, enum values and rpcs. See Documentation/extensions/protocol.
+message ProtocolVersion {
+  int32 major = 1;
+  int32 minor = 2;
+}
+
+// What every request in either direction says about the work it belongs to.
+message RequestContext {
+  // The tenant the work runs for.
+  string tenant = 1;
+  // The system whose ability is being performed.
+  string system = 2;
+  // The invocation identity. It is also the idempotency key. Empty outside an invocation, for example for health and describe.
+  string invocation_id = 3;
+  // The key the extension deduplicates its effect on. It is the same for every attempt of an invocation.
+  string idempotency_key = 4;
+  // The attempt number, starting at 1. Zero outside an invocation.
+  int32 attempt = 5;
+  // When the attempt runs out of time. Unset means no deadline is imposed beyond the transport's.
+  google.protobuf.Timestamp deadline = 6;
+  // The W3C trace context, so the extension's own telemetry joins the invocation's trace.
+  string traceparent = 7;
+  string tracestate = 8;
+  // What caused the invocation: the semantic address of the invoking use in the model, and the occurrence.
+  string origin_address = 9;
+  string causation = 10;
+  // The locked digest of the extension package the invocation pinned.
+  string package_digest = 11;
+}
+
+// The effect class an ability declares. It tells the extension whether it can be called again for the same invocation.
+enum EffectClass {
+  EFFECT_CLASS_UNSPECIFIED = 0;
+  EFFECT_CLASS_SAFE = 1;
+  EFFECT_CLASS_IDEMPOTENT = 2;
+  EFFECT_CLASS_ONCE = 3;
+}
+
+message Header {
+  string name = 1;
+  repeated string values = 2;
+}

@@ -1,0 +1,139 @@
+// Copyright (c) Cratis. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+syntax = "proto3";
+
+package cratis.stage.extensions.v1;
+
+import "cratis/stage/extensions/v1/common.proto";
+
+option csharp_namespace = "Cratis.Stage.Extensions.Protocol";
+option go_package = "github.com/Cratis/Stage/Source/Extensions/Go/protocol/v1;protocolv1";
+option java_multiple_files = true;
+option java_package = "io.cratis.stage.extensions.protocol";
+
+// What Stage asks of an extension backend. The extension implements it and listens; Stage connects.
+service ExtensionBackend {
+  // The handshake. Stage hands over where the host services are and the session credential for them, and the
+  // extension answers what it realizes so Stage can check the running backend against its contract.
+  rpc Describe(DescribeRequest) returns (DescribeResponse);
+  // Performs one attempt at an ability.
+  rpc Invoke(InvokeRequest) returns (InvokeResponse);
+  // Handles an inbound HTTP request routed to the extension, for example a webhook.
+  rpc HandleHttp(InboundHttpRequest) returns (InboundHttpResponse);
+  // Reports whether the backend can take work.
+  rpc Health(HealthRequest) returns (HealthResponse);
+}
+
+message DescribeRequest {
+  ProtocolVersion protocol_version = 1;
+  // The system the backend serves and the locked digest of its package.
+  string system = 2;
+  string package_digest = 3;
+  // The address of Stage's host services.
+  string host_endpoint = 4;
+  // The credential the extension presents to the host services, as bearer token metadata. It is scoped to the system
+  // and lives as long as the Stage process. It is delivered here and nowhere else: never in the environment or a file.
+  string session_token = 5;
+}
+
+message DescribeResponse {
+  ProtocolVersion protocol_version = 1;
+  string name = 2;
+  string version = 3;
+  repeated AbilityDeclaration abilities = 4;
+  repeated TriggerDeclaration triggers = 5;
+  repeated SettingDeclaration settings = 6;
+  // The path prefixes, relative to the extension's mount, the backend handles over HandleHttp.
+  repeated string http_routes = 7;
+}
+
+message AbilityDeclaration {
+  string name = 1;
+  int32 contract_major = 2;
+  EffectClass effect = 3;
+  // The named outcomes the ability can end in besides returned and failed.
+  repeated string outcomes = 4;
+}
+
+message TriggerDeclaration {
+  string name = 1;
+}
+
+message SettingDeclaration {
+  string name = 1;
+  // A secret is only ever delivered by GetSecret and never reaches a browser.
+  bool secret = 2;
+  bool required = 3;
+}
+
+message InvokeRequest {
+  RequestContext context = 1;
+  string ability = 2;
+  int32 contract_major = 3;
+  EffectClass effect = 4;
+  // The ability's input, as JSON.
+  string input_json = 5;
+}
+
+// What the extension answers for an attempt. Exactly one of the four.
+message InvokeResponse {
+  oneof result {
+    Returned returned = 1;
+    Accepted accepted = 2;
+    NotSent not_sent = 3;
+    Failed failed = 4;
+  }
+}
+
+// The system did the work.
+message Returned {
+  // The named outcome, or empty for a plain returned.
+  string outcome = 1;
+  // What the ability returned, as JSON. Empty means an empty object.
+  string output_json = 2;
+}
+
+// The system accepted the work and will answer later, through the host's Answer rpc.
+message Accepted {}
+
+// The call certainly did not reach the system, so nothing happened and it is safe to try again, even for a once ability.
+message NotSent {
+  string reason = 1;
+}
+
+// The call failed.
+message Failed {
+  string reason = 1;
+  // True only when the extension can rule out that the effect happened. The default, false, says it may have, which
+  // is what an exception or a timeout means.
+  bool effect_ruled_out = 2;
+}
+
+message InboundHttpRequest {
+  RequestContext context = 1;
+  string method = 2;
+  // The path below the extension's mount, starting with a slash, and the raw query string without the question mark.
+  string path = 3;
+  string query = 4;
+  repeated Header headers = 5;
+  bytes body = 6;
+}
+
+message InboundHttpResponse {
+  int32 status = 1;
+  repeated Header headers = 2;
+  bytes body = 3;
+}
+
+message HealthRequest {}
+
+message HealthResponse {
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_SERVING = 1;
+    STATUS_NOT_SERVING = 2;
+  }
+  Status status = 1;
+  string detail = 2;
+}

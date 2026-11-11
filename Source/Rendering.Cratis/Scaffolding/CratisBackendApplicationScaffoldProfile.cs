@@ -89,6 +89,11 @@ public sealed class CratisBackendApplicationScaffoldProfile
         ScaffoldPackageVersions.Chronicle);
 
     /// <summary>
+    /// Gets the scaffold versions <see cref="ForVersion(string?)"/> resolves, oldest first.
+    /// </summary>
+    public static IReadOnlyList<string> SupportedVersions { get; } = [RetainedVersion, CurrentVersion];
+
+    /// <summary>
     /// Gets the scaffold contract version carried by every generated input.
     /// </summary>
     public string Version { get; }
@@ -164,11 +169,6 @@ public sealed class CratisBackendApplicationScaffoldProfile
     /// wildcard, a range or a prerelease from either registry.
     /// </remarks>
     public CratisFrontendPackageSet FrontendPackageSet { get; }
-
-    /// <summary>
-    /// Gets the scaffold versions <see cref="ForVersion(string?)"/> resolves, oldest first.
-    /// </summary>
-    public static IReadOnlyList<string> SupportedVersions { get; } = [RetainedVersion, CurrentVersion];
 
     /// <summary>
     /// Finds the profile for a scaffold version.

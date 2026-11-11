@@ -30,8 +30,8 @@ public class when_planning_with_a_profile_for_a_scaffold_profile_version : a_reg
     }
 
     [Fact] void should_keep_version_3_as_the_default() => ProjectVersion(_default).ShouldEqual("3");
-    [Fact] void should_create_the_default_profile_for_version_3() => _version3.ShouldEqual(_default);
-    [Fact] void should_create_the_default_profile_without_a_version() => Create(null).ShouldEqual(_default);
+    [Fact] void should_create_the_default_profile_for_version_3() => Digest(_version3).ShouldEqual(Digest(_default));
+    [Fact] void should_create_the_default_profile_without_a_version() => Digest(Create(null)).ShouldEqual(Digest(_default));
     [Fact] void should_record_version_4() => ProjectVersion(_version4).ShouldEqual("4");
     [Fact] void should_admit_the_version_4_profile() => _version4Plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-CRATIS-001");
     [Fact] void should_plan_artifacts_for_the_version_4_profile() => _version4Plan.Artifacts.ShouldNotBeEmpty();
@@ -47,6 +47,9 @@ public class when_planning_with_a_profile_for_a_scaffold_profile_version : a_reg
 
     static string ProjectVersion(ArtifactRenderProfile profile) =>
         profile.Inputs.Single(input => input.Name.StartsWith(CratisArtifactRenderProfileAdmission.ProjectInputPrefix, StringComparison.Ordinal) && input.Name.EndsWith(".csproj", StringComparison.Ordinal)).Version;
+
+    static string Digest(ArtifactRenderProfile profile) =>
+        string.Join('\n', [profile.Target, profile.TargetVersion, profile.Renderer, profile.RendererVersion, .. profile.Inputs.Select(input => $"{input.Name}|{input.Version}|{input.Sha256}")]);
 
     static string Text(CratisPlanResult result, string path) => Encoding.UTF8.GetString(result.Artifacts.Single(artifact => artifact.RelativePath == path).Bytes.AsSpan());
 }

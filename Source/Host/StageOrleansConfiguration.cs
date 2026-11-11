@@ -4,6 +4,7 @@
 using System.Net;
 using Cratis.Choreography.Chronicle.Hosting;
 using Cratis.Choreography.Hosting;
+using Cratis.Stage.Host.Invocations;
 using Orleans.Configuration;
 using Orleans.Hosting;
 
@@ -45,13 +46,17 @@ public static class StageOrleansConfiguration
         var gatewayPort = builder.Configuration.GetValue("Stage:Orleans:GatewayPort", DefaultGatewayPort);
 
         var local = CratisChoreographyOptions.Local();
+        var invocations = builder.Configuration.GetSection(StageInvocationOptions.Section).Get<StageInvocationOptions>() ?? new();
         builder.AddCratisChoreography(new CratisChoreographyOptions
         {
             Clustering = local.Clustering,
-            Storage = local.Storage,
+            Storage = builder.Configuration.GetValue("Stage:Orleans:Storage", local.Storage),
+            ConnectionString = builder.Configuration.GetValue("Stage:Orleans:ConnectionString", local.ConnectionString),
+            DatabaseName = builder.Configuration.GetValue("Stage:Orleans:DatabaseName", local.DatabaseName),
             ClusterId = ClusterName,
             ServiceId = ClusterName,
-            Workflows = true
+            Workflows = true,
+            ConfigureWorkflows = options => SystemGates.Concurrency(invocations, options.CapabilityLimits)
         });
 
         // Applied after the localhost clustering the silo hosting registered, so these endpoints win. The development
@@ -66,6 +71,10 @@ public static class StageOrleansConfiguration
 
         builder.Services.AddEventSourcedStateMachines();
         builder.Services.AddEventSourcedWorkflows();
+
+        // The engine instantiates every definition source and performer source it finds that is not registered, so wherever it is hosted the invocation
+        // services must be registered too. They come after the lifecycles, which register their own before this, so abilities are found beside them.
+        builder.Services.AddStageInvocations(builder.Configuration).ComposeWithAbilities();
         return builder;
     }
 }

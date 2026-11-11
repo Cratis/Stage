@@ -166,6 +166,11 @@ public sealed class CratisBackendApplicationScaffoldProfile
     public CratisFrontendPackageSet FrontendPackageSet { get; }
 
     /// <summary>
+    /// Gets the scaffold versions <see cref="ForVersion(string?)"/> resolves, oldest first.
+    /// </summary>
+    internal static IReadOnlyList<string> SupportedVersions { get; } = [RetainedVersion, CurrentVersion];
+
+    /// <summary>
     /// Finds the profile for a scaffold version.
     /// </summary>
     /// <param name="version">The scaffold version. Null selects version 3 (net10.0); version 4 (net11.0) is used only when "4" is passed explicitly.</param>

@@ -468,7 +468,7 @@ jobs:
               check_disk = guard.check
               env = dict(os.environ, AI_WORK_OUTPUT=str(output))
               command = ["timeout", "--kill-after=10s", "600s", "dotnet", "test",
-                         "Source/Rendering.Cratis/Rendering.Cratis.csproj", "--configuration", "Debug",
+                         "Source/Rendering.Cratis/Rendering.Cratis.csproj", "--configuration", "Debug", "--framework", "net11.0",
                          "--filter", "|".join("FullyQualifiedName=" + name for name in sorted(expected)),
                          "--logger", "trx;LogFileName=stage342-runtime.trx", "--results-directory", str(evidence)]
               with (evidence / "runtime.log").open("wb") as log:

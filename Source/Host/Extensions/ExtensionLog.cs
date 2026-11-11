@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Stage.Host.Extensions.Inbound;
+
 namespace Cratis.Stage.Host.Extensions;
 
 /// <summary>
@@ -25,4 +27,10 @@ public static partial class ExtensionLog
 
     [LoggerMessage(Message = "{ExtensionMessage}")]
     internal static partial void Reported(ILogger logger, LogLevel level, string extensionMessage);
+
+    [LoggerMessage(LogLevel.Information, "Inbound request {Delivery} for {System} ended as {Status} after attempt {Attempt}: {Reason}")]
+    internal static partial void InboundSettled(ILogger logger, string delivery, string system, InboundStatus status, int attempt, string reason);
+
+    [LoggerMessage(LogLevel.Error, "Delivering the inbound requests failed; the next round retries")]
+    internal static partial void InboundRoundFailed(ILogger logger, Exception exception);
 }

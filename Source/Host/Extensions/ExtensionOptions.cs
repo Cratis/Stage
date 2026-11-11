@@ -46,6 +46,11 @@ public sealed class ExtensionOptions
     public IDictionary<string, ExtensionBackendOptions> Backends { get; set; } = new Dictionary<string, ExtensionBackendOptions>();
 
     /// <summary>
+    /// Gets or sets how inbound traffic is stored and delivered.
+    /// </summary>
+    public InboundOptions Inbound { get; set; } = new();
+
+    /// <summary>
     /// Gets whether the extension protocol is enabled.
     /// </summary>
     public bool Enabled => HostPort > 0;

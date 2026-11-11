@@ -42,6 +42,12 @@
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
         <PackageReference Include="Microsoft.Identity.Web" ExcludeAssets="analyzers" />
         <PackageReference Include="Cratis.OpenTelemetry" />
+        <PackageReference Include="Grpc.AspNetCore" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- The extension protocol: the same files every SDK builds from. Stage implements the host services and calls the backends. -->
+        <Protobuf Include="../Extensions/Protocol/cratis/stage/extensions/v1/*.proto" ProtoRoot="../Extensions/Protocol" GrpcServices="Both" Link="Extensions/Protocol/%(Filename)%(Extension)" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(Configuration)' == 'Debug'">

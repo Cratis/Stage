@@ -4,6 +4,7 @@
 using System.Net;
 using Cratis.Choreography.Chronicle.Hosting;
 using Cratis.Choreography.Hosting;
+using Cratis.Stage.Host.Extensions;
 using Cratis.Stage.Host.Invocations;
 using Orleans.Configuration;
 using Orleans.Hosting;
@@ -74,7 +75,7 @@ public static class StageOrleansConfiguration
 
         // The engine instantiates every definition source and performer source it finds that is not registered, so wherever it is hosted the invocation
         // services must be registered too. They come after the lifecycles, which register their own before this, so abilities are found beside them.
-        builder.Services.AddStageInvocations(builder.Configuration).ComposeWithAbilities();
+        builder.Services.AddStageInvocations(builder.Configuration).ComposeWithAbilities().AddStageExtensions(builder.Configuration);
         return builder;
     }
 }

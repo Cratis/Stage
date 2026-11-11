@@ -79,6 +79,7 @@ PROJECT_SHARDS = {
         "Source/Host/Host.csproj",
         "Source/Specifications/Specifications.csproj",
         "Source/Contracts/Contracts.csproj",
+        "Source/Extensions/DotNET/Cratis.Stage.Extensions.csproj",
         "Source/Rendering.Kits/Rendering.Kits.csproj",
         "Source/Rendering.Templates/Rendering.Templates.csproj",
         "Source/Rendering.Declarative/Rendering.Declarative.csproj",

@@ -4,5 +4,7 @@
   href: guides/toc.yml
 - name: Docker
   href: docker/toc.yml
+- name: Extension backends
+  href: extensions/toc.yml
 - name: Reference
   href: reference/toc.yml

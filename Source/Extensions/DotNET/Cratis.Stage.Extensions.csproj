@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <AssemblyName>Cratis.Stage.Extensions</AssemblyName>
+        <RootNamespace>Cratis.Stage.Extensions</RootNamespace>
+        <IsPackable>true</IsPackable>
+        <TargetFramework></TargetFramework>
+        <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <Description>The C# SDK for Cratis Stage extension backends: implement abilities, inbound HTTP and health over the extension protocol, and use Stage's host services for settings, secrets, triggers, answers and telemetry.</Description>
+        <PackageTags>$(PackageTags);extensions;grpc</PackageTags>
+        <!-- A new package has no released baseline to compare against yet. -->
+        <EnablePackageValidation>false</EnablePackageValidation>
+        <NoWarn>$(NoWarn);CS7022</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- The example is a project of its own that sits inside this folder: its sources and build output are not the SDK's. -->
+        <Compile Remove="Example/**" />
+        <Content Remove="Example/**" />
+        <None Remove="Example/**" />
+        <EmbeddedResource Remove="Example/**" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- The SDK serves gRPC through Kestrel. -->
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+        <Using Include="Microsoft.AspNetCore.Builder" />
+        <Using Include="Microsoft.AspNetCore.Hosting" />
+        <Using Include="Microsoft.Extensions.DependencyInjection" />
+        <Using Include="Microsoft.Extensions.Hosting" />
+        <PackageReference Include="Grpc.AspNetCore" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- The extension protocol: the files every SDK builds from. -->
+        <Protobuf Include="../Protocol/cratis/stage/extensions/v1/*.proto" ProtoRoot="../Protocol" GrpcServices="Both" Link="Protocol/%(Filename)%(Extension)" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- The protocol ships with the package, so a consumer in another language can build from the same files. -->
+        <None Include="../Protocol/cratis/**/*.proto" Pack="true" PackagePath="proto/cratis/" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+        <!-- The conformance suite every SDK passes. -->
+        <Content Include="../Conformance/cases.json" Link="cases.json" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+</Project>

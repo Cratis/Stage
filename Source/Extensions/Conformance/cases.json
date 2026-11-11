@@ -1,0 +1,496 @@
+{
+  "$comment": "The conformance suite every SDK passes. See README.md.",
+  "protocol": "cratis.stage.extensions.v1",
+  "token": "conformance-token",
+  "host": {
+    "settings": {
+      "greeting": "hello"
+    },
+    "secrets": {
+      "apiKey": "s3cr3t"
+    }
+  },
+  "cases": [
+    {
+      "name": "describe hands the host over and answers what the extension realizes",
+      "rpc": "Describe",
+      "request": {
+        "protocolVersion": {
+          "major": 1,
+          "minor": 0
+        },
+        "system": "Conformance",
+        "packageDigest": "sha256:test",
+        "hostEndpoint": "@host",
+        "sessionToken": "conformance-token"
+      },
+      "expect": {
+        "protocolVersion": {
+          "major": 1
+        },
+        "name": "conformance-extension",
+        "version": "1.0.0",
+        "abilities": [
+          {
+            "name": "Echo",
+            "contractMajor": 1,
+            "effect": "EFFECT_CLASS_SAFE"
+          },
+          {
+            "name": "Greet",
+            "contractMajor": 1,
+            "effect": "EFFECT_CLASS_IDEMPOTENT",
+            "outcomes": [
+              "greeted"
+            ]
+          },
+          {
+            "name": "Context",
+            "contractMajor": 1,
+            "effect": "EFFECT_CLASS_SAFE"
+          },
+          {
+            "name": "Notify",
+            "contractMajor": 1,
+            "effect": "EFFECT_CLASS_ONCE"
+          },
+          {
+            "name": "Defer",
+            "contractMajor": 1,
+            "effect": "EFFECT_CLASS_ONCE",
+            "outcomes": [
+              "done"
+            ]
+          },
+          {
+            "name": "Refuse",
+            "contractMajor": 1,
+            "effect": "EFFECT_CLASS_IDEMPOTENT"
+          },
+          {
+            "name": "Reject",
+            "contractMajor": 1,
+            "effect": "EFFECT_CLASS_ONCE"
+          },
+          {
+            "name": "Crash",
+            "contractMajor": 1,
+            "effect": "EFFECT_CLASS_ONCE"
+          }
+        ],
+        "triggers": [
+          {
+            "name": "Notified"
+          }
+        ],
+        "settings": [
+          {
+            "name": "greeting",
+            "required": true
+          },
+          {
+            "name": "apiKey",
+            "secret": true,
+            "required": true
+          }
+        ],
+        "httpRoutes": [
+          "/hook"
+        ]
+      }
+    },
+    {
+      "name": "an ability returns what it computes",
+      "rpc": "Invoke",
+      "request": {
+        "context": {
+          "tenant": "Default",
+          "system": "Conformance",
+          "invocationId": "inv-echo",
+          "idempotencyKey": "inv-echo",
+          "attempt": 1,
+          "deadline": "2099-01-01T00:00:00Z",
+          "traceparent": "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01",
+          "originAddress": "Fulfillment/Post/branch 1",
+          "causation": "event-42",
+          "packageDigest": "sha256:test"
+        },
+        "ability": "Echo",
+        "contractMajor": 1,
+        "effect": "EFFECT_CLASS_ONCE",
+        "inputJson": "{\"a\":1}"
+      },
+      "expect": {
+        "returned": {
+          "outputJson": "{\"a\":1}"
+        }
+      },
+      "hostCalls": [
+        {
+          "rpc": "Log",
+          "request": {
+            "context": {
+              "tenant": "Default",
+              "system": "Conformance",
+              "invocationId": "inv-echo",
+              "traceparent": "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01"
+            },
+            "records": [
+              {
+                "level": "LOG_LEVEL_INFORMATION",
+                "message": "echoing",
+                "attributes": [
+                  {
+                    "key": "size",
+                    "value": "7"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "rpc": "RecordMetrics",
+          "request": {
+            "context": {
+              "tenant": "Default",
+              "system": "Conformance",
+              "invocationId": "inv-echo",
+              "traceparent": "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01"
+            },
+            "metrics": [
+              {
+                "name": "echo.calls",
+                "kind": "KIND_COUNTER",
+                "value": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "an ability sees the context of the request",
+      "rpc": "Invoke",
+      "request": {
+        "context": {
+          "tenant": "Default",
+          "system": "Conformance",
+          "invocationId": "inv-context",
+          "idempotencyKey": "inv-context",
+          "attempt": 3,
+          "deadline": "2099-01-01T00:00:00Z",
+          "traceparent": "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01",
+          "originAddress": "Fulfillment/Post/branch 1",
+          "causation": "event-42",
+          "packageDigest": "sha256:test"
+        },
+        "ability": "Context",
+        "contractMajor": 1,
+        "effect": "EFFECT_CLASS_ONCE",
+        "inputJson": "{}"
+      },
+      "expect": {
+        "returned": {
+          "outputJson": "{\"tenant\":\"Default\",\"system\":\"Conformance\",\"invocationId\":\"inv-context\",\"idempotencyKey\":\"inv-context\",\"attempt\":3,\"causation\":\"event-42\",\"traceparent\":\"00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01\"}"
+        }
+      }
+    },
+    {
+      "name": "an ability reads a setting and a secret through the host",
+      "rpc": "Invoke",
+      "request": {
+        "context": {
+          "tenant": "Default",
+          "system": "Conformance",
+          "invocationId": "inv-greet",
+          "idempotencyKey": "inv-greet",
+          "attempt": 1,
+          "deadline": "2099-01-01T00:00:00Z",
+          "traceparent": "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01",
+          "originAddress": "Fulfillment/Post/branch 1",
+          "causation": "event-42",
+          "packageDigest": "sha256:test"
+        },
+        "ability": "Greet",
+        "contractMajor": 1,
+        "effect": "EFFECT_CLASS_ONCE",
+        "inputJson": "{}"
+      },
+      "expect": {
+        "returned": {
+          "outcome": "greeted",
+          "outputJson": "{\"greeting\":\"hello\",\"secretLength\":6}"
+        }
+      },
+      "hostCalls": [
+        {
+          "rpc": "GetSetting",
+          "request": {
+            "context": {
+              "tenant": "Default",
+              "system": "Conformance",
+              "invocationId": "inv-greet",
+              "traceparent": "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01"
+            },
+            "name": "greeting"
+          }
+        },
+        {
+          "rpc": "GetSecret",
+          "request": {
+            "context": {
+              "tenant": "Default",
+              "system": "Conformance",
+              "invocationId": "inv-greet",
+              "traceparent": "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01"
+            },
+            "name": "apiKey"
+          }
+        }
+      ]
+    },
+    {
+      "name": "an ability raises a trigger deduplicated on the idempotency key",
+      "rpc": "Invoke",
+      "request": {
+        "context": {
+          "tenant": "Default",
+          "system": "Conformance",
+          "invocationId": "inv-notify",
+          "idempotencyKey": "inv-notify",
+          "attempt": 1,
+          "deadline": "2099-01-01T00:00:00Z",
+          "traceparent": "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01",
+          "originAddress": "Fulfillment/Post/branch 1",
+          "causation": "event-42",
+          "packageDigest": "sha256:test"
+        },
+        "ability": "Notify",
+        "contractMajor": 1,
+        "effect": "EFFECT_CLASS_ONCE",
+        "inputJson": "{\"n\":1}"
+      },
+      "expect": {
+        "returned": {}
+      },
+      "hostCalls": [
+        {
+          "rpc": "RaiseTrigger",
+          "request": {
+            "context": {
+              "tenant": "Default",
+              "system": "Conformance",
+              "invocationId": "inv-notify",
+              "traceparent": "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01"
+            },
+            "trigger": "Notified",
+            "deduplicationKey": "inv-notify",
+            "payloadJson": "{\"n\":1}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "an ability accepts work and answers later by the invocation identity",
+      "rpc": "Invoke",
+      "request": {
+        "context": {
+          "tenant": "Default",
+          "system": "Conformance",
+          "invocationId": "inv-defer",
+          "idempotencyKey": "inv-defer",
+          "attempt": 1,
+          "deadline": "2099-01-01T00:00:00Z",
+          "traceparent": "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01",
+          "originAddress": "Fulfillment/Post/branch 1",
+          "causation": "event-42",
+          "packageDigest": "sha256:test"
+        },
+        "ability": "Defer",
+        "contractMajor": 1,
+        "effect": "EFFECT_CLASS_ONCE",
+        "inputJson": "{}"
+      },
+      "expect": {
+        "accepted": {}
+      },
+      "hostCalls": [
+        {
+          "rpc": "Answer",
+          "request": {
+            "context": {
+              "invocationId": "inv-defer",
+              "tenant": "Default"
+            },
+            "outlet": "done",
+            "payloadJson": "{\"ok\":true}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "an ability that certainly did not reach the system is not sent",
+      "rpc": "Invoke",
+      "request": {
+        "context": {
+          "tenant": "Default",
+          "system": "Conformance",
+          "invocationId": "inv-refuse",
+          "idempotencyKey": "inv-refuse",
+          "attempt": 1,
+          "deadline": "2099-01-01T00:00:00Z",
+          "traceparent": "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01",
+          "originAddress": "Fulfillment/Post/branch 1",
+          "causation": "event-42",
+          "packageDigest": "sha256:test"
+        },
+        "ability": "Refuse",
+        "contractMajor": 1,
+        "effect": "EFFECT_CLASS_ONCE",
+        "inputJson": "{}"
+      },
+      "expect": {
+        "notSent": {
+          "reason": "refused by design"
+        }
+      }
+    },
+    {
+      "name": "an ability that failed and ruled its effect out says so",
+      "rpc": "Invoke",
+      "request": {
+        "context": {
+          "tenant": "Default",
+          "system": "Conformance",
+          "invocationId": "inv-reject",
+          "idempotencyKey": "inv-reject",
+          "attempt": 1,
+          "deadline": "2099-01-01T00:00:00Z",
+          "traceparent": "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01",
+          "originAddress": "Fulfillment/Post/branch 1",
+          "causation": "event-42",
+          "packageDigest": "sha256:test"
+        },
+        "ability": "Reject",
+        "contractMajor": 1,
+        "effect": "EFFECT_CLASS_ONCE",
+        "inputJson": "{}"
+      },
+      "expect": {
+        "failed": {
+          "reason": "rejected by the system",
+          "effectRuledOut": true
+        }
+      }
+    },
+    {
+      "name": "an ability that throws fails and does not rule its effect out",
+      "rpc": "Invoke",
+      "request": {
+        "context": {
+          "tenant": "Default",
+          "system": "Conformance",
+          "invocationId": "inv-crash",
+          "idempotencyKey": "inv-crash",
+          "attempt": 1,
+          "deadline": "2099-01-01T00:00:00Z",
+          "traceparent": "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01",
+          "originAddress": "Fulfillment/Post/branch 1",
+          "causation": "event-42",
+          "packageDigest": "sha256:test"
+        },
+        "ability": "Crash",
+        "contractMajor": 1,
+        "effect": "EFFECT_CLASS_ONCE",
+        "inputJson": "{}"
+      },
+      "expect": {
+        "failed": {
+          "reason": "boom"
+        }
+      }
+    },
+    {
+      "name": "an ability the extension does not realize is not sent",
+      "rpc": "Invoke",
+      "request": {
+        "context": {
+          "tenant": "Default",
+          "system": "Conformance",
+          "invocationId": "inv-nothing",
+          "idempotencyKey": "inv-nothing",
+          "attempt": 1,
+          "deadline": "2099-01-01T00:00:00Z",
+          "traceparent": "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01",
+          "originAddress": "Fulfillment/Post/branch 1",
+          "causation": "event-42",
+          "packageDigest": "sha256:test"
+        },
+        "ability": "Nothing",
+        "contractMajor": 1,
+        "effect": "EFFECT_CLASS_ONCE",
+        "inputJson": "{}"
+      },
+      "expect": {
+        "notSent": {}
+      }
+    },
+    {
+      "name": "a routed http request is handled",
+      "rpc": "HandleHttp",
+      "request": {
+        "context": {
+          "system": "Conformance",
+          "tenant": "Default"
+        },
+        "method": "POST",
+        "path": "/hook/events",
+        "query": "a=1",
+        "headers": [
+          {
+            "name": "X-Signature",
+            "values": [
+              "abc"
+            ]
+          }
+        ],
+        "body": "cGF5bG9hZA=="
+      },
+      "expect": {
+        "status": 202,
+        "headers": [
+          {
+            "name": "X-Echo",
+            "values": [
+              "a=1"
+            ]
+          }
+        ],
+        "body": "cmVjZWl2ZWQ6cGF5bG9hZA=="
+      }
+    },
+    {
+      "name": "a request to a path the extension does not handle is answered 404",
+      "rpc": "HandleHttp",
+      "request": {
+        "context": {
+          "system": "Conformance"
+        },
+        "method": "GET",
+        "path": "/hook/missing"
+      },
+      "expect": {
+        "status": 404
+      }
+    },
+    {
+      "name": "health reports serving",
+      "rpc": "Health",
+      "request": {},
+      "expect": {
+        "status": "STATUS_SERVING"
+      }
+    }
+  ]
+}

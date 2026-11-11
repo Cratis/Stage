@@ -32,6 +32,13 @@ public sealed class PolicyInvocationAnswerAuthorizer(IAuthorizationService autho
     public async Task<bool> Authorize(InvocationRecord record, ClaimsPrincipal principal)
     {
         if (principal.Identity?.IsAuthenticated != true) return false;
+
+        // A backend answers the invocations of its own system. It is a system, not a persona, so the policy meant for people does not apply to it.
+        if (principal.Identities.OfType<Extensions.ExtensionIdentity>().FirstOrDefault() is { } extension)
+        {
+            return AbilityReference.TryParse(record.Capability.Split('@')[0], out var system, out _) && string.Equals(system, extension.System, StringComparison.Ordinal);
+        }
+
         if (record.AnswerPolicy.Length == 0) return true;
         return (await authorization.AuthorizeAsync(principal, record.AnswerPolicy)).Succeeded;
     }

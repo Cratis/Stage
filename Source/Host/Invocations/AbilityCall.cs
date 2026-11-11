@@ -12,4 +12,16 @@ namespace Cratis.Stage.Host.Invocations;
 /// <param name="Attempt">The attempt number, starting at 1.</param>
 /// <param name="Input">The ability's input, as JSON.</param>
 /// <param name="PackageDigest">The locked digest of the extension package the invocation pinned.</param>
-public sealed record AbilityCall(AbilityReference Ability, EffectClass Effect, string IdempotencyKey, int Attempt, string Input, string PackageDigest);
+/// <param name="Timeout">How long the attempt may take. It becomes the deadline the extension is told. Zero means none is imposed.</param>
+/// <param name="Tenant">The tenant the invocation runs for.</param>
+/// <param name="Origin">Where the invocation came from, which the extension's telemetry is tied to.</param>
+public sealed record AbilityCall(
+    AbilityReference Ability,
+    EffectClass Effect,
+    string IdempotencyKey,
+    int Attempt,
+    string Input,
+    string PackageDigest,
+    TimeSpan Timeout = default,
+    string Tenant = "Default",
+    InvocationOrigin? Origin = null);

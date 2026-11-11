@@ -1,0 +1,164 @@
+// Copyright (c) Cratis. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+syntax = "proto3";
+
+package cratis.stage.extensions.v1;
+
+import "google/protobuf/timestamp.proto";
+import "cratis/stage/extensions/v1/common.proto";
+
+option csharp_namespace = "Cratis.Stage.Extensions.Protocol";
+option go_package = "github.com/Cratis/Stage/Source/Extensions/Go/protocol/v1;protocolv1";
+option java_multiple_files = true;
+option java_package = "io.cratis.stage.extensions.protocol";
+
+// What an extension asks of Stage. Stage implements it. Every call carries the session credential from Describe as
+// `authorization: Bearer <token>` metadata, which scopes it to one system.
+service StageHost {
+  // Resolves a public setting of the system.
+  rpc GetSetting(GetSettingRequest) returns (GetSettingResponse);
+  // Resolves a secret of the system. Secrets are only delivered here.
+  rpc GetSecret(GetSecretRequest) returns (GetSecretResponse);
+  // Raises a trigger the extension's contract declares, with a payload.
+  rpc RaiseTrigger(RaiseTriggerRequest) returns (RaiseTriggerResponse);
+  // Completes an invocation that was accepted to be answered later, by its identity.
+  rpc Answer(AnswerRequest) returns (AnswerResponse);
+  // Writes log records tied to an invocation's causation.
+  rpc Log(LogRequest) returns (TelemetryResponse);
+  // Records metrics tied to an invocation's causation.
+  rpc RecordMetrics(MetricsRequest) returns (TelemetryResponse);
+}
+
+message GetSettingRequest {
+  RequestContext context = 1;
+  string name = 2;
+}
+
+message GetSettingResponse {
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_FOUND = 1;
+    // The setting is declared but has no value.
+    STATUS_NOT_SET = 2;
+    // The name is not a setting the extension declared.
+    STATUS_UNKNOWN = 3;
+    // The name is declared as a secret: ask GetSecret.
+    STATUS_IS_SECRET = 4;
+  }
+  Status status = 1;
+  string value = 2;
+}
+
+message GetSecretRequest {
+  RequestContext context = 1;
+  string name = 2;
+}
+
+message GetSecretResponse {
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_FOUND = 1;
+    STATUS_NOT_SET = 2;
+    STATUS_UNKNOWN = 3;
+    // The name is declared as a public setting: ask GetSetting.
+    STATUS_NOT_SECRET = 4;
+  }
+  Status status = 1;
+  string value = 2;
+}
+
+message RaiseTriggerRequest {
+  RequestContext context = 1;
+  string trigger = 2;
+  // Required. Raising the same trigger with the same key again finds what the first raise did rather than doing it
+  // twice, and reports it as raised. Within an invocation the idempotency key is the natural choice; for a webhook it is
+  // the external message's own identity.
+  string deduplication_key = 3;
+  string payload_json = 4;
+}
+
+message RaiseTriggerResponse {
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_RAISED = 1;
+    // The trigger is not one the extension's contract declares.
+    STATUS_UNKNOWN_TRIGGER = 2;
+    // Nothing in the model reacts to the trigger, so raising it did nothing. It is reported, never silently accepted.
+    STATUS_NOT_ROUTED = 3;
+    // Stage did not take it: the deduplication key is missing, or the runtime did not admit a reaction.
+    STATUS_REFUSED = 4;
+  }
+  Status status = 1;
+  string detail = 2;
+}
+
+message AnswerRequest {
+  // The context names the invocation to answer.
+  RequestContext context = 1;
+  // The outlet the answer takes: returned or a declared outcome.
+  string outlet = 2;
+  string payload_json = 3;
+}
+
+message AnswerResponse {
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_ANSWERED = 1;
+    STATUS_UNKNOWN_INVOCATION = 2;
+    STATUS_NOT_WAITING = 3;
+    // The invocation belongs to another system, or the extension may not answer it.
+    STATUS_FORBIDDEN = 4;
+    STATUS_UNKNOWN_OUTLET = 5;
+  }
+  Status status = 1;
+}
+
+enum LogLevel {
+  LOG_LEVEL_UNSPECIFIED = 0;
+  LOG_LEVEL_TRACE = 1;
+  LOG_LEVEL_DEBUG = 2;
+  LOG_LEVEL_INFORMATION = 3;
+  LOG_LEVEL_WARNING = 4;
+  LOG_LEVEL_ERROR = 5;
+  LOG_LEVEL_CRITICAL = 6;
+}
+
+message KeyValue {
+  string key = 1;
+  string value = 2;
+}
+
+message LogRecord {
+  LogLevel level = 1;
+  string message = 2;
+  google.protobuf.Timestamp occurred = 3;
+  repeated KeyValue attributes = 4;
+}
+
+message LogRequest {
+  RequestContext context = 1;
+  repeated LogRecord records = 2;
+}
+
+message Metric {
+  enum Kind {
+    KIND_UNSPECIFIED = 0;
+    // Adds to a running total.
+    KIND_COUNTER = 1;
+    // Records one measurement of a distribution.
+    KIND_HISTOGRAM = 2;
+  }
+  string name = 1;
+  Kind kind = 2;
+  double value = 3;
+  string unit = 4;
+  repeated KeyValue attributes = 5;
+}
+
+message MetricsRequest {
+  RequestContext context = 1;
+  repeated Metric metrics = 2;
+}
+
+message TelemetryResponse {}

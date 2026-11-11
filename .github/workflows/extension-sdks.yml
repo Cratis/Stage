@@ -1,0 +1,105 @@
+# Copyright (c) Cratis. All rights reserved.
+# Licensed under the MIT license. See LICENSE file in the project root for full license information.
+name: Extension SDKs
+
+# The extension protocol and the Go, Kotlin and TypeScript SDKs built from it. The C# SDK is a project of Stage.slnx and is covered by the
+# .NET Build workflow.
+
+on:
+  pull_request:
+    paths:
+      - Source/Extensions/**
+      - .github/workflows/extension-sdks.yml
+  push:
+    branches: [main]
+    paths:
+      - Source/Extensions/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  protocol:
+    name: Protocol
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Install buf
+        run: go install github.com/bufbuild/buf/cmd/buf@v1.73.0
+
+      - name: Lint the protocol
+        working-directory: Source/Extensions/Protocol
+        run: "$(go env GOPATH)/bin/buf lint"
+
+      # A pull request is held to what main already publishes: nothing may break the wire or the JSON mapping.
+      - name: Check the protocol against main for breaking changes
+        if: github.event_name == 'pull_request'
+        working-directory: Source/Extensions/Protocol
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if git cat-file -e "$BASE:Source/Extensions/Protocol/buf.yaml" 2>/dev/null; then
+            "$(go env GOPATH)/bin/buf" breaking --against "../../../.git#ref=$BASE,subdir=Source/Extensions/Protocol"
+          else
+            echo "The base commit does not publish the protocol yet; nothing to compare against."
+          fi
+
+  go:
+    name: Go SDK
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Vet
+        working-directory: Source/Extensions/Go
+        run: go vet ./...
+
+      - name: Test, including the conformance suite
+        working-directory: Source/Extensions/Go
+        run: go test ./...
+
+  kotlin:
+    name: Kotlin SDK
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Test, including the conformance suite
+        working-directory: Source/Extensions/Kotlin
+        run: ./gradlew test compileExampleKotlin --console=plain
+
+  typescript:
+    name: TypeScript SDK
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: Source/Extensions/TypeScript/package-lock.json
+
+      - name: Install
+        working-directory: Source/Extensions/TypeScript
+        run: npm ci
+
+      - name: Build and test, including the conformance suite
+        working-directory: Source/Extensions/TypeScript
+        run: npm test

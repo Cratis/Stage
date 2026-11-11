@@ -97,14 +97,21 @@ must have the same effect. Pass the key to the outside system when it supports o
 
 An extension can own a webhook or a callback. Stage routes `/extensions/<System>/<path>` to the backend **when `<path>` starts with a route
 the backend declared in `http_routes`**, on a path boundary: `/hook` handles `/hook` and `/hook/events`, not `/hooks`. Anything else is a 404 from
-Stage, as is a system with no backend.
+Stage, or a rejection at delivery when the extension was not running to say, as is a system with no backend.
+
+How the traffic reaches `HandleHttp` is described in [inbound traffic and webhooks](inbound-traffic.md). In short, a `POST`, `PUT`, `PATCH` or `DELETE` is
+**stored and acknowledged with `202` first**, then delivered with retries; a `GET`, `HEAD` or `OPTIONS` is passed through and answered with the extension's answer.
 
 - The request carries the method, the path below the mount, the raw query string, the headers and the body (up to 1 MiB; larger is refused with 413).
+  For a stored request the `context` names the delivery: `invocation_id` and `idempotency_key` are the delivery identity, the same for every attempt, and
+  `attempt` counts from 1. The body is exactly as it arrived, so a signature verifies.
 - `Cookie`, `Authorization`, `Host` and connection headers are **not** forwarded, so a backend never receives the credentials of Stage's own users.
 - The endpoint is anonymous: a webhook's caller is not a Stage user. **The extension must verify the request itself**, for example with the
-  signature header its provider sends.
-- The answer's `status` must be 100 to 599, or Stage answers 502. `Set-Cookie` and connection headers in the answer are dropped.
-- A backend that is down is a 502, and one that does not answer in 30 seconds is a 504.
+  signature header its provider sends, and answer `401` when it does not verify.
+- For a stored request the answer's `status` decides: `2xx` is delivered, `4xx` other than `408`, `425` and `429` is rejected for good, and anything else, or
+  no answer, is retried with a growing wait.
+- For a read the answer's `status` must be 100 to 599, or Stage answers 502. `Set-Cookie` and connection headers in the answer are dropped. A backend that is
+  down is a 502, and one that does not answer in 30 seconds is a 504.
 
 ## Health: `Health`
 

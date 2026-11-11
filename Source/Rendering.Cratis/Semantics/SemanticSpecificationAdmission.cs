@@ -30,27 +30,38 @@ internal static partial class SemanticSpecificationAdmission
         SemanticSlice slice,
         ICollection<ArtifactRenderDiagnostic> diagnostics)
     {
-        foreach (var specification in WithoutDivergentRootJoins(SemanticOpaqueBodyDependencies.WithoutUncontrolledClockSpecifications(SemanticCommandBodyAdmission.WithoutBodySpecifications(WithoutReactionCascades(context, slice, diagnostics), context, diagnostics), context, diagnostics), context, diagnostics))
+        foreach (var specification in AdmissibleSpecifications(context, slice, diagnostics))
         {
-            if (TryRefuseUnboundEventMetadata(context, specification, diagnostics))
-            {
-                continue;
-            }
-            if (TryValidateProjectedFacts(context, specification, diagnostics))
-            {
-                continue;
-            }
-            if (AppendRefusedConstraint(context, specification) is { } refusing)
-            {
-                if (AppendRefusalRejection(context, specification, refusing) is { } refusal)
-                {
-                    diagnostics.Add(new("STAGE-ESM-011", ArtifactRenderDiagnosticSeverity.Error, $"Specification '{specification.Name}' cannot render: {refusal}", specification.Id));
-                }
-
-                continue;
-            }
-            ValidateActionSpecification(context, specification, diagnostics);
+            ValidateSpecification(context, specification, diagnostics);
         }
+    }
+
+    static IEnumerable<SemanticSpecification> AdmissibleSpecifications(SemanticApplicationContext context, SemanticSlice slice, ICollection<ArtifactRenderDiagnostic> diagnostics)
+    {
+        var withoutCascades = WithoutReactionCascades(context, slice, diagnostics);
+        var withoutBodies = SemanticCommandBodyAdmission.WithoutBodySpecifications(withoutCascades, context, diagnostics);
+        var withoutClocks = SemanticOpaqueBodyDependencies.WithoutUncontrolledClockSpecifications(withoutBodies, context, diagnostics);
+        return WithoutDivergentRootJoins(withoutClocks, context, diagnostics);
+    }
+
+    static void ValidateSpecification(SemanticApplicationContext context, SemanticSpecification specification, ICollection<ArtifactRenderDiagnostic> diagnostics)
+    {
+        if (TryRefuseUnboundEventMetadata(context, specification, diagnostics)) return;
+        if (TryValidateProjectedFacts(context, specification, diagnostics)) return;
+        if (TryRefuseAppend(context, specification, diagnostics)) return;
+
+        ValidateActionSpecification(context, specification, diagnostics);
+    }
+
+    static bool TryRefuseAppend(SemanticApplicationContext context, SemanticSpecification specification, ICollection<ArtifactRenderDiagnostic> diagnostics)
+    {
+        if (AppendRefusedConstraint(context, specification) is not { } refusing) return false;
+        if (AppendRefusalRejection(context, specification, refusing) is { } refusal)
+        {
+            diagnostics.Add(new("STAGE-ESM-011", ArtifactRenderDiagnosticSeverity.Error, $"Specification '{specification.Name}' cannot render: {refusal}", specification.Id));
+        }
+
+        return true;
     }
 
     // Only the declaring slice's own reactions can make a command specification a cascade (Screenplay decision 0115).
@@ -67,55 +78,6 @@ internal static partial class SemanticSpecificationAdmission
 
     internal static bool TriggerValuesMatch(SemanticApplicationContext context, SemanticSpecification specification, SemanticCommand command) =>
         CommandValuesMatch(context, specification, command);
-
-    static bool TryRefuseDeniedOperation(SemanticApplicationContext context, SemanticSpecification specification, ICollection<ArtifactRenderDiagnostic> diagnostics)
-    {
-        if (context.DeniedOperations.Count == 0) return false;
-
-        foreach (var command in InvokedCommands(context, specification).Where(context.DeniedOperations.ContainsKey).Distinct())
-        {
-            diagnostics.Add(new("STAGE-ESM-011", ArtifactRenderDiagnosticSeverity.Error, $"Specification '{specification.Name}' cannot render: command '{context.Commands[command].Name}' denies every invocation (STAGE-DEGRADE-002).", specification.Id));
-            return true;
-        }
-        return false;
-    }
-
-    static IEnumerable<SemanticId> InvokedCommands(SemanticApplicationContext context, SemanticSpecification specification)
-    {
-        if (specification.When is { } when) return [when.Command];
-        if (specification.WhenAppended is null && specification.WhenRedelivered is null) return [];
-
-        var active = ReactionCandidates(context, specification)
-            .Where(candidate => specification.ThenNoEvents || specification.WhenRedelivered is not null || candidate.Fires).ToArray();
-        return active.Length == 1 ? active[0].Trigger.Invokes.Select(invocation => invocation.Command) : [];
-    }
-
-    static bool TryRefuseUnboundEventMetadata(SemanticApplicationContext context, SemanticSpecification specification, ICollection<ArtifactRenderDiagnostic> diagnostics)
-    {
-        if (specification.GivenEvents.Any(fact => MissingObservableSource(context, fact)))
-        {
-            diagnostics.Add(RefusalDiagnostic(context, specification, SourcelessGivenReason));
-            return true;
-        }
-        if (AssertsUncontrolledProjectionContext(context, specification))
-        {
-            diagnostics.Add(RefusalDiagnostic(context, specification, "Projected event-context occurrence, correlation and sequence expectations require explicitly bound event metadata."));
-            return true;
-        }
-
-        return false;
-    }
-
-    static bool AssertsUncontrolledProjectionContext(SemanticApplicationContext context, SemanticSpecification specification) =>
-        specification.ThenReadModels.Concat(specification.ThenQueries.SelectMany(expected => expected.Results)).Any(expected =>
-            context.Projections.Values.Any(projection => projection.ReadModel == expected.ReadModel && projection.Scope is { } scope &&
-                UncontrolledMappings(scope).Any(mapping => expected.Values.Any(value => mapping.Target.Contains(value.TargetProperty)))));
-
-    static IEnumerable<SemanticProjectionMapping> UncontrolledMappings(SemanticProjectionScope scope) =>
-        scope.From.SelectMany(from => from.Mappings).Concat(scope.Every?.Mappings ?? [])
-            .Concat(scope.Joins.SelectMany(join => join.Mappings))
-            .Where(mapping => mapping.Source is SemanticProjectionEventContextValue value &&
-                (value.Path == "occurred" || value.Path == "correlationId" || value.Path == "sequenceNumber"));
 
     static bool TryValidateProjectedFacts(
         SemanticApplicationContext context,
@@ -151,27 +113,41 @@ internal static partial class SemanticSpecificationAdmission
     }
 
     static bool CanRenderSpecification(SemanticApplicationContext context, SemanticSpecification specification, bool reactionInvocation = false, bool foreignInvocationExpectations = false) =>
-        HasRenderableQueryExpectations(context, specification) && (CanRenderQueryOnly(context, specification) ||
-                (HasRenderableCallerAndCommand(context, specification, out var command, reactionInvocation) &&
-                    HasRenderableOrderedGivenEvents(context, specification) && GivenKeysMatchProjectedProperties(context, specification) &&
-                    !AssertsUncontrolledOccurrence(context.Application, specification, command!) &&
-                    !GivenEventsViolateConstraints(context, specification) && CanSeedProjectedAbsence(context, specification) &&
-                    CommandValuesMatch(context, specification, command!) &&
-                    HasOneOutcome(specification, reactionInvocation) && HasSupportedCounts(specification) &&
-                    HasMatchingProductionCount(context, specification, command!, foreignInvocationExpectations) &&
-                    specification.ThenEvents.All(expected => EventMatches(context, expected)) &&
-                    HasMatchingProductionContracts(context, specification, command!, foreignInvocationExpectations) &&
-                    specification.ThenReadModels.All(expected => ReadModelMatches(context, expected) &&
-                        HasExpectedProjectionEvent(context, specification, expected) &&
-                        ReducerRejectionReason(context, expected.ReadModel) is null) &&
-                    specification.ThenAbsentReadModels.All(expected => CanAssertAbsence(context, specification, expected)) &&
-                    specification.ThenQueries.All(expected => QueryMatches(context, expected) &&
-                        !context.Reducers.Any(reducer => reducer.ReadModel == context.Queries[expected.Query].ReadModel) &&
-                        expected.Results.All(result => HasExpectedProjectionEvent(context, specification, result))) &&
-                    HasRenderableErrors(context, specification, command) &&
-                    HasRenderableEventSources(context, specification, command!) &&
-                    ProtectedQuerySourcesMatch(context, specification, command!) &&
-                    HasComparableResponse(context, specification, command!)));
+        HasRenderableQueryExpectations(context, specification) &&
+        (CanRenderQueryOnly(context, specification) ||
+            (HasRenderableCallerAndCommand(context, specification, out var command, reactionInvocation) &&
+                HasRenderableFixtures(context, specification, command!) &&
+                HasOneOutcome(specification, reactionInvocation) &&
+                HasRenderableProductions(context, specification, command!, foreignInvocationExpectations) &&
+                HasRenderableStateExpectations(context, specification) &&
+                HasRenderableOutcome(context, specification, command!)));
+
+    static bool HasRenderableFixtures(SemanticApplicationContext context, SemanticSpecification specification, SemanticCommand command) =>
+        HasRenderableOrderedGivenEvents(context, specification) && GivenKeysMatchProjectedProperties(context, specification) &&
+        !AssertsUncontrolledOccurrence(context.Application, specification, command) &&
+        !GivenEventsViolateConstraints(context, specification) && CanSeedProjectedAbsence(context, specification) &&
+        CommandValuesMatch(context, specification, command);
+
+    static bool HasRenderableProductions(SemanticApplicationContext context, SemanticSpecification specification, SemanticCommand command, bool foreignInvocationExpectations) =>
+        HasSupportedCounts(specification) &&
+        HasMatchingProductionCount(context, specification, command, foreignInvocationExpectations) &&
+        specification.ThenEvents.All(expected => EventMatches(context, expected)) &&
+        HasMatchingProductionContracts(context, specification, command, foreignInvocationExpectations);
+
+    static bool HasRenderableStateExpectations(SemanticApplicationContext context, SemanticSpecification specification) =>
+        specification.ThenReadModels.All(expected => ReadModelMatches(context, expected) &&
+            HasExpectedProjectionEvent(context, specification, expected) &&
+            ReducerRejectionReason(context, expected.ReadModel) is null) &&
+        specification.ThenAbsentReadModels.All(expected => CanAssertAbsence(context, specification, expected)) &&
+        specification.ThenQueries.All(expected => QueryMatches(context, expected) &&
+            !HasReducer(context, context.Queries[expected.Query].ReadModel) &&
+            expected.Results.All(result => HasExpectedProjectionEvent(context, specification, result)));
+
+    static bool HasRenderableOutcome(SemanticApplicationContext context, SemanticSpecification specification, SemanticCommand command) =>
+        HasRenderableErrors(context, specification, command) &&
+        HasRenderableEventSources(context, specification, command) &&
+        ProtectedQuerySourcesMatch(context, specification, command) &&
+        HasComparableResponse(context, specification, command);
 
     static IEnumerable<SemanticSpecification> WithoutReactionCascades(SemanticApplicationContext context, SemanticSlice slice, ICollection<ArtifactRenderDiagnostic> diagnostics)
     {
@@ -181,29 +157,29 @@ internal static partial class SemanticSpecificationAdmission
             {
                 continue;
             }
-            if (CommandTriggersReaction(context, specification))
+            if (!CommandTriggersReaction(context, specification) || SemanticReactionCascade.IsRejectedByTrigger(context, specification))
             {
-                if (SemanticReactionCascade.IsRejectedByTrigger(context, specification))
-                {
-                    yield return specification;
-                    continue;
-                }
-
-                if (SemanticReactionCascade.TryLower(context, specification, out var cascade))
-                {
-                    ValidateCascade(context, cascade, diagnostics);
-                    continue;
-                }
-
-                diagnostics.Add(new(
-                    "STAGE-ESM-011",
-                    ArtifactRenderDiagnosticSeverity.Error,
-                    $"Specification '{specification.Name}' cannot render: the command produces an event that triggers a reaction; generated CommandScenario specifications do not settle reactions yet.",
-                    specification.Id));
+                yield return specification;
                 continue;
             }
-            yield return specification;
+
+            ReportCascade(context, specification, diagnostics);
         }
+    }
+
+    static void ReportCascade(SemanticApplicationContext context, SemanticSpecification specification, ICollection<ArtifactRenderDiagnostic> diagnostics)
+    {
+        if (SemanticReactionCascade.TryLower(context, specification, out var cascade))
+        {
+            ValidateCascade(context, cascade, diagnostics);
+            return;
+        }
+
+        diagnostics.Add(new(
+            "STAGE-ESM-011",
+            ArtifactRenderDiagnosticSeverity.Error,
+            $"Specification '{specification.Name}' cannot render: the command produces an event that triggers a reaction; generated CommandScenario specifications do not settle reactions yet.",
+            specification.Id));
     }
 
     static void ValidateCascade(SemanticApplicationContext context, SemanticReactionCascade cascade, ICollection<ArtifactRenderDiagnostic> diagnostics)
@@ -214,195 +190,5 @@ internal static partial class SemanticSpecificationAdmission
         {
             diagnostics.Add(new("STAGE-ESM-011", ArtifactRenderDiagnosticSeverity.Error, $"Specification '{cascade.Reaction.Name}' cannot render: its triggering command specification cannot be preserved ({RejectionReason(context, trigger)}).", cascade.Reaction.Id));
         }
-    }
-
-    static bool ProtectedQuerySourcesMatch(SemanticApplicationContext context, SemanticSpecification specification, SemanticCommand command)
-    {
-        foreach (var expected in specification.ThenQueries.Where(result =>
-            context.Queries.TryGetValue(result.Query, out var query) && IsProtected(context, query)))
-        {
-            // Keyed lookups still read only their selected stream; collection scenarios preserve all seeded rows.
-            if (context.Queries[expected.Query].Cardinality == SemanticQueryCardinality.Many) continue;
-            if (specification.GivenEvents.Any(given => !Equals(given.EventSource?.Value, expected.Key)) ||
-                SemanticProductionSelection.Taken(context.Application, command, specification).Any(produced => !Equals(SemanticDestinations.ForSpecification(specification, command, produced).Value, expected.Key)))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    static bool AssertsUncontrolledOccurrence(SemanticApplication application, SemanticSpecification specification, SemanticCommand command) =>
-        !SemanticSpecificationClock.TryGet(specification, out _) && SemanticProductionSelection.Taken(application, command, specification).Any(produced => produced.Mappings.Any(mapping =>
-            mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred })) &&
-        (!specification.ThenEvents.IsEmpty || !specification.ThenReadModels.IsEmpty || !specification.ThenAbsentReadModels.IsEmpty || !specification.ThenQueries.IsEmpty);
-
-    static string? ReducerRejectionReason(SemanticApplicationContext context, SemanticId readModel)
-    {
-        var reducer = context.Reducers.SingleOrDefault(_ => _.ReadModel == readModel);
-        if (reducer is null) return null;
-        foreach (var transition in reducer.Transitions)
-        {
-            var reason = ReducerTransitionRejectionReason(context, readModel, transition.RequirementId, transition.EventContract);
-            if (reason is not null)
-            {
-                var eventName = context.Events.TryGetValue(transition.EventContract, out var @event) ? @event.Name : transition.EventContract.ToString();
-                var readModelName = context.ReadModels.TryGetValue(readModel, out var model) ? model.Name : readModel.ToString();
-                return $"Reducer '{reducer.Name}' for read model '{readModelName}' triggered by '{eventName}' cannot be verified: {reason}";
-            }
-        }
-
-        return null;
-    }
-
-    static string? ReducerTransitionRejectionReason(SemanticApplicationContext context, SemanticId readModel, string requirementId, SemanticId eventContract)
-    {
-        var descriptor = context.Request.TypedContextDescriptors.SingleOrDefault(_ => _.RequirementId == requirementId && _.OperationId == readModel);
-        var requirement = context.Request.ImplementationRequirements.SingleOrDefault(_ => _.RequirementId == requirementId);
-        if (descriptor is null) return "The typed context descriptor is missing.";
-        if (requirement is null) return "The implementation requirement is missing.";
-        var diagnostics = ImmutableArray.CreateBuilder<ArtifactRenderDiagnostic>();
-        if (!SemanticImplementationAdmission.TryGetVerifiedBody(context.Request, requirementId, readModel, diagnostics, out var body))
-            return diagnostics.Count == 0 ? "The reducer body could not be verified." : string.Join(' ', diagnostics.Select(_ => $"{_.Code}: {_.Message}"));
-
-        // Specification admission must fail closed too when analysis cannot classify context reads.
-        try
-        {
-            var verdict = PureTransitionAdmission.Analyze(body!, context, context.ReadModels[readModel], context.Events[eventContract], descriptor, requirement);
-            if (!verdict.Accepted) return $"{verdict.Code}: {verdict.Reason}";
-            return UnstableReducerContextReason(verdict.ContextReads);
-        }
-        catch (Exception exception)
-        {
-            return $"Reducer analysis failed: {exception.GetType().Name}: {exception.Message}";
-        }
-    }
-
-    static string? UnstableReducerContextReason(IEnumerable<string> contextReads)
-    {
-        var unstable = string.Join(", ", contextReads.Where(read => read == "Occurred" || read == "SequenceNumber" || read == "Tenant").Order(StringComparer.Ordinal).Select(read => $"context.{read}"));
-        return unstable.Length == 0 ? null : $"A reducer body reads {unstable}, which Chronicle's ReadModelScenario cannot supply deterministically.";
-    }
-
-    static string RejectionReason(SemanticApplicationContext context, SemanticSpecification specification)
-    {
-        if (specification.When is null && !specification.ThenQueries.IsEmpty && !specification.ThenErrors.IsEmpty &&
-            (!specification.GivenEvents.IsEmpty || !specification.GivenReadModels.IsEmpty))
-        {
-            return "Query validation rejection specifications with given events or read-model state require a seeded Arc query scenario; only empty fixtures are supported.";
-        }
-
-        if (!QueryArgumentsHaveCompleteValues(context, specification))
-        {
-            return "Sparse composite query arguments cannot render: every member, including optional members, must be supplied explicitly to preserve concept validation without inventing CLR defaults.";
-        }
-
-        if (AuthorizationRejectionReason(context, specification) is { } authorizationReason)
-        {
-            return authorizationReason;
-        }
-
-        if (specification.When is { } when && context.Commands.TryGetValue(when.Command, out var command) &&
-            AssertsUncontrolledOccurrence(context.Application, specification, command))
-        {
-            return "A command maps $context.occurred from its current clock; fixed event or projected values in a specification cannot assert this occurrence without a supplied time.";
-        }
-
-        if (specification.ThenAbsentReadModels.Any(expected => !CanAssertAbsence(context, specification, expected)))
-        {
-            return AbsenceRejection;
-        }
-
-        if (specification.ThenEventsInAnyOrder &&
-            specification.ThenEvents.GroupBy(_ => _.EventContract).Any(group => group.Count() > 1) &&
-            specification.ThenReadModels.Any(expected => context.Reducers.Any(reducer => reducer.ReadModel == expected.ReadModel)))
-        {
-            return "Unordered duplicate event contracts cannot be paired with reducer replay occurrences.";
-        }
-
-        if (specification.ThenQueries.Any(expected => context.Queries.TryGetValue(expected.Query, out var query) &&
-            context.Reducers.Any(reducer => reducer.ReadModel == query.ReadModel)))
-        {
-            return "Query expectations on reducer-built read models require the rendered target's query scenario, which is not admitted in Phase 1.";
-        }
-
-        var reducerReason = specification.ThenReadModels.Select(expected => ReducerRejectionReason(context, expected.ReadModel)).FirstOrDefault(reason => reason is not null);
-        if (reducerReason is not null) return reducerReason;
-
-        if (specification.ThenReadModels.Any(_ => CannotCompareScopedPresence(context, _.ReadModel, _.Exactly, _.Values)) ||
-            specification.ThenQueries.Any(_ => context.Queries.TryGetValue(_.Query, out var query) &&
-                (CannotCompareScopedPresence(context, query.ReadModel, _.Exactly, []) ||
-                    _.Results.Any(result => CannotCompareScopedPresence(context, query.ReadModel, result.Exactly, result.Values)))))
-        {
-            return "An exactly or null comparison of a scoped projection must distinguish unset properties from CLR defaults; the generated ReadModelScenario exposes only the materialized record.";
-        }
-
-        if (specification.ThenDenied && specification.When is null)
-        {
-            return "A denied query must be executed through Arc's query pipeline to assert Unauthorized and no returned data; a direct read-model lookup does not evaluate its policy.";
-        }
-
-        if (specification.ThenQueries.Any(_ => context.Queries.TryGetValue(_.Query, out var query) && IsProtected(context, query)))
-        {
-            return "A protected query must run through Arc's query pipeline with the fixture caller; direct invocation bypasses the generated authorization policy.";
-        }
-
-        if (specification.When is { } action && context.Commands.TryGetValue(action.Command, out var producingCommand) &&
-            !ProtectedQuerySourcesMatch(context, specification, producingCommand))
-        {
-            return "A protected query scenario replays only events from its query key; every seeded and produced event must use that source.";
-        }
-
-        if (!specification.GivenReadModels.IsEmpty)
-        {
-            return "Given read-model state requires complete non-null scalar records with identifiers matching their keys and independent projections. Seeded command reads, reducers and query combinations are not supported; a query-only lookup of one complete seeded record is supported.";
-        }
-
-        if (specification.GivenEvents.Any(fact => MissingObservableSource(context, fact)))
-        {
-            return SourcelessGivenReason;
-        }
-
-        if (GivenEventsViolateConstraints(context, specification))
-        {
-            return "Given events violate a selected append-time constraint and cannot be seeded faithfully into Chronicle's event log.";
-        }
-
-        if (specification.GivenCaller?.Claims.Any(claim => SemanticCratisAdmission.IsRoleClaim(claim.Type)) == true)
-        {
-            return "A caller claim using the role claim URI conflates separate Screenplay roles and claims in Arc.";
-        }
-
-        if (specification.When is { } returning && context.Commands.TryGetValue(returning.Command, out var responding) &&
-            !HasComparableResponse(context, specification, responding))
-        {
-            return CompositeResponseRejection;
-        }
-
-        return "The scenario cannot preserve all of its declared fixtures or expectations.";
-    }
-
-    static bool MissingObservableSource(SemanticApplicationContext context, SemanticSpecificationEvent fact) =>
-        fact.EventSource is null && SemanticSpecificationEventSources.RequiresSource(context, fact.EventContract, fact.Route is not null);
-
-    // A sourceless given fact has its own code so it is not lost in the generic STAGE-ESM-011 bucket.
-    static ArtifactRenderDiagnostic RefusalDiagnostic(SemanticApplicationContext context, SemanticSpecification specification, string reason)
-    {
-        if (reason != SourcelessGivenReason)
-        {
-            return new("STAGE-ESM-011", ArtifactRenderDiagnosticSeverity.Error, $"Specification '{specification.Name}' cannot render: {reason}", specification.Id);
-        }
-
-        // Projected facts lower a sourceless 'when append' into the givens, so the event may be the appended one.
-        var (role, contract) = specification.GivenEvents.FirstOrDefault(fact => MissingObservableSource(context, fact)) is { } given
-            ? ("given", given.EventContract)
-            : ("appended", specification.WhenAppended?.EventContract);
-        var eventName = contract is { } id && context.Events.TryGetValue(id, out var @event) ? $"'{@event.Name}'" : "an event";
-        return new(
-            SourcelessGivenCode,
-            ArtifactRenderDiagnosticSeverity.Error,
-            $"Specification '{specification.Name}' cannot render: {role} event {eventName} has no event source. {reason}",
-            specification.Id);
     }
 }

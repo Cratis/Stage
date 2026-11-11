@@ -183,7 +183,10 @@ internal static class SemanticLifecycleArtifactRenderer
                 .OpenBlock($"public async global::System.Threading.Tasks.Task<{Workflows}.Adapters.WorkflowNodeOutcome> Perform({Workflows}.Adapters.WorkflowNodeInvocation invocation, global::System.Threading.CancellationToken cancellationToken)")
                 .Line("var key = global::System.Text.Json.Nodes.JsonNode.Parse(invocation.Input.Value)?[\"trigger\"]?[\"subject\"]?[\"id\"]?.GetValue<string>() ?? string.Empty;")
                 .Line($"var result = await commands.Execute(new {types.SliceType(command.Id, command.Name)}({SemanticLifecycleExpressions.Key(identifier.Type, "key", types)}));")
-                .Line($"return result.IsSuccess ? {Workflows}.Adapters.WorkflowNodeOutcome.Succeeded(\"next\") : {Workflows}.Adapters.WorkflowNodeOutcome.Failed({message});")
+                .Line($"if (result.IsSuccess) return {Workflows}.Adapters.WorkflowNodeOutcome.Succeeded(\"next\");")
+                .Line("// The command was handed on and something rejected it - validation, authorization or a constraint: a refusal, which the model routes through its own outlet, and not a failure.")
+                .Line($"var refused = !result.HasExceptions && invocation.Configuration.Value.Contains({CSharpCodeBuilder.StringLiteral(WorkflowGraphSpecs.RefusalRoutedConfiguration[1..^1])}, global::System.StringComparison.Ordinal);")
+                .Line($"return refused ? {Workflows}.Adapters.WorkflowNodeOutcome.Succeeded({CSharpCodeBuilder.StringLiteral(WorkflowGraphSpecs.RefusedOutlet)}) : {Workflows}.Adapters.WorkflowNodeOutcome.Failed({message});")
                 .EndBlock().EndBlock().BlankLine();
         }
 

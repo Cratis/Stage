@@ -17,6 +17,18 @@ namespace Cratis.Stage.Contracts.Lifecycles;
 /// </remarks>
 public static class WorkflowGraphSpecs
 {
+    /// <summary>
+    /// Gets the outlet a command action leaves through when the command was handed on and something rejected it - distinct from <c>failed</c>,
+    /// which means the invocation itself broke.
+    /// </summary>
+    public const string RefusedOutlet = "refused";
+
+    /// <summary>
+    /// Gets the node configuration that tells a command action its <c>refused</c> outlet is connected, so a refusal leaves through it. Without it a
+    /// refusal fails the node, as an unconnected <c>refused</c> outlet fails the run.
+    /// </summary>
+    public const string RefusalRoutedConfiguration = """{"refusalRouted":true}""";
+
     const string DefaultFanOut = "10";
 
     /// <summary>
@@ -82,7 +94,8 @@ public static class WorkflowGraphSpecs
             case SemanticWorkflowNodeKind.Trigger:
                 return Make($"workflows.trigger.{node.TriggerKind.ToString()!.ToLowerInvariant()}", "{}", "next");
             case SemanticWorkflowNodeKind.Action:
-                return Make(SendCapability(plan.Commands[node.Command].Name), "{}", "next", "failed");
+                var refusalRouted = workflow.Edges.Any(edge => edge.From == name && edge.Outlet == RefusedOutlet);
+                return Make(SendCapability(plan.Commands[node.Command].Name), refusalRouted ? RefusalRoutedConfiguration : "{}", "next", "failed", RefusedOutlet);
             case SemanticWorkflowNodeKind.Decision:
                 return Make(DecideCapability(workflow.Name, name), "{}", node.WhenTrue ?? string.Empty, node.WhenFalse ?? string.Empty, "failed");
             case SemanticWorkflowNodeKind.Wait when node.Duration is { } duration:

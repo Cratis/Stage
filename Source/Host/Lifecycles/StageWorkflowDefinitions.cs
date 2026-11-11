@@ -22,6 +22,15 @@ internal sealed class StageWorkflowDefinitions : IWorkflowDefinitions
 
     readonly Dictionary<string, WorkflowDefinitionSnapshot> _snapshots;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="StageWorkflowDefinitions"/> class that owns nothing. The engine discovers every implementation
+    /// of <see cref="IWorkflowDefinitions"/> that is not registered and creates it, so a host without a loaded model must be able to create one.
+    /// </summary>
+    public StageWorkflowDefinitions()
+        : this([])
+    {
+    }
+
     StageWorkflowDefinitions(Dictionary<string, WorkflowDefinitionSnapshot> snapshots) => _snapshots = snapshots;
 
     /// <inheritdoc/>

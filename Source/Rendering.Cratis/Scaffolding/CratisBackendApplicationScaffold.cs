@@ -98,7 +98,7 @@ public sealed partial class CratisBackendApplicationScaffold
 
         var builder = WebApplication.CreateBuilder(args);
         builder.Services.AddHealthChecks();
-        builder.Services.AddSingleton(new ChronicleTelemetryConfiguration(_ => { }));
+        builder.Services.AddSingleton<Action<ChronicleTelemetryOptions>>(_ => { });
 
         builder.AddCratis(
             configureArcBuilder: arc => arc.WithMongoDB(),

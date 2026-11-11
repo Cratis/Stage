@@ -5,13 +5,13 @@ scaffold	3
 pin	Cratis	22.184.0
 pin	Cratis.Arc.Chronicle.Testing	22.184.0
 pin	Cratis.Arc.MongoDB	22.184.0
-pin	Cratis.Choreography	2.3.1
-pin	Cratis.Choreography.Chronicle	2.3.1
+pin	Cratis.Choreography	2.5.0
+pin	Cratis.Choreography.Chronicle	2.5.0
 pin	Cratis.Chronicle	19.155.1
 pin	Cratis.Chronicle.AspNetCore	19.155.1
 pin	Cratis.Chronicle.Testing	19.155.1
-pin	Cratis.Screenplay	6.18.0
-pin	Cratis.Screenplay.Matching	6.18.0
+pin	Cratis.Screenplay	6.19.0
+pin	Cratis.Screenplay.Matching	6.19.0
 pin	Cratis.Specifications	5.2.3
 pin	Cratis.Specifications.XUnit	5.2.3
 pin	Microsoft.NET.Test.Sdk	18.11.0
@@ -38,9 +38,9 @@ package	AS	Cratis.Arc.ProxyGenerator.Build	22.184.0
 package	AS	Cratis.Arc.Screenplay.Embedded	22.184.0
 package	AS	Cratis.Arc.Swagger	22.184.0
 package	AS	Cratis.Arc.Testing	22.184.0
-package	AS	Cratis.Choreography	2.3.1
-package	AS	Cratis.Choreography.Chronicle	2.3.1
-package	AS	Cratis.Choreography.Storage	2.3.1
+package	AS	Cratis.Choreography	2.5.0
+package	AS	Cratis.Choreography.Chronicle	2.5.0
+package	AS	Cratis.Choreography.Storage	2.5.0
 package	AS	Cratis.Choreography.Storage.MongoDB	2.3.1
 package	AS	Cratis.Chronicle	19.155.1
 package	AS	Cratis.Chronicle.AspNetCore	19.155.1
@@ -50,9 +50,9 @@ package	AS	Cratis.Chronicle.Testing	19.155.1
 package	AS	Cratis.Fundamentals	7.34.0
 package	AS	Cratis.Metrics.Roslyn	7.34.0
 package	AS	Cratis.Observability.SourceGenerators	7.34.0
-package	AS	Cratis.Screenplay	6.18.0
-package	AS	Cratis.Screenplay.Contexts	6.18.0
-package	AS	Cratis.Screenplay.Matching	6.18.0
+package	AS	Cratis.Screenplay	6.19.0
+package	AS	Cratis.Screenplay.Contexts	6.19.0
+package	AS	Cratis.Screenplay.Matching	6.19.0
 package	AS	Cratis.Specifications	5.2.3
 package	AS	Cratis.Specifications.XUnit	5.2.3
 package	AS	DnsClient	1.8.0
@@ -3541,9 +3541,11 @@ type	AS	Cratis.Choreography.Chronicle.Workflows	ChronicleWorkflowExecutionScopes
 type	AS	Cratis.Choreography.Chronicle.Workflows	ChronicleWorkflowRunJournal	class
 type	AS	Cratis.Choreography.Chronicle.Workflows	CronExpression	class
 type	AS	Cratis.Choreography.Chronicle.Workflows	EventSourcedWorkflowsOptions	class
+type	AS	Cratis.Choreography.Chronicle.Workflows	IWorkflowCompletions	interface
 type	AS	Cratis.Choreography.Chronicle.Workflows	IWorkflowSignals	interface
 type	AS	Cratis.Choreography.Chronicle.Workflows	InvalidCronExpression	class
 type	AS	Cratis.Choreography.Chronicle.Workflows	StateMachineIsNotAGrain	class
+type	AS	Cratis.Choreography.Chronicle.Workflows	WorkflowCompletions	class
 type	AS	Cratis.Choreography.Chronicle.Workflows	WorkflowEventTrigger	class
 type	AS	Cratis.Choreography.Chronicle.Workflows	WorkflowSchedule	class
 type	AS	Cratis.Choreography.Chronicle.Workflows	WorkflowScheduleService	class
@@ -3875,8 +3877,10 @@ type	AS	Cratis.Choreography.Workflows.Definitions	StructuralAdmissionPolicy	clas
 type	AS	Cratis.Choreography.Workflows.Definitions	WorkflowAdmissionRejection	class
 type	AS	Cratis.Choreography.Workflows.Definitions	WorkflowCatalogVersion	class
 type	AS	Cratis.Choreography.Workflows.Definitions	WorkflowDefinitionSnapshot	class
+type	AS	Cratis.Choreography.Workflows.Execution	IWorkflowCapabilityGates	interface
 type	AS	Cratis.Choreography.Workflows.Execution	IWorkflowNodeStep	interface
 type	AS	Cratis.Choreography.Workflows.Execution	IWorkflowWaveJob	interface
+type	AS	Cratis.Choreography.Workflows.Execution	WorkflowCapabilityGates	class
 type	AS	Cratis.Choreography.Workflows.Execution	WorkflowNodePerformance	class
 type	AS	Cratis.Choreography.Workflows.Execution	WorkflowNodeStep	class
 type	AS	Cratis.Choreography.Workflows.Execution	WorkflowNodeStepState	class
@@ -3932,6 +3936,7 @@ type	AS	Cratis.Choreography.Workflows.Runs	WorkflowNodeFailed	class
 type	AS	Cratis.Choreography.Workflows.Runs	WorkflowNodeInputPinned	class
 type	AS	Cratis.Choreography.Workflows.Runs	WorkflowNodeOperationCompleted	class
 type	AS	Cratis.Choreography.Workflows.Runs	WorkflowNodeOutcomeAmbiguous	class
+type	AS	Cratis.Choreography.Workflows.Runs	WorkflowNodeReconciled	class
 type	AS	Cratis.Choreography.Workflows.Runs	WorkflowNodeScheduled	class
 type	AS	Cratis.Choreography.Workflows.Runs	WorkflowNodeSkipped	class
 type	AS	Cratis.Choreography.Workflows.Runs	WorkflowNodeSucceeded	class
@@ -3987,6 +3992,7 @@ type	AS	Cratis.Choreography.Workflows.Triggers	WorkflowTrigger	class
 type	AS	Cratis.Choreography.Workflows.Triggers	WorkflowTriggerKind	enum
 type	AS	Cratis.Choreography.Workflows.Waits	WaitDeadline	class
 type	AS	Cratis.Choreography.Workflows.Waits	WaitKind	enum
+type	AS	Cratis.Choreography.Workflows.Waits	WorkflowCompletionKey	class
 type	AS	Cratis.Choreography.Workflows.Waits	WorkflowWaitId	class
 type	AS	Cratis.Chronicle	ActivatedArtifact	class
 type	AS	Cratis.Chronicle	ActivatedArtifact`1	class
@@ -14689,6 +14695,7 @@ base	AS	Cratis.Choreography.Chronicle.Workflows.Listing.WorkflowRunExecution	Sys
 base	AS	Cratis.Choreography.Chronicle.Workflows.Listing.WorkflowRunReducer	System.Object	On	-
 base	AS	Cratis.Choreography.Chronicle.Workflows.Listing.WorkflowRunWait	System.Object	Deconstruct EqualityContract Equals Execution GetHashCode PrintMembers ToString Wait	-
 base	AS	Cratis.Choreography.Chronicle.Workflows.StateMachineIsNotAGrain	System.Exception	-	-
+base	AS	Cratis.Choreography.Chronicle.Workflows.WorkflowCompletions	System.Object	Complete	-
 base	AS	Cratis.Choreography.Chronicle.Workflows.WorkflowEventTrigger	System.Object	Deconstruct Define EqualityContract Equals EventType GetHashCode PrintMembers Reactor ToString Workflow	-
 base	AS	Cratis.Choreography.Chronicle.Workflows.WorkflowSchedule	System.Object	Cron Deconstruct EqualityContract Equals GetHashCode Name PrintMembers Scope ToString Workflow	-
 base	AS	Cratis.Choreography.Chronicle.Workflows.WorkflowScheduleService	Microsoft.Extensions.Hosting.BackgroundService	ExecuteAsync Interval MaximumCatchUp StartDue	-
@@ -14829,7 +14836,7 @@ base	AS	Cratis.Choreography.Workers.PerformWorkResult`1	System.Object	EqualityCo
 base	AS	Cratis.Choreography.Workflows.Adapters.MoreThanOneWorkflowNodePerformer	System.Exception	-	-
 base	AS	Cratis.Choreography.Workflows.Adapters.WorkflowIdempotencyKey	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
 base	AS	Cratis.Choreography.Workflows.Adapters.WorkflowNodeInvocation	System.Object	Attempt Configuration Deconstruct EqualityContract Equals Evidence Execution GetHashCode IdempotencyKey Input PrintMembers Run ToString	-
-base	AS	Cratis.Choreography.Workflows.Adapters.WorkflowNodeOutcome	System.Object	Ambiguous Deconstruct EqualityContract Equals Evidence Failed GetHashCode Outlet Output PrintMembers Reason Skipped Status Succeeded ToString	-
+base	AS	Cratis.Choreography.Workflows.Adapters.WorkflowNodeOutcome	System.Object	Ambiguous CompletionKey Deconstruct EqualityContract Equals Evidence ExpiresAfter Failed GetHashCode Outlet Output PrintMembers Reason Skipped Status Succeeded Suspended ToString	-
 base	AS	Cratis.Choreography.Workflows.Adapters.WorkflowNodePerformers	System.Object	For	-
 base	AS	Cratis.Choreography.Workflows.Adapters.WorkflowOperationName	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode None PrintMembers	-
 base	AS	Cratis.Choreography.Workflows.Contracts.EvidenceReference	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
@@ -14851,6 +14858,7 @@ base	AS	Cratis.Choreography.Workflows.Definitions.StructuralAdmissionPolicy	Syst
 base	AS	Cratis.Choreography.Workflows.Definitions.WorkflowAdmissionRejection	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode NoActiveVersion PrintMembers	-
 base	AS	Cratis.Choreography.Workflows.Definitions.WorkflowCatalogVersion	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
 base	AS	Cratis.Choreography.Workflows.Definitions.WorkflowDefinitionSnapshot	System.Object	Area Capabilities CatalogVersion Deconstruct EqualityContract Equals GetHashCode Graph PrintMembers Subject ToString Version Workflow	-
+base	AS	Cratis.Choreography.Workflows.Execution.WorkflowCapabilityGates	System.Object	Enter	-
 base	AS	Cratis.Choreography.Workflows.Execution.WorkflowNodePerformance	System.Object	Perform	-
 base	AS	Cratis.Choreography.Workflows.Execution.WorkflowNodeStep	Cratis.Choreography.Jobs.JobStep`3	CompletedWithoutOutput CreateCancelledResultFromCurrentState InitializeState PerformStep PrepareStep	-
 base	AS	Cratis.Choreography.Workflows.Execution.WorkflowNodeStepState	Cratis.Choreography.Storage.Jobs.JobStepState	Item	-
@@ -14892,7 +14900,7 @@ base	AS	Cratis.Choreography.Workflows.Runs.Coordination.WorkflowRoute	System.Obj
 base	AS	Cratis.Choreography.Workflows.Runs.Coordination.WorkflowRunState	System.Object	Admission Branches Clone ExecutionFor Executions FanOuts Graph Inputs IsAdmitted IsCancelled IsOver LastWave NextDueAt OpenWaits Operations Outcome PendingJobStops Routes Run Status UnroutedFailure	-
 base	AS	Cratis.Choreography.Workflows.Runs.MalformedNodeExecutionKey	System.Exception	-	-
 base	AS	Cratis.Choreography.Workflows.Runs.NodeExecutionKey	System.Object	Branch Deconstruct EqualityContract Equals GetHashCode Node Parse PrintMembers RootOf ToString Visit	-
-base	AS	Cratis.Choreography.Workflows.Runs.NodeExecutionSnapshot	System.Object	Attempt Deconstruct EqualityContract Equals Execution GetHashCode Outlet PrintMembers Status ToString	-
+base	AS	Cratis.Choreography.Workflows.Runs.NodeExecutionSnapshot	System.Object	Attempt Deconstruct EqualityContract Equals Execution GetHashCode IdempotencyKey Outlet PrintMembers Reason Status ToString	-
 base	AS	Cratis.Choreography.Workflows.Runs.WorkflowAdmission	System.Object	Admitted Deconstruct EqualityContract Equals GetHashCode PrintMembers Rejected Rejections Run To ToString	-
 base	AS	Cratis.Choreography.Workflows.Runs.WorkflowAttempt	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals First GetHashCode Next PrintMembers	-
 base	AS	Cratis.Choreography.Workflows.Runs.WorkflowBranch	System.Object	Deconstruct EqualityContract Equals GetHashCode Item Key PrintMembers ToString	-
@@ -14907,6 +14915,7 @@ base	AS	Cratis.Choreography.Workflows.Runs.WorkflowNodeFailed	System.Object	Atte
 base	AS	Cratis.Choreography.Workflows.Runs.WorkflowNodeInputPinned	System.Object	Deconstruct EqualityContract Equals Execution GetHashCode Input PrintMembers ToString	-
 base	AS	Cratis.Choreography.Workflows.Runs.WorkflowNodeOperationCompleted	System.Object	Attempt Deconstruct EqualityContract Equals Execution GetHashCode Operation Output PrintMembers ToString	-
 base	AS	Cratis.Choreography.Workflows.Runs.WorkflowNodeOutcomeAmbiguous	System.Object	Attempt Deconstruct EqualityContract Equals Execution GetHashCode PrintMembers Reason ToString	-
+base	AS	Cratis.Choreography.Workflows.Runs.WorkflowNodeReconciled	System.Object	Actor Attempt Deconstruct EqualityContract Equals Execution GetHashCode PrintMembers ToString	-
 base	AS	Cratis.Choreography.Workflows.Runs.WorkflowNodeScheduled	System.Object	Attempt Deconstruct EqualityContract Equals Execution GetHashCode Job PrintMembers ToString Wave	-
 base	AS	Cratis.Choreography.Workflows.Runs.WorkflowNodeSkipped	System.Object	Deconstruct EqualityContract Equals Execution GetHashCode PrintMembers Reason ToString	-
 base	AS	Cratis.Choreography.Workflows.Runs.WorkflowNodeSucceeded	System.Object	Attempt Deconstruct EqualityContract Equals Evidence Execution GetHashCode Outlet Output PrintMembers ToString	-
@@ -14915,7 +14924,7 @@ base	AS	Cratis.Choreography.Workflows.Runs.WorkflowRunAdmitted	System.Object	Are
 base	AS	Cratis.Choreography.Workflows.Runs.WorkflowRunCancelled	System.Object	Deconstruct EqualityContract Equals GetHashCode PrintMembers Reason ToString	-
 base	AS	Cratis.Choreography.Workflows.Runs.WorkflowRunCouldNotBeRecorded	System.Exception	-	-
 base	AS	Cratis.Choreography.Workflows.Runs.WorkflowRunFailed	System.Object	Deconstruct EqualityContract Equals GetHashCode PrintMembers Reason ToString	-
-base	AS	Cratis.Choreography.Workflows.Runs.WorkflowRunGrain	Orleans.Grain	Admit Cancel CompleteNode CompleteOperation ExpireDueWaits FailAttempt GetOperationOutput GetSnapshot OnActivateAsync OnDeactivateAsync ReceiveReminder ResolveWait Resume StartDueRetries Tend TryStartInvocation	-
+base	AS	Cratis.Choreography.Workflows.Runs.WorkflowRunGrain	Orleans.Grain	Admit Cancel CompleteNode CompleteOperation ExpireDueWaits FailAttempt GetOperationOutput GetSnapshot OnActivateAsync OnDeactivateAsync ReceiveReminder Reconcile ResolveWait Resume StartDueRetries Tend TryStartInvocation	-
 base	AS	Cratis.Choreography.Workflows.Runs.WorkflowRunNeedsReconciliation	System.Object	EqualityContract Equals GetHashCode PrintMembers ToString	-
 base	AS	Cratis.Choreography.Workflows.Runs.WorkflowRunSnapshot	System.Object	Deconstruct EqualityContract Equals Executions GetHashCode IsAdmitted Of OpenWaits PrintMembers Run Status ToString	-
 base	AS	Cratis.Choreography.Workflows.Runs.WorkflowRunSucceeded	System.Object	EqualityContract Equals GetHashCode PrintMembers ToString	-
@@ -14933,6 +14942,7 @@ base	AS	Cratis.Choreography.Workflows.Sweeping.WorkflowScopes	System.Object	GetA
 base	AS	Cratis.Choreography.Workflows.Triggers.TriggerSourceKey	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
 base	AS	Cratis.Choreography.Workflows.Triggers.WorkflowTrigger	System.Object	Actor Causation Contract Correlation Deconstruct Deduplication EqualityContract Equals Evidence GetHashCode Kind OccurredAt Payload PrintMembers Source Subject ToString	-
 base	AS	Cratis.Choreography.Workflows.Waits.WaitDeadline	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode IsDueAt None PrintMembers	-
+base	AS	Cratis.Choreography.Workflows.Waits.WorkflowCompletionKey	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode None PrintMembers	-
 base	AS	Cratis.Choreography.Workflows.Waits.WorkflowWaitId	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
 base	AS	Cratis.Choreography.Workflows.WorkflowActor	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers System	-
 base	AS	Cratis.Choreography.Workflows.WorkflowAreaKey	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
@@ -14944,7 +14954,7 @@ base	AS	Cratis.Choreography.Workflows.WorkflowRunKey	System.Object	Deconstruct E
 base	AS	Cratis.Choreography.Workflows.WorkflowScope	Cratis.Concepts.ConceptAs`1	Deconstruct Default EqualityContract Equals GetHashCode PrintMembers	-
 base	AS	Cratis.Choreography.Workflows.WorkflowStarter	System.Object	GetRun Start	-
 base	AS	Cratis.Choreography.Workflows.WorkflowVersion	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode None PrintMembers	-
-base	AS	Cratis.Choreography.Workflows.WorkflowsOptions	System.Object	IdleBeforeResume JobsScope Scopes Sweep SweepInterval SweepStartupDelay WakeRunsItself	-
+base	AS	Cratis.Choreography.Workflows.WorkflowsOptions	System.Object	CapabilityLimits IdleBeforeResume JobsScope Scopes Sweep SweepInterval SweepStartupDelay WakeRunsItself	-
 base	AS	Cratis.Chronicle.ActivatedArtifact	System.Object	DisposeAsync Instance	-
 base	AS	Cratis.Chronicle.ActivatedArtifact`1	Cratis.Chronicle.ActivatedArtifact	Instance	-
 base	AS	Cratis.Chronicle.AspNetCore.Auditing.CausationMiddleware	System.Object	CausationHostProperty CausationMethodProperty CausationOriginProperty CausationProtocolProperty CausationQueryProperty CausationRefererProperty CausationRouteProperty CausationRouteTemplateProperty CausationRouteValuePrefix CausationSchemeProperty CausationType InvokeAsync	-

@@ -64,11 +64,18 @@ internal sealed class StageWorkflowPerformers(SemanticExecutionPlan plan, Func<I
             return result switch
             {
                 SemanticAccepted => WorkflowNodeOutcome.Succeeded(WellKnownOutlets.Next),
-                SemanticRejected rejected => WorkflowNodeOutcome.Failed($"{command.Name} was rejected: {rejected.Details}"),
+                SemanticRejected rejected => Refused(invocation, rejected.Details),
                 SemanticUnsupported unsupported => WorkflowNodeOutcome.Failed($"{command.Name} is not supported: {unsupported.Details}"),
                 _ => WorkflowNodeOutcome.Failed($"{command.Name} did not settle.")
             };
         }
+
+        // The command was handed on and something rejected it: that is a refusal, which a model routes through its own outlet. Only
+        // a refusal nothing routes fails the node, as an unconnected refused outlet fails the run.
+        WorkflowNodeOutcome Refused(WorkflowNodeInvocation invocation, object? details) =>
+            invocation.Configuration.Value.Contains("\"refusalRouted\":true", StringComparison.Ordinal)
+                ? WorkflowNodeOutcome.Succeeded(WorkflowGraphSpecs.RefusedOutlet)
+                : WorkflowNodeOutcome.Failed($"{command.Name} was refused and no outlet routes the refusal: {details}");
     }
 
     sealed class DecidePerformer(SemanticExecutionPlan plan, SemanticWorkflow workflow, SemanticWorkflowNode node, Func<ISemanticRuntime> runtime) : IWorkflowNodePerformer

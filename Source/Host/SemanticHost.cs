@@ -10,6 +10,7 @@ using Cratis.Stage.Contracts;
 using Cratis.Stage.Contracts.Execution;
 using Cratis.Stage.Contracts.Scene;
 using Cratis.Stage.Contracts.Semantics;
+using Cratis.Stage.Host.Invocations;
 using Cratis.Stage.Host.Lifecycles;
 using Cratis.Stage.Host.Published;
 using Cratis.Stage.Host.Workbench;
@@ -185,6 +186,7 @@ internal static class SemanticHost
             var journeyRoutes = scene is null ? null : new StageRoutesSource(new StageSceneRoutes(scene, app.Services, app.Logger), loaded.Model);
             StageJourneyReplay.Map(app, () => journeyRoutes?.Build(), () => RegistrationStatus(world, issues, app.Services, modelName, modelPath));
             StageLifecycleEndpoints.Map(app, loaded.Plan, () => lifecycles);
+            InvocationEndpoints.Map(app);
             SemanticReadModelBrowser.Map(app, new(app.Services.GetRequiredService<ISemanticRuntime>(), () => world is not null, context => issues.Count > 0 ? RefusedResponse(context, issues) : null, admission));
         }
         else if (published is not null)

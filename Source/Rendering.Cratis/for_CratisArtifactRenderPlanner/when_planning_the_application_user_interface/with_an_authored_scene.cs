@@ -38,12 +38,12 @@ public class with_an_authored_scene : a_screen_composition_render
     // Recomputed for Screenplay 5.10.0, Arc 22.168.0 and the main merge: the scaffold emits the matching pins, and npm Arc, Components and Scene at the published releases.
     // Recomputed for Chronicle 19.142.0 and Arc 22.176.0 on Screenplay 6.0.0 and Scene 5.0.0: the pins (Directory.Packages.props, docker-compose.yml, package.json) and any Scene 5 outlet shapes in the scene.
     // Recomputed for the Scene 5.1.0 pins.
-    // Recomputed for Chronicle 19.155.1, Choreography 2.3.1 and Screenplay 6.4.0: only the scaffold pins change.
+    // Recomputed for Chronicle 19.144.0 and Screenplay 6.4.0: only the scaffold pins change.
     // Recomputed for Arc 22.182.0: only the Arc pins in Directory.Packages.props and package.json change.
     // Recomputed for Screenplay 6.14.0: only the Screenplay pins in Directory.Packages.props and the scaffold catalog change.
     // Recomputed for Arc 22.184.0: only the Arc pins in Directory.Packages.props and package.json change.
-    // Recomputed for Screenplay 6.18.0: only the Screenplay pins in Directory.Packages.props and the scaffold catalog change.
-    const string Before = "fbdfaf7c549b4feb7c3d558ce551314f1a6201c485bae89bf344037cb8a7bfe2";
+    // Recomputed for Screenplay 6.19.0, Choreography 2.5.0 and Chronicle 19.148.0: only the pins in Directory.Packages.props and the scaffold catalog change.
+    const string Before = "7b8a6148311632301f0d988628868fb5139e7777569cd30762743bcc1719e909";
 
     ArtifactRenderPlan _plan = null!;
 

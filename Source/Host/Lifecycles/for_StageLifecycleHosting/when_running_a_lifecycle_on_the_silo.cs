@@ -11,6 +11,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Lifecycles.for_LifecycleAdmission.given;
 using Cratis.Stage.Host.for_SemanticRuntime.given;
+using Cratis.Stage.Host.Invocations;
 using Cratis.Stage.Lifecycles;
 using Cratis.Stage.Semantics;
 using Orleans.Configuration;
@@ -72,6 +73,7 @@ public class when_running_a_lifecycle_on_the_silo
         builder.WebHost.UseUrls("http://127.0.0.1:0");
         builder.Services.AddSingleton<ISemanticRuntime>(runtime);
         StageLifecycleHosting.Add(builder.Services, plan);
+        builder.Services.AddStageInvocations(builder.Configuration).ComposeWithAbilities();
         var siloPort = FreePort();
         builder.AddCratisChoreography(new CratisChoreographyOptions { Clustering = ClusteringMode.Localhost, Storage = GrainStorageMode.InMemory, ClusterId = "lifecycle-spec", ServiceId = "lifecycle-spec", Workflows = true });
         builder.Services.Configure<EndpointOptions>(options =>

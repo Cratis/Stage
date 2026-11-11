@@ -43,6 +43,11 @@ public record SpecRunnerArguments(string ModelPath, string OutputPath, Guid? Sli
     public string? ApplicationName { get; init; }
 
     /// <summary>
+    /// Gets the optional scaffold profile version forwarded to the body worker, or null for the default version 3.
+    /// </summary>
+    public string? ProfileVersion { get; init; }
+
+    /// <summary>
     /// Parses the supplied command-line arguments.
     /// </summary>
     /// <param name="args">The raw command-line arguments (for example <c language="csharp">--model path --output path</c>).</param>
@@ -78,7 +83,8 @@ public record SpecRunnerArguments(string ModelPath, string OutputPath, Guid? Sli
             Specification = values.GetValueOrDefault("specification"),
             Scope = values.GetValueOrDefault("scope"),
             CatalogPath = values.GetValueOrDefault("catalog"),
-            ApplicationName = values.GetValueOrDefault("application")
+            ApplicationName = values.GetValueOrDefault("application"),
+            ProfileVersion = values.GetValueOrDefault("body-worker-profile-version")
         };
     }
 }

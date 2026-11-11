@@ -13,6 +13,7 @@ internal sealed record SemanticBodyWorkerOptions(bool Enabled, string WorkerPath
     internal int MemoryLimitMegabytes { get; init; } = 256;
     internal int CompileTimeoutSeconds { get; init; } = 120;
     internal string? CatalogPath { get; init; }
+    internal string? ProfileVersion { get; init; }
 
     internal static SemanticBodyWorkerOptions From(IConfiguration configuration) => new(
         configuration.GetValue("Stage:BodyWorker:Enabled", true),
@@ -21,7 +22,8 @@ internal sealed record SemanticBodyWorkerOptions(bool Enabled, string WorkerPath
         CacheDirectory = configuration["Stage:BodyWorker:CacheDirectory"] ?? BodyWorkerCacheDirectory.Default,
         CallTimeoutMilliseconds = Math.Clamp(configuration.GetValue("Stage:BodyWorker:CallTimeoutMilliseconds", 2000), 50, 30000),
         MemoryLimitMegabytes = Math.Clamp(configuration.GetValue("Stage:BodyWorker:MemoryLimitMegabytes", 256), 32, 4096),
-        CompileTimeoutSeconds = Math.Clamp(configuration.GetValue("Stage:BodyWorker:CompileTimeoutSeconds", 120), 5, 600)
+        CompileTimeoutSeconds = Math.Clamp(configuration.GetValue("Stage:BodyWorker:CompileTimeoutSeconds", 120), 5, 600),
+        ProfileVersion = string.IsNullOrWhiteSpace(configuration["Stage:BodyWorker:ProfileVersion"]) ? null : configuration["Stage:BodyWorker:ProfileVersion"]!.Trim()
     };
 
     internal BodyWorkerOptions Worker() => new(Path.GetFullPath(WorkerPath, AppContext.BaseDirectory), Path.GetFullPath(CacheDirectory))

@@ -988,6 +988,11 @@ Submitting posts the command to the route the Stage registered for it, through t
 form posts it: the application's own validation results come back to the dialog against the fields they name, a rejected command
 keeps the dialog open, and a successful one closes it and refreshes what the screen shows.
 
+When the slice declares its own dialog screen - a screen written inside the slice that fits a dialog (`fits dialog`) or fills a dialog
+template such as `QuickCreateDialog` - the button opens that screen instead of a form made from the schema: the fields and labels of the
+form the screen declares for the command, without the identity the command creates, and the screen its action names with `navigate to`
+once the command succeeded.
+
 Creation intent (`x-creates`) classifies a command as creating a row in some listed read model, not necessarily on the current screen; `STAGE-INTENT-001` reports only guarded or ambiguous creation candidates, not ordinary updates.
 
 ### Root template, options and appearance

@@ -20,6 +20,7 @@ public static class StageRuntimePackage
 {
     const string Name = "@cratis/stage.runtime";
     static readonly TimeSpan _stepTimeout = TimeSpan.FromMinutes(8);
+    static readonly TimeSpan _lockTimeout = TimeSpan.FromMinutes(20);
     static readonly Lazy<Task<string>> _tarball = new(Pack);
 
     /// <summary>
@@ -59,15 +60,40 @@ public static class StageRuntimePackage
         var frontend = FrontendDirectory();
         var destination = SpecTemporaryRoot.NewPath("stage-runtime-package");
         Directory.CreateDirectory(destination);
-        await Step(frontend, "npm", "ci", "--no-audit", "--no-fund");
-        await Step(frontend, "npm", "run", "build", "--workspace", Name);
-        await Step(frontend, "npm", "pack", "--workspace", Name, "--pack-destination", destination);
+
+        // Each target framework runs its specs in its own process, and both install into the one shared frontend
+        // directory; npm ci in one process removes the node_modules the other is writing. The lazy above only
+        // serializes within a process, so a file lock serializes across them.
+        await using (await AcquireFrontendLock(frontend))
+        {
+            await Step(frontend, "npm", "ci", "--no-audit", "--no-fund");
+            await Step(frontend, "npm", "run", "build", "--workspace", Name);
+            await Step(frontend, "npm", "pack", "--workspace", Name, "--pack-destination", destination);
+        }
 
         // The output interleaves npm notices with the file name, so the destination holds the only reliable answer.
         var tarballs = Directory.GetFiles(destination, "*.tgz");
         return tarballs.Length == 1
             ? tarballs[0]
             : throw new InvalidOperationException($"npm pack left {tarballs.Length} tarballs in {destination}; expected exactly one.");
+    }
+
+    static async Task<FileStream> AcquireFrontendLock(string frontend)
+    {
+        var key = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(frontend)))[..16];
+        var path = Path.Combine(Path.GetTempPath(), $"cratis-stage-frontend-{key}.lock");
+        var deadline = DateTime.UtcNow + _lockTimeout;
+        while (true)
+        {
+            try
+            {
+                return new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+            }
+            catch (IOException) when (DateTime.UtcNow < deadline)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(1));
+            }
+        }
     }
 
     static async Task<ProcessResult> Step(string directory, string fileName, params string[] arguments)

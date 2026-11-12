@@ -144,6 +144,13 @@ class SpecShardsTests(unittest.TestCase):
                 self.assertEqual([f"rendering-{index}" for index in range(1, 8)] + ["rendering-remainder"],
                                  [shard["name"] for shard in rendering])
 
+    def test_ci_spec_run_step_allows_two_generated_application_builds(self):
+        job = self.workflow_jobs()["specs"]
+        step = re.search(r"      - name: Run specs .*?(?=\n      - name:)", job, re.DOTALL)[0]
+        self.assertIn("          STAGE_MAX_PARALLEL_APP_BUILDS: '2'\n", step)
+        self.assertIn('run: python3 .github/spec-shards.py run "$SPEC_SHARD"', step)
+        self.assertEqual(1, job.count("STAGE_MAX_PARALLEL_APP_BUILDS:"))
+
     def test_debug_archive_keeps_runtime_outputs_and_every_consumer_uses_zstd(self):
         workflow = Path(__file__).with_name("workflows").joinpath("dotnet-build.yml").read_text()
         self.assertIn("find Source -type d -path '*/bin/Debug' -prune -print0 | "

@@ -31,6 +31,9 @@ and TypeScript. It implements section 9 of
 - Stage runs each ability invocation as a durable, retried, deduplicated message. See
   [Durable ability invocations](../reference/ability-invocations.md) and the Choreography page on
   [answers that arrive later and reconciliation](https://github.com/Cratis/Choreography/blob/main/Documentation/workflows/extension-invocations.md).
+- Inbound traffic, such as a webhook, is stored and acknowledged by Stage, then delivered to the extension, which raises the contract's triggers. See
+  [inbound traffic and webhooks](inbound-traffic.md) and the Screenplay
+  [triggers](https://github.com/Cratis/Screenplay/blob/main/Documentation/screenplay/triggers.md) page.
 - The extension protocol is the seam between the two: for every attempt Stage calls the backend, and the backend answers with what happened.
 
 ## Where things live
@@ -80,6 +83,9 @@ Both are reserved: a future minor version adds them as new services without chan
 - [Protocol reference](protocol.md): messages, rules and compatibility.
 - [Host services reference](host-services.md): what the extension can ask of Stage, and how each answer should be handled.
 - [Connect a backend to Stage](connect-a-backend.md): configuration, the handshake and what Stage checks.
+- [Built-in `http` extension](http.md): realize an ability as a REST call from a declarative block, with no backend to run.
+- [Extension packages](packages.md): how Stage loads the packages a model's lock pins, decides whether it may use them, and serves what they ship.
+- [Execution tiers and activation](execution-tiers.md): how a backend runs, when it starts and stops, and who may override that.
 - [Conformance suite](conformance.md): what every SDK must do, and how to add a language.
 - Write a backend: [C#](csharp.md), [Kotlin](kotlin.md), [Go](go.md) or [TypeScript](typescript.md).
 

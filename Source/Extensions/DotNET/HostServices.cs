@@ -62,14 +62,15 @@ public sealed class HostServices(StageHost.StageHostClient? client, Metadata cre
     /// <param name="trigger">The name of the trigger.</param>
     /// <param name="payloadJson">What it carries, as JSON.</param>
     /// <param name="deduplicationKey">The key that makes raising it again find the first raise. Within an invocation it defaults to the idempotency key; outside one it is required.</param>
+    /// <param name="correlationKey">What the trigger is about, such as the payment a webhook reports on. Workflow runs that wait for the trigger about the same thing resume.</param>
     /// <param name="cancellationToken">A token that cancels the call.</param>
     /// <returns>What came of it.</returns>
     /// <exception cref="ArgumentException">There is no deduplication key and the call is not within an invocation.</exception>
-    public async Task<TriggerResult> Trigger(string trigger, string payloadJson = "{}", string? deduplicationKey = null, CancellationToken cancellationToken = default)
+    public async Task<TriggerResult> Trigger(string trigger, string payloadJson = "{}", string? deduplicationKey = null, string correlationKey = "", CancellationToken cancellationToken = default)
     {
         var key = deduplicationKey ?? (context.IdempotencyKey.Length > 0 ? context.IdempotencyKey : throw new ArgumentException("A trigger raised outside an invocation needs a deduplication key.", nameof(deduplicationKey)));
         var response = await Client.RaiseTriggerAsync(
-            new RaiseTriggerRequest { Context = context, Trigger = trigger, DeduplicationKey = key, PayloadJson = payloadJson },
+            new RaiseTriggerRequest { Context = context, Trigger = trigger, DeduplicationKey = key, PayloadJson = payloadJson, CorrelationKey = correlationKey },
             credential,
             cancellationToken: cancellationToken);
         return new TriggerResult(response.Status.ToString(), response.Detail);

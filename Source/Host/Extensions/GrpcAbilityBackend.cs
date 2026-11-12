@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using Cratis.Stage.Extensions.Protocol;
+using Cratis.Stage.Host.Extensions.Activation;
 using Cratis.Stage.Host.Invocations;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
@@ -15,7 +16,8 @@ namespace Cratis.Stage.Host.Extensions;
 /// </summary>
 /// <param name="connections">The <see cref="ExtensionConnections"/>.</param>
 /// <param name="logger">The logger.</param>
-public sealed class GrpcAbilityBackend(ExtensionConnections connections, ILogger<GrpcAbilityBackend> logger) : IAbilityBackend
+/// <param name="backendActivity">The <see cref="IBackendActivity"/>, which keeps a backend that is busy from being stopped as idle.</param>
+public sealed class GrpcAbilityBackend(ExtensionConnections connections, ILogger<GrpcAbilityBackend> logger, IBackendActivity? backendActivity = null) : IAbilityBackend
 {
     /// <summary>
     /// Gets the name of the activity source the calls to extensions are traced with.
@@ -32,6 +34,7 @@ public sealed class GrpcAbilityBackend(ExtensionConnections connections, ILogger
         // Until the handshake is done nothing was sent, so a refusal here is certain not to have reached the system.
         var result = await connections.Connect(system, cancellationToken);
         if (result.Connection is not { } connection) return new AbilityNotSent(result.Refusal);
+        using var inFlight = backendActivity?.Begin(system);
 
         using var activity = _activities.StartActivity("extension.invoke", ActivityKind.Client);
         activity?.SetTag("stage.extension.system", system);

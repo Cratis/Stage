@@ -385,9 +385,9 @@ CHRONICLE_SOURCE_ROOT=/path/to/Chronicle dotnet test -c Debug
 ```
 
 The Rendering.Cratis specs build and test generated applications in their own `dotnet` and `npm` processes. Locally,
-each test project (Rendering.Cratis and Conformance.Specs count separately) runs one of those processes at a time,
-locally and in CI, and caps each `dotnet build` or `dotnet test` at three MSBuild nodes. Set
-`STAGE_MAX_PARALLEL_APP_BUILDS` to raise the per-project limit:
+each test project (Rendering.Cratis and Conformance.Specs count separately) runs one of those processes at a time
+and caps each `dotnet build` or `dotnet test` at three MSBuild nodes. CI spec shards set
+`STAGE_MAX_PARALLEL_APP_BUILDS` to `2`. Set `STAGE_MAX_PARALLEL_APP_BUILDS` to raise the per-project limit:
 
 ```shell
 STAGE_MAX_PARALLEL_APP_BUILDS=2 dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj -c Debug

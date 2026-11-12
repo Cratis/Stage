@@ -92,13 +92,38 @@ pass the identity: `Answer(outlet, payload, invocationId)`. Details are in the [
 
 ## Handle inbound HTTP
 
+Stage stores a `POST`, `PUT`, `PATCH` or `DELETE`, acknowledges the sender and then delivers it to your handler, activating your backend when it is not running and
+retrying when it fails. Read the full contract in [inbound traffic and webhooks](inbound-traffic.md). The call carries the raw body, so a signature verifies,
+and a `DeliveryId` that is the same for every attempt, so you can deduplicate on it.
+
 ```csharp
-.Http("/hook", async (call, cancellationToken) =>
+.Http("/webhook", async (call, cancellationToken) =>
 {
-    // Verify the signature header first: this endpoint is anonymous.
-    return new HttpReply(202, Encoding.UTF8.GetBytes("received"));
+    var secret = await host.Secret("SigningSecret", cancellationToken);
+    var signature = call.Headers.TryGetValue("X-Signature", out var values) ? values.FirstOrDefault() : null;
+
+    // The endpoint is anonymous: verify first. A 401 makes Stage reject the request for good instead of retrying it.
+    if (!WebhookSignature.Verify(secret ?? string.Empty, call.Body.Span, signature)) return new HttpReply(401);
+
+    var evt = JsonSerializer.Deserialize<PaymentEvent>(call.Body.Span)!;
+    await host.Trigger("PaymentSucceeded", payloadJson, deduplicationKey: evt.Id, correlationKey: evt.PaymentId, cancellationToken: cancellationToken);
+    return new HttpReply(200);
 })
 ```
+
+## Verify a webhook signature
+
+`WebhookSignature` verifies an HMAC-SHA256 signature as lowercase hexadecimal, with or without a `sha256=` prefix, in constant time. An empty secret, a missing
+header or a signature of the wrong length verifies nothing.
+
+| Call | Verifies |
+| --- | --- |
+| `WebhookSignature.Verify(secret, body, signature)` | A signature over the raw body, as GitHub sends it. |
+| `WebhookSignature.Verify(secret, body, timestamp, signature, now, tolerance)` | A signature over `<timestamp>.<body>`, as Stripe sends it, and refuses a timestamp more than `tolerance` from `now`. Use it to refuse a captured request replayed later. |
+| `WebhookSignature.Compute(secret, payload)` | The signature, for a test that sends a signed request. |
+
+Read the secret with `host.Secret(...)` from a setting the contract declares as secret; never put it in the model or the code. See [security in inbound
+traffic](inbound-traffic.md#security) for what Stage does about replays and which identity a reaction runs as.
 
 ## Run and test
 

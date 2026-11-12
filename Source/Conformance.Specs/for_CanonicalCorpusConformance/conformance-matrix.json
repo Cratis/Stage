@@ -1,6 +1,6 @@
 {
-  "corpusVersion": "6.19.0",
-  "minimumVectorCount": 95,
+  "corpusVersion": "6.22.0",
+  "minimumVectorCount": 96,
   "excludedTypes": {
     "ClockScheduleVectors": "Raw schedule bytes only; the package carries no model for it.",
     "EsmConformanceVectors": "Unknown-preserving reader fixtures under the reserved conformance version; not executable semantic models.",
@@ -2395,6 +2395,17 @@
         { "code": "STAGE-ESM-020", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000029", "issue": 316 },
         { "code": "STAGE-ESM-020", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 316 },
         { "code": "STAGE-ESM-026", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000032", "issue": 204 } ] }
+    },
+    "EsmGoldenVectors.V50": {
+      "loader": { "outcome": "supported" },
+      "executor": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 809 } ] },
+      "host": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-ESM-016", "kind": "application", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 809 },
+        { "code": "STAGE-ESM-016", "kind": "specification", "artifact": "sem1:66f66049eca5fa663300bd7351d84a283b7ba631c9555d6b3220892dbe17beb2", "issue": 1061 },
+        { "code": "STAGE-PLAN-004", "kind": "readModel", "artifact": "sem1:cf2b670b1786eca60a6942c0abab0f9c31dd459d95bfb3be3e6a8105aa512f0f", "issue": 1083 } ] },
+      "renderer": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 809 } ] }
     },
     "EsmGoldenVectors.V6": {
       "loader": { "outcome": "supported" },

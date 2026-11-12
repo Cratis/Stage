@@ -45,19 +45,22 @@ How secrets are kept:
 
 ## Raise a trigger
 
-`RaiseTrigger(trigger, deduplication_key, payload_json)` raises a trigger the extension's contract declares, so a model that reacts to it
-starts. A webhook handler or a poll uses it.
+`RaiseTrigger(trigger, deduplication_key, payload_json, correlation_key)` raises a trigger the extension's contract declares, so a model that reacts to it
+starts and a workflow that waits for it resumes. A webhook handler or a poll uses it; see [inbound traffic and webhooks](inbound-traffic.md).
 
 | Status | Meaning |
 | --- | --- |
-| `RAISED` | Every reaction was started, or already had been for this key. |
+| `RAISED` | Every reaction was started, or already had been for this key, or a run that waits for the trigger resumed. |
 | `UNKNOWN_TRIGGER` | The extension did not declare this trigger at the handshake. |
-| `NOT_ROUTED` | Nothing in the model reacts to the trigger. It is reported, never silently accepted, because a raise that does nothing is a bug worth seeing. |
+| `NOT_ROUTED` | Nothing in the model reacts to the trigger and no run waiting for it resumed. It is reported, never silently accepted, because a raise that does nothing is a bug worth seeing. |
 | `REFUSED` | The deduplication key is missing, or the runtime did not admit a reaction. `detail` says which. |
 
 The **deduplication key is required**. Raising the same trigger with the same key again finds the runs the first raise started instead of
 starting more, so a retry, or a webhook the provider delivers twice, is harmless. Inside an invocation use its idempotency key; for a webhook use the
 external message's own identity.
+
+The optional **correlation key** says what the trigger is about, such as the payment a webhook reports on. Runs that wait for `<System>.<Trigger>` about the same
+correlation resume, with the payload as the wait's data. The reactions run as the actor `extension:<System>`, never as the anonymous sender of a webhook.
 
 Stage starts each reacting workflow as a Choreography `Signal` trigger, deduplicated on the trigger, the key and the workflow. Which workflows
 react to which trigger is supplied by the language support for reactions (`IContractTriggerRoutes`); until a model declares one, the answer is
@@ -101,5 +104,6 @@ The system on every log and metric comes from the token. Attributes are free-for
 
 - [Protocol reference](protocol.md)
 - [Connect a backend to Stage](connect-a-backend.md)
+- [Inbound traffic and webhooks](inbound-traffic.md)
 - [Screenplay triggers](https://github.com/Cratis/Screenplay/blob/main/Documentation/screenplay/triggers.md) and
   [reactions](https://github.com/Cratis/Screenplay/blob/main/Documentation/screenplay/reactions.md), the model side of raising a trigger

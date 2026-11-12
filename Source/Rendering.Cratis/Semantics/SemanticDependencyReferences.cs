@@ -19,6 +19,9 @@ internal static class SemanticDependencyReferences
         SemanticApplication:Agents
         SemanticAgents:Operations
         SemanticAgentOperation:Operation
+        SemanticApplication:Systems
+        SemanticSystem:Abilities
+        SemanticAbility:Inputs Returns
         SemanticScreen:Id Data Actions Navigation
         SemanticSlice:Commands Constraints Events Projections Queries ReadModels Specifications Reducers Reactions Captures Screens
         """,
@@ -32,6 +35,7 @@ internal static class SemanticDependencyReferences
         SemanticReadModelQueryArgument:Type
         SemanticApplicationTrigger:Properties
         SemanticGraphProperty:Type
+        SemanticAbilityField:Type
         """,
         [SemanticDependencyKind.Expression] = """
         SemanticConcept:Validations

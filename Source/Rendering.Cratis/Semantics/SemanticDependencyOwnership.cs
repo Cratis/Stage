@@ -11,7 +11,7 @@ internal static class SemanticDependencyOwnership
     static readonly HashSet<string> _declarations = [with(comparer: StringComparer.Ordinal),
         "SemanticApplication", "SemanticModule", "SemanticFeature", "SemanticSlice", "SemanticConcept", "SemanticCompositeType",
         "SemanticEventContract", "SemanticCommand", "SemanticReadModel", "SemanticProjection", "SemanticKeyedQuery",
-        "SemanticSpecification", "SemanticReaction", "SemanticCapture", "SemanticApplicationTrigger", "SemanticEventSource", "SemanticEventStream"
+        "SemanticSpecification", "SemanticReaction", "SemanticCapture", "SemanticApplicationTrigger", "SemanticEventSource", "SemanticEventStream", "SemanticSystem"
     ];
 
     static readonly HashSet<string> _members = [with(comparer: StringComparer.Ordinal),

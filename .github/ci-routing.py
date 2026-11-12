@@ -6,6 +6,12 @@
 
 For a full PR run: add ci:full, then push or use "Re-run all jobs" on the dotnet-build workflow
 ("Re-run failed jobs" does not rerun routing, so it ignores the label).
+
+Affected-only PR builds: a pull request builds only the projects its diff reaches (through
+project_inputs, plus what the selected lanes consume with --no-build) and runs only the spec
+shards covering them. Push to main, schedule, workflow_dispatch and ci:full build and test
+everything. Shared build files, workflows, this script, disk-read spec inputs (Samples, Verification,
+Source/Frontend), any unmapped path and any error fall back to the full build.
 """
 
 import argparse
@@ -15,8 +21,11 @@ import os
 from pathlib import Path
 import posixpath
 import re
+import runpy
 import subprocess
 import time
+from typing import NamedTuple
+import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parent.parent
 LINKED_ITEM = re.compile(r'<(?:ProjectReference|Compile|EmbeddedResource|Content|None)\s+Include="([^"]+)"')
@@ -144,7 +153,87 @@ def select_lanes(changed_paths, event, labels=(), route_always_on=False):
     return selected
 
 
-def github_routes(event, payload):
+RENDERING_PROJECT = "Source/Rendering.Cratis/Rendering.Cratis.csproj"
+HOST_PROJECT = "Source/Host/Host.csproj"
+CONFORMANCE_PROJECT = "Source/Conformance.Specs/Conformance.Specs.csproj"
+# Projects whose Debug output each lane consumes with `dotnet test --no-build` from the downloaded artifact.
+# live-custom-packages publishes Host itself; live-blueprints runs inside that job.
+LANE_BUILD_ROOTS = {
+    "reducer-mongo": (RENDERING_PROJECT, HOST_PROJECT),
+    "live-custom-packages": (),
+    "live-blueprints": (),
+    "generated-name-matrix": (CONFORMANCE_PROJECT,),
+    "generated-react-blueprint-templates": (RENDERING_PROJECT,),
+    "generated-react": (RENDERING_PROJECT,),
+    "standalone-generated-application": (RENDERING_PROJECT,),
+}
+# Anything here changes what every project builds or how CI behaves: build and test everything.
+BUILD_FULL_PATTERNS = (
+    "*.props", "*.targets", "Source/Directory.Build.*", "global.json", "*[Nn]u[Gg]et.[Cc]onfig", "*packages.lock.json",
+    "Stage.slnx", "*.sln*", ".github/workflows/**", ".github/*.py", ".github/*.json",
+)
+# Specs read these from disk, so no project reference describes the dependency: fail closed to full.
+DISK_INPUTS = ("Samples/**", "Verification/**", "Source/Frontend/**")
+
+
+class BuildPlan(NamedTuple):
+    full: bool
+    affected: tuple  # Solution projects the diff reaches.
+    projects: tuple  # Solution projects to build: affected plus the selected lanes' roots.
+    shards: tuple    # Names of the spec shards that run.
+
+
+def solution_projects(root=ROOT):
+    return tuple(project.attrib["Path"].replace("\\", "/") for project in ET.parse(root / "Stage.slnx").iter("Project"))
+
+
+def spec_matrix():
+    return runpy.run_path(str(Path(__file__).with_name("spec-shards.py")))["matrix"]()["include"]
+
+
+def full_build():
+    projects = solution_projects()
+    return BuildPlan(True, projects, projects, tuple(shard["name"] for shard in spec_matrix()))
+
+
+def affected_by(paths, projects):
+    """Projects the paths reach, or None when any path is not known to be harmless."""
+    inputs = {project: project_inputs(project) for project in projects}
+    affected = set()
+    for path in paths:
+        if any(fnmatchcase(path, pattern) for pattern in BUILD_FULL_PATTERNS + DISK_INPUTS):
+            return None
+        reached = {project for project, patterns in inputs.items() if any(fnmatchcase(path, pattern) for pattern in patterns)}
+        if not reached and not no_lane_needed(path):
+            return None
+        affected |= reached
+    return affected
+
+
+def select_build(changed_paths, event, labels=(), selected_lanes=None):
+    """Pull requests build and test only what the diff reaches; everything else, and any doubt, is full."""
+    if event not in ("pull_request", "schedule", "workflow_dispatch"):
+        raise ValueError(f"Unsupported CI event: {event}")
+    if event != "pull_request" or "ci:full" in labels:
+        return full_build()
+    try:
+        projects = solution_projects()
+        affected = affected_by(changed_paths, projects)
+        if affected is None:
+            return full_build()
+        lanes = set(LANE_PATHS) if selected_lanes is None else selected_lanes
+        built = affected | {root for lane in lanes for root in LANE_BUILD_ROOTS[lane]}
+        unknown = built - set(projects)
+        if unknown:
+            raise ValueError(f"Not in the solution: {sorted(unknown)}")
+        shards = tuple(shard["name"] for shard in spec_matrix() if affected.intersection(shard["projects"]))
+        return BuildPlan(False, tuple(sorted(affected)), tuple(sorted(built)), shards)
+    except Exception as error:  # Fail closed: a routing bug must never narrow the build.
+        print(f"Build routing failed, building everything: {error}")
+        return full_build()
+
+
+def github_changes(event, payload):
     """Use both sides of renames/deletions relative to the PR merge base, not a path filter."""
     paths = []
     labels = []
@@ -158,8 +247,17 @@ def github_routes(event, payload):
         current = json.loads(gh("pr", "view", str(payload["number"]),
                                 "--repo", os.environ["GITHUB_REPOSITORY"], "--json", "labels"))
         labels = [label["name"] for label in current["labels"]]
-    return select_lanes([path for path in paths if path], event, labels,
-                        route_always_on=os.environ.get("STAGE_ROUTE_ALWAYS_ON_LANES") == "true")
+    return [path for path in paths if path], labels
+
+
+def github_plan(event, payload):
+    paths, labels = github_changes(event, payload)
+    lanes = select_lanes(paths, event, labels, route_always_on=os.environ.get("STAGE_ROUTE_ALWAYS_ON_LANES") == "true")
+    return lanes, select_build(paths, event, labels, lanes)
+
+
+def github_routes(event, payload):
+    return github_plan(event, payload)[0]
 
 
 def lane_selected(needs, lane):
@@ -183,9 +281,14 @@ def require_lane(needs, lane):
 
 
 def require_build(needs):
-    for job in ("preflight", "dotnet-build", "specs"):
+    for job in ("preflight", "dotnet-build", "analyzers", "frontend", "release-pack"):
         if needs[job]["result"] != "success":
             raise ValueError(f"{job} must succeed")
+    # Only an explicit routing decision that no shard is affected permits skipping the specs.
+    unselected = needs["routing"]["outputs"].get("specs-selected") == "false"
+    allowed = ("success", "skipped") if unselected else ("success",)
+    if needs["specs"]["result"] not in allowed:
+        raise ValueError("specs must succeed unless routing explicitly selected no spec shard")
     require_lane(needs, "standalone-generated-application")
 
 
@@ -209,6 +312,8 @@ def gh(*arguments):
     return subprocess.check_output(["gh", *arguments], text=True).strip()
 
 
+REDUCER_MONGO_PROBES = ("runtime-proofs", "rendering-probes", "reconnect")
+
 LIVE_STEPS = (
     "Run the live custom package scenarios", "Run the live navigation scenarios",
     "Run the live domain blueprint scenarios", "Run the live blueprint template scenarios",
@@ -229,13 +334,27 @@ def full_run_candidate(run, sha):
     return trusted_full_run(run, sha)
 
 
+def required_full_run_jobs():
+    """Only the current matrix proves full coverage; the legacy single-job name cannot replace a leg."""
+    reducer_jobs = {f"reducer-mongo ({probe})" for probe in REDUCER_MONGO_PROBES}
+    lanes = LANE_PATHS.keys() - {"live-blueprints", "reducer-mongo"}
+    return frozenset(lanes | {"routing", "build", "routed-checks"} | reducer_jobs)
+
+
+def required_jobs_succeeded(jobs, required):
+    """Require every expected name and reject any non-success, including duplicate job names."""
+    names = {job["name"] for job in jobs}
+    if not required <= names:
+        return False
+    return all(job.get("conclusion") == "success" for job in jobs if job["name"] in required)
+
+
 def full_run_succeeded(run, sha, jobs):
     """Require trusted main-branch metadata and every lane executing, not just a green aggregate."""
     if not full_run_candidate(run, sha):
         return False
     by_name = {job["name"]: job for job in jobs}
-    required = (LANE_PATHS.keys() - {"live-blueprints"}) | {"routing", "build", "routed-checks"}
-    if any(by_name.get(name, {}).get("conclusion") != "success" for name in required):
+    if not required_jobs_succeeded(jobs, required_full_run_jobs()):
         return False
     steps = by_name["live-custom-packages"].get("steps", [])
     return set(LIVE_STEPS) <= successful_step_names(steps)
@@ -368,30 +487,57 @@ def dry_run_table():
         ("ci:full", [], "pull_request", ["ci:full"]),
         ("workflow_dispatch", [], "workflow_dispatch", []),
     )
-    print("change set | " + " | ".join(LANE_PATHS))
+    scenarios += (
+        ("Source/Extensions leaf", ["Source/Extensions/DotNET/Foo.cs"], "pull_request", []),
+        ("Source/Stage only", ["Source/Stage/Foo.cs"], "pull_request", []),
+    )
+    print("change set | " + " | ".join(LANE_PATHS) + " | build | projects | shards")
     for name, paths, event, labels in scenarios:
         lanes = select_lanes(paths, event, labels)
-        print(name + " | " + " | ".join("yes" if lane in lanes else "no" for lane in LANE_PATHS))
+        plan = select_build(paths, event, labels, lanes)
+        print(name + " | " + " | ".join("yes" if lane in lanes else "no" for lane in LANE_PATHS)
+              + f" | {'full' if plan.full else 'affected'} | {len(plan.projects)} | {len(plan.shards)}")
 
 
-def write_routes(selected):
+def write_routes(selected, plan):
+    outputs = {lane: str(lane in selected).lower() for lane in LANE_PATHS}
+    outputs.update({
+        "build-scope": "full" if plan.full else "affected",
+        "affected-projects": json.dumps(plan.affected),
+        "build-projects": json.dumps(plan.projects),
+        "specs-selected": str(bool(plan.shards)).lower(),
+        "spec-shards": json.dumps(plan.shards),
+    })
     with open(os.environ["GITHUB_OUTPUT"], "a") as output:
-        for lane in LANE_PATHS:
-            output.write(f"{lane}={str(lane in selected).lower()}\n")
+        for key, value in outputs.items():
+            output.write(f"{key}={value}\n")
     print("Selected lanes: " + ", ".join(sorted(selected)))
+    print(f"Build scope: {outputs['build-scope']}; projects: {len(plan.projects)}; spec shards: {', '.join(plan.shards) or 'none'}")
+
+
+def write_solution_filter(projects):
+    """A .slnf listing the projects to build; MSBuild adds their ProjectReference dependencies."""
+    chosen = json.loads(projects)
+    unknown = set(chosen) - set(solution_projects())
+    if not chosen or unknown:
+        raise ValueError(f"Solution filter needs solution projects, not {sorted(unknown) or 'none'}")
+    print(json.dumps({"solution": {"path": str(ROOT / "Stage.slnx"), "projects": sorted(chosen)}}, indent=2))
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("route", "check", "check-build", "publish-gate", "table", "report-nightly"))
+    parser.add_argument("command", choices=("route", "check", "check-build", "publish-gate", "table", "report-nightly", "write-slnf"))
+    parser.add_argument("argument", nargs="?")
     args = parser.parse_args()
-    if args.command == "route":
-        selected = github_routes(os.environ["GITHUB_EVENT_NAME"], json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text()))
-        write_routes(selected)
+    if args.command == "write-slnf":
+        write_solution_filter(args.argument)
+    elif args.command == "route":
+        selected, plan = github_plan(os.environ["GITHUB_EVENT_NAME"], json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text()))
+        write_routes(selected, plan)
     elif args.command == "check":
         needs = json.loads(os.environ["NEEDS_JSON"])
         require_success(needs)
-        count = sum(value == "true" for value in needs["routing"]["outputs"].values())
+        count = sum(needs["routing"]["outputs"].get(lane) == "true" for lane in LANE_PATHS)
         print(f"Required {count} selected lanes: all succeeded")
     elif args.command == "check-build":
         require_build(json.loads(os.environ["NEEDS_JSON"]))

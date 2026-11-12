@@ -472,10 +472,14 @@ function SceneButtonOf({ element }: { element: ExternalComponent }) {
  * command button that opens the command's form and posts it to the route the Stage registered. A group is Scene's.
  */
 function StageOutletItems(props: RegisteredProps) {
-    const { element } = props;
     const context = useSceneOutlets();
+    const { selectedRows } = useScreenRows();
+    // A toolbar the screen places has no item of its own: what a button `for item` acts on - and what its `enabled when` reads - is the row
+    // selected in the screen's table, so Approve waits for a product and is enabled for a draft one.
+    const selected = props.element.properties.item === undefined && selectedRows.length === 1 ? selectedRows[0] : undefined;
+    const element = useMemo(() => selected ? { ...props.element, properties: { ...props.element.properties, item: selected } } : props.element, [props.element, selected]);
     const outlet = useMemo(() => outletOfElement(element.id, element.properties, context), [context, element.id, element.properties]);
-    if (!outlet || outlet.kind !== OutletKind.Actions || !outlet.items.some(entry => toolbarItemOf(element.id, entry.item))) return <CoreOutletItems {...props} />;
+    if (!outlet || outlet.kind !== OutletKind.Actions || !outlet.items.some(entry => toolbarItemOf(element.id, entry.item))) return <CoreOutletItems {...props} element={element} />;
 
     return (
         <div className='stage-toolbar' role='toolbar' aria-label={outlet.name} data-scene-id={element.id} data-scene-outlet={outlet.name}>

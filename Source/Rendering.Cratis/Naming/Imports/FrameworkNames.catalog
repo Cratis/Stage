@@ -2,9 +2,9 @@
 # Regenerate: STAGE_WRITE_FRAMEWORK_NAME_CATALOG=1 dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --filter "FullyQualifiedName~for_FrameworkNameCatalog"
 format	1
 scaffold	3
-pin	Cratis	22.184.0
-pin	Cratis.Arc.Chronicle.Testing	22.184.0
-pin	Cratis.Arc.MongoDB	22.184.0
+pin	Cratis	23.0.0
+pin	Cratis.Arc.Chronicle.Testing	23.0.0
+pin	Cratis.Arc.MongoDB	23.0.0
 pin	Cratis.Choreography	2.5.0
 pin	Cratis.Choreography.Chronicle	2.5.0
 pin	Cratis.Chronicle	19.155.1
@@ -26,18 +26,18 @@ package	AS	Azure.Security.KeyVault.Certificates	4.6.0
 package	AS	Azure.Security.KeyVault.Secrets	4.6.0
 package	AS	BouncyCastle.Cryptography	2.7.0
 package	AS	Castle.Core	5.2.1
-package	AS	Cratis	22.184.0
-package	AS	Cratis.Arc	22.184.0
-package	AS	Cratis.Arc.Chronicle	22.184.0
-package	AS	Cratis.Arc.Chronicle.CodeAnalysis	22.184.0
-package	AS	Cratis.Arc.Chronicle.Testing	22.184.0
-package	AS	Cratis.Arc.Core	22.184.0
-package	AS	Cratis.Arc.Core.CodeAnalysis	22.184.0
-package	AS	Cratis.Arc.MongoDB	22.184.0
-package	AS	Cratis.Arc.ProxyGenerator.Build	22.184.0
-package	AS	Cratis.Arc.Screenplay.Embedded	22.184.0
-package	AS	Cratis.Arc.Swagger	22.184.0
-package	AS	Cratis.Arc.Testing	22.184.0
+package	AS	Cratis	23.0.0
+package	AS	Cratis.Arc	23.0.0
+package	AS	Cratis.Arc.Chronicle	23.0.0
+package	AS	Cratis.Arc.Chronicle.CodeAnalysis	23.0.0
+package	AS	Cratis.Arc.Chronicle.Testing	23.0.0
+package	AS	Cratis.Arc.Core	23.0.0
+package	AS	Cratis.Arc.Core.CodeAnalysis	23.0.0
+package	AS	Cratis.Arc.MongoDB	23.0.0
+package	AS	Cratis.Arc.ProxyGenerator.Build	23.0.0
+package	AS	Cratis.Arc.Screenplay.Embedded	23.0.0
+package	AS	Cratis.Arc.Swagger	23.0.0
+package	AS	Cratis.Arc.Testing	23.0.0
 package	AS	Cratis.Choreography	2.5.0
 package	AS	Cratis.Choreography.Chronicle	2.5.0
 package	AS	Cratis.Choreography.Storage	2.5.0
@@ -205,12 +205,13 @@ package	AS	System.Composition.Hosting	10.0.1
 package	AS	System.Composition.Runtime	10.0.1
 package	AS	System.Composition.TypedParts	10.0.1
 package	AS	System.Configuration.ConfigurationManager	10.0.8
+package	AS	System.Formats.Asn1	11.0.0
 package	AS	System.IO.Hashing	10.0.3
 package	AS	System.IdentityModel.Tokens.Jwt	8.23.0
 package	AS	System.Memory.Data	10.0.3
 package	AS	System.Reactive	7.0.0
 package	AS	System.Reflection.MetadataLoadContext	10.0.14
-package	AS	System.Security.Cryptography.Pkcs	10.0.14
+package	AS	System.Security.Cryptography.Pkcs	11.0.0
 package	AS	System.Security.Cryptography.ProtectedData	10.0.8
 package	AS	ZstdSharp.Port	0.7.3
 package	AS	protobuf-net	3.4.40
@@ -879,6 +880,8 @@ namespace	AS	FxResources.System.Composition.Convention
 namespace	AS	FxResources.System.Composition.Hosting
 namespace	AS	FxResources.System.Composition.Runtime
 namespace	AS	FxResources.System.Composition.TypedParts
+namespace	AS	FxResources.System.Formats
+namespace	AS	FxResources.System.Formats.Asn1
 namespace	AS	FxResources.System.IO
 namespace	AS	FxResources.System.IO.Hashing
 namespace	AS	FxResources.System.Memory
@@ -3093,6 +3096,7 @@ type	AS	Cratis.Arc.Identity.Callers	CallerSenderBinding	class
 type	AS	Cratis.Arc.Identity.Callers	CallerServicePrincipalId	class
 type	AS	Cratis.Arc.Identity.Callers	CredentialId	class
 type	AS	Cratis.Arc.Identity.Callers	ICallerPersonDirectory	interface
+type	AS	Cratis.Arc.Identity.Callers	ICredentialScopeAllowlist	interface
 type	AS	Cratis.Arc.Identity.Callers	IVerifiedCallerAccessor	interface
 type	AS	Cratis.Arc.Identity.Callers	InvalidVerifiedCallerInstallation	class
 type	AS	Cratis.Arc.Identity.Callers	SignedForwardedIdentityV2Builder	class
@@ -3183,6 +3187,8 @@ type	AS	Cratis.Arc.MongoDB.Resilience	MongoCollectionInterceptorForReturnValues	
 type	AS	Cratis.Arc.MongoDB.Resilience	MongoCollectionInterceptorSelector	class
 type	AS	Cratis.Arc.MongoDB.Resilience	MongoDatabaseInterceptor	class
 type	AS	Cratis.Arc.MongoDB.Resilience	MongoDatabaseInterceptorSelector	class
+type	AS	Cratis.Arc.MongoDB.Resilience	ResilientMongoCollection`1	class
+type	AS	Cratis.Arc.MongoDB.Resilience	ResilientMongoDatabase	class
 type	AS	Cratis.Arc.MongoDB.Resilience	RetryingChangeStreamCursor`1	class
 type	AS	Cratis.Arc.MongoDB.Resilience	WellKnownErrorMessages	static
 type	AS	Cratis.Arc.MongoDB.Sinks	IMongoDBReadModelDatabases	interface
@@ -10744,6 +10750,7 @@ type	AS	System.Formats.Asn1	AsnWriter	class
 type	AS	System.Formats.Asn1	AsnWriter+Scope	struct
 type	AS	System.Formats.Asn1	TagClass	enum
 type	AS	System.Formats.Asn1	UniversalTagNumber	enum
+type	AS	System.Formats.Asn1	ValueAsnReader	struct
 type	AS	System.Formats.Cbor	CborConformanceMode	enum
 type	AS	System.Formats.Cbor	CborContentException	class
 type	AS	System.Formats.Cbor	CborReader	class
@@ -14189,7 +14196,7 @@ base	AS	Cratis.Arc.Calendar.ClockBoundaryIsNotInTheFuture	System.Exception	Bound
 base	AS	Cratis.Arc.Calendar.ClockEvaluation`1	System.Object	Deconstruct EqualityContract Equals GetHashCode NextBoundary PrintMembers Result ToString	-
 base	AS	Cratis.Arc.Calendar.ClockReading	System.Object	DateOf Deconstruct EqualityContract Equals GetHashCode Instant PrintMembers ToString Today Zone	-
 base	AS	Cratis.Arc.Calendar.TimeZoneIsNotAnIanaZone	System.Exception	TimeZoneId	-
-base	AS	Cratis.Arc.Capabilities.CapabilitiesOptions	System.Object	AllowedPrincipalKinds EndpointGroup GatedEndpoints	-
+base	AS	Cratis.Arc.Capabilities.CapabilitiesOptions	System.Object	AllowedPrincipalKinds EndpointGroup GateAfterRouting GatedEndpoints	-
 base	AS	Cratis.Arc.Capabilities.CapabilityEndpointGroupHasNoPort	System.Exception	-	-
 base	AS	Cratis.Arc.Capabilities.CapabilityEndpointSelectorIsAmbiguous	System.Exception	-	-
 base	AS	Cratis.Arc.Capabilities.CapabilityEndpointSelectorMatchesNothing	System.Exception	-	-
@@ -14467,13 +14474,15 @@ base	AS	Cratis.Arc.MongoDB.PolygonSerializer	MongoDB.Bson.Serialization.Serializ
 base	AS	Cratis.Arc.MongoDB.ReadModelCollectionsNeverNullConvention	MongoDB.Bson.Serialization.Conventions.ConventionBase	Apply	-
 base	AS	Cratis.Arc.MongoDB.Resilience.EmptyAsyncCursor`1	System.Object	Current Dispose MoveNext MoveNextAsync	-
 base	AS	Cratis.Arc.MongoDB.Resilience.MongoClientDisposeInterceptor	System.Object	Intercept	-
-base	AS	Cratis.Arc.MongoDB.Resilience.MongoClientInterceptor	System.Object	Intercept	-
+base	AS	Cratis.Arc.MongoDB.Resilience.MongoClientInterceptor	System.Object	Intercept ProxyGenerator ResiliencePipeline	-
 base	AS	Cratis.Arc.MongoDB.Resilience.MongoClientInterceptorSelector	System.Object	SelectInterceptors	-
 base	AS	Cratis.Arc.MongoDB.Resilience.MongoCollectionInterceptor	System.Object	Intercept	-
 base	AS	Cratis.Arc.MongoDB.Resilience.MongoCollectionInterceptorForReturnValues	System.Object	Intercept	-
 base	AS	Cratis.Arc.MongoDB.Resilience.MongoCollectionInterceptorSelector	System.Object	SelectInterceptors	-
 base	AS	Cratis.Arc.MongoDB.Resilience.MongoDatabaseInterceptor	System.Object	Intercept	-
 base	AS	Cratis.Arc.MongoDB.Resilience.MongoDatabaseInterceptorSelector	System.Object	SelectInterceptors	-
+base	AS	Cratis.Arc.MongoDB.Resilience.ResilientMongoCollection`1	System.Object	Aggregate AggregateAsync AggregateToCollection AggregateToCollectionAsync BulkWrite BulkWriteAsync CollectionNamespace Count CountAsync CountDocuments CountDocumentsAsync Database DeleteMany DeleteManyAsync DeleteOne DeleteOneAsync Distinct DistinctAsync DistinctMany DistinctManyAsync DocumentSerializer EstimatedDocumentCount EstimatedDocumentCountAsync FindAsync FindOneAndDelete FindOneAndDeleteAsync FindOneAndReplace FindOneAndReplaceAsync FindOneAndUpdate FindOneAndUpdateAsync FindSync Indexes InsertMany InsertManyAsync InsertOne InsertOneAsync MapReduce MapReduceAsync OfType ReplaceOne ReplaceOneAsync SearchIndexes Settings UpdateMany UpdateManyAsync UpdateOne UpdateOneAsync Watch WatchAsync WithReadConcern WithReadPreference WithWriteConcern	-
+base	AS	Cratis.Arc.MongoDB.Resilience.ResilientMongoDatabase	System.Object	Aggregate AggregateAsync AggregateToCollection AggregateToCollectionAsync Client CreateCollection CreateCollectionAsync CreateView CreateViewAsync DatabaseNamespace DropCollection DropCollectionAsync GetCollection ListCollectionNames ListCollectionNamesAsync ListCollections ListCollectionsAsync RenameCollection RenameCollectionAsync RunCommand RunCommandAsync Settings Watch WatchAsync WithReadConcern WithReadPreference WithWriteConcern	-
 base	AS	Cratis.Arc.MongoDB.Resilience.RetryingChangeStreamCursor`1	System.Object	Current Dispose GetResumeToken MoveNext MoveNextAsync	-
 base	AS	Cratis.Arc.MongoDB.Sinks.InvalidMongoDBSinkConfiguration	System.Exception	-	-
 base	AS	Cratis.Arc.MongoDB.Sinks.MongoDBReadModelDatabases	System.Object	GetFor	-

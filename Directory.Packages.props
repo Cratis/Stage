@@ -10,16 +10,16 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Cratis -->
-    <PackageVersion Include="Cratis" Version="22.184.0" />
+    <PackageVersion Include="Cratis" Version="23.0.0" />
     <PackageVersion Include="Cratis.Fundamentals" Version="7.34.0" />
-    <PackageVersion Include="Cratis.Arc" Version="22.184.0" />
-    <PackageVersion Include="Cratis.Arc.Chronicle" Version="22.184.0" />
-    <PackageVersion Include="Cratis.Arc.Chronicle.Testing" Version="22.184.0" />
-    <PackageVersion Include="Cratis.Arc.MongoDB" Version="22.184.0" />
-    <PackageVersion Include="Cratis.Arc.Neo4j" Version="22.184.0" />
-    <PackageVersion Include="Cratis.Arc.Screenplay" Version="22.184.0" />
-    <PackageVersion Include="Cratis.Arc.Swagger" Version="22.184.0" />
-    <PackageVersion Include="Cratis.Arc.Testing" Version="22.184.0" />
+    <PackageVersion Include="Cratis.Arc" Version="23.0.0" />
+    <PackageVersion Include="Cratis.Arc.Chronicle" Version="23.0.0" />
+    <PackageVersion Include="Cratis.Arc.Chronicle.Testing" Version="23.0.0" />
+    <PackageVersion Include="Cratis.Arc.MongoDB" Version="23.0.0" />
+    <PackageVersion Include="Cratis.Arc.Neo4j" Version="23.0.0" />
+    <PackageVersion Include="Cratis.Arc.Screenplay" Version="23.0.0" />
+    <PackageVersion Include="Cratis.Arc.Swagger" Version="23.0.0" />
+    <PackageVersion Include="Cratis.Arc.Testing" Version="23.0.0" />
     <PackageVersion Include="Cratis.Showrunner.Notes" Version="1.14.0" />
     <!--
         The Chronicle client packages are pinned here AND referenced directly from Stage and Host - central package
@@ -82,9 +82,9 @@
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.14" />
     <!-- Sign-in for the rendered application host; the emitted host pins the same version. -->
     <PackageVersion Include="Microsoft.Identity.Web" Version="4.17.0" />
-    <!-- Direct references activate these patched versions above the vulnerable Identity.Web transitive minimums. -->
-    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
-    <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.14" />
+    <!-- Direct references satisfy Arc 23's net11 testing minimums above the vulnerable Identity.Web transitive minimums. -->
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="11.0.0" />
+    <PackageVersion Include="System.Security.Cryptography.Xml" Version="11.0.0" />
     <!-- In-process host for the specs of the emitted authentication perimeter; aligned with the ASP.NET Core pin above. -->
     <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="10.0.14" />
     <PackageVersion Include="System.Reactive" Version="7.0.0" />

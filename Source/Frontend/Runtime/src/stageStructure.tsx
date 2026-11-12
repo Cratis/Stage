@@ -18,6 +18,11 @@ export function StageStructureProvider({ structure, screens, children }: StageSt
     return <StageStructureContext.Provider value={{ structure, screens }}>{children}</StageStructureContext.Provider>;
 }
 
+/** The screens of the application, as the structure gives them. */
+export function useStageScreens(): Screen[] {
+    return useContext(StageStructureContext).screens;
+}
+
 /** Declares the slice a screen shows, so the markers and the application context know where the user is. */
 export function ScreenSlice({ screen, children }: { screen: string | undefined; children: ReactNode }) {
     const { structure, screens } = useContext(StageStructureContext);

@@ -12,7 +12,8 @@ import { Button } from '@cratis/components/Common';
 import { Dialog } from '@cratis/components/Dialogs';
 import { Message } from '@cratis/components/Display';
 import { useStageData, useStageQuery } from './stageData';
-import { DialogSlice } from './stageStructure';
+import { DialogSlice, useStageScreens } from './stageStructure';
+import { sliceDialogScreenOf } from './stageSliceDialogScreen';
 import { StageCommandForm, StageDialogContext, StageDialogFooterContext, carriedBy, identifiersAwaitingSelection, selectedIdentifier, suppliedWithoutAsking } from './StageCommandForm';
 import { useScreenRows } from './stageScreenTables';
 import { type ActionSubject, actionCreatesEntity, actionSubjectOf, awaitsSubjectRow, itemSubjectElement, subjectActionProperties, subjectRowOf } from './stageActionSubject';
@@ -406,22 +407,34 @@ function StageSliceDialogContent(props: Partial<RegisteredProps>) {
     const { selectableRows, selectedRows } = useScreenRows();
     const close = useCallback(() => navigation?.closeDialog(), [navigation]);
     const [footer, setFooter] = useState<HTMLElement | null>(null);
+    const screens = useStageScreens();
+    // The slice's own dialog screen, when it declares one, is what opens: its form, its labels, and where its action goes afterwards. A screen
+    // that declares neither adds nothing to the task dialog Scene draws from the schema.
+    const declared = useMemo(() => sliceDialogScreenOf(screens, text(element, 'slice') || opened?.slice, command), [screens, element, opened?.slice, command]);
+    const own = declared?.form || declared?.navigateToScreen ? declared : undefined;
 
     // A key the row the person selected carries is not asked for: the form fills it from that row (the command acts on it).
     const fromSelectedRow = (property: SchemaProperty) => property.identifier && property.required && carriedBy(property, selectableRows) && selectedIdentifier(property, selectedRows) !== undefined;
-    if (!schema || !(properties.some(property => property.options || property.members || property.item) || properties.some(fromSelectedRow))) return props.element ? <CoreSliceDialog element={props.element} slots={props.slots ?? {}} /> : <SliceDialogView />;
+    if (!schema || !(own || properties.some(property => property.options || property.members || property.item) || properties.some(fromSelectedRow))) return props.element ? <CoreSliceDialog element={props.element} slots={props.slots ?? {}} /> : <SliceDialogView />;
 
     const asked = properties.filter(property => !suppliedWithoutAsking(property, parameters) && !fromSelectedRow(property));
+    const askedNames = new Set(asked.map(property => property.name));
+    // The screen's form names the fields and their labels; what the command's schema says is supplied without asking stays unasked.
+    const fields = own?.form && own.form.fields.length > 0
+        ? own.form.fields.filter(field => askedNames.has(field.sourceProperty ?? field.name) || !properties.some(property => property.name === (field.sourceProperty ?? field.name)))
+        : asked.map(property => ({ name: property.name, label: humanize(property.name) }));
     const form = syntheticElement(`slice-dialog-${command}`, {
         command,
         label: title,
         schema,
-        fields: asked.map(property => ({ name: property.name, label: humanize(property.name) })),
+        fields,
         generationMode: 'manual',
+        ...(own?.form?.layout ? { layout: own.form.layout } : {}),
+        ...(own?.navigateToScreen ? { navigateToScreen: own.navigateToScreen } : {}),
     });
 
     return (
-        <section className='scene-slice-dialog' data-scene-slice-dialog={text(element, 'slice') || opened?.slice} data-scene-command={command}>
+        <section className='scene-slice-dialog' data-scene-slice-dialog={text(element, 'slice') || opened?.slice} data-scene-command={command} data-stage-slice-screen={own?.screen.name}>
             <header className='scene-slice-dialog-header'><h2 className='scene-slice-dialog-title'>{title}</h2></header>
             <StageDialogContext.Provider value={close}><StageDialogFooterContext.Provider value={footer}><StageCommandForm element={form} /></StageDialogFooterContext.Provider></StageDialogContext.Provider>
             <footer ref={setFooter} className='scene-slice-dialog-footer'><button type='button' className='scene-slice-dialog-cancel' onClick={close}>Cancel</button></footer>

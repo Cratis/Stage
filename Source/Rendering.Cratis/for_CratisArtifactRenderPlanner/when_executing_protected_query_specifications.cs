@@ -86,11 +86,15 @@ public class when_executing_protected_query_specifications : a_generated_applica
 
     async Task Because()
     {
+        // Rendered output, including the generated policy's module-initializer directives, needs no format pass.
+        await Run("format-whitespace.log", "format", "whitespace", "--folder", "--verify-no-changes");
         AddGeneratedSpecification("StreamingQueryProbe.cs", StreamingProbe);
         _debug = await Run("query-debug.log", "build", "-c", "Debug", "-warnaserror");
         _release = await Run("query-release.log", "build", "-c", "Release", "-warnaserror");
         _results = await Run("query-tests.log", "test", "-c", "Debug", "--no-build");
     }
+
+    [Fact] void should_render_a_policy_whose_directives_start_at_column_zero() => Assert.Contains(GeneratedFiles("*Policy.cs").Select(ReadGeneratedFile), content => content.Contains("\n#pragma warning disable CA2255", StringComparison.Ordinal));
 
     [Fact]
     void should_build_and_pass_allowed_and_denied_query_specifications()

@@ -1,8 +1,11 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Stage.Host.Extensions.Activation;
+using Cratis.Stage.Host.Extensions.Inbound;
 using Cratis.Stage.Host.Invocations;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 
 namespace Cratis.Stage.Host.Extensions;
 
@@ -24,7 +27,16 @@ public static class StageExtensionHosting
         services.Configure<ExtensionOptions>(configuration.GetSection(ExtensionOptions.Section));
         if (configuration.GetValue<int>($"{ExtensionOptions.Section}:{nameof(ExtensionOptions.HostPort)}") <= 0) return services;
 
-        services.TryAddSingleton<IExtensionEndpoints, ConfiguredExtensionEndpoints>();
+        services.TryAddSingleton<ConfiguredExtensionEndpoints>();
+        services.Replace(ServiceDescriptor.Singleton(provider => new ActivatedSystems(null, null, provider.GetRequiredService<IOptions<ExtensionOptions>>())));
+        services.TryAddSingleton<ExtensionActivator>();
+        services.TryAddSingleton<IBackendActivity>(provider => provider.GetRequiredService<ExtensionActivator>());
+        services.TryAddSingleton<IScreenExtensionUsage, NoScreenExtensionUsage>();
+        services.TryAddSingleton<ScreenActivation>();
+        services.AddSingleton<IBackendRuntime, NativeBackendRuntime>();
+        services.AddSingleton<IBackendRuntime, SharedHostBackendRuntime>();
+        services.AddSingleton<IBackendRuntime, ContainerBackendRuntime>();
+        services.TryAddSingleton<IExtensionEndpoints>(provider => new ActivatingExtensionEndpoints(provider.GetRequiredService<ConfiguredExtensionEndpoints>(), provider.GetRequiredService<ExtensionActivator>()));
         services.TryAddSingleton<ISystemSettings, ConfigurationSystemSettings>();
         services.TryAddSingleton<IContractTriggerRoutes, NoContractTriggerRoutes>();
         services.TryAddSingleton<IContractTriggers, SignalContractTriggers>();
@@ -32,7 +44,12 @@ public static class StageExtensionHosting
         services.TryAddSingleton<ExtensionTelemetry>();
         services.TryAddSingleton<ExtensionConnections>();
         services.Replace(ServiceDescriptor.Singleton<IAbilityBackend, GrpcAbilityBackend>());
+        services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton<IInboundDeliveries, GrainInboundDeliveries>();
+        services.TryAddSingleton<InboundDeliveryDispatcher>();
         services.AddHostedService<ExtensionHostServer>();
+        services.AddHostedService<ExtensionActivationService>();
+        services.AddHostedService(provider => provider.GetRequiredService<InboundDeliveryDispatcher>());
         return services;
     }
 }

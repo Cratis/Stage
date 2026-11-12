@@ -44,6 +44,20 @@ class SpecShardsTests(unittest.TestCase):
                                for partition in positive]
                     self.assertEqual(1, sum(matches + [not any(matches)]), name)
 
+    def test_larger_matrices_have_nonempty_partitions_balanced_by_measured_wall_time(self):
+        for sharding in SHARDS["SHARDED"]:
+            with self.subTest(project=sharding.name):
+                groups = SHARDS["source_groups"](sharding)
+                weights = SHARDS["weights"](sharding, groups)
+                partitions = SHARDS["partitions"](sharding)
+                self.assertEqual(sharding.shards, len(partitions))
+                self.assertTrue(all(partitions))
+                self.assertEqual(Counter({prefix: 1 for prefix in groups}),
+                                 Counter(prefix for partition in partitions for prefix in partition))
+                loads = [sum(weights[prefix] for prefix in partition) for partition in partitions]
+                self.assertLess(max(loads) - min(loads), 1.0)
+                self.assertLess(max(loads), sum(weights.values()) / (sharding.shards - 1))
+
     def test_conformance_splits_every_heavy_class_and_keeps_namespaces_together(self):
         groups = SHARDS["source_groups"](SHARDS["CONFORMANCE_SHARDING"])
         prefixes = [prefix + "." for prefix in (SHARDS["PLANNER"], SHARDS["THREE_WAY"])]
@@ -102,7 +116,7 @@ class SpecShardsTests(unittest.TestCase):
                     run.side_effect = project_test_status
                     SHARDS["guard_solution"](shards)
 
-    def test_specifications_is_one_shard_and_conformance_three_disjoint_shards(self):
+    def test_specifications_is_one_shard_and_conformance_six_disjoint_shards(self):
         shards = SHARDS["matrix"]()["include"]
         by_name = {shard["name"]: shard for shard in shards}
         self.assertEqual(len(shards), len(by_name), "shard names must be unique")
@@ -111,11 +125,11 @@ class SpecShardsTests(unittest.TestCase):
         # Whole-project shards carry no positive prefix, so nothing in them can be skipped by a filter.
         self.assertEqual(SHARDS["EXCLUSIONS"], by_name["small-projects"]["filter"])
         conformance = [shard["name"] for shard in shards if SHARDS["CONFORMANCE"] in shard["projects"]]
-        self.assertEqual(["conformance-1", "conformance-2", "conformance-remainder"], conformance)
+        self.assertEqual([f"conformance-{index}" for index in range(1, 6)] + ["conformance-remainder"], conformance)
         self.assertTrue(all(by_name[name]["projects"] == [SHARDS["CONFORMANCE"]] for name in conformance))
         projects = Counter(project for shard in shards for project in shard["projects"])
         self.assertEqual(1, projects["Source/Specifications/Specifications.csproj"])
-        self.assertEqual(3, projects[SHARDS["CONFORMANCE"]])
+        self.assertEqual(6, projects[SHARDS["CONFORMANCE"]])
 
     def test_rendering_shards_do_not_depend_on_conformance_sharding(self):
         # The Rendering entries were byte-identical before and after Conformance was sharded.
@@ -127,8 +141,27 @@ class SpecShardsTests(unittest.TestCase):
                 both = SHARDS["matrix"](blueprint_templates_lane=lane)["include"]
                 rendering = [shard for shard in both if SHARDS["RENDERING"] in shard["projects"]]
                 self.assertEqual([shard for shard in alone if SHARDS["RENDERING"] in shard["projects"]], rendering)
-                self.assertEqual(["rendering-1", "rendering-2", "rendering-3", "rendering-remainder"],
+                self.assertEqual([f"rendering-{index}" for index in range(1, 8)] + ["rendering-remainder"],
                                  [shard["name"] for shard in rendering])
+
+    def test_ci_spec_run_step_allows_two_generated_application_builds(self):
+        job = self.workflow_jobs()["specs"]
+        step = re.search(r"      - name: Run specs .*?(?=\n      - name:)", job, re.DOTALL)[0]
+        self.assertIn("          STAGE_MAX_PARALLEL_APP_BUILDS: '2'\n", step)
+        self.assertIn('run: python3 .github/spec-shards.py run "$SPEC_SHARD"', step)
+        self.assertEqual(1, job.count("STAGE_MAX_PARALLEL_APP_BUILDS:"))
+
+    def test_debug_archive_keeps_runtime_outputs_and_every_consumer_uses_zstd(self):
+        workflow = Path(__file__).with_name("workflows").joinpath("dotnet-build.yml").read_text()
+        self.assertIn("find Source -type d -path '*/bin/Debug' -prune -print0 | "
+                      "tar --null -I 'zstd -T0 -3' -cf build-output.tar.zst -T -", workflow)
+        self.assertIn("path: build-output.tar.zst\n          compression-level: 0", workflow)
+        self.assertNotIn("build-output.tar.gz", workflow)
+        consumers = [job for job in re.split(r"^  [a-z][a-z-]+:\n", workflow, flags=re.MULTILINE)
+                     if "- name: Download Debug build output\n" in job]
+        self.assertEqual(6, len(consumers))
+        for job in consumers:
+            self.assertEqual(1, job.count("run: tar -I zstd -xf build-output.tar.zst"))
 
     def test_blueprint_templates_run_exactly_once_with_or_without_the_dedicated_lane(self):
         workflow = Path(__file__).with_name("workflows").joinpath("dotnet-build.yml").read_text()
@@ -205,7 +238,8 @@ class SpecShardsTests(unittest.TestCase):
         self.assertEqual(1, workflow.count(command))
         self.assertIn(command, jobs["preflight"])
         self.assertNotIn("setup-dotnet", jobs["preflight"])
-        for name in ("dotnet-build", "specs", "reducer-mongo", "generated-name-matrix", "standalone-generated-application",
+        for name in ("dotnet-build", "frontend", "release-pack", "specs", "reducer-mongo", "generated-name-matrix",
+                     "standalone-generated-application",
                      "live-custom-packages", "generated-react", "generated-react-blueprint-templates", "build"):
             self.assertRegex(jobs[name], r"needs: (?:\[[^\]\n]*)?preflight\b")
         aggregate = jobs["build"]
@@ -215,11 +249,20 @@ class SpecShardsTests(unittest.TestCase):
         for variable, job in gated:
             self.assertIn(variable + ": ${{ needs." + job + ".result }}", aggregate)
         check = re.search(r"run: (test .+)", aggregate)[1]
+        # Frontend and Release/pack run beside the Debug build; asserted singly to keep the product small.
+        extra = (("FRONTEND_RESULT", "frontend"), ("RELEASE_PACK_RESULT", "release-pack"))
+        for variable, job in extra:
+            self.assertIn(variable + ": ${{ needs." + job + ".result }}", aggregate)
+        passing = {variable: "success" for variable, _ in gated + extra}
         for results in product(("success", "failure", "skipped", "cancelled"), repeat=len(gated)):
             with self.subTest(results=results):
-                environment = dict(zip((variable for variable, _ in gated), results))
+                environment = {**passing, **dict(zip((variable for variable, _ in gated), results))}
                 self.assertEqual(all(result == "success" for result in results),
                                  subprocess.run(["sh", "-c", check], env=environment).returncode == 0)
+        for variable, _ in extra:
+            for result in ("failure", "skipped", "cancelled", ""):
+                with self.subTest(variable=variable, result=result):
+                    self.assertNotEqual(0, subprocess.run(["sh", "-c", check], env={**passing, variable: result}).returncode)
 
     @staticmethod
     def write_trx(path, results, assembly="Cratis.Stage.Rendering.Cratis.dll"):
@@ -316,7 +359,7 @@ class SpecShardsTests(unittest.TestCase):
             self.assertEqual({first[:-1]: 10.0, third + "when_small": 25.0, second[:-1]: 10.0},
                              SHARDS["wall_attributed"](ET.parse(path).getroot()))
             # Every TRX has its own timeline: the 1 s class in another shard adds its span, not a cross-file gap.
-            self.assertEqual(Counter({first: 10.0, second: 10.0, third: 26.0 + 1.0}),
+            self.assertEqual(Counter({first: 10.0, second: 10.0, third: 25.0 + conformance.shards - 1}),
                              SHARDS["run_timings"](root / "1", groups, conformance))
             timings = root / "timings.json"
             timings.write_text(json.dumps({"measurement": "kept", "runs": ["r"], "prefix_seconds": {"Kept.": 1.0}}))
@@ -328,7 +371,8 @@ class SpecShardsTests(unittest.TestCase):
         self.assertEqual({"Kept.": 1.0}, data["prefix_seconds"])
         self.assertEqual(["1", "2"], data["conformance"]["runs"])
         # Run 2 starts second at 40, after 5 idle seconds: (10 + 15) / 2.
-        self.assertEqual({first: 10.0, second: 12.5, third: 27.0}, data["conformance"]["prefix_seconds"])
+        self.assertEqual({first: 10.0, second: 12.5, third: 25.0 + conformance.shards - 1},
+                         data["conformance"]["prefix_seconds"])
         with tempfile.TemporaryDirectory(prefix="spec-shard-timing-tests-", dir=work) as directory, \
                 contextlib.redirect_stdout(io.StringIO()), self.assertRaises(SystemExit):
             # A pre-split, single-TRX Conformance run cannot masquerade as a complete sharded run.
@@ -380,14 +424,16 @@ class SpecShardsTests(unittest.TestCase):
             run.return_value.stdout = "true\n"
             SHARDS["guard_solution"](SHARDS["matrix"]())
 
-    def test_solution_guard_requires_exactly_three_conformance_shards(self):
+    def test_solution_guard_requires_exact_shards_for_both_projects(self):
         original = SHARDS["matrix"]()
-        conformance = [shard for shard in original["include"] if SHARDS["CONFORMANCE"] in shard["projects"]]
-        others = [shard for shard in original["include"] if SHARDS["CONFORMANCE"] not in shard["projects"]]
-        for shards in (conformance[:2], conformance + conformance[:1]):
-            with self.subTest(count=len(shards)), patch("subprocess.run") as run, self.assertRaises(SystemExit):
-                run.side_effect = project_test_status
-                SHARDS["guard_solution"]({"include": others + shards})
+        for sharding in SHARDS["SHARDED"]:
+            owned = [shard for shard in original["include"] if sharding.project in shard["projects"]]
+            others = [shard for shard in original["include"] if sharding.project not in shard["projects"]]
+            for shards in (owned[:-1], owned + owned[:1]):
+                with self.subTest(project=sharding.name, count=len(shards)), patch("subprocess.run") as run, \
+                        self.assertRaises(SystemExit):
+                    run.side_effect = project_test_status
+                    SHARDS["guard_solution"]({"include": others + shards})
 
     def test_solution_guard_rejects_unsharded_or_duplicate_projects(self):
         original = SHARDS["matrix"]()

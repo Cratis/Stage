@@ -39,7 +39,7 @@ Settings and secrets the extension reads come from configuration under `systems:
 
 ## What happens on the first call
 
-1. A model invokes an ability of the system. Stage finds the backend in `Backends`.
+1. A model invokes an ability of the system. Stage finds the backend in `Backends`, or, for a system whose extension came from a locked package, starts it first; see [Execution tiers and activation](execution-tiers.md).
 2. Stage calls `Describe` with the host endpoint and a credential for the system.
 3. The backend answers what it realizes. Stage checks it against the contract and checks the protocol major.
 4. Stage keeps the connection and sends the attempt. A mismatch, an unreachable backend or a timed-out handshake is `NotSent`, with the reason in the invocation's record.
@@ -55,7 +55,7 @@ rules. Start Stage with the host port configured before the backend is asked to 
   a mesh or proxy that provides TLS. Native TLS for the host services is not part of version one. Stage can call a backend at an `https://` endpoint.
 - The session token is the extension's only credential for the host services. It is delivered in the handshake and nowhere else. A backend should
   keep it in memory.
-- The inbound HTTP endpoint (`/extensions/<System>/...`) is **anonymous** and only exists when the protocol is on. A backend must verify what it receives.
+- The inbound HTTP endpoint (`/extensions/<System>/...`) is **anonymous** and only exists when the protocol is on. A backend must verify what it receives; see [inbound traffic and webhooks](inbound-traffic.md#security).
 - Cookies and authorization headers of Stage's own users are never forwarded to a backend.
 
 ## What is available today
@@ -65,8 +65,8 @@ The protocol, the host services and the SDKs are complete. Three inputs come fro
 | Input | Filled by | Until then |
 | --- | --- | --- |
 | The abilities each system declares (`IAbilityCatalog`) | Building the catalog from the bound model. The Screenplay syntax for `system` and `ability` has shipped ([Cratis/Screenplay#1250](https://github.com/Cratis/Screenplay/issues/1250)); Stage does not read it into the catalog yet. | The catalog is empty, so no model invocation reaches a backend. A backend still connects, serves HTTP and can use the host services. |
-| What reacts to each trigger (`IContractTriggerRoutes`) | Reactions and triggers declared on a system, and the inbound traffic that raises them (Cratis/Stage#1068) | `RaiseTrigger` answers `NOT_ROUTED`. |
-| Finding and starting a backend from a locked package, lazily | Cratis/Stage#1064 and Cratis/Stage#1066 | Backends are found in the `Backends` configuration above, and run where you run them. |
+| What reacts to each trigger (`IContractTriggerRoutes`) | Reactions and triggers declared on a system. The inbound traffic that raises them is [stored, acknowledged and delivered](inbound-traffic.md) | `RaiseTrigger` answers `NOT_ROUTED`. |
+| Finding and starting a backend from a locked package, lazily | [Execution tiers and activation](execution-tiers.md), on top of [loaded packages](packages.md) | A system that names no loaded package has its backend found in the `Backends` configuration above, and it runs where you run it. |
 
 Each is a seam in the host: register your own `IExtensionEndpoints`, `IAbilityCatalog` or `IContractTriggerRoutes` before the extension services, and
 Stage keeps it.

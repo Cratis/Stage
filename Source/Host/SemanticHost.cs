@@ -3,6 +3,7 @@
 
 using Cratis.Arc.Commands;
 using Cratis.Chronicle;
+using Cratis.Screenplay.Extensions;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Api;
@@ -10,6 +11,10 @@ using Cratis.Stage.Contracts;
 using Cratis.Stage.Contracts.Execution;
 using Cratis.Stage.Contracts.Scene;
 using Cratis.Stage.Contracts.Semantics;
+using Cratis.Stage.Host.Extensions;
+using Cratis.Stage.Host.Extensions.Activation;
+using Cratis.Stage.Host.Extensions.Inbound;
+using Cratis.Stage.Host.Extensions.Packages;
 using Cratis.Stage.Host.Invocations;
 using Cratis.Stage.Host.Lifecycles;
 using Cratis.Stage.Host.Published;
@@ -19,6 +24,7 @@ using Cratis.Stage.Runtime;
 using Cratis.Stage.Semantics;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Scalar.AspNetCore;
 
 namespace Cratis.Stage.Host;
@@ -43,7 +49,6 @@ internal static class SemanticHost
     {
         var issues = new List<StageUnsupportedIssue>();
         var notes = new List<SemanticModelLoadDiagnostic>();
-        var (loaded, scene) = await LoadModel(modelPath, issues, notes, package?.Manifest.ApplicationName);
 
         var eventStore = published is null ? ContainerEventStoreName.Resolve() : published.EventStoreFor(package!.Manifest.PublishedName);
         SemanticWorld? world = null;
@@ -55,6 +60,14 @@ internal static class SemanticHost
             optional: true,
             reloadOnChange: true);
         var mode = hostMode ?? StageHostModeSelection.Read(builder.Configuration, args, StageRuntimeEngine.Semantic);
+        var packages = await LoadExtensionPackages(modelPath, builder.Configuration, issues);
+        if (packages.Contracts is not null)
+        {
+            ExtensionContractResolver.Current = new(packages.Contracts);
+        }
+
+        // A package that is refused stops the model being loaded at all: nothing it names may be compiled against, let alone run.
+        var (loaded, scene) = packages.Refusals.Count > 0 ? (null, null) : await LoadModel(modelPath, issues, notes, package?.Manifest.ApplicationName);
         var authentication = mode == StageHostMode.Published ? published ?? PublishedOptions.From(builder.Configuration) : null;
         authentication?.EnsureComplete();
         var development = SandboxActingUserAccess.Configure(builder, mode);
@@ -76,6 +89,13 @@ internal static class SemanticHost
         }
 
         builder.Services.AddSingleton(new StageEventStoreName(eventStore));
+        if (packages.Loaded.Count > 0)
+        {
+            var modelPackages = new ExtensionPackages(packages, SystemExtensionReferences.Read(modelPath));
+            PinnedAbilityCatalog.AddExtensionPackages(builder.Services, modelPackages);
+            var overrides = new ModelActivationOverrides(SystemActivationOverrides.Read(modelPath));
+            builder.Services.Replace(ServiceDescriptor.Singleton(provider => new ActivatedSystems(modelPackages, overrides, provider.GetRequiredService<IOptions<ExtensionOptions>>())));
+        }
         if (surface is not null)
         {
             SemanticRuntimeHosting.Add(builder.Services, loaded!.Plan, WorldProvider(() => world), bodies);
@@ -152,9 +172,17 @@ internal static class SemanticHost
         app.UseRouting();
         app.UseCratisChronicle();
         StagePackageEndpoints.Map(app);
+        if (packages.Loaded.Count > 0)
+        {
+            ExtensionPackageEndpoints.MapAssets(app, packages);
+            if (ExtensionsEnabled(app)) ExtensionActivationEndpoints.MapScreens(app);
+        }
+
         if (mode == StageHostMode.Sandbox)
         {
             SandboxActingUser.Map(app);
+            ExtensionPackageEndpoints.MapTooling(app, packages);
+            if (ExtensionsEnabled(app)) ExtensionActivationEndpoints.MapTooling(app);
             app.MapPost("/stage/load", () => Results.Conflict());
             app.MapGet("/stage/semantic/admission", () => Results.Json(new { engine = "semantic", issues = issues.Select(issue => issue.Details), entries = admission?.Entries ?? [] }, StageJson.Options));
             MapReadModelBrowserPage(app);
@@ -187,6 +215,7 @@ internal static class SemanticHost
             StageJourneyReplay.Map(app, () => journeyRoutes?.Build(), () => RegistrationStatus(world, issues, app.Services, modelName, modelPath));
             StageLifecycleEndpoints.Map(app, loaded.Plan, () => lifecycles);
             InvocationEndpoints.Map(app);
+            if (app.Services.GetService<IInboundDeliveries>() is not null) InboundDeliveryEndpoints.Map(app);
             SemanticReadModelBrowser.Map(app, new(app.Services.GetRequiredService<ISemanticRuntime>(), () => world is not null, context => issues.Count > 0 ? RefusedResponse(context, issues) : null, admission));
         }
         else if (published is not null)
@@ -384,9 +413,20 @@ internal static class SemanticHost
         return Results.Json(new CommandResult { ExceptionMessages = issues.Select(entry => $"Unsupported({entry.Capability}) {entry.Artifact}: {entry.Details}") }, statusCode: StatusCodes.Status501NotImplemented);
     }
 
+    static bool ExtensionsEnabled(WebApplication app) => app.Services.GetRequiredService<IOptions<ExtensionOptions>>().Value.Enabled;
+
     static IReadOnlyList<IPublishedHostExtension> SelectExtensions(PublishedOptions? published, PublishedPackage? package) => published is null
         ? []
         : PublishedHostExtensions.Select(PublishedHostExtensions.Registered, PublishedHostExtensions.NotesEnabled(published, package!.Manifest));
+
+    static async Task<ExtensionPackageSet> LoadExtensionPackages(string modelPath, ConfigurationManager configuration, List<StageUnsupportedIssue> issues)
+    {
+        using var loggers = LoggerFactory.Create(logging => logging.AddConfiguration(configuration.GetSection("Logging")).AddConsole());
+        var packages = await ExtensionPackageHosting.Load(modelPath, configuration, loggers);
+        issues.AddRange(packages.Refusals.Select(refusal => refusal.ToIssue()));
+
+        return packages;
+    }
 
     static SemanticRuntimeAdmission? CreateAdmission(LoadedSemanticModel? loaded, SemanticBodyExecution? bodies, List<StageUnsupportedIssue> issues)
     {

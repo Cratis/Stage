@@ -76,6 +76,9 @@ message RaiseTriggerRequest {
   // the external message's own identity.
   string deduplication_key = 3;
   string payload_json = 4;
+  // Optional. What the trigger is about, such as the payment a webhook reports on. Workflow runs that wait for the trigger
+  // about the same correlation resume; without one only the reactions the trigger starts run.
+  string correlation_key = 5;
 }
 
 message RaiseTriggerResponse {

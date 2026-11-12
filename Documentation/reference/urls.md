@@ -344,7 +344,9 @@ Runtime behavior depends on the selected engine. The default **semantic engine**
 command validation and authorization, including authenticated-caller checks, roles, claims, and logical policy combinations,
 before producing facts. Invalid or denied commands return validation or authorization failures in Arc's
 `CommandResult` without appending facts. `/stage/semantic/admission` reports supported and unsupported artifacts;
-unsupported rules or policies are refused rather than ignored. Described command handlers still require a target
+unsupported rules or policies are refused rather than ignored, and so is an extension package that is not allowed, not signed or
+not the one the lock pins (see [extension packages](../extensions/packages.md)). `/stage/extensions` lists the loaded extension packages and
+the ones refused, and `/extension-assets/{id}/{path}` serves a package's frontend. Described command handlers still require a target
 implementation. Sandbox persona identities are for playing the model, not a production security boundary.
 
 The legacy HTTP surface above and the separate verification and rendering paths retain these limits:

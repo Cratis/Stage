@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Specifications;
+using Cratis.Stage.Host.Extensions.Activation;
 using Cratis.Stage.Host.Invocations;
 using Microsoft.Extensions.Configuration;
 using Xunit;
@@ -27,4 +28,9 @@ public class when_registering_the_extension_protocol : Specification
     [Fact] void should_not_listen_until_it_is_enabled() => _disabled.Any(descriptor => descriptor.ImplementationType == typeof(ExtensionHostServer)).ShouldBeFalse();
     [Fact] void should_realize_abilities_by_calling_backends_once_enabled() => Backend(_enabled).ShouldEqual(typeof(GrpcAbilityBackend));
     [Fact] void should_listen_once_enabled() => _enabled.Any(descriptor => descriptor.ImplementationType == typeof(ExtensionHostServer)).ShouldBeTrue();
+
+    [Fact] void should_start_and_stop_backends_once_enabled() => _enabled.Any(descriptor => descriptor.ImplementationType == typeof(ExtensionActivationService)).ShouldBeTrue();
+    [Fact] void should_not_manage_backends_until_it_is_enabled() => _disabled.Any(descriptor => descriptor.ServiceType == typeof(ExtensionActivator)).ShouldBeFalse();
+    [Fact] void should_run_each_tier_in_its_own_runtime() => _enabled.Where(descriptor => descriptor.ServiceType == typeof(IBackendRuntime)).Select(descriptor => descriptor.ImplementationType).ShouldContainOnly(typeof(NativeBackendRuntime), typeof(SharedHostBackendRuntime), typeof(ContainerBackendRuntime));
+    [Fact] void should_find_backends_by_activating_them() => _enabled.Single(descriptor => descriptor.ServiceType == typeof(IExtensionEndpoints)).ImplementationFactory.ShouldNotBeNull();
 }

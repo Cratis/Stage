@@ -7,12 +7,11 @@
 Refresh measured prefix weights from directories of successful runs:
     python3 .github/spec-shards.py refresh-timings .ai-work/318/trx
 Each immediate child of the TRX root is one run. A sharded project is refreshed from
-the runs that contain its TRX files, which must be one per shard (four Rendering,
-three Conformance); a project without TRX files keeps its stored weights.
-A Rendering prefix weighs the summed wall-clock span of its test classes: xUnit's
-per-test duration omits the Establish/Because a class shares, so it cannot be used.
-A Conformance prefix weighs its wall-attributed seconds: the class span plus the idle
-time before the class starts, which is where its shared fixture runs.
+the runs that contain its TRX files, which must be one per shard (eight Rendering,
+six Conformance); a project without TRX files keeps its stored weights.
+Each prefix weighs its wall-attributed seconds: the class span plus the idle time
+before the class starts, which is where its shared fixture runs. xUnit's per-test
+duration omits the Establish/Because a class shares, so it cannot be used.
 `estimate` reports those sums per shard.
 Each shard artifact also carries a per-project generated-app-timings.tsv of process slot timings.
 """
@@ -45,7 +44,7 @@ DEDICATED_FIXTURES = (
 )
 EXCLUSIONS = "&".join("FullyQualifiedName!~" + fixture for fixture in DEDICATED_FIXTURES)
 BLUEPRINT_TEMPLATES_FIXTURE = "when_building_the_blueprint_templates_application"
-RENDERING_SHARDS = 4
+RENDERING_SHARDS = 8
 TIMINGS = ROOT / ".github/spec-shard-timings.json"
 TRX_NAMESPACE = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
 CONFORMANCE = "Source/Conformance.Specs/Conformance.Specs.csproj"
@@ -68,7 +67,7 @@ RENDERING_SHARDING = Sharding("rendering", RENDERING, "Source/Rendering.Cratis",
                               False, "Cratis.Stage.Rendering.Cratis.dll", "wall-attributed")
 # Conformance runs the planner namespace too (its RootNamespace is Rendering.Cratis), against its own assembly.
 # Its shared class fixtures run before the first test starts, so plain class spans undercount it.
-CONFORMANCE_SHARDING = Sharding("conformance", CONFORMANCE, "Source/Conformance.Specs", 3, (PLANNER, THREE_WAY),
+CONFORMANCE_SHARDING = Sharding("conformance", CONFORMANCE, "Source/Conformance.Specs", 6, (PLANNER, THREE_WAY),
                                 True, "Cratis.Stage.Conformance.Specs.dll", "wall-attributed")
 SHARDED = (RENDERING_SHARDING, CONFORMANCE_SHARDING)
 FACT = re.compile(r"\[(?:Fact|Theory)(?:\(|\])")
@@ -189,6 +188,15 @@ def matrix(blueprint_templates_lane=False):
     for sharding in SHARDED:
         shards.extend(sharded_entries(sharding, exclusions))
     return {"include": shards}
+
+
+def narrow(shards, affected=None):
+    """Keep only the projects in `affected` and drop shards left with none; None keeps everything."""
+    if affected is None:
+        return shards
+    wanted = set(affected)
+    return {**shards, "include": [{**shard, "projects": [project for project in shard["projects"] if project in wanted]}
+                                for shard in shards["include"] if wanted.intersection(shard["projects"])]}
 
 
 def guard_solution(shards):
@@ -372,7 +380,7 @@ def refresh_timings(directory):
         refreshed.append(f"{len(measured)} {sharding.name} prefixes from {len(project_runs)} runs")
     if not refreshed:
         raise SystemExit("Provide one directory per successful run, each containing every TRX file of a "
-                         "sharded project (four Rendering, three Conformance).")
+                         "sharded project (eight Rendering, six Conformance).")
     TIMINGS.write_text(json.dumps(data, indent=2) + "\n")
     print(f"Wrote {'; '.join(refreshed)} to {TIMINGS}.")
 
@@ -394,6 +402,8 @@ def main():
     parser.add_argument("argument", nargs="?")
     parser.add_argument("--blueprint-templates-lane", action="store_true",
                         help="Exclude blueprint template specs only when their dedicated lane runs")
+    parser.add_argument("--affected", default="",
+                        help="guard: JSON list of affected projects; only shards covering them are emitted (empty: all)")
     args = parser.parse_args()
     if args.command in ("run", "require-executed", "refresh-timings") and args.argument is None:
         parser.error(args.command + " requires a shard name/JSON entry or TRX path")
@@ -410,9 +420,11 @@ def main():
     if args.command == "matrix":
         print(json.dumps(shards))
     elif args.command == "guard":
-        guard_solution(shards)
+        guard_solution(shards)  # Always sees the full matrix, so every test project must stay sharded.
+        selected = narrow(shards, json.loads(args.affected) if args.affected else None)
         with open(os.environ["GITHUB_OUTPUT"], "a") as output:
-            output.write("matrix=" + json.dumps(shards) + "\n")
+            output.write("matrix=" + json.dumps(selected) + "\n")
+            output.write("has-specs=" + str(bool(selected["include"])).lower() + "\n")
     else:
         # CI passes the exact guarded matrix entry; local runs can select it by stable name.
         shard = (json.loads(args.argument) if args.argument.startswith("{") else

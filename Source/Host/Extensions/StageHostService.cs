@@ -76,7 +76,8 @@ public sealed class StageHostService(
             request.Context?.Tenant ?? string.Empty,
             request.DeduplicationKey,
             request.PayloadJson,
-            request.Context?.InvocationId is { Length: > 0 } invocation ? invocation : $"extension:{system}"));
+            request.Context?.InvocationId is { Length: > 0 } invocation ? invocation : $"extension:{system}",
+            request.CorrelationKey));
         return new RaiseTriggerResponse
         {
             Status = raised.Status switch

@@ -3,16 +3,25 @@
 
 using System.Collections.Frozen;
 using Cratis.Stage.Extensions.Protocol;
+using Cratis.Stage.Host.Extensions.Activation;
+using Cratis.Stage.Host.Extensions.Inbound;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
+using Microsoft.Extensions.Options;
 using RequestContext = Cratis.Stage.Extensions.Protocol.RequestContext;
 
 namespace Cratis.Stage.Host.Extensions;
 
 /// <summary>
-/// Routes inbound HTTP requests to the backend that handles them, for a webhook or a callback an extension owns. The endpoint is anonymous by design, as a
-/// webhook's caller is not a Stage user: the extension verifies the request, with the signature header its provider sends.
+/// Receives the inbound HTTP traffic of the extensions, for a webhook or a callback an extension owns. The endpoint is anonymous by design, as a webhook's caller
+/// is not a Stage user: the extension verifies the request, with the signature header its provider sends.
+/// <para>
+/// A request that may change something (<c lang="text">POST</c>, <c lang="text">PUT</c>, <c lang="text">PATCH</c>, <c lang="text">DELETE</c>) is stored with its raw
+/// body and headers and acknowledged at once with <c lang="text">202 Accepted</c>; the <see cref="InboundDeliveryDispatcher"/> delivers it, activating the extension
+/// when it is not running and retrying when it fails. A request that only reads (<c lang="text">GET</c>, <c lang="text">HEAD</c>, <c lang="text">OPTIONS</c>) is
+/// passed to the extension and answered with what it answers, as such a request asks a question, such as a verification challenge.
+/// </para>
 /// </summary>
 public static class ExtensionHttpEndpoints
 {
@@ -26,6 +35,7 @@ public static class ExtensionHttpEndpoints
     /// </summary>
     public const long MaxBodyBytes = 1_048_576;
 
+    static readonly FrozenSet<string> _reading = new[] { "GET", "HEAD", "OPTIONS" }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
     static readonly string[] _methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"];
     static readonly FrozenSet<string> _notForwarded = new[] { "Cookie", "Authorization", "Host", "Connection", "Transfer-Encoding", "Content-Length" }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
     static readonly FrozenSet<string> _notReturned = new[] { "Connection", "Transfer-Encoding", "Content-Length", "Set-Cookie" }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
@@ -41,12 +51,82 @@ public static class ExtensionHttpEndpoints
         return endpoints;
     }
 
-    static async Task<IResult> Handle(HttpContext http, string system, string? path, ExtensionConnections connections)
+    internal static bool Matches(string route, string path)
+    {
+        var prefix = route.StartsWith('/') ? route : "/" + route;
+        return path.Equals(prefix, StringComparison.Ordinal) || path.StartsWith(prefix.TrimEnd('/') + "/", StringComparison.Ordinal);
+    }
+
+    static async Task<IResult> Handle(
+        HttpContext http,
+        string system,
+        string? path,
+        ExtensionConnections connections,
+        IExtensionEndpoints endpoints,
+        IInboundDeliveries deliveries,
+        InboundDeliveryDispatcher dispatcher,
+        IOptions<ExtensionOptions> options)
     {
         var relative = "/" + (path ?? string.Empty);
-        if ((await connections.Connect(system, http.RequestAborted)).Connection is not { } connection) return Results.NotFound();
-        if (!connection.Description.HttpRoutes.Any(route => Matches(route, relative))) return Results.NotFound();
         if (http.Request.ContentLength > MaxBodyBytes) return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);
+        if (_reading.Contains(http.Request.Method)) return await Proxy(http, system, relative, connections);
+
+        if (connections.Connected(system) is { } running)
+        {
+            if (!running.Description.HttpRoutes.Any(route => Matches(route, relative))) return Results.NotFound();
+        }
+        else if (!await endpoints.Knows(system, http.RequestAborted))
+        {
+            return Results.NotFound();
+        }
+
+        var body = await ReadBody(http);
+        if (body is null) return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);
+        if (await deliveries.CountOpen() >= options.Value.Inbound.MaxOpen)
+        {
+            http.Response.Headers.RetryAfter = "60";
+            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+        }
+
+        var query = http.Request.QueryString.HasValue ? http.Request.QueryString.Value[1..] : string.Empty;
+        var headers = http.Request.Headers
+            .Where(header => !_notForwarded.Contains(header.Key))
+            .Select(header => new InboundHeader(header.Key, [.. header.Value.OfType<string>()]))
+            .ToArray();
+        var delivery = new InboundDelivery(
+            InboundDeliveryRules.Identify(system, http.Request.Method, relative, query, body),
+            system,
+            http.Request.Method,
+            relative,
+            query,
+            headers,
+            body,
+            DateTimeOffset.UtcNow);
+
+        var receipt = await deliveries.Receive(delivery);
+        if (!receipt.Replay) dispatcher.Wake();
+        return Results.Accepted();
+    }
+
+    static async Task<byte[]?> ReadBody(HttpContext http)
+    {
+        await using var body = new MemoryStream();
+        var buffer = new byte[8192];
+        int read;
+        while ((read = await http.Request.Body.ReadAsync(buffer, http.RequestAborted)) > 0)
+        {
+            if (body.Length + read > MaxBodyBytes) return null;
+            await body.WriteAsync(buffer.AsMemory(0, read), http.RequestAborted);
+        }
+
+        return body.ToArray();
+    }
+
+    static async Task<IResult> Proxy(HttpContext http, string system, string relative, ExtensionConnections connections)
+    {
+        if ((await connections.Connect(system, http.RequestAborted)).Connection is not { } connection) return Results.NotFound();
+        using var inFlight = http.RequestServices.GetService<IBackendActivity>()?.Begin(system);
+        if (!connection.Description.HttpRoutes.Any(route => Matches(route, relative))) return Results.NotFound();
 
         await using var body = new MemoryStream();
         await http.Request.Body.CopyToAsync(body, http.RequestAborted);
@@ -92,11 +172,5 @@ public static class ExtensionHttpEndpoints
             if (exception.StatusCode == StatusCode.Unavailable) connections.Forget(system);
             return Results.StatusCode(exception.StatusCode == StatusCode.DeadlineExceeded ? StatusCodes.Status504GatewayTimeout : StatusCodes.Status502BadGateway);
         }
-    }
-
-    static bool Matches(string route, string path)
-    {
-        var prefix = route.StartsWith('/') ? route : "/" + route;
-        return path.Equals(prefix, StringComparison.Ordinal) || path.StartsWith(prefix.TrimEnd('/') + "/", StringComparison.Ordinal);
     }
 }

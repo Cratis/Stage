@@ -78,7 +78,7 @@ public class without_a_domain : given.a_domain_policy_plan
         // These assertions confine the updated pins below to that one generated declaration change.
         // Since #424 the output itself uses short names, so the HEAD pins are reproduced from the qualified restore.
         // Since Cratis/Stage#848 authored bodies are indented to their block; undoing only that indentation reproduces the same pins.
-        var unindented = BeforeBodyIndentation(qualified).ToArray();
+        var unindented = BeforeBodyIndentation(BeforeColumnZeroDirectives(qualified)).ToArray();
         Digest(BeforeInitializerRename(BeforeCallerIdentifier(LegacyLicenseHeader.Restore(unindented)))).ShouldEqual("CC6123922024E13204531B1E8BF9364ECCB4BD6C5E509A936457D5EC4E506753");
 
         // Restoring the former license header must reproduce the pins from before headers became optional.
@@ -87,6 +87,15 @@ public class without_a_domain : given.a_domain_policy_plan
         _restoredDigest = Digest(_hashedArtifacts);
         _qualifiedDigest = Digest(qualified);
     }
+
+    // Cratis/Stage#1084 moved directives to column 0; these policy registration pragmas previously shared the class-member indentation.
+    static IEnumerable<PlannedArtifact> BeforeColumnZeroDirectives(IEnumerable<PlannedArtifact> artifacts) => artifacts.Select(artifact =>
+        artifact.RelativePath.StartsWith("GeneratedPolicies/", StringComparison.Ordinal) && artifact.RelativePath.EndsWith("Policy.cs", StringComparison.Ordinal)
+            ? PlannedArtifact.CreateText(
+                artifact.RelativePath,
+                Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Replace("\n#pragma", "\n    #pragma", StringComparison.Ordinal),
+                artifact.Sources)
+            : artifact);
 
     static IEnumerable<PlannedArtifact> BeforeBodyIndentation(IEnumerable<PlannedArtifact> artifacts) => artifacts.Select(artifact =>
         artifact.RelativePath == "Orders/Ordering/Totals/Fold.cs" || artifact.RelativePath.StartsWith("GeneratedPolicies/PolicyBodies_", StringComparison.Ordinal)
@@ -232,7 +241,7 @@ public class without_a_domain : given.a_domain_policy_plan
         Assert.All(files, artifact => Assert.All(RawText(artifact.RelativePath).Split('\n').Where(line => !line.TrimStart().StartsWith("using ", StringComparison.Ordinal)), line => Assert.DoesNotContain("global::", line, StringComparison.Ordinal)));
     }
 
-    IEnumerable<PlannedArtifact> HashedArtifacts() => _hashedArtifacts.Where(artifact => !string.Equals(artifact.RelativePath, ".stage/completeness.json", StringComparison.Ordinal) && !string.Equals(artifact.RelativePath, "UNSUPPORTED.md", StringComparison.Ordinal));
+    IEnumerable<PlannedArtifact> HashedArtifacts() => BeforeColumnZeroDirectives(_hashedArtifacts).Where(artifact => !string.Equals(artifact.RelativePath, ".stage/completeness.json", StringComparison.Ordinal) && !string.Equals(artifact.RelativePath, "UNSUPPORTED.md", StringComparison.Ordinal));
 
     void AssertReducerBinding(Assembly assembly)
     {
@@ -263,17 +272,18 @@ public class without_a_domain : given.a_domain_policy_plan
         Assert.Equal(_oldRawHashes[path], Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(restored))));
     }
 
-    // The new emitted output, spelled with the readable names; RawText reads the previous hashed spelling the old pins are about.
+    // The new emitted output, spelled with the readable names; RawText restores the hashed spelling and directive indentation for the old pins.
     string EmittedText(string path) => Encoding.UTF8.GetString(_rawPlan.Artifacts.Single(artifact => artifact.RelativePath == path).Bytes.AsSpan());
 
-    string RawText(string path) => Encoding.UTF8.GetString(_hashedArtifacts.Single(artifact => artifact.RelativePath == path).Bytes.AsSpan());
+    string RawText(string path) => Encoding.UTF8.GetString(HashedArtifacts().Single(artifact => artifact.RelativePath == path).Bytes.AsSpan());
 
     // Re-frozen for #424: generated C# uses short type names and using directives; again for Cratis/Stage#848: authored bodies are indented to their block.
     // Re-frozen for Cratis/Stage#850: Policies.cs compares concept bases with typeof.
     // Re-frozen for Cratis/Stage#1061: the shared policy runtime reads the caller's identifier from the principal.
     // Cratis/Stage#850: the restored output reproduces the previous pin; the emitted output differs only by the readable helper names.
-    [Fact] void should_restore_every_hashed_name_to_the_previous_pin() => _restoredDigest.ShouldEqual("CB5113C6BF8B5FC88786D81E5E5DCAE34817C30515FF025CDD5BADD9871677B2");
-    [Fact] void should_keep_all_paths_and_bytes() => _digest.ShouldEqual("E1934997F24489C5DB546858250841205964CA995DAEBA4E56D27EED4B948935");
-    [Fact] void should_confine_changes_to_common_and_using_placement() => _qualifiedDigest.ShouldEqual("19DDADC0074C9A4DB21FFCCC5B867876D9ADC779326625A25C05A704FB845BBC");
+    // Re-frozen for Cratis/Stage#1084: preprocessor directives render at column 0.
+    [Fact] void should_restore_every_hashed_name_to_the_previous_pin() => _restoredDigest.ShouldEqual("1D05B1BDD9CCF3BE658A5763012D508B616F88CD31AED533463FF47FAE94D01D");
+    [Fact] void should_keep_all_paths_and_bytes() => _digest.ShouldEqual("6C929606F57D8DC180BD4CED0D7EB7504BB4A65FC3AFD940149D8D08655AFC59");
+    [Fact] void should_confine_changes_to_common_and_using_placement() => _qualifiedDigest.ShouldEqual("AD00CD275224150FE6725B415AFA4811A1175E662A969AB4B8807D8D5123D266");
 }
 #endif

@@ -73,6 +73,11 @@ jobs:
       generated-react-blueprint-templates: ${{ steps.routes.outputs.generated-react-blueprint-templates }}
       generated-react: ${{ steps.routes.outputs.generated-react }}
       standalone-generated-application: ${{ steps.routes.outputs.standalone-generated-application }}
+      build-scope: ${{ steps.routes.outputs.build-scope }}
+      affected-projects: ${{ steps.routes.outputs.affected-projects }}
+      build-projects: ${{ steps.routes.outputs.build-projects }}
+      specs-selected: ${{ steps.routes.outputs.specs-selected }}
+      spec-shards: ${{ steps.routes.outputs.spec-shards }}
     steps:
       - name: Skip when this workflow already succeeded on this commit
         id: already-ran
@@ -111,6 +116,7 @@ jobs:
     timeout-minutes: 30
     outputs:
       spec-matrix: ${{ steps.spec-coverage.outputs.matrix }}
+      has-specs: ${{ steps.spec-coverage.outputs.has-specs }}
 
     steps:
       - name: Checkout code
@@ -123,6 +129,72 @@ jobs:
 
       - name: Restore NuGet packages
         uses: Cratis/Workflows/.github/actions/dotnet-cache@main
+
+      - name: Verify spec shard routing and guards
+        run: python3 -B -m unittest discover -s .github -p 'test_*.py'
+
+      # This job owns analyzers for both configurations. Inline specs and their test SDK exist only in
+      # Debug; every spec lane reuses its binaries (including Host's isolated specrunner) with --no-build.
+      # Release still compiles without specs and remains the zero-warning/package-validation gate below.
+      # Pull requests build only the projects the diff reaches (plus what the selected lanes consume);
+      # every other event, ci:full and any routing doubt build the whole solution.
+      - name: Build Debug
+        env:
+          BUILD_SCOPE: ${{ needs.routing.outputs.build-scope }}
+          BUILD_PROJECTS: ${{ needs.routing.outputs.build-projects }}
+        run: |
+          if [ "$BUILD_SCOPE" = affected ]; then
+            python3 .github/ci-routing.py write-slnf "$BUILD_PROJECTS" > "$RUNNER_TEMP/affected.slnf"
+            dotnet build "$RUNNER_TEMP/affected.slnf" --configuration Debug
+          else
+            dotnet build --configuration Debug
+          fi
+
+      - name: Require every solution test project to be sharded
+        id: spec-coverage
+        # When the browser lane is omitted, the rendering shard owns its build fixture.
+        env:
+          BLUEPRINT_TEMPLATES_LANE: ${{ needs.routing.outputs.generated-react-blueprint-templates }}
+          BUILD_SCOPE: ${{ needs.routing.outputs.build-scope }}
+          AFFECTED_PROJECTS: ${{ needs.routing.outputs.affected-projects }}
+        run: |
+          args=()
+          if [ "$BLUEPRINT_TEMPLATES_LANE" = true ]; then
+            args+=(--blueprint-templates-lane)
+          fi
+          if [ "$BUILD_SCOPE" = affected ]; then
+            args+=(--affected "$AFFECTED_PROJECTS")
+          fi
+          python3 .github/spec-shards.py guard "${args[@]}"
+
+      # Artifacts are an intra-run handoff, unlike immutable commit-keyed caches, whose failed saves
+      # can poison a rerun. Tar preserves executable permissions and the original project layout.
+      # Keep every bin/Debug runtime asset for --no-build consumers; obj is already excluded.
+      # Use fast compression and avoid recompressing the archive during upload.
+      - name: Archive Debug build output
+        run: |
+          find Source -type d -path '*/bin/Debug' -prune -print0 | tar --null -I 'zstd -T0 -3' -cf build-output.tar.zst -T -
+
+      - name: Upload Debug build output
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: debug-build-output
+          path: build-output.tar.zst
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+
+  # The frontend and the Release build/pack run beside the Debug build instead of ahead of the spec shards and
+  # lanes: nothing downstream consumes their output, but the `build` aggregate still requires both.
+  frontend:
+    if: ${{ needs.routing.outputs.skip != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
+    needs: [preflight, routing]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -144,40 +216,25 @@ jobs:
           npm test --prefix Source/Frontend
           npm run build --prefix Source/Frontend
 
-      - name: Verify spec shard routing and guards
-        run: python3 -B -m unittest discover -s .github -p 'test_*.py'
+  release-pack:
+    if: ${{ needs.routing.outputs.skip != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
+    needs: [preflight, routing]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
 
-      # This job owns analyzers for both configurations. Inline specs and their test SDK exist only in
-      # Debug; every spec lane reuses its binaries (including Host's isolated specrunner) with --no-build.
-      # Release still compiles without specs and remains the zero-warning/package-validation gate below.
-      - name: Build Debug
-        run: dotnet build --configuration Debug
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Require every solution test project to be sharded
-        id: spec-coverage
-        # When the browser lane is omitted, the rendering shard owns its build fixture.
-        env:
-          BLUEPRINT_TEMPLATES_LANE: ${{ needs.routing.outputs.generated-react-blueprint-templates }}
-        run: |
-          args=()
-          if [ "$BLUEPRINT_TEMPLATES_LANE" = true ]; then
-            args+=(--blueprint-templates-lane)
-          fi
-          python3 .github/spec-shards.py guard "${args[@]}"
-
-      # Artifacts are an intra-run handoff, unlike immutable commit-keyed caches, whose failed saves
-      # can poison a rerun. Tar preserves executable permissions and the original project layout.
-      - name: Archive Debug build output
-        run: |
-          find Source -type d -path '*/bin/Debug' -prune -print0 | tar --null -czf build-output.tar.gz -T -
-
-      - name: Upload Debug build output
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - name: Setup .Net
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          name: debug-build-output
-          path: build-output.tar.gz
-          retention-days: 1
-          if-no-files-found: error
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore NuGet packages
+        uses: Cratis/Workflows/.github/actions/dotnet-cache@main
+        with:
+          mode: restore
 
       # The version is a sentinel, not a release. Package validation compares assembly versions, and one
       # below the baseline is rejected on that alone before the API surface is ever looked at - so it has to
@@ -195,7 +252,9 @@ jobs:
         run: python3 Verification/verify-packed-reducer-consumer.py ./Artifacts/NuGet
 
   specs:
-    if: ${{ needs.routing.outputs.skip != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
+    # An empty matrix cannot expand, so a pull request touching no spec-bearing project skips the job; the
+    # `build` aggregate accepts that only when routing explicitly output specs-selected=false.
+    if: ${{ needs.routing.outputs.skip != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && needs.dotnet-build.outputs.has-specs == 'true' }}
     name: specs (${{ matrix.name }})
     needs: [preflight, routing, dotnet-build]
     runs-on: ubuntu-latest
@@ -232,7 +291,7 @@ jobs:
           name: debug-build-output
 
       - name: Extract Debug build output
-        run: tar -xzf build-output.tar.gz
+        run: tar -I zstd -xf build-output.tar.zst
 
       # Compare projection conversion against the same immutable Chronicle visitor as before.
       - name: Fetch Chronicle projection authority
@@ -255,6 +314,7 @@ jobs:
         env:
           CHRONICLE_SOURCE_ROOT: ${{ runner.temp }}/chronicle-source
           SPEC_SHARD: ${{ toJson(matrix) }}
+          STAGE_MAX_PARALLEL_APP_BUILDS: '2'
         run: python3 .github/spec-shards.py run "$SPEC_SHARD"
 
       - name: Upload spec results
@@ -270,7 +330,7 @@ jobs:
   # any spec shard fails or is skipped. The standalone application may skip only with an explicit
   # false routing output; failed, cancelled or missing jobs never pass. Live/generated checks stay separate.
   build:
-    needs: [preflight, dotnet-build, specs, routing, standalone-generated-application]
+    needs: [preflight, dotnet-build, frontend, release-pack, specs, routing, standalone-generated-application]
     if: needs.routing.outputs.skip != 'true' && always() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -283,9 +343,12 @@ jobs:
         env:
           PREFLIGHT_RESULT: ${{ needs.preflight.result }}
           BUILD_RESULT: ${{ needs.dotnet-build.result }}
+          FRONTEND_RESULT: ${{ needs.frontend.result }}
+          RELEASE_PACK_RESULT: ${{ needs.release-pack.result }}
           SPECS_RESULT: ${{ needs.specs.result }}
+          SPECS_SELECTED: ${{ needs.routing.outputs.specs-selected }}
           STANDALONE_RESULT: ${{ needs.standalone-generated-application.result }}
-        run: test "$PREFLIGHT_RESULT" = success && test "$BUILD_RESULT" = success && test "$SPECS_RESULT" = success && test "$STANDALONE_RESULT" = success
+        run: test "$PREFLIGHT_RESULT" = success && test "$BUILD_RESULT" = success && test "$FRONTEND_RESULT" = success && test "$RELEASE_PACK_RESULT" = success && { test "$SPECS_RESULT" = success || { test "$SPECS_RESULT" = skipped && test "$SPECS_SELECTED" = false; }; } && test "$STANDALONE_RESULT" = success
 
       - name: Validate routing and any expected standalone skip
         # Pass only what check-build reads: the full needs context includes the spec matrix output,
@@ -294,6 +357,8 @@ jobs:
           NEEDS_JSON: >-
             {"preflight": {"result": "${{ needs.preflight.result }}"},
             "dotnet-build": {"result": "${{ needs.dotnet-build.result }}"},
+            "frontend": {"result": "${{ needs.frontend.result }}"},
+            "release-pack": {"result": "${{ needs.release-pack.result }}"},
             "specs": {"result": "${{ needs.specs.result }}"},
             "standalone-generated-application": {"result": "${{ needs.standalone-generated-application.result }}"},
             "routing": ${{ toJson(needs.routing) }}}
@@ -309,9 +374,18 @@ jobs:
       && needs.dotnet-build.result == 'success'
       && needs.routing.outputs.reducer-mongo == 'true'
     runs-on: ubuntu-latest
+    name: reducer-mongo (${{ matrix.probe }})
     timeout-minutes: 20
+    permissions:
+      contents: read
+    # Keep the original filter groups intact; each leg owns a kernel and its result checks.
+    # Runtime proofs are the slowest group, so subdividing the other probes adds setup, not speed.
+    strategy:
+      fail-fast: false
+      matrix:
+        probe: [runtime-proofs, rendering-probes, reconnect]
     env:
-      REDUCER_MONGO_CONTAINER: stage-reducer-mongo-${{ github.run_id }}-${{ github.run_attempt }}
+      REDUCER_MONGO_CONTAINER: stage-reducer-mongo-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.probe }}
 
     steps:
       # This cannot use a repository helper: checkout has not run and may clean the workspace.
@@ -389,7 +463,7 @@ jobs:
           name: debug-build-output
 
       - name: Extract Debug build output
-        run: tar -xzf build-output.tar.gz
+        run: tar -I zstd -xf build-output.tar.zst
 
       - name: Restore packages without an exact cache hit
         if: steps.nuget.outputs.cache-hit != 'true'
@@ -407,6 +481,7 @@ jobs:
 
       # Setup/health is not runtime evidence. This separate gate requires the two exact MongoFacts.
       - name: Run default and atomic mixed-refusal runtime proofs
+        if: matrix.probe == 'runtime-proofs'
         id: mixed342
         # Allow 5 minutes for bounded preflight, evidence validation and cleanup around the 600-second test.
         timeout-minutes: 15
@@ -468,7 +543,7 @@ jobs:
               check_disk = guard.check
               env = dict(os.environ, AI_WORK_OUTPUT=str(output))
               command = ["timeout", "--kill-after=10s", "600s", "dotnet", "test",
-                         "Source/Rendering.Cratis/Rendering.Cratis.csproj", "--configuration", "Debug", "--framework", "net11.0",
+                         "Source/Rendering.Cratis/Rendering.Cratis.csproj", "--configuration", "Debug", "--no-build", "--framework", "net11.0",
                          "--filter", "|".join("FullyQualifiedName=" + name for name in sorted(expected)),
                          "--logger", "trx;LogFileName=stage342-runtime.trx", "--results-directory", str(evidence)]
               with (evidence / "runtime.log").open("wb") as log:
@@ -513,6 +588,7 @@ jobs:
           PY
 
       - name: Run Billing deletion, scoped-projection, routed-append, reducer-filter, reducer-migration and reaction persistence probes
+        if: matrix.probe == 'rendering-probes'
         env:
           STAGE_CHRONICLE_MONGO_CONNECTION: chronicle://localhost:35000
           # Keeps the generated application's own build and test logs with the uploaded results.
@@ -523,6 +599,7 @@ jobs:
           --logger "trx;LogFileName=billing-mongo.trx" --results-directory ./TestResults/reducer-mongo
 
       - name: Run Stage projection reconnect probe
+        if: matrix.probe == 'reconnect'
         env:
           STAGE_CHRONICLE_MONGO_CONNECTION: chronicle://localhost:35000
         run: >-
@@ -533,11 +610,16 @@ jobs:
       # A zero exit from dotnet test can mean that nothing ran. Require every named probe to
       # execute and pass, so a missing or skipped probe cannot silently make this gate green.
       - name: Require all live probes to execute and pass
+        if: matrix.probe != 'runtime-proofs'
+        env:
+          PROBE: ${{ matrix.probe }}
         run: |
           python3 - <<'PY'
+          import os
           import xml.etree.ElementTree as ET
-          roots = [ET.parse("TestResults/reducer-mongo/" + name).getroot()
-                   for name in ("billing-mongo.trx", "stage-reconnect.trx")]
+          probe = os.environ["PROBE"]
+          result_file = {"rendering-probes": "billing-mongo.trx", "reconnect": "stage-reconnect.trx"}[probe]
+          roots = [ET.parse("TestResults/reducer-mongo/" + result_file).getroot()]
           ns = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
           results = [result for root in roots for result in root.findall("t:Results/t:UnitTestResult", ns)]
           # testName is the display name; identify each result by its test method instead.
@@ -561,6 +643,8 @@ jobs:
               "Cratis.Stage.Host.for_CratisServiceConfiguration.when_reconnecting_against_the_pinned_kernel.should_keep_stage_projections_updating_when_configured",
               "Cratis.Stage.Host.for_CratisServiceConfiguration.when_encrypting_against_the_pinned_kernel.should_encrypt_and_release_concepts_when_configured",
           }
+          project_prefix = {"rendering-probes": prefix, "reconnect": "Cratis.Stage.Host."}[probe]
+          expected = {name for name in expected if name.startswith(project_prefix)}
           counters = [root.find("t:ResultSummary/t:Counters", ns) for root in roots]
           if (len(results) != len(expected)
                   or names != expected
@@ -611,7 +695,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: reducer-mongo-bootstrap
+          name: reducer-mongo-bootstrap-${{ matrix.probe }}
           path: ${{ runner.temp }}/stage342-bootstrap-${{ github.run_id }}-${{ github.run_attempt }}.log
           if-no-files-found: error
           retention-days: 3
@@ -620,7 +704,7 @@ jobs:
         if: ${{ always() && steps.scratch.outputs.scratch != '' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: reducer-mongo-filesystems
+          name: reducer-mongo-filesystems-${{ matrix.probe }}
           path: |
             ${{ steps.scratch.outputs.scratch }}/.stage342-owner
             ${{ steps.scratch.outputs.scratch }}/disk-*.json
@@ -635,7 +719,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: reducer-mongo-results
+          name: reducer-mongo-results-${{ matrix.probe }}
           path: |
             TestResults/reducer-mongo
             .ai-work/342/ci
@@ -684,7 +768,7 @@ jobs:
           name: debug-build-output
 
       - name: Extract Debug build output
-        run: tar -xzf build-output.tar.gz
+        run: tar -I zstd -xf build-output.tar.zst
 
       - name: Restore packages without an exact cache hit
         if: steps.nuget.outputs.cache-hit != 'true'
@@ -738,7 +822,7 @@ jobs:
 
       - name: Extract Debug build output
         id: extract
-        run: tar -xzf build-output.tar.gz
+        run: tar -I zstd -xf build-output.tar.zst
 
       - name: Restore packages without an exact cache hit
         if: steps.nuget.outputs.cache-hit != 'true'
@@ -886,6 +970,9 @@ jobs:
       - name: Run the live domain blueprint scenarios
         id: blueprints
         if: needs.routing.outputs.live-blueprints == 'true'
+        env:
+          # Bound Stage/Chromium pairs on the 4-vCPU, 16-GB runner; models need no database or build.
+          STAGE_LIVE_CONCURRENCY: "3"
         run: Verification/live-blueprints/run.sh cratis/stage:ci "$PWD/TestResults/live-blueprints"
 
       - name: Run the live blueprint template scenarios
@@ -947,7 +1034,7 @@ jobs:
           name: debug-build-output
 
       - name: Extract Debug build output
-        run: tar -xzf build-output.tar.gz
+        run: tar -I zstd -xf build-output.tar.zst
 
       - name: Restore packages without an exact cache hit
         if: steps.nuget.outputs.cache-hit != 'true'
@@ -1038,7 +1125,7 @@ jobs:
           name: debug-build-output
 
       - name: Extract Debug build output
-        run: tar -xzf build-output.tar.gz
+        run: tar -I zstd -xf build-output.tar.zst
 
       - name: Restore packages without an exact cache hit
         if: steps.nuget.outputs.cache-hit != 'true'

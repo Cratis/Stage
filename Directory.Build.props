@@ -25,6 +25,14 @@
         <EnableNETAnalyzers>True</EnableNETAnalyzers>
         <AnalysisMode>AllEnabledByDefault</AnalysisMode>
 
+        <!--
+            Arc's embedded Screenplay build compiles a project once more to read its event model, which is what a
+            Debug build costs a minute per project for. Only an application that describes itself needs it: the Stage
+            projects render a model they are handed, and the specification projects never embed one. A project
+            that wants the documents sets this to true.
+        -->
+        <CratisEmbeddedScreenplayEnabled Condition="'$(CratisEmbeddedScreenplayEnabled)' == ''">false</CratisEmbeddedScreenplayEnabled>
+
         <GenerateDocumentationFile>false</GenerateDocumentationFile>
         <NoWarn>NU1507;CS1591</NoWarn>
     </PropertyGroup>

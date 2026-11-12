@@ -8,6 +8,8 @@
   href: connect-a-backend.md
 - name: Built-in http extension
   href: http.md
+- name: Inbound traffic and webhooks
+  href: inbound-traffic.md
 - name: Conformance suite
   href: conformance.md
 - name: C# SDK

@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Stage.Host.Extensions.Inbound;
+
 namespace Cratis.Stage.Host.Extensions;
 
 /// <summary>
@@ -44,6 +46,11 @@ public sealed class ExtensionOptions
     /// replaces it by registering another <see cref="IExtensionEndpoints"/>.
     /// </summary>
     public IDictionary<string, ExtensionBackendOptions> Backends { get; set; } = new Dictionary<string, ExtensionBackendOptions>();
+
+    /// <summary>
+    /// Gets or sets how inbound traffic is stored and delivered.
+    /// </summary>
+    public InboundOptions Inbound { get; set; } = new();
 
     /// <summary>
     /// Gets whether the extension protocol is enabled.

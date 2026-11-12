@@ -31,6 +31,9 @@ and TypeScript. It implements section 9 of
 - Stage runs each ability invocation as a durable, retried, deduplicated message. See
   [Durable ability invocations](../reference/ability-invocations.md) and the Choreography page on
   [answers that arrive later and reconciliation](https://github.com/Cratis/Choreography/blob/main/Documentation/workflows/extension-invocations.md).
+- Inbound traffic, such as a webhook, is stored and acknowledged by Stage, then delivered to the extension, which raises the contract's triggers. See
+  [inbound traffic and webhooks](inbound-traffic.md) and the Screenplay
+  [triggers](https://github.com/Cratis/Screenplay/blob/main/Documentation/screenplay/triggers.md) page.
 - The extension protocol is the seam between the two: for every attempt Stage calls the backend, and the backend answers with what happened.
 
 ## Where things live

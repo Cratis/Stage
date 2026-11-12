@@ -12,4 +12,5 @@ namespace Cratis.Stage.Host.Extensions;
 /// <param name="DeduplicationKey">The key that makes raising it again find the first raise.</param>
 /// <param name="PayloadJson">What the trigger carries, as JSON.</param>
 /// <param name="Causation">What caused it, such as the invocation that raised it.</param>
-public sealed record TriggerRaise(string System, string Trigger, string Tenant, string DeduplicationKey, string PayloadJson, string Causation);
+/// <param name="Correlation">What it is about. Runs that wait for the trigger about the same thing resume; empty resumes none.</param>
+public sealed record TriggerRaise(string System, string Trigger, string Tenant, string DeduplicationKey, string PayloadJson, string Causation, string Correlation = "");

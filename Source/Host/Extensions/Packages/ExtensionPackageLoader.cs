@@ -53,7 +53,7 @@ public sealed class ExtensionPackageLoader(
             }
         }
 
-        return new(loaded, refusals);
+        return new(loaded, refusals, contracts);
     }
 
     async Task<LoadedExtensionPackage> LoadOne(ExtensionLockEntry entry, CancellationToken cancellationToken)

@@ -41,7 +41,8 @@ public sealed record LoadedExtensionPackage(ExtensionLockEntry Lock, ExtensionCo
 /// </summary>
 /// <param name="Loaded">The packages that are loaded.</param>
 /// <param name="Refusals">The packages that are not, and why.</param>
-public sealed record ExtensionPackageSet(IReadOnlyList<LoadedExtensionPackage> Loaded, IReadOnlyList<PackageRefusal> Refusals)
+/// <param name="Contracts">Where the contracts of the loaded packages are kept for the compiler, or null when nothing was loaded.</param>
+public sealed record ExtensionPackageSet(IReadOnlyList<LoadedExtensionPackage> Loaded, IReadOnlyList<PackageRefusal> Refusals, ExtensionCache? Contracts = null)
 {
     /// <summary>
     /// Gets the empty outcome, of a model that names no extension.

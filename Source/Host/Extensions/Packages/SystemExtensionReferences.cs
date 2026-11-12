@@ -43,13 +43,19 @@ public static class SystemExtensionReferences
         }
     }
 
-    static string? SystemName(string line)
+    internal static string? SystemName(string line)
     {
         const string keyword = "system ";
         if (!line.StartsWith(keyword, StringComparison.Ordinal)) return null;
 
         var name = line[keyword.Length..].Trim();
         return name.Length > 0 && char.IsLetter(name[0]) && name.All(character => char.IsLetterOrDigit(character) || character == '_') ? name : null;
+    }
+
+    internal static IEnumerable<string> PlayFiles(string modelPath)
+    {
+        if (!Directory.Exists(modelPath)) return File.Exists(modelPath) ? [modelPath] : [];
+        return Directory.EnumerateFiles(modelPath, "*.play", SearchOption.AllDirectories).Where(file => !file.Contains($"{Path.DirectorySeparatorChar}.", StringComparison.Ordinal));
     }
 
     static string? ExtensionReference(string line)
@@ -60,11 +66,5 @@ public static class SystemExtensionReferences
 
         var end = text.IndexOf('"', keyword.Length);
         return end > keyword.Length ? text[keyword.Length..end] : null;
-    }
-
-    static IEnumerable<string> PlayFiles(string modelPath)
-    {
-        if (!Directory.Exists(modelPath)) return File.Exists(modelPath) ? [modelPath] : [];
-        return Directory.EnumerateFiles(modelPath, "*.play", SearchOption.AllDirectories).Where(file => !file.Contains($"{Path.DirectorySeparatorChar}.", StringComparison.Ordinal));
     }
 }

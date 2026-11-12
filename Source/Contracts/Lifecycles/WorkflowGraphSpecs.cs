@@ -93,6 +93,9 @@ public static class WorkflowGraphSpecs
         {
             case SemanticWorkflowNodeKind.Trigger:
                 return Make($"workflows.trigger.{node.TriggerKind.ToString()!.ToLowerInvariant()}", "{}", "next");
+            case SemanticWorkflowNodeKind.Action when !string.IsNullOrEmpty(node.Ability):
+                refusals.Add(new(LifecycleCodes.AbilityNode, workflow.Name, $"Action '{name}' invokes the ability '{node.Ability}'; the engine's graph does not run ability nodes yet (Cratis/Stage#1118)."));
+                return Make("workflows.unknown", "{}");
             case SemanticWorkflowNodeKind.Action:
                 var refusalRouted = workflow.Edges.Any(edge => edge.From == name && edge.Outlet == RefusedOutlet);
                 return Make(SendCapability(plan.Commands[node.Command].Name), refusalRouted ? RefusalRoutedConfiguration : "{}", "next", "failed", RefusedOutlet);

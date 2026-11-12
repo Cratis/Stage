@@ -65,7 +65,7 @@ class Sharding(NamedTuple):
 
 
 RENDERING_SHARDING = Sharding("rendering", RENDERING, "Source/Rendering.Cratis", RENDERING_SHARDS, (PLANNER,),
-                              False, "Cratis.Stage.Rendering.Cratis.dll", "class-span")
+                              False, "Cratis.Stage.Rendering.Cratis.dll", "wall-attributed")
 # Conformance runs the planner namespace too (its RootNamespace is Rendering.Cratis), against its own assembly.
 # Its shared class fixtures run before the first test starts, so plain class spans undercount it.
 CONFORMANCE_SHARDING = Sharding("conformance", CONFORMANCE, "Source/Conformance.Specs", 3, (PLANNER, THREE_WAY),

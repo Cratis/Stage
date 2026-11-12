@@ -283,7 +283,7 @@ class RoutingTests(unittest.TestCase):
         self.assertIn("GH_TOKEN: ${{ github.token }}", JOBS["routing"])
         self.assertIn("needs: routing", JOBS["preflight"])
         self.assertIn(f"    if: ${{{{ {DRAFT_GATE} }}}}\n", JOBS["routing"])
-        for job in ("preflight", "dotnet-build", "specs"):
+        for job in ("preflight", "dotnet-build", "frontend", "release-pack", "specs"):
             self.assertIn(f"    if: ${{{{ {SKIP_GATE} && ({DRAFT_GATE}) }}}}\n", JOBS[job], job)
         for lane in ALL - {"live-custom-packages", "live-blueprints"}:
             self.assertIn(f"\n      && needs.routing.outputs.{lane} == 'true'\n", JOBS[lane])
@@ -337,6 +337,27 @@ class RoutingTests(unittest.TestCase):
         self.assertIn("test-nightly-alert:", WORKFLOW.split("jobs:\n", 1)[0])
         self.assertIn("NIGHTLY_DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}", job)
 
+    def test_frontend_and_release_pack_run_beside_the_debug_build_and_stay_required(self):
+        for job in ("frontend", "release-pack"):
+            self.assertIn("    needs: [preflight, routing]\n", JOBS[job], job)
+        moved = {
+            "frontend": ("npm ci --prefix Source/Frontend", "npm test --prefix Source/Frontend",
+                         "npm run build --prefix Source/Frontend", "verify-stage-entrypoint.py"),
+            "release-pack": ("dotnet build --configuration Release -p:Version=9999.0.0", "dotnet pack --no-build",
+                             "verify-packed-reducer-consumer.py"),
+        }
+        for job, fragments in moved.items():
+            for fragment in fragments:
+                self.assertEqual(1, WORKFLOW.count(fragment), fragment)
+                self.assertIn(fragment, JOBS[job], (job, fragment))
+                self.assertNotIn(fragment, JOBS["dotnet-build"], fragment)
+        self.assertNotIn("setup-node", JOBS["dotnet-build"])
+        self.assertIn("mode: restore", JOBS["release-pack"])
+        needs = JOBS["build"].splitlines()[0]
+        for job in ("frontend", "release-pack"):
+            self.assertIn(job, needs)
+            self.assertNotIn(job, JOBS["specs"].split("runs-on:")[0])
+
     def test_heavy_lanes_need_the_build_but_run_in_parallel_with_specs(self):
         live_packages_gate = f"""    needs: [preflight, routing, dotnet-build]
     # Pull requests start heavy lanes after the build passes, in parallel with the spec shards; nightly/manual runs keep full coverage.
@@ -367,7 +388,7 @@ class RoutingTests(unittest.TestCase):
         self.assertIn("specs", JOBS["build"].splitlines()[0])
         # The build aggregate passes a reduced needs object: the full context exceeds the environment limit.
         self.assertNotIn("toJson(needs)", JOBS["build"])
-        for job in ("preflight", "dotnet-build", "specs", "standalone-generated-application"):
+        for job in ("preflight", "dotnet-build", "frontend", "release-pack", "specs", "standalone-generated-application"):
             self.assertIn(f'"{job}": {{"result": "${{{{ needs.{job}.result }}}}"}}', JOBS["build"])
         self.assertIn('"routing": ${{ toJson(needs.routing) }}}', JOBS["build"])
         self.assertIn("run: python3 .github/ci-routing.py check-build", JOBS["build"])
@@ -434,7 +455,7 @@ class RequiredChecksTests(unittest.TestCase):
 
     def build_needs(self):
         needs = self.needs(ALL)
-        needs.update({job: {"result": "success"} for job in ("preflight", "dotnet-build", "specs")})
+        needs.update({job: {"result": "success"} for job in ("preflight", "dotnet-build", "frontend", "release-pack", "specs")})
         return needs
 
     def test_build_permits_success_and_explicitly_unselected_standalone_skip(self):
@@ -458,7 +479,7 @@ class RequiredChecksTests(unittest.TestCase):
             CI["require_build"](needs)
 
     def test_build_requires_core_jobs_and_routing(self):
-        for job in ("preflight", "dotnet-build", "specs", "routing"):
+        for job in ("preflight", "dotnet-build", "frontend", "release-pack", "specs", "routing"):
             for result in ("failure", "skipped", "cancelled", ""):
                 needs = self.build_needs()
                 needs[job]["result"] = result

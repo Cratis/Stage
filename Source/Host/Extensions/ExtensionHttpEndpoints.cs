@@ -3,6 +3,7 @@
 
 using System.Collections.Frozen;
 using Cratis.Stage.Extensions.Protocol;
+using Cratis.Stage.Host.Extensions.Activation;
 using Cratis.Stage.Host.Extensions.Inbound;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
@@ -74,7 +75,7 @@ public static class ExtensionHttpEndpoints
         {
             if (!running.Description.HttpRoutes.Any(route => Matches(route, relative))) return Results.NotFound();
         }
-        else if (await endpoints.Resolve(system, http.RequestAborted) is null)
+        else if (!await endpoints.Knows(system, http.RequestAborted))
         {
             return Results.NotFound();
         }
@@ -124,6 +125,7 @@ public static class ExtensionHttpEndpoints
     static async Task<IResult> Proxy(HttpContext http, string system, string relative, ExtensionConnections connections)
     {
         if ((await connections.Connect(system, http.RequestAborted)).Connection is not { } connection) return Results.NotFound();
+        using var inFlight = http.RequestServices.GetService<IBackendActivity>()?.Begin(system);
         if (!connection.Description.HttpRoutes.Any(route => Matches(route, relative))) return Results.NotFound();
 
         await using var body = new MemoryStream();

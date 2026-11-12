@@ -28,8 +28,8 @@ mkdir -p "$results"
 pids=()
 
 trap '
-    for pid in "${pids[@]}"; do kill "$pid" 2>/dev/null || true; done
-    for pid in "${pids[@]}"; do wait "$pid" 2>/dev/null || true; done
+    for pid in ${pids[@]+"${pids[@]}"}; do kill "$pid" 2>/dev/null || true; done
+    for pid in ${pids[@]+"${pids[@]}"}; do wait "$pid" 2>/dev/null || true; done
     rm -rf "$work"
 ' EXIT
 trap 'exit 2' INT TERM
@@ -96,7 +96,8 @@ run_model() (
 
 status=0
 wait_batch() {
-    for pid in "${pids[@]}"; do
+    # The guarded expansion keeps an empty batch valid under set -u on bash 3.2.
+    for pid in ${pids[@]+"${pids[@]}"}; do
         wait "$pid"
         code=$?
         if [ "$code" -eq 2 ]; then status=2

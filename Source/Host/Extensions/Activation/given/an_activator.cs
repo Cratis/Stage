@@ -38,7 +38,7 @@ public abstract class an_activator : a_backend_package
         await LoadBackend("dotnet", activation);
 
         var packages = new ExtensionPackages(_result, systems.ToDictionary(system => system, _ => PackageFixtures.Reference));
-        var systemsOfModel = new ActivatedSystems([packages], [new ModelActivationOverrides(overrides)], Options.Create(_options));
+        var systemsOfModel = new ActivatedSystems(packages, new ModelActivationOverrides(overrides), Options.Create(_options));
         _activator = new(systemsOfModel, [_runtime], Options.Create(_options), _time, NullLogger<ExtensionActivator>.Instance);
         _activator.Stopped += _stopped.Add;
     }

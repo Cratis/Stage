@@ -17,7 +17,7 @@ public sealed class FakeBackendRuntime(ExecutionTier tier) : IBackendRuntime
     /// <summary>
     /// Gets the backends that were started, in order.
     /// </summary>
-    public List<FakeBackend> Backends { get; } = [];
+    public List<ControlledBackend> Backends { get; } = [];
 
     /// <summary>
     /// Gets or sets why the next start fails, or null for it to succeed.
@@ -39,7 +39,7 @@ public sealed class FakeBackendRuntime(ExecutionTier tier) : IBackendRuntime
         if (Hold is not null) await Hold.Task;
         if (Failure is not null) throw new BackendStartException(Failure);
 
-        var backend = new FakeBackend(launch.System);
+        var backend = new ControlledBackend(launch.System);
         Backends.Add(backend);
         return backend;
     }
@@ -49,7 +49,7 @@ public sealed class FakeBackendRuntime(ExecutionTier tier) : IBackendRuntime
 /// A backend a specification can crash.
 /// </summary>
 /// <param name="system">The system it serves.</param>
-public sealed class FakeBackend(string system) : StartedBackend
+public sealed class ControlledBackend(string system) : StartedBackend
 {
     readonly TaskCompletionSource<string> _exited = new(TaskCreationOptions.RunContinuationsAsynchronously);
 

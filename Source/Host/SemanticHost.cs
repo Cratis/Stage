@@ -11,6 +11,8 @@ using Cratis.Stage.Contracts;
 using Cratis.Stage.Contracts.Execution;
 using Cratis.Stage.Contracts.Scene;
 using Cratis.Stage.Contracts.Semantics;
+using Cratis.Stage.Host.Extensions;
+using Cratis.Stage.Host.Extensions.Activation;
 using Cratis.Stage.Host.Extensions.Inbound;
 using Cratis.Stage.Host.Extensions.Packages;
 using Cratis.Stage.Host.Invocations;
@@ -22,6 +24,7 @@ using Cratis.Stage.Runtime;
 using Cratis.Stage.Semantics;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Scalar.AspNetCore;
 
 namespace Cratis.Stage.Host;
@@ -88,7 +91,10 @@ internal static class SemanticHost
         builder.Services.AddSingleton(new StageEventStoreName(eventStore));
         if (packages.Loaded.Count > 0)
         {
-            PinnedAbilityCatalog.AddExtensionPackages(builder.Services, new ExtensionPackages(packages, SystemExtensionReferences.Read(modelPath)));
+            var modelPackages = new ExtensionPackages(packages, SystemExtensionReferences.Read(modelPath));
+            PinnedAbilityCatalog.AddExtensionPackages(builder.Services, modelPackages);
+            var overrides = new ModelActivationOverrides(SystemActivationOverrides.Read(modelPath));
+            builder.Services.Replace(ServiceDescriptor.Singleton(provider => new ActivatedSystems(modelPackages, overrides, provider.GetRequiredService<IOptions<ExtensionOptions>>())));
         }
         if (surface is not null)
         {
@@ -169,12 +175,14 @@ internal static class SemanticHost
         if (packages.Loaded.Count > 0)
         {
             ExtensionPackageEndpoints.MapAssets(app, packages);
+            if (ExtensionsEnabled(app)) ExtensionActivationEndpoints.MapScreens(app);
         }
 
         if (mode == StageHostMode.Sandbox)
         {
             SandboxActingUser.Map(app);
             ExtensionPackageEndpoints.MapTooling(app, packages);
+            if (ExtensionsEnabled(app)) ExtensionActivationEndpoints.MapTooling(app);
             app.MapPost("/stage/load", () => Results.Conflict());
             app.MapGet("/stage/semantic/admission", () => Results.Json(new { engine = "semantic", issues = issues.Select(issue => issue.Details), entries = admission?.Entries ?? [] }, StageJson.Options));
             MapReadModelBrowserPage(app);
@@ -404,6 +412,8 @@ internal static class SemanticHost
 
         return Results.Json(new CommandResult { ExceptionMessages = issues.Select(entry => $"Unsupported({entry.Capability}) {entry.Artifact}: {entry.Details}") }, statusCode: StatusCodes.Status501NotImplemented);
     }
+
+    static bool ExtensionsEnabled(WebApplication app) => app.Services.GetRequiredService<IOptions<ExtensionOptions>>().Value.Enabled;
 
     static IReadOnlyList<IPublishedHostExtension> SelectExtensions(PublishedOptions? published, PublishedPackage? package) => published is null
         ? []

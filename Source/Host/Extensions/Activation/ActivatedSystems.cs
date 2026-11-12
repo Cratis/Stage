@@ -32,12 +32,12 @@ public sealed class ModelActivationOverrides(IReadOnlyDictionary<string, Activat
 /// <summary>
 /// The systems whose backend Stage starts and stops, each with the tier and policy settled from its contract, the deployment and the consumer's override.
 /// </summary>
-/// <param name="packages">The <see cref="IExtensionPackages"/> of the model, when it has any.</param>
-/// <param name="overrides">The <see cref="IActivationOverrides"/> of the model, when it has any.</param>
+/// <param name="packages">The <see cref="IExtensionPackages"/> of the model, or null when it has none.</param>
+/// <param name="overrides">The <see cref="IActivationOverrides"/> of the model, or null when it has none.</param>
 /// <param name="options">The <see cref="ExtensionOptions"/>.</param>
-public sealed class ActivatedSystems(IEnumerable<IExtensionPackages> packages, IEnumerable<IActivationOverrides> overrides, IOptions<ExtensionOptions> options)
+public sealed class ActivatedSystems(IExtensionPackages? packages, IActivationOverrides? overrides, IOptions<ExtensionOptions> options)
 {
-    readonly Lazy<IReadOnlyDictionary<string, BackendSlot>> _slots = new(() => Build(packages.FirstOrDefault(), overrides.FirstOrDefault(), options.Value.Execution));
+    readonly Lazy<IReadOnlyDictionary<string, BackendSlot>> _slots = new(() => Build(packages, overrides, options.Value.Execution));
 
     /// <summary>
     /// Gets every system that names an extension Stage has loaded.

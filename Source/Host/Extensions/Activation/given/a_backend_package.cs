@@ -16,12 +16,14 @@ public abstract class a_backend_package : a_package_loader
     /// </summary>
     /// <param name="runtime">The runtime of the backend.</param>
     /// <param name="activation">An <c lang="text">activation</c> line of the contract, or empty.</param>
+    /// <param name="entry">The entry point inside the package's backend folder.</param>
+    /// <param name="content">The bytes of the entry point.</param>
     /// <returns>The loaded package.</returns>
-    protected async Task<LoadedExtensionPackage> LoadBackend(string runtime = "dotnet", string activation = "")
+    protected async Task<LoadedExtensionPackage> LoadBackend(string runtime = "dotnet", string activation = "", string entry = "server.dll", byte[]? content = null)
     {
-        var extra = $"  backend runtime {runtime} 10 assembly \"server.dll\"" + (activation.Length > 0 ? $"\n  {activation}" : string.Empty);
+        var extra = $"  backend runtime {runtime} 10 assembly \"{entry}\"" + (activation.Length > 0 ? $"\n  {activation}" : string.Empty);
         _files = PackageFixtures.Files(PackageFixtures.Contract(extra: extra));
-        _files["backend/server.dll"] = [1, 2, 3];
+        _files[$"backend/{entry}"] = content ?? [1, 2, 3];
         Build();
         _result = await Load();
         return _result.Loaded.Single();

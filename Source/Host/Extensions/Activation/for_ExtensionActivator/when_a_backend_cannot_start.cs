@@ -29,8 +29,8 @@ public class when_a_backend_cannot_start : an_activator
         _options.Execution.Sharing.Publishers = [];
         _unplaceable = await new ExtensionActivator(
             new(
-                [new Packages.ExtensionPackages(_result, new Dictionary<string, string> { ["Untrusted"] = Packages.given.PackageFixtures.Reference })],
-                [],
+                new Packages.ExtensionPackages(_result, new Dictionary<string, string> { ["Untrusted"] = Packages.given.PackageFixtures.Reference }),
+                null,
                 Microsoft.Extensions.Options.Options.Create(_options)),
             [_runtime],
             Microsoft.Extensions.Options.Options.Create(_options),

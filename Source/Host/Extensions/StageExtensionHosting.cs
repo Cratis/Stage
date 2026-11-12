@@ -5,6 +5,7 @@ using Cratis.Stage.Host.Extensions.Activation;
 using Cratis.Stage.Host.Extensions.Inbound;
 using Cratis.Stage.Host.Invocations;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 
 namespace Cratis.Stage.Host.Extensions;
 
@@ -27,7 +28,7 @@ public static class StageExtensionHosting
         if (configuration.GetValue<int>($"{ExtensionOptions.Section}:{nameof(ExtensionOptions.HostPort)}") <= 0) return services;
 
         services.TryAddSingleton<ConfiguredExtensionEndpoints>();
-        services.TryAddSingleton<ActivatedSystems>();
+        services.Replace(ServiceDescriptor.Singleton(provider => new ActivatedSystems(null, null, provider.GetRequiredService<IOptions<ExtensionOptions>>())));
         services.TryAddSingleton<ExtensionActivator>();
         services.TryAddSingleton<IBackendActivity>(provider => provider.GetRequiredService<ExtensionActivator>());
         services.TryAddSingleton<IScreenExtensionUsage, NoScreenExtensionUsage>();

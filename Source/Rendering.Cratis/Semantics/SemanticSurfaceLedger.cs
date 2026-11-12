@@ -402,6 +402,17 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticApplication", ignored("Agent exposure is a contract for the hosting surface; the generated backend neither renders nor refuses it."), "Agents");
         Add(entries, "SemanticAgents", ignored("Agent exposure is a contract for the hosting surface."), "TokenKind Operations");
         Add(entries, "SemanticAgentOperation", ignored("Agent exposure is a contract for the hosting surface."), "Kind Operation Scope Description");
+
+        // Systems and the abilities they declare are performed by the Stage host through extension backends, from the model's lock. They are a
+        // contract for the hosting surface, not behavior of the generated backend, which neither renders nor refuses them.
+        const string systems = "Systems and abilities are performed by the Stage host through extension backends; the generated backend neither renders nor refuses them.";
+        Add(entries, "SemanticApplication", ignored(systems), "Systems");
+        Add(entries, "SemanticSystem", ignored(systems), "Id Name Abilities");
+        Add(entries, "SemanticAbility", ignored(systems), "Name Effect Inputs Returns Outcomes AnswersLater Realization");
+        Add(entries, "SemanticAbilityField", ignored(systems), "Name Type");
+        Add(entries, "SemanticAbilityEffect", ignored(systems), "Safe Idempotent Once");
+        Add(entries, "SemanticAbilityRealization", ignored(systems), "Kind RequirementId");
+        Add(entries, "SemanticAbilityRealizationKind", ignored(systems), "None Code Extension");
         Add(entries, "SemanticAgentOperationKind", ignored("Agent exposure is a contract for the hosting surface."), "Command Query");
         Add(entries, "SemanticAgentScope", ignored("Agent exposure is a contract for the hosting surface."), "Read Write");
         Add(entries, "SemanticAgentTokenKind", ignored("Agent exposure is a contract for the hosting surface."), "Personal");

@@ -25,9 +25,50 @@ public sealed class PackageArchiveReader(long maxBytes, int maxFiles)
     {
         var files = new Dictionary<string, byte[]>(StringComparer.Ordinal);
         var backend = new List<PackageFileInfo>();
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         long total = 0;
 
+        Enumerate(archives, root, (path, entry) =>
+        {
+            var data = entry.DataStream is null ? [] : ReadBounded(entry.DataStream, maxBytes - total);
+            total += data.Length;
+            if (path.StartsWith(PackageContents.BackendFolder, StringComparison.Ordinal)) backend.Add(new(path, data.Length));
+            else files[path] = data;
+        });
+
+        return new(files, backend);
+    }
+
+    /// <summary>
+    /// Unpacks the backend of the archives into a folder, with the same refusals as <see cref="Read"/>. Nothing outside the folder is written.
+    /// </summary>
+    /// <param name="archives">The archives, in order.</param>
+    /// <param name="root">The folder in the archives the package lives in.</param>
+    /// <param name="destination">The folder to unpack the files under <c lang="text">backend/</c> into.</param>
+    /// <exception cref="PackageRefusedException">Thrown when the package is not safe to unpack.</exception>
+    public void ExtractBackend(IEnumerable<Stream> archives, string root, string destination)
+    {
+        var folder = Path.GetFullPath(destination);
+        Directory.CreateDirectory(folder);
+        long total = 0;
+
+        Enumerate(archives, root, (path, entry) =>
+        {
+            if (!path.StartsWith(PackageContents.BackendFolder, StringComparison.Ordinal) || entry.DataStream is null) return;
+
+            var target = Path.GetFullPath(Path.Combine(folder, path[PackageContents.BackendFolder.Length..]));
+            if (!target.StartsWith(folder + Path.DirectorySeparatorChar, StringComparison.Ordinal)) Refuse($"'{path}' is not a safe path.");
+
+            var data = ReadBounded(entry.DataStream, maxBytes - total);
+            total += data.Length;
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            File.WriteAllBytes(target, data);
+            if (!OperatingSystem.IsWindows() && (entry.Mode & UnixFileMode.UserExecute) != 0) File.SetUnixFileMode(target, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        });
+    }
+
+    void Enumerate(IEnumerable<Stream> archives, string root, Action<string, TarEntry> visit)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var archive in archives)
         {
             using var stream = Decompressed(archive);
@@ -41,14 +82,9 @@ public sealed class PackageArchiveReader(long maxBytes, int maxFiles)
                 if (!seen.Add(path)) Refuse($"'{path}' appears more than once.");
                 if (seen.Count > maxFiles) Refuse($"The package holds more than {maxFiles} files.", PackageRefusalReason.TooLarge);
 
-                var data = entry.DataStream is null ? [] : ReadBounded(entry.DataStream, maxBytes - total);
-                total += data.Length;
-                if (path.StartsWith(PackageContents.BackendFolder, StringComparison.Ordinal)) backend.Add(new(path, data.Length));
-                else files[path] = data;
+                visit(path, entry);
             }
         }
-
-        return new(files, backend);
     }
 
     static Stream Decompressed(Stream archive)

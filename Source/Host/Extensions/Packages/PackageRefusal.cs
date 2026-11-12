@@ -53,7 +53,7 @@ public sealed record PackageRefusal(string Reference, PackageRefusalReason Reaso
     /// Describes the refusal as an issue the admission reports.
     /// </summary>
     /// <returns>The <see cref="StageUnsupportedIssue"/>.</returns>
-    public StageUnsupportedIssue ToIssue() => new(Capability, Reference, $"{Reason}: {Details}");
+    public StageUnsupportedIssue ToIssue() => new(Capability, Reference, $"{Reference}: {Reason}: {Details}");
 }
 
 /// <summary>

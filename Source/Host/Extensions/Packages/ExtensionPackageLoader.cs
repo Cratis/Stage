@@ -76,7 +76,14 @@ public sealed class ExtensionPackageLoader(
         var contract = admission.Admit(entry, contents);
 
         contracts.Store(entry.Digest, contents.Contract!);
-        return new(entry, contract, contents, channel is NpmPackageChannel ? "npm" : "oci", signed);
+        return new(entry, contract, contents, channel is NpmPackageChannel ? "npm" : "oci", signed, folder => UnpackBackend(channel, entry, folder));
+    }
+
+    void UnpackBackend(IPackageChannel channel, ExtensionLockEntry entry, string folder)
+    {
+        var artifact = cache.TryRead(entry.Digest) ?? throw new PackageRefusedException(PackageRefusalReason.NotFound, "The package is no longer in the cache.");
+        var fetched = channel.Open(entry, artifact);
+        new PackageArchiveReader(options.MaxPackageBytes, options.MaxPackageFiles).ExtractBackend(fetched.Archives.Select(archive => (Stream)new MemoryStream(archive, writable: false)), fetched.ArchiveRoot, folder);
     }
 
     async Task<FetchedPackage> Fetch(IPackageChannel channel, ExtensionLockEntry entry, CancellationToken cancellationToken)

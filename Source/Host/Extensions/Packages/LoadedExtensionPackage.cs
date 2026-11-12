@@ -13,7 +13,8 @@ namespace Cratis.Stage.Host.Extensions.Packages;
 /// <param name="Contents">The <see cref="PackageContents"/>.</param>
 /// <param name="Channel">The channel it came from, <c lang="text">oci</c> or <c lang="text">npm</c>.</param>
 /// <param name="Signed">Whether a signature by the publisher's key was verified.</param>
-public sealed record LoadedExtensionPackage(ExtensionLockEntry Lock, ExtensionContract Contract, PackageContents Contents, string Channel, bool Signed)
+/// <param name="BackendUnpacker">Unpacks the backend into a folder from the verified bytes, or null when the package was not loaded by a loader.</param>
+public sealed record LoadedExtensionPackage(ExtensionLockEntry Lock, ExtensionContract Contract, PackageContents Contents, string Channel, bool Signed, Action<string>? BackendUnpacker = null)
 {
     /// <summary>
     /// Gets the locked digest, which is what identifies the package everywhere.
@@ -34,6 +35,18 @@ public sealed record LoadedExtensionPackage(ExtensionLockEntry Lock, ExtensionCo
     /// Gets whether the package ships a frontend.
     /// </summary>
     public bool HasFrontend => Contract.Frontend is not null;
+
+    /// <summary>
+    /// Unpacks the backend into a folder, for whatever runs it. The bytes are verified against the locked digest again first, so what is unpacked is what was admitted.
+    /// </summary>
+    /// <param name="folder">The folder to unpack into.</param>
+    /// <exception cref="InvalidOperationException">Thrown when the package has no backend or was not loaded by a loader.</exception>
+    /// <exception cref="PackageRefusedException">Thrown when the cached bytes no longer verify.</exception>
+    public void UnpackBackend(string folder)
+    {
+        if (!HasBackend || BackendUnpacker is null) throw new InvalidOperationException($"The package {Lock.Reference} has no backend to unpack.");
+        BackendUnpacker(folder);
+    }
 }
 
 /// <summary>

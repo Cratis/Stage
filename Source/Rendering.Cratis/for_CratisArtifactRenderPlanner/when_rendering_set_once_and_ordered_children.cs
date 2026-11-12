@@ -80,7 +80,7 @@ public class when_rendering_set_once_and_ordered_children : Specification
         var execution = SemanticExecutionPlan.Compile(compilation.Value!.Model);
         Assert.True(execution.Success, string.Join("; ", execution.Issues));
         _plan = CratisRendering.Plan(compilation.Value.Model, execution.Plan, new(ArtifactRenderScopeKind.Application, compilation.Value.Model.Application.Id), new("Library", "Library"));
-        _projection = string.Join("\n", _plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal))
+        _projection = string.Join('\n', _plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal))
             .Select(artifact => Encoding.UTF8.GetString(artifact.Bytes.AsSpan())).Where(text => text.Contains("IProjectionFor", StringComparison.Ordinal)));
     }
 

@@ -287,7 +287,7 @@ class RoutingTests(unittest.TestCase):
         self.assertIn("GH_TOKEN: ${{ github.token }}", JOBS["routing"])
         self.assertIn("needs: routing", JOBS["preflight"])
         self.assertIn(f"    if: ${{{{ {DRAFT_GATE} }}}}\n", JOBS["routing"])
-        for job in ("preflight", "dotnet-build", "frontend", "release-pack"):
+        for job in ("preflight", "dotnet-build", "analyzers", "frontend", "release-pack"):
             self.assertIn(f"    if: ${{{{ {SKIP_GATE} && ({DRAFT_GATE}) }}}}\n", JOBS[job], job)
         self.assertIn(f"    if: ${{{{ {SKIP_GATE} && ({DRAFT_GATE}) && needs.dotnet-build.outputs.has-specs == 'true' }}}}\n",
                       JOBS["specs"])
@@ -363,6 +363,33 @@ class RoutingTests(unittest.TestCase):
         for job in ("frontend", "release-pack"):
             self.assertIn(job, needs)
             self.assertNotIn(job, JOBS["specs"].split("runs-on:")[0])
+
+    def test_analyzers_run_in_parallel_with_the_producer_and_cover_the_same_scope(self):
+        analyzers = JOBS["analyzers"]
+        producer = JOBS["dotnet-build"]
+        self.assertIn("    name: analyzers\n", analyzers)
+        self.assertIn("    needs: [preflight, routing]\n", analyzers)
+        self.assertIn("    timeout-minutes: 30\n", analyzers)
+        self.assertIn("mode: restore", analyzers)
+        for action in ("actions/checkout@", "actions/setup-dotnet@", "Cratis/Workflows/.github/actions/dotnet-cache@main"):
+            producer_action = next(line for line in producer.splitlines() if "uses: " + action in line)
+            self.assertIn(producer_action, analyzers)
+        self.assertIn("dotnet-version: ${{ env.DOTNET_VERSION }}", analyzers)
+        for fragment in ("BUILD_SCOPE: ${{ needs.routing.outputs.build-scope }}",
+                         "BUILD_PROJECTS: ${{ needs.routing.outputs.build-projects }}",
+                         'if [ "$BUILD_SCOPE" = affected ]; then',
+                         'python3 .github/ci-routing.py write-slnf "$BUILD_PROJECTS" > "$RUNNER_TEMP/affected.slnf"'):
+            self.assertIn(fragment, analyzers)
+            self.assertIn(fragment, producer)
+        flags = "-p:TreatWarningsAsErrors=true -p:MSBuildTreatWarningsAsErrors=true -p:CodeAnalysisTreatWarningsAsErrors=true"
+        for target in ('"$RUNNER_TEMP/affected.slnf" ', ""):
+            self.assertIn(f"dotnet build {target}--configuration Debug {flags}\n", analyzers)
+        self.assertNotIn("RunAnalyzers=false", analyzers)
+        self.assertNotIn("EnforceCodeStyleInBuild=false", analyzers)
+        self.assertNotIn("upload-artifact", analyzers)
+        self.assertIn("analyzers", JOBS["build"].splitlines()[0])
+        self.assertIn('"analyzers": {"result": "${{ needs.analyzers.result }}"}', JOBS["build"])
+        self.assertNotIn("analyzers", JOBS["specs"].split("runs-on:")[0])
 
     def test_heavy_lanes_need_the_build_but_run_in_parallel_with_specs(self):
         live_packages_gate = f"""    needs: [preflight, routing, dotnet-build]
@@ -461,7 +488,7 @@ class RequiredChecksTests(unittest.TestCase):
 
     def build_needs(self):
         needs = self.needs(ALL)
-        needs.update({job: {"result": "success"} for job in ("preflight", "dotnet-build", "frontend", "release-pack", "specs")})
+        needs.update({job: {"result": "success"} for job in ("preflight", "dotnet-build", "analyzers", "frontend", "release-pack", "specs")})
         return needs
 
     def test_build_permits_success_and_explicitly_unselected_standalone_skip(self):
@@ -485,7 +512,7 @@ class RequiredChecksTests(unittest.TestCase):
             CI["require_build"](needs)
 
     def test_build_requires_core_jobs_and_routing(self):
-        for job in ("preflight", "dotnet-build", "frontend", "release-pack", "specs", "routing"):
+        for job in ("preflight", "dotnet-build", "analyzers", "frontend", "release-pack", "specs", "routing"):
             for result in ("failure", "skipped", "cancelled", ""):
                 needs = self.build_needs()
                 needs[job]["result"] = result
@@ -512,7 +539,7 @@ class RequiredChecksTests(unittest.TestCase):
                         CI["require_build"](needs)
 
     def test_build_requires_the_build_even_when_specs_are_unselected(self):
-        for job in ("preflight", "dotnet-build", "frontend", "release-pack"):
+        for job in ("preflight", "dotnet-build", "analyzers", "frontend", "release-pack"):
             needs = self.build_needs()
             needs["routing"]["outputs"]["specs-selected"] = "false"
             needs["specs"]["result"] = "skipped"
@@ -756,12 +783,12 @@ class AffectedBuildTests(unittest.TestCase):
 
     def test_workflow_builds_the_filter_only_for_affected_scope_and_keeps_check_names(self):
         build = JOBS["dotnet-build"]
-        self.assertIn("dotnet build --configuration Debug\n", build)
+        self.assertIn("dotnet build --configuration Debug -p:RunAnalyzers=false -p:EnforceCodeStyleInBuild=false\n", build)
         self.assertIn('if [ "$BUILD_SCOPE" = affected ]', build)
-        self.assertIn('dotnet build "$RUNNER_TEMP/affected.slnf" --configuration Debug', build)
+        self.assertIn('dotnet build "$RUNNER_TEMP/affected.slnf" --configuration Debug -p:RunAnalyzers=false -p:EnforceCodeStyleInBuild=false\n', build)
         self.assertIn('args+=(--affected "$AFFECTED_PROJECTS")', build)
         self.assertIn("has-specs: ${{ steps.spec-coverage.outputs.has-specs }}", build)
-        for job in ("routing", "preflight", "dotnet-build", "frontend", "release-pack", "specs", "build", *CI["LANE_PATHS"]):
+        for job in ("routing", "preflight", "dotnet-build", "analyzers", "frontend", "release-pack", "specs", "build", *CI["LANE_PATHS"]):
             self.assertIn(job if job != "live-blueprints" else "live-custom-packages", JOBS)
         self.assertIn("name: specs (${{ matrix.name }})", JOBS["specs"])
 

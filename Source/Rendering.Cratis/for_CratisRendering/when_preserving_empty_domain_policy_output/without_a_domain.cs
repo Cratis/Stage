@@ -6,6 +6,7 @@ using System.Collections.Immutable;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
@@ -17,7 +18,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisRendering.when_preserving_empty_domain_policy_output;
 
-public class without_a_domain : given.a_domain_policy_plan
+public partial class without_a_domain : given.a_domain_policy_plan
 {
     // SHA-256 of the matched pre-shortening raw corpus, not a dependency on its external export directory.
     static readonly Dictionary<string, string> _oldRawHashes = new(StringComparer.Ordinal)
@@ -114,13 +115,13 @@ public class without_a_domain : given.a_domain_policy_plan
             : artifact);
 
     // The short-named output also imports System.Security.Claims for the name identifier; nothing else in the file uses it.
-    static string RemoveCallerIdentifier(string text) => System.Text.RegularExpressions.Regex.Replace(
+    static string RemoveCallerIdentifier(string text) => CallerIdentifierBlock.Replace(
         text.Replace("static partial class PolicyValues", "static class PolicyValues", StringComparison.Ordinal)
             .Replace("using System.Security.Claims;\n", string.Empty, StringComparison.Ordinal),
-        @"[ \t]*/// <summary>\s*\n[ \t]*/// Lets an application declare.*?return string\.IsNullOrEmpty\(identifier\) \? null : identifier;\s*\n[ \t]*\}\s*\n",
-        string.Empty,
-        System.Text.RegularExpressions.RegexOptions.Singleline,
-        TimeSpan.FromSeconds(1));
+        string.Empty);
+
+    [GeneratedRegex(@"[ \t]*/// <summary>\s*\n[ \t]*/// Lets an application declare.*?return string\.IsNullOrEmpty\(identifier\) \? null : identifier;\s*\n[ \t]*\}\s*\n", RegexOptions.Singleline, 1000)]
+    private static partial Regex CallerIdentifierBlock { get; }
 
     static IEnumerable<PlannedArtifact> BeforeInitializerRename(IEnumerable<PlannedArtifact> artifacts) => artifacts.Select(artifact =>
         artifact.RelativePath.StartsWith("GeneratedPolicies/", StringComparison.Ordinal) && artifact.RelativePath.EndsWith("Policy.cs", StringComparison.Ordinal)

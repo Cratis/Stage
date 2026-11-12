@@ -133,9 +133,10 @@ jobs:
       - name: Verify spec shard routing and guards
         run: python3 -B -m unittest discover -s .github -p 'test_*.py'
 
-      # This job owns analyzers for both configurations. Inline specs and their test SDK exist only in
-      # Debug; every spec lane reuses its binaries (including Host's isolated specrunner) with --no-build.
-      # Release still compiles without specs and remains the zero-warning/package-validation gate below.
+      # This job produces Debug binaries without analyzers; the parallel analyzers job enforces them,
+      # including inline specs and their test SDK, which exist only in Debug. Every spec lane reuses these
+      # binaries (including Host's isolated specrunner) with --no-build. Release still compiles without
+      # specs and remains the zero-warning/package-validation gate below.
       # Pull requests build only the projects the diff reaches (plus what the selected lanes consume);
       # every other event, ci:full and any routing doubt build the whole solution.
       - name: Build Debug
@@ -145,9 +146,9 @@ jobs:
         run: |
           if [ "$BUILD_SCOPE" = affected ]; then
             python3 .github/ci-routing.py write-slnf "$BUILD_PROJECTS" > "$RUNNER_TEMP/affected.slnf"
-            dotnet build "$RUNNER_TEMP/affected.slnf" --configuration Debug
+            dotnet build "$RUNNER_TEMP/affected.slnf" --configuration Debug -p:RunAnalyzers=false -p:EnforceCodeStyleInBuild=false
           else
-            dotnet build --configuration Debug
+            dotnet build --configuration Debug -p:RunAnalyzers=false -p:EnforceCodeStyleInBuild=false
           fi
 
       - name: Require every solution test project to be sharded
@@ -184,8 +185,42 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
-  # The frontend and the Release build/pack run beside the Debug build instead of ahead of the spec shards and
-  # lanes: nothing downstream consumes their output, but the `build` aggregate still requires both.
+  # Analyzer enforcement, frontend and Release build/pack run beside the Debug producer instead of ahead
+  # of the spec shards and lanes: nothing downstream consumes their output, but `build` requires all three.
+  analyzers:
+    name: analyzers
+    if: ${{ needs.routing.outputs.skip != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
+    needs: [preflight, routing]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup .Net
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore NuGet packages
+        uses: Cratis/Workflows/.github/actions/dotnet-cache@main
+        with:
+          mode: restore
+
+      # Debug includes inline specs, so their analyzer diagnostics remain required too.
+      - name: Build Debug with analyzers
+        env:
+          BUILD_SCOPE: ${{ needs.routing.outputs.build-scope }}
+          BUILD_PROJECTS: ${{ needs.routing.outputs.build-projects }}
+        run: |
+          if [ "$BUILD_SCOPE" = affected ]; then
+            python3 .github/ci-routing.py write-slnf "$BUILD_PROJECTS" > "$RUNNER_TEMP/affected.slnf"
+            dotnet build "$RUNNER_TEMP/affected.slnf" --configuration Debug -p:TreatWarningsAsErrors=true -p:MSBuildTreatWarningsAsErrors=true -p:CodeAnalysisTreatWarningsAsErrors=true
+          else
+            dotnet build --configuration Debug -p:TreatWarningsAsErrors=true -p:MSBuildTreatWarningsAsErrors=true -p:CodeAnalysisTreatWarningsAsErrors=true
+          fi
+
   frontend:
     if: ${{ needs.routing.outputs.skip != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
     needs: [preflight, routing]
@@ -330,7 +365,7 @@ jobs:
   # any spec shard fails or is skipped. The standalone application may skip only with an explicit
   # false routing output; failed, cancelled or missing jobs never pass. Live/generated checks stay separate.
   build:
-    needs: [preflight, dotnet-build, frontend, release-pack, specs, routing, standalone-generated-application]
+    needs: [preflight, dotnet-build, analyzers, frontend, release-pack, specs, routing, standalone-generated-application]
     if: needs.routing.outputs.skip != 'true' && always() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -338,17 +373,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Require preflight, build, every spec shard and the selected standalone application spec to succeed
+      - name: Require preflight, build, analyzers, every spec shard and the selected standalone application spec to succeed
         if: needs.routing.outputs.standalone-generated-application == 'true'
         env:
           PREFLIGHT_RESULT: ${{ needs.preflight.result }}
           BUILD_RESULT: ${{ needs.dotnet-build.result }}
+          ANALYZERS_RESULT: ${{ needs.analyzers.result }}
           FRONTEND_RESULT: ${{ needs.frontend.result }}
           RELEASE_PACK_RESULT: ${{ needs.release-pack.result }}
           SPECS_RESULT: ${{ needs.specs.result }}
           SPECS_SELECTED: ${{ needs.routing.outputs.specs-selected }}
           STANDALONE_RESULT: ${{ needs.standalone-generated-application.result }}
-        run: test "$PREFLIGHT_RESULT" = success && test "$BUILD_RESULT" = success && test "$FRONTEND_RESULT" = success && test "$RELEASE_PACK_RESULT" = success && { test "$SPECS_RESULT" = success || { test "$SPECS_RESULT" = skipped && test "$SPECS_SELECTED" = false; }; } && test "$STANDALONE_RESULT" = success
+        run: test "$PREFLIGHT_RESULT" = success && test "$BUILD_RESULT" = success && test "$ANALYZERS_RESULT" = success && test "$FRONTEND_RESULT" = success && test "$RELEASE_PACK_RESULT" = success && { test "$SPECS_RESULT" = success || { test "$SPECS_RESULT" = skipped && test "$SPECS_SELECTED" = false; }; } && test "$STANDALONE_RESULT" = success
 
       - name: Validate routing and any expected standalone skip
         # Pass only what check-build reads: the full needs context includes the spec matrix output,
@@ -357,6 +393,7 @@ jobs:
           NEEDS_JSON: >-
             {"preflight": {"result": "${{ needs.preflight.result }}"},
             "dotnet-build": {"result": "${{ needs.dotnet-build.result }}"},
+            "analyzers": {"result": "${{ needs.analyzers.result }}"},
             "frontend": {"result": "${{ needs.frontend.result }}"},
             "release-pack": {"result": "${{ needs.release-pack.result }}"},
             "specs": {"result": "${{ needs.specs.result }}"},

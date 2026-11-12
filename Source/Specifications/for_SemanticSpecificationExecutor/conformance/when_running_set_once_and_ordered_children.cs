@@ -118,10 +118,6 @@ public class when_running_set_once_and_ordered_children : Specification
     readonly List<string> _differences = [];
     int _executed;
 
-    [Fact] void should_compile_the_model() => _differences.ShouldNotContain(difference => difference.StartsWith("compile"));
-    [Fact] void should_run_every_specification() => _executed.ShouldEqual(2);
-    [Fact] void should_match_the_reference_for_every_specification() => Assert.True(_differences.Count == 0, string.Join(Environment.NewLine, _differences));
-
     protected async Task Because()
     {
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Library"));
@@ -145,4 +141,14 @@ public class when_running_set_once_and_ordered_children : Specification
             }
         }
     }
+
+    // xUnit discovers these private facts through their attributes.
+#pragma warning disable IDE0051
+    [Fact]
+    void should_compile_the_model() => _differences.ShouldNotContain(difference => difference.StartsWith("compile"));
+    [Fact]
+    void should_run_every_specification() => _executed.ShouldEqual(2);
+    [Fact]
+    void should_match_the_reference_for_every_specification() => Assert.True(_differences.Count == 0, string.Join(Environment.NewLine, _differences));
+#pragma warning restore IDE0051
 }

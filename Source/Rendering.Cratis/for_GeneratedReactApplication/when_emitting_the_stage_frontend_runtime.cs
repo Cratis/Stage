@@ -27,7 +27,7 @@ public class when_emitting_the_stage_frontend_runtime : a_screen_composition_ren
     HashSet<string> _optionalPeers = null!;
     Dictionary<string, string> _primeReactPackages = null!;
     Dictionary<string, string> _frontendPackages = null!;
-    static readonly string[] _scenePeers = ["@cratis/scene.blueprint.default", "@cratis/scene.components", "@cratis/scene.engine", "@cratis/scene.model", "@cratis/scene.primereact", "@cratis/scene.react"];
+    static readonly string[] _scenePeers = ["@cratis/scene.blueprint.default", "@cratis/scene.components", "@cratis/scene.engine", "@cratis/scene.extensions", "@cratis/scene.model", "@cratis/scene.primereact", "@cratis/scene.react"];
 
     void Because()
     {

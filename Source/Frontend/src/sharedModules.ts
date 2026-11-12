@@ -3,6 +3,7 @@
 
 import * as DefaultBlueprint from '@cratis/scene.blueprint.default';
 import * as SceneEngine from '@cratis/scene.engine';
+import * as SceneExtensions from '@cratis/scene.extensions';
 import * as SceneModel from '@cratis/scene.model';
 import * as React from 'react';
 import * as JsxDevRuntime from 'react/jsx-dev-runtime';
@@ -23,6 +24,7 @@ export const sharedModules: Record<string, unknown> = {
     '@cratis/scene.blueprint.default': DefaultBlueprint,
     '@cratis/scene.engine': SceneEngine,
     '@cratis/scene.model': SceneModel,
+    '@cratis/scene.extensions': SceneExtensions,
 };
 
 /**

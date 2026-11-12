@@ -34,6 +34,7 @@ describe('the module a live Stage maps a shared specifier to', () => {
             'stage-shared/@cratis--scene.blueprint.default.js',
             'stage-shared/@cratis--scene.engine.js',
             'stage-shared/@cratis--scene.model.js',
+            'stage-shared/@cratis--scene.extensions.js',
         ]);
     });
 

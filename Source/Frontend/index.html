@@ -7,7 +7,8 @@
         <!--
           What an approved custom package imports by bare name resolves to the Stage's own copy of React, so a
           package's hooks and contexts are the Stage's (see stageSharedModules.ts). A domain blueprint package imports the default
-          blueprint, Scene's engine and Scene's model the same way. It must precede every module.
+          blueprint, Scene's engine and Scene's model the same way. An extension component imports
+          @cratis/scene.extensions the same way, so its context hooks read the context the Stage provides. It must precede every module.
         -->
         <script type="importmap">
             {
@@ -19,7 +20,8 @@
                     "react-dom/client": "./stage-shared/react-dom--client.js",
                     "@cratis/scene.blueprint.default": "./stage-shared/@cratis--scene.blueprint.default.js",
                     "@cratis/scene.engine": "./stage-shared/@cratis--scene.engine.js",
-                    "@cratis/scene.model": "./stage-shared/@cratis--scene.model.js"
+                    "@cratis/scene.model": "./stage-shared/@cratis--scene.model.js",
+                    "@cratis/scene.extensions": "./stage-shared/@cratis--scene.extensions.js"
                 }
             }
         </script>

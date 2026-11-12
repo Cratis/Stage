@@ -107,7 +107,7 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
         using var runtime = FrontendManifest(Path.Combine("Runtime", "package.json"));
         var dependencies = ScenePackages(frontend.RootElement.GetProperty("dependencies"));
         var peers = ScenePackages(runtime.RootElement.GetProperty("peerDependencies"));
-        var expected = new[] { "@cratis/scene.blueprint.default", "@cratis/scene.components", "@cratis/scene.engine", "@cratis/scene.model", "@cratis/scene.primereact", "@cratis/scene.react" };
+        var expected = new[] { "@cratis/scene.blueprint.default", "@cratis/scene.components", "@cratis/scene.engine", "@cratis/scene.extensions", "@cratis/scene.model", "@cratis/scene.primereact", "@cratis/scene.react" };
         dependencies.Keys.Order(StringComparer.Ordinal).ShouldEqual(expected);
         peers.Keys.Order(StringComparer.Ordinal).ShouldEqual(expected);
         foreach (var name in expected)
@@ -163,6 +163,7 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
             $"@cratis/scene.blueprint.default={CratisFrontendPackageSet.Current.ScenePackageVersion}",
             $"@cratis/scene.components={CratisFrontendPackageSet.Current.ScenePackageVersion}",
             $"@cratis/scene.engine={CratisFrontendPackageSet.Current.ScenePackageVersion}",
+            $"@cratis/scene.extensions={CratisFrontendPackageSet.Current.ScenePackageVersion}",
             $"@cratis/scene.model={CratisFrontendPackageSet.Current.ScenePackageVersion}",
             $"@cratis/scene.react={CratisFrontendPackageSet.Current.ScenePackageVersion}",
             $"@cratis/showrunner.notes={CratisFrontendPackageSet.Current.ShowrunnerNotesPackageVersion}",

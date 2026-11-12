@@ -91,6 +91,7 @@ public sealed class CratisFrontendApplicationScaffold
         ("@cratis/scene.blueprint.default", frontend.ScenePackageVersion),
         ("@cratis/scene.components", frontend.ScenePackageVersion),
         ("@cratis/scene.engine", frontend.ScenePackageVersion),
+        ("@cratis/scene.extensions", frontend.ScenePackageVersion),
         ("@cratis/scene.model", frontend.ScenePackageVersion),
         ("@cratis/scene.primereact", frontend.ScenePackageVersion),
         ("@cratis/scene.react", frontend.ScenePackageVersion),

@@ -1,6 +1,6 @@
 ---
 title: Run extension components
-description: How Cratis Stage serves the extension components placed on a screen - public settings only, invoking an ability from the browser through the contract's allowlist and the screen's authorization, and static placeholders - and what is not yet in the browser runtime.
+description: How Cratis Stage runs the extension components placed on a screen - loading React and mount components over the Scene contract, the context they receive, public settings only, invoking an ability from the browser through the contract allowlist and the screen authorization, and static placeholders.
 ---
 
 An extension can bring frontend components as well as a backend. A screen places one with `component <System>.<Component>`, and Stage serves it
@@ -9,10 +9,8 @@ the things the
 server side of that: what reaches the browser, and what a component may ask Stage to do. To build a component, see
 [Build an extension component](https://github.com/Cratis/Scene/blob/main/Documentation/extensions/build-a-component.md).
 
-> [!NOTE]
-> The loading of a component's frontend into the Stage browser runtime, and the supply of the rest of the context (user, tenant, locale, theme,
-> strings, `raise` and `on`), depend on the `@cratis/scene.extensions` package, which is not published to npm yet. This page describes only what
-> Stage does today.
+The browser half runs in the Stage runtime on `@cratis/scene.extensions` 5.3.0. A screen's component is a `Stage:extensionComponent` element, and the
+runtime loads its frontend, builds the contract's context and renders or mounts it. See [In the browser](#in-the-browser).
 
 ## Public settings only
 
@@ -57,6 +55,49 @@ or `202` with the invocation `identity` when it does not.
 The `interaction` is chosen by the browser and is the invocation identity of that interaction. Asking again with the same one, for a retry or a
 double click, finds the invocation that exists and does not do the effect twice. The person is part of the cause, so one person's interaction can
 never find another's.
+
+## In the browser
+
+The Stage runtime places a component from an element with these properties:
+
+| Property | Meaning |
+| --- | --- |
+| `system`, `component` | The system and the component's name in its contract. The module must export the component under this name. |
+| `screen` | The screen that places it. The screen being shown when absent. |
+| `kind` | `react` or `mount`, as the model says. The module's definition must be the same kind, or the placeholder says which of the two is wrong. |
+| `module` | The address of the extension's frontend module, served from the locked package (`extension-assets/{id}/…`, see [Packages](packages.md)). |
+| `properties` | The properties the component is given. |
+| `invokes`, `signals` | The abilities it may invoke and the signals it may raise, from the contract. |
+| `strings` | The strings of the screen, by key. |
+| `placeholder` | The address of the component's placeholder, shown in a frame that cannot run script until the component is ready. |
+
+**React components** are rendered in Stage's own React tree, inside Scene's `ExtensionContextProvider`, so the `useUser`, `useTenant`, `useLocale`,
+`useTheme`, `useSettings`, `useStrings`, `useInvoke`, `useRaise` and `useTrigger` hooks work. They share React with Stage: `react`, `react-dom` and
+`@cratis/scene.extensions` are on the import map of the page, so an extension that imports them by name gets Stage's copy (see
+[Custom packages](https://github.com/Cratis/Stage/blob/main/Documentation/reference/custom-packages.md)). **Mount components** (Vue, Svelte, Lit, web
+components, plain DOM) are given a host element, their properties and the context, and are updated and unmounted with the screen.
+
+The context is made of:
+
+| Part | From |
+| --- | --- |
+| `user` | Arc's identity endpoint (`.cratis/me`): who the person is and the roles they hold. |
+| `tenant` | The tenant the identity names, or `default`. |
+| `locale` | The language the Stage shows and its available languages, and the browser's time zone. Changing the language updates the context. |
+| `theme` | Whether the page is light or dark, and the `--cratis-*` design tokens in force. A change of theme updates the context. |
+| `settings` | The public settings of the component's system, read from the settings endpoint above. |
+| `strings` | The strings of the element. |
+| `invoke` | The invoke endpoint above, on one interaction identity kept across the waits, so asking again never invokes twice. An ability outside `invokes` is refused in the browser as well as by the host, and a refusal arrives as an `ExtensionInvocationError` with the status and the reason the host gave. |
+| `raise` | A signal in `signals`. It reaches the `onSignal` of `StageExtensionServicesProvider` and is dispatched as a bubbling `stage-extension-signal` event on the component's element. |
+| `on` | A trigger sent to the component's element as a `stage-extension-trigger` event, with `detail` `{ name, values }`. |
+
+**Secrets never reach the browser.** The only requests a component's page makes are the identity, the public settings and invocations, and an
+invocation carries the ability, the interaction identity and the inputs the component gave, and nothing else. The credentials and the secret
+settings stay on the host, which runs the ability.
+
+Two things are not final. Scene 5.3.0 has no trigger kind for a signal, so a screen's `on <signal>` interactions are not yet bound to a raised
+signal by Scene: the Stage delivers the signal as above, and the binding follows when Scene adds the trigger. Scene 5.3.1, which only changes
+`@cratis/scene.model`, is not used because the publish of `@cratis/scene.extensions` 5.3.1 is not finished; Stage depends on 5.3.0 of every Scene package.
 
 ## Static placeholders
 

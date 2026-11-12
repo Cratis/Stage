@@ -249,9 +249,11 @@ class SpecShardsTests(unittest.TestCase):
         for variable, job in gated:
             self.assertIn(variable + ": ${{ needs." + job + ".result }}", aggregate)
         check = re.search(r"run: (test .+)", aggregate)[1]
-        # Analyzers, frontend and Release/pack run beside Debug; asserted singly to keep the product small.
-        extra = (("ANALYZERS_RESULT", "analyzers"), ("FRONTEND_RESULT", "frontend"), ("RELEASE_PACK_RESULT", "release-pack"))
+        # CI scripts, analyzers, frontend and Release/pack run beside Debug; asserted singly to keep the product small.
+        extra = (("CI_SCRIPTS_RESULT", "ci-scripts"), ("ANALYZERS_RESULT", "analyzers"),
+                 ("FRONTEND_RESULT", "frontend"), ("RELEASE_PACK_RESULT", "release-pack"))
         for variable, job in extra:
+            self.assertIn(job, aggregate.splitlines()[0])
             self.assertIn(variable + ": ${{ needs." + job + ".result }}", aggregate)
         passing = {variable: "success" for variable, _ in gated + extra}
         for results in product(("success", "failure", "skipped", "cancelled"), repeat=len(gated)):

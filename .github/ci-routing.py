@@ -281,7 +281,7 @@ def require_lane(needs, lane):
 
 
 def require_build(needs):
-    for job in ("preflight", "dotnet-build", "analyzers", "frontend", "release-pack"):
+    for job in ("preflight", "ci-scripts", "dotnet-build", "analyzers", "frontend", "release-pack"):
         if needs[job]["result"] != "success":
             raise ValueError(f"{job} must succeed")
     # Only an explicit routing decision that no shard is affected permits skipping the specs.

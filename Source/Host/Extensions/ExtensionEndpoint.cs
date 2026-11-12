@@ -15,6 +15,14 @@ public interface IExtensionEndpoints
     /// <param name="cancellationToken">Cancelled when the caller stops waiting.</param>
     /// <returns>The <see cref="ExtensionEndpoint"/>, or null when no backend is known for the system.</returns>
     Task<ExtensionEndpoint?> Resolve(string system, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Tells whether a backend is known for a system, without activating it. An inbound request needs to know that much before it is stored, and a webhook should not wait for a cold start.
+    /// </summary>
+    /// <param name="system">The name of the system.</param>
+    /// <param name="cancellationToken">Cancelled when the caller stops waiting.</param>
+    /// <returns>True when a backend is known for the system.</returns>
+    async Task<bool> Knows(string system, CancellationToken cancellationToken) => await Resolve(system, cancellationToken) is not null;
 }
 
 /// <summary>

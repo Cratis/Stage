@@ -18,6 +18,11 @@ public interface IExtensionPackages
     ExtensionPackageSet Set { get; }
 
     /// <summary>
+    /// Gets the systems of the model that name an extension.
+    /// </summary>
+    IReadOnlyCollection<string> Systems { get; }
+
+    /// <summary>
     /// Finds the package a system's extension is.
     /// </summary>
     /// <param name="system">The name of the system.</param>
@@ -34,6 +39,9 @@ public sealed class ExtensionPackages(ExtensionPackageSet set, IReadOnlyDictiona
 {
     /// <inheritdoc/>
     public ExtensionPackageSet Set => set;
+
+    /// <inheritdoc/>
+    public IReadOnlyCollection<string> Systems => [.. references.Keys];
 
     /// <inheritdoc/>
     public LoadedExtensionPackage? ForSystem(string system) => references.TryGetValue(system, out var reference) ? set.FindByReference(reference) : null;

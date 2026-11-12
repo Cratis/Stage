@@ -85,6 +85,7 @@ Both are reserved: a future minor version adds them as new services without chan
 - [Connect a backend to Stage](connect-a-backend.md): configuration, the handshake and what Stage checks.
 - [Built-in `http` extension](http.md): realize an ability as a REST call from a declarative block, with no backend to run.
 - [Extension packages](packages.md): how Stage loads the packages a model's lock pins, decides whether it may use them, and serves what they ship.
+- [Execution tiers and activation](execution-tiers.md): how a backend runs, when it starts and stops, and who may override that.
 - [Conformance suite](conformance.md): what every SDK must do, and how to add a language.
 - Write a backend: [C#](csharp.md), [Kotlin](kotlin.md), [Go](go.md) or [TypeScript](typescript.md).
 

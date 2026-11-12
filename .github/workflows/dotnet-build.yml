@@ -147,15 +147,18 @@ jobs:
 
       # Artifacts are an intra-run handoff, unlike immutable commit-keyed caches, whose failed saves
       # can poison a rerun. Tar preserves executable permissions and the original project layout.
+      # Keep every bin/Debug runtime asset for --no-build consumers; obj is already excluded.
+      # Use fast compression and avoid recompressing the archive during upload.
       - name: Archive Debug build output
         run: |
-          find Source -type d -path '*/bin/Debug' -prune -print0 | tar --null -czf build-output.tar.gz -T -
+          find Source -type d -path '*/bin/Debug' -prune -print0 | tar --null -I 'zstd -T0 -3' -cf build-output.tar.zst -T -
 
       - name: Upload Debug build output
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: debug-build-output
-          path: build-output.tar.gz
+          path: build-output.tar.zst
+          compression-level: 0
           retention-days: 1
           if-no-files-found: error
 
@@ -264,7 +267,7 @@ jobs:
           name: debug-build-output
 
       - name: Extract Debug build output
-        run: tar -xzf build-output.tar.gz
+        run: tar -I zstd -xf build-output.tar.zst
 
       # Compare projection conversion against the same immutable Chronicle visitor as before.
       - name: Fetch Chronicle projection authority
@@ -425,7 +428,7 @@ jobs:
           name: debug-build-output
 
       - name: Extract Debug build output
-        run: tar -xzf build-output.tar.gz
+        run: tar -I zstd -xf build-output.tar.zst
 
       - name: Restore packages without an exact cache hit
         if: steps.nuget.outputs.cache-hit != 'true'
@@ -720,7 +723,7 @@ jobs:
           name: debug-build-output
 
       - name: Extract Debug build output
-        run: tar -xzf build-output.tar.gz
+        run: tar -I zstd -xf build-output.tar.zst
 
       - name: Restore packages without an exact cache hit
         if: steps.nuget.outputs.cache-hit != 'true'
@@ -774,7 +777,7 @@ jobs:
 
       - name: Extract Debug build output
         id: extract
-        run: tar -xzf build-output.tar.gz
+        run: tar -I zstd -xf build-output.tar.zst
 
       - name: Restore packages without an exact cache hit
         if: steps.nuget.outputs.cache-hit != 'true'
@@ -983,7 +986,7 @@ jobs:
           name: debug-build-output
 
       - name: Extract Debug build output
-        run: tar -xzf build-output.tar.gz
+        run: tar -I zstd -xf build-output.tar.zst
 
       - name: Restore packages without an exact cache hit
         if: steps.nuget.outputs.cache-hit != 'true'
@@ -1074,7 +1077,7 @@ jobs:
           name: debug-build-output
 
       - name: Extract Debug build output
-        run: tar -xzf build-output.tar.gz
+        run: tar -I zstd -xf build-output.tar.zst
 
       - name: Restore packages without an exact cache hit
         if: steps.nuget.outputs.cache-hit != 'true'

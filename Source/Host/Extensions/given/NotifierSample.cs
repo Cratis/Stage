@@ -37,6 +37,14 @@ public static class NotifierSample
               event NoticePosted
                 noticeId NoticeId
                 text NoticeText
+            slice StateChange DismissNotice
+              command DismissNotice
+                noticeId NoticeId identifier
+                produces NoticeDismissed
+                  for noticeId
+                  noticeId = noticeId
+              event NoticeDismissed
+                noticeId NoticeId
             slice StateView NoticeBoard
               readmodel NoticeBoardItem
                 noticeId NoticeId
@@ -50,6 +58,9 @@ public static class NotifierSample
                 title "Notices"
                 component Notifier.NoticeBoard board
                   property title = "Today"
+                  on dismissed
+                    execute DismissNotice
+                      with noticeId from signal.noticeId
         """;
 
     /// <summary>

@@ -24,7 +24,8 @@ internal static class PublishedSurface
         "/stage/load",
         "/stage/semantic",
         "/stage/lifecycles",
-        "/stage/invocations"
+        "/stage/invocations",
+        "/stage/extensions"
     ];
 
     internal static bool IsTooling(string route)

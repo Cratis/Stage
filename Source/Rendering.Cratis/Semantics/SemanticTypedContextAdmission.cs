@@ -28,12 +28,15 @@ internal static class SemanticTypedContextAdmission
     // ReactionEffect is refused elsewhere by SemanticVersionFeatures.
     // ConstraintPredicate's file-backed constraints are a Screenplay binder error.
     // PolicyPredicate retains the per-use-site descriptor check below.
+    // AbilityEffect (ESM v50) bodies run in the host, not in generated code, and carry no typed context; a model that declares one is
+    // refused by the capability admission (STAGE-ESM-016) until the host runs it.
     static readonly ImmutableHashSet<SemanticImplementationRole> _descriptorExemptRoles =
     [
         SemanticImplementationRole.QueryPerformer,
         SemanticImplementationRole.ReactionEffect,
         SemanticImplementationRole.ConstraintPredicate,
-        SemanticImplementationRole.PolicyPredicate
+        SemanticImplementationRole.PolicyPredicate,
+        SemanticImplementationRole.AbilityEffect
     ];
 
     internal static bool RequiresDescriptor(SemanticImplementationRole role) => _descriptorBackedRoles.Contains(role);

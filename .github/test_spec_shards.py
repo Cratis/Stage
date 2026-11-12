@@ -23,8 +23,12 @@ SHARDS = runpy.run_path(str(Path(__file__).with_name("spec-shards.py")))
 
 
 def project_test_status(command, **kwargs):
-    # The example extension is a sample application, not a spec project, like BodyWorker.
-    not_specs = ("Source/BodyWorker/BodyWorker.csproj", "Source/Extensions/DotNET/Example/Cratis.Stage.Extensions.Example.csproj")
+    # The example extensions are sample applications, not spec projects, like BodyWorker.
+    not_specs = (
+        "Samples/Extensions/Notifier/backend/Notifier.csproj",
+        "Source/BodyWorker/BodyWorker.csproj",
+        "Source/Extensions/DotNET/Example/Cratis.Stage.Extensions.Example.csproj",
+    )
     stdout = "false\n" if command[2] in not_specs else "true\n"
     return subprocess.CompletedProcess(command, 0, stdout=stdout)
 
@@ -429,14 +433,14 @@ class SpecShardsTests(unittest.TestCase):
         with patch("subprocess.run") as run, contextlib.redirect_stdout(io.StringIO()):
             run.side_effect = project_test_status
             SHARDS["guard_solution"](SHARDS["matrix"]())
-            self.assertEqual(14, run.call_count)
+            self.assertEqual(15, run.call_count)
             for call in run.call_args_list:
                 self.assertIn("-property:Configuration=Debug", call.args[0])
                 self.assertTrue(call.kwargs["check"])
 
     def test_solution_guard_rejects_a_new_unsharded_test_project(self):
         with patch("subprocess.run") as run, self.assertRaisesRegex(
-                SystemExit, r"missing=\['Source/BodyWorker/BodyWorker.csproj', 'Source/Extensions/DotNET/Example/Cratis.Stage.Extensions.Example.csproj'\]"):
+                SystemExit, r"missing=\['Samples/Extensions/Notifier/backend/Notifier.csproj', 'Source/BodyWorker/BodyWorker.csproj', 'Source/Extensions/DotNET/Example/Cratis.Stage.Extensions.Example.csproj'\]"):
             run.return_value.stdout = "true\n"
             SHARDS["guard_solution"](SHARDS["matrix"]())
 

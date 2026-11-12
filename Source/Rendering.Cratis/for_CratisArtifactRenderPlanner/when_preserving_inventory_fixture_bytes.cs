@@ -29,6 +29,7 @@ public class when_preserving_inventory_fixture_bytes
         ["cascade with trigger"] = "04e736a9cf97cb632bb249c68e83a3f296fc3bb9d1c5cc9950590475f329d317",
         ["case table"] = "eff1bfc1d51a7079b4582ed7039a26e848b95f3324195ae0a68324876896ff1b",
         ["composite keys"] = "af1b26578875184d42bb0509e3eab5f820e3ecf80ca016da7e1dcf911915c6cf",
+
         // Re-frozen for Cratis/Stage#1084 (denied query, policy typed contexts): the policy runtime's #pragma lines now render at column 0.
         ["denied query"] = "23152ee8cfd48114367a8d1ea73b3af159bf7a5fdf012ffcff5a2a933cc0fda3",
         ["folder"] = "6996ab793768002e51955d76f14b3c58ee97d282571896c5bec9a8bb2aac3764",

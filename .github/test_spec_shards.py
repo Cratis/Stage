@@ -205,12 +205,12 @@ class SpecShardsTests(unittest.TestCase):
         self.assertEqual(1, workflow.count(command))
         self.assertIn(command, jobs["preflight"])
         self.assertNotIn("setup-dotnet", jobs["preflight"])
-        for name in ("frontend", "dotnet-build", "specs", "reducer-mongo", "generated-name-matrix", "standalone-generated-application",
+        for name in ("dotnet-build", "specs", "reducer-mongo", "generated-name-matrix", "standalone-generated-application",
                      "live-custom-packages", "generated-react", "generated-react-blueprint-templates", "build"):
             self.assertRegex(jobs[name], r"needs: (?:\[[^\]\n]*)?preflight\b")
         aggregate = jobs["build"]
         self.assertIn("&& always()", aggregate)
-        gated = (("PREFLIGHT_RESULT", "preflight"), ("FRONTEND_RESULT", "frontend"), ("BUILD_RESULT", "dotnet-build"), ("SPECS_RESULT", "specs"),
+        gated = (("PREFLIGHT_RESULT", "preflight"), ("BUILD_RESULT", "dotnet-build"), ("SPECS_RESULT", "specs"),
                  ("STANDALONE_RESULT", "standalone-generated-application"))
         for variable, job in gated:
             self.assertIn(variable + ": ${{ needs." + job + ".result }}", aggregate)

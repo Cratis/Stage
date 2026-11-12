@@ -15,4 +15,7 @@
         <Project Path="Source/SpecRunner/SpecRunner.csproj" />
         <Project Path="Source/Specifications/Specifications.csproj" />
     </Folder>
+    <Folder Name="/Samples/">
+        <Project Path="Samples/Extensions/Notifier/backend/Notifier.csproj" />
+    </Folder>
 </Solution>

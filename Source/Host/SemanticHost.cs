@@ -13,6 +13,7 @@ using Cratis.Stage.Contracts.Scene;
 using Cratis.Stage.Contracts.Semantics;
 using Cratis.Stage.Host.Extensions;
 using Cratis.Stage.Host.Extensions.Activation;
+using Cratis.Stage.Host.Extensions.Components;
 using Cratis.Stage.Host.Extensions.Inbound;
 using Cratis.Stage.Host.Extensions.Packages;
 using Cratis.Stage.Host.Invocations;
@@ -92,6 +93,13 @@ internal static class SemanticHost
         if (packages.Loaded.Count > 0)
         {
             var modelPackages = new ExtensionPackages(packages, SystemExtensionReferences.Read(modelPath));
+            if (loaded is not null)
+            {
+                // What the extension hosting answers from is what the model names and the locked packages describe, not an empty seam.
+                var placed = ExtensionModelHosting.Add(builder.Services, loaded.Model.Application, modelPackages);
+                scene = scene is null ? null : ExtensionSceneComponents.Apply(scene, placed, modelPackages);
+            }
+
             PinnedAbilityCatalog.AddExtensionPackages(builder.Services, modelPackages);
             var overrides = new ModelActivationOverrides(SystemActivationOverrides.Read(modelPath));
             builder.Services.Replace(ServiceDescriptor.Singleton(provider => new ActivatedSystems(modelPackages, overrides, provider.GetRequiredService<IOptions<ExtensionOptions>>())));

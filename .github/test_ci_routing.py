@@ -567,6 +567,7 @@ class ReducerMongoMatrixTests(unittest.TestCase):
         job = JOBS["reducer-mongo"]
         matrix = re.search(r"^        probe: \[(.+)\]$", job, re.MULTILINE)[1].split(", ")
         self.assertCountEqual(self.FILTERS, matrix)
+        self.assertCountEqual(CI["REDUCER_MONGO_PROBES"], matrix)
         self.assertIn("fail-fast: false", job)
         test_steps = [step for step in job.split("      - name: ")[1:] if "--filter" in step]
         self.assertEqual(3, len(test_steps))
@@ -774,8 +775,9 @@ class PublishGateTests(unittest.TestCase):
                     html_url="https://github.com/Cratis/Stage/actions/runs/42")
 
     def jobs(self):
-        jobs = [{"name": name, "conclusion": "success", "steps": []}
-                for name in sorted((ALL - {"live-blueprints"}) | {"routing", "build", "routed-checks"})]
+        names = (ALL - {"live-blueprints", "reducer-mongo"}) | {"routing", "build", "routed-checks"} | {
+            "reducer-mongo (runtime-proofs)", "reducer-mongo (rendering-probes)", "reducer-mongo (reconnect)"}
+        jobs = [{"name": name, "conclusion": "success", "steps": []} for name in sorted(names)]
         for job in jobs:
             if job["name"] == "live-custom-packages":
                 job["steps"] = [{"name": name, "conclusion": "success"} for name in CI["LIVE_STEPS"]]
@@ -802,6 +804,26 @@ class PublishGateTests(unittest.TestCase):
             live = next(job for job in changed if job["name"] == "live-custom-packages")
             next(step for step in live["steps"] if step["name"] == name)["conclusion"] = "skipped"
             self.assertFalse(CI["full_run_succeeded"](run, self.sha, changed))
+
+    def test_legacy_reducer_job_cannot_replace_all_or_any_matrix_leg(self):
+        jobs = self.jobs()
+        legacy = {"name": "reducer-mongo", "conclusion": "success", "steps": []}
+        matrix = [job for job in jobs if job["name"].startswith("reducer-mongo (")]
+        self.assertEqual(3, len(matrix))
+        singles = [job for job in jobs if job not in matrix]
+        self.assertFalse(CI["full_run_succeeded"](self.run_record(), self.sha, singles + [legacy]))
+        for leg in matrix:
+            with self.subTest(leg=leg["name"]):
+                missing = [job for job in jobs if job != leg]
+                self.assertFalse(CI["full_run_succeeded"](self.run_record(), self.sha, missing + [legacy]))
+
+    def test_failed_duplicate_matrix_job_cannot_hide_behind_success(self):
+        jobs = self.jobs()
+        for probe in ("runtime-proofs", "rendering-probes", "reconnect"):
+            failed = {"name": f"reducer-mongo ({probe})", "conclusion": "failure"}
+            for changed in ([failed] + jobs, jobs + [failed]):
+                with self.subTest(probe=probe, changed=changed):
+                    self.assertFalse(CI["full_run_succeeded"](self.run_record(), self.sha, changed))
 
     def test_pr_is_rejected_even_with_exact_sha_and_faked_full_job_and_step_names(self):
         run = {**self.run_record(), "event": "pull_request"}

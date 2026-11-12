@@ -6,6 +6,8 @@
   href: host-services.md
 - name: Connect a backend to Stage
   href: connect-a-backend.md
+- name: Run extension components
+  href: components.md
 - name: Built-in http extension
   href: http.md
 - name: Inbound traffic and webhooks

@@ -17,6 +17,7 @@ import {
 /** The relative endpoints an extension component in the browser uses. Mirrors `ExtensionComponentEndpoints` in the host. */
 export const extensionComponentEndpoints = {
     settings: (address: ExtensionComponentAddress) => `stage/extension-components/${path(address)}/settings`,
+    reach: (screen: string) => `stage/extensions/activation/screens/${encodeURIComponent(screen)}`,
     invoke: (address: ExtensionComponentAddress) => `stage/extension-components/${path(address)}/invoke`
 };
 
@@ -73,6 +74,18 @@ export async function readExtensionSettings(address: ExtensionComponentAddress, 
     if (!response.ok) throw new Error(`The settings of ${address.system}.${address.component} could not be read (${response.status}).`);
     const body = await response.json() as unknown;
     return isRecord(body) && isRecord(body.settings) ? Object.freeze({ ...body.settings }) : Object.freeze({});
+}
+
+/**
+ * Tells the host that a screen that places extension components is being shown, so it can start the backends of their systems now rather than
+ * on the first invocation. It carries nothing but the screen, and failing is harmless: the first invocation starts the backend anyway.
+ */
+export async function reachExtensionScreen(screen: string, fetcher: typeof fetch, signal?: AbortSignal): Promise<void> {
+    try {
+        await fetcher(extensionComponentEndpoints.reach(screen), { method: 'POST', signal, credentials: 'same-origin' });
+    } catch {
+        // The backend is started by the first invocation if it was not started here.
+    }
 }
 
 /** What the person's browser says about their language and time zone. */

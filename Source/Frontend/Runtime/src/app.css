@@ -122,3 +122,6 @@ pre { background: var(--layout-background, #f4f5f7); border-radius: 0.4rem; over
     border: 1px solid var(--layout-border, #e2e5e9); border-radius: 50%;
 }
 .stage-theme-toggle__button:hover { background: var(--layout-hover, #eceef1); }
+
+/* Scene's task dialog names the slice as "State Change · PlaceOrder" - the model's words, not the person's (Cratis/Scene#314). */
+.scene-slice-dialog-subtitle { display: none; }

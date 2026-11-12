@@ -48,7 +48,7 @@ function check(name, actual, expected) {
         await page.getByRole('button', { name: 'New order' }).click();
         const dialog = page.locator('.scene-slice-dialog');
         await dialog.waitFor();
-        check('the slice button opens its task dialog', [await dialog.locator('h2').innerText(), await dialog.locator('.scene-slice-dialog-subtitle').innerText()], ['New order', 'State Change · PlaceOrder']);
+        check('the slice button opens its task dialog', [await dialog.locator('h2').innerText(), await dialog.locator('[data-scene-slice-dialog]').getAttribute('data-scene-command'), await dialog.locator('.scene-slice-dialog-subtitle').isVisible()], ['New order', 'PlaceOrder', false]);
         check('the dialog fields are the command schema', await dialog.locator('input').evaluateAll(inputs => inputs.map(input => [input.name, input.type])), [['orderId', 'text'], ['customer', 'text'], ['quantity', 'number']]);
         if (shots) await page.screenshot({ path: `${shots}/live-slice-dialog.png` });
         await dialog.locator('input[name=orderId]').fill('11111111-1111-4111-8111-111111111111');

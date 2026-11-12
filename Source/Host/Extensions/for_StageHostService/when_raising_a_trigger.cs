@@ -38,7 +38,7 @@ public class when_raising_a_trigger : an_extension_protocol
     {
         var host = await Connected();
         var context = new RequestContext { Tenant = "Default", InvocationId = "invocation-1" };
-        _raised = await host.RaiseTriggerAsync(new RaiseTriggerRequest { Context = context, Trigger = "MessageReceived", DeduplicationKey = "msg-1", PayloadJson = "{\"text\":\"hi\"}" });
+        _raised = await host.RaiseTriggerAsync(new RaiseTriggerRequest { Context = context, Trigger = "MessageReceived", DeduplicationKey = "msg-1", PayloadJson = "{\"text\":\"hi\"}", CorrelationKey = "pay-1" });
         _notRouted = await host.RaiseTriggerAsync(new RaiseTriggerRequest { Context = context, Trigger = "ReactionAdded", DeduplicationKey = "r-1" });
         _refused = await host.RaiseTriggerAsync(new RaiseTriggerRequest { Context = context, Trigger = "ChannelArchived", DeduplicationKey = "c-1" });
         _unknown = await host.RaiseTriggerAsync(new RaiseTriggerRequest { Context = context, Trigger = "Undeclared", DeduplicationKey = "u-1" });
@@ -52,4 +52,5 @@ public class when_raising_a_trigger : an_extension_protocol
     [Fact] void should_report_a_refusal() => _refused.Status.ShouldEqual(RaiseTriggerResponse.Types.Status.Refused);
     [Fact] void should_not_know_a_trigger_the_contract_does_not_declare() => _unknown.Status.ShouldEqual(RaiseTriggerResponse.Types.Status.UnknownTrigger);
     [Fact] void should_not_signal_an_undeclared_trigger() => _triggers.ReceivedCalls().Any(call => call.GetArguments().OfType<TriggerRaise>().Any(raise => raise.Trigger == "Undeclared")).ShouldBeFalse();
+    [Fact] void should_pass_what_the_trigger_is_about_on() => _signalled.Correlation.ShouldEqual("pay-1");
 }

@@ -108,6 +108,13 @@ public sealed class ExtensionConnections(IExtensionEndpoints endpoints, IAbility
     }
 
     /// <summary>
+    /// Gets the backend of a system when it is already connected, without starting it.
+    /// </summary>
+    /// <param name="system">The name of the system.</param>
+    /// <returns>The connection, or null when the backend is not connected.</returns>
+    public ExtensionConnection? Connected(string system) => _connected.TryGetValue(system, out var existing) ? existing.Connection : null;
+
+    /// <summary>
     /// Drops the connection to a backend, so the next attempt does the handshake again. A backend that restarted needs it.
     /// </summary>
     /// <param name="system">The name of the system.</param>

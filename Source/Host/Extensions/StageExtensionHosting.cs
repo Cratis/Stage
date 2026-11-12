@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Stage.Host.Extensions.Inbound;
 using Cratis.Stage.Host.Invocations;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -32,7 +33,11 @@ public static class StageExtensionHosting
         services.TryAddSingleton<ExtensionTelemetry>();
         services.TryAddSingleton<ExtensionConnections>();
         services.Replace(ServiceDescriptor.Singleton<IAbilityBackend, GrpcAbilityBackend>());
+        services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton<IInboundDeliveries, GrainInboundDeliveries>();
+        services.TryAddSingleton<InboundDeliveryDispatcher>();
         services.AddHostedService<ExtensionHostServer>();
+        services.AddHostedService(provider => provider.GetRequiredService<InboundDeliveryDispatcher>());
         return services;
     }
 }

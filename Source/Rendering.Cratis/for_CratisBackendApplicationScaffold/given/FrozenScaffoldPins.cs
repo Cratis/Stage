@@ -71,7 +71,7 @@ internal static class FrozenScaffoldPins
             }
 
             // The frozen shell predates the extension contract, so its dependency is not part of the freeze.
-            text = System.Text.RegularExpressions.Regex.Replace(text, "[ \\t]*\"@cratis/scene\\.extensions\": \"[^\"]*\",?\\r?\\n", string.Empty);
+            text = string.Join('\n', text.Split('\n').Where(line => !line.Contains("\"@cratis/scene.extensions\"", StringComparison.Ordinal)));
 
             (string Id, string Current, string Baseline)[] externalPins =
             [

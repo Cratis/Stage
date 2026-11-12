@@ -190,6 +190,15 @@ def matrix(blueprint_templates_lane=False):
     return {"include": shards}
 
 
+def narrow(shards, affected=None):
+    """Keep only the projects in `affected` and drop shards left with none; None keeps everything."""
+    if affected is None:
+        return shards
+    wanted = set(affected)
+    return {**shards, "include": [{**shard, "projects": [project for project in shard["projects"] if project in wanted]}
+                                for shard in shards["include"] if wanted.intersection(shard["projects"])]}
+
+
 def guard_solution(shards):
     projects = [project.attrib["Path"].replace("\\", "/")
                 for project in ET.parse(ROOT / "Stage.slnx").iter("Project")]
@@ -393,6 +402,8 @@ def main():
     parser.add_argument("argument", nargs="?")
     parser.add_argument("--blueprint-templates-lane", action="store_true",
                         help="Exclude blueprint template specs only when their dedicated lane runs")
+    parser.add_argument("--affected", default="",
+                        help="guard: JSON list of affected projects; only shards covering them are emitted (empty: all)")
     args = parser.parse_args()
     if args.command in ("run", "require-executed", "refresh-timings") and args.argument is None:
         parser.error(args.command + " requires a shard name/JSON entry or TRX path")
@@ -409,9 +420,11 @@ def main():
     if args.command == "matrix":
         print(json.dumps(shards))
     elif args.command == "guard":
-        guard_solution(shards)
+        guard_solution(shards)  # Always sees the full matrix, so every test project must stay sharded.
+        selected = narrow(shards, json.loads(args.affected) if args.affected else None)
         with open(os.environ["GITHUB_OUTPUT"], "a") as output:
-            output.write("matrix=" + json.dumps(shards) + "\n")
+            output.write("matrix=" + json.dumps(selected) + "\n")
+            output.write("has-specs=" + str(bool(selected["include"])).lower() + "\n")
     else:
         # CI passes the exact guarded matrix entry; local runs can select it by stable name.
         shard = (json.loads(args.argument) if args.argument.startswith("{") else

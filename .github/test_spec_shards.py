@@ -238,7 +238,7 @@ class SpecShardsTests(unittest.TestCase):
         self.assertEqual(1, workflow.count(command))
         self.assertIn(command, jobs["preflight"])
         self.assertNotIn("setup-dotnet", jobs["preflight"])
-        for name in ("dotnet-build", "frontend", "release-pack", "specs", "reducer-mongo", "generated-name-matrix",
+        for name in ("dotnet-build", "analyzers", "frontend", "release-pack", "specs", "reducer-mongo", "generated-name-matrix",
                      "standalone-generated-application",
                      "live-custom-packages", "generated-react", "generated-react-blueprint-templates", "build"):
             self.assertRegex(jobs[name], r"needs: (?:\[[^\]\n]*)?preflight\b")
@@ -249,8 +249,8 @@ class SpecShardsTests(unittest.TestCase):
         for variable, job in gated:
             self.assertIn(variable + ": ${{ needs." + job + ".result }}", aggregate)
         check = re.search(r"run: (test .+)", aggregate)[1]
-        # Frontend and Release/pack run beside the Debug build; asserted singly to keep the product small.
-        extra = (("FRONTEND_RESULT", "frontend"), ("RELEASE_PACK_RESULT", "release-pack"))
+        # Analyzers, frontend and Release/pack run beside Debug; asserted singly to keep the product small.
+        extra = (("ANALYZERS_RESULT", "analyzers"), ("FRONTEND_RESULT", "frontend"), ("RELEASE_PACK_RESULT", "release-pack"))
         for variable, job in extra:
             self.assertIn(variable + ": ${{ needs." + job + ".result }}", aggregate)
         passing = {variable: "success" for variable, _ in gated + extra}

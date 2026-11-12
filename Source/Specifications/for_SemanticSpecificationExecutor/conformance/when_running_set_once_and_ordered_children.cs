@@ -118,9 +118,14 @@ public class when_running_set_once_and_ordered_children : Specification
     readonly List<string> _differences = [];
     int _executed;
 
-    [Fact] void should_compile_the_model() => _differences.ShouldNotContain(difference => difference.StartsWith("compile"));
-    [Fact] void should_run_every_specification() => _executed.ShouldEqual(2);
-    [Fact] void should_match_the_reference_for_every_specification() => Assert.True(_differences.Count == 0, string.Join(Environment.NewLine, _differences));
+    [Fact]
+    public void should_compile_the_model() => _differences.ShouldNotContain(difference => difference.StartsWith("compile"));
+
+    [Fact]
+    public void should_run_every_specification() => _executed.ShouldEqual(2);
+
+    [Fact]
+    public void should_match_the_reference_for_every_specification() => Assert.True(_differences.Count == 0, string.Join(Environment.NewLine, _differences));
 
     protected async Task Because()
     {

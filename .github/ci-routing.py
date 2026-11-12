@@ -183,7 +183,7 @@ def require_lane(needs, lane):
 
 
 def require_build(needs):
-    for job in ("preflight", "dotnet-build", "specs"):
+    for job in ("preflight", "frontend", "dotnet-build", "specs"):
         if needs[job]["result"] != "success":
             raise ValueError(f"{job} must succeed")
     require_lane(needs, "standalone-generated-application")

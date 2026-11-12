@@ -104,6 +104,34 @@ jobs:
       - name: Verify Host kernel and client compatibility pins
         run: python3 Verification/verify-runtime-compatibility.py --self-test
 
+  # The frontend is not an input to any .NET project, so it builds beside dotnet-build instead of ahead of it.
+  frontend:
+    if: ${{ needs.routing.outputs.skip != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
+    needs: [preflight, routing]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: Source/Frontend/package-lock.json
+
+      - name: Build and test frontend
+        env:
+          # Same PRIMEUI_LICENSE GitHub secret Direct and Studio already build with. A fork PR without
+          # secret access just builds unlicensed - see main.tsx and vite.config.ts for the fallback.
+          STAGE_PRIMEUI_LICENSE: ${{ secrets.PRIMEUI_LICENSE }}
+        run: |
+          npm ci --prefix Source/Frontend
+          npm test --prefix Source/Frontend
+          npm run build --prefix Source/Frontend
+
   dotnet-build:
     if: ${{ needs.routing.outputs.skip != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
     needs: [preflight, routing]
@@ -124,25 +152,8 @@ jobs:
       - name: Restore NuGet packages
         uses: Cratis/Workflows/.github/actions/dotnet-cache@main
 
-      - name: Setup Node
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: Source/Frontend/package-lock.json
-
       - name: Verify container entrypoint supervision
         run: python3 Verification/verify-stage-entrypoint.py
-
-      - name: Build and test frontend
-        env:
-          # Same PRIMEUI_LICENSE GitHub secret Direct and Studio already build with. A fork PR without
-          # secret access just builds unlicensed - see main.tsx and vite.config.ts for the fallback.
-          STAGE_PRIMEUI_LICENSE: ${{ secrets.PRIMEUI_LICENSE }}
-        run: |
-          npm ci --prefix Source/Frontend
-          npm test --prefix Source/Frontend
-          npm run build --prefix Source/Frontend
 
       - name: Verify spec shard routing and guards
         run: python3 -B -m unittest discover -s .github -p 'test_*.py'
@@ -270,7 +281,7 @@ jobs:
   # any spec shard fails or is skipped. The standalone application may skip only with an explicit
   # false routing output; failed, cancelled or missing jobs never pass. Live/generated checks stay separate.
   build:
-    needs: [preflight, dotnet-build, specs, routing, standalone-generated-application]
+    needs: [preflight, frontend, dotnet-build, specs, routing, standalone-generated-application]
     if: needs.routing.outputs.skip != 'true' && always() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -282,10 +293,11 @@ jobs:
         if: needs.routing.outputs.standalone-generated-application == 'true'
         env:
           PREFLIGHT_RESULT: ${{ needs.preflight.result }}
+          FRONTEND_RESULT: ${{ needs.frontend.result }}
           BUILD_RESULT: ${{ needs.dotnet-build.result }}
           SPECS_RESULT: ${{ needs.specs.result }}
           STANDALONE_RESULT: ${{ needs.standalone-generated-application.result }}
-        run: test "$PREFLIGHT_RESULT" = success && test "$BUILD_RESULT" = success && test "$SPECS_RESULT" = success && test "$STANDALONE_RESULT" = success
+        run: test "$PREFLIGHT_RESULT" = success && test "$FRONTEND_RESULT" = success && test "$BUILD_RESULT" = success && test "$SPECS_RESULT" = success && test "$STANDALONE_RESULT" = success
 
       - name: Validate routing and any expected standalone skip
         # Pass only what check-build reads: the full needs context includes the spec matrix output,
@@ -293,6 +305,7 @@ jobs:
         env:
           NEEDS_JSON: >-
             {"preflight": {"result": "${{ needs.preflight.result }}"},
+            "frontend": {"result": "${{ needs.frontend.result }}"},
             "dotnet-build": {"result": "${{ needs.dotnet-build.result }}"},
             "specs": {"result": "${{ needs.specs.result }}"},
             "standalone-generated-application": {"result": "${{ needs.standalone-generated-application.result }}"},

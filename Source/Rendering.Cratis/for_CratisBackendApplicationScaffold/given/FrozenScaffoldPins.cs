@@ -70,6 +70,9 @@ internal static class FrozenScaffoldPins
                 text = text.Replace($"\"@cratis/{pin.Id}\": \"{pin.Current}\"", $"\"@cratis/{pin.Id}\": \"{pin.Baseline}\"", StringComparison.Ordinal);
             }
 
+            // The frozen shell predates the extension contract, so its dependency is not part of the freeze.
+            text = System.Text.RegularExpressions.Regex.Replace(text, "[ \\t]*\"@cratis/scene\\.extensions\": \"[^\"]*\",?\\r?\\n", string.Empty);
+
             (string Id, string Current, string Baseline)[] externalPins =
             [
                 ("@primereact/core", frontend.PrimeReactPackageVersion, "11.2.0"),

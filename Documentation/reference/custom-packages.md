@@ -98,7 +98,8 @@ The approved set accepts a blueprint manifest as published. Its `blueprint` and 
 canonical document, so sample data never reaches a generated application or `GET /stage/packages` (spec SD6). The screen and dialog templates
 of an approved blueprint are what an authored `template blueprint <Package> <Template>` reference fills, in a live Stage and in a generated
 application. A blueprint bundle imports `@cratis/scene.blueprint.default`, `@cratis/scene.engine`, `@cratis/scene.model` and `@cratis/scene.react`; a live Stage
-maps them to its own instances, like React.
+maps them to its own instances, like React. An extension's frontend imports `@cratis/scene.extensions` the same way, so its hooks read the context
+the Stage provides (see [Run extension components](../extensions/components.md)).
 
 For how Stage chooses forms and lookups when you have not authored a screen, see
 [Default generated Scene](default-scene-composition.md).

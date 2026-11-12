@@ -1,12 +1,9 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-<<<<<<< HEAD
 using Cratis.Stage.Host.Extensions.Components;
-=======
 using Cratis.Stage.Host.Extensions.Activation;
 using Cratis.Stage.Host.Extensions.Inbound;
->>>>>>> origin/main
 using Cratis.Stage.Host.Invocations;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;

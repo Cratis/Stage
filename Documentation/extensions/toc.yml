@@ -6,10 +6,8 @@
   href: host-services.md
 - name: Connect a backend to Stage
   href: connect-a-backend.md
-<<<<<<< HEAD
 - name: Run extension components
   href: components.md
-=======
 - name: Built-in http extension
   href: http.md
 - name: Inbound traffic and webhooks
@@ -18,7 +16,6 @@
   href: packages.md
 - name: Execution tiers and activation
   href: execution-tiers.md
->>>>>>> origin/main
 - name: Conformance suite
   href: conformance.md
 - name: C# SDK

@@ -16,7 +16,7 @@ what the extension hosting answers from afterwards is that join, not a list some
 | Which backends a screen needs | The UI contract's `extensions` of each screen | `ExtensionModelCatalogs.Usage` |
 | Which settings a system has, and which a browser may read | The package's contract. Only `public` reaches a browser; `secret` and `backend` do not | `ExtensionModelCatalogs.Settings` |
 | Which package an ability, a component or a backend belongs to | The system's `extension` reference, matched to the lock entry that pins it | `PinnedAbilityCatalog` |
-| The element the browser loads for a placed component | The scene Stage builds from the same model, with the package's frontend, abilities and signals added | `ExtensionSceneComponents` |
+| The element the browser loads for a placed component | The scene Stage builds from the same model, with the package's frontend, abilities and signals added, and each `on <signal>` bound to Scene's signal trigger | `ExtensionSceneComponents` |
 
 `SemanticHost` does this once the packages are loaded and the model has compiled, and it is what turns the empty catalogs the extension hosting
 starts with (see [Run extension components](https://github.com/Cratis/Stage/blob/main/Documentation/extensions/components.md)) into the model's.
@@ -76,9 +76,6 @@ first invocation starts the backend anyway. See [Execution tiers](https://github
 
 ## Not done yet
 
-- **Signals.** The element carries the signals the component may raise, and the runtime reports them to the page, but a screen's
-  `on <signal>` interaction is not bound to them. That waits for Scene's signal trigger; the UI contract already lists the handlers
-  (`scene.components[].extension.handles`), so binding them changes the runtime and not this wiring.
 - **Screen authorization.** A placement can name the policy of its screen, but the UI contract does not name one yet, so a browser invocation
   needs a signed-in person and nothing more. The ability's own `authorize` still applies.
 - **Setting values from the model.** The values behind `setting <name> = ...` and `setting <name> from secret ...` on a system are not read from the

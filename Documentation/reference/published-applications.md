@@ -87,7 +87,7 @@ manifest records a digest of `model/`, and a published host refuses a package wh
   "applicationName": "Shop",
   "publishedName": "my-shop",
   "applicationVersion": "1.2.0",
-  "stageRuntimeVersion": "5.3.0",
+  "stageRuntimeVersion": "5.4.0",
   "publicationId": "pub-a7dbf0aa7afba0f92a6305f9734b17d0",
   "modelDigest": "sha256:0ac3ab98…",
   "notesEnabled": false,

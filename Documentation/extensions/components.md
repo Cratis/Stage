@@ -12,7 +12,7 @@ server side of that: what reaches the browser, and what a component may ask Stag
 Where the catalog of placements comes from, and how a model reaches a running extension, is on
 [From a model to a running extension](https://github.com/Cratis/Stage/blob/main/Documentation/extensions/end-to-end.md).
 
-The browser half runs in the Stage runtime on `@cratis/scene.extensions` 5.3.0. A screen's component is a `Stage:extensionComponent` element, and the
+The browser half runs in the Stage runtime on `@cratis/scene.extensions` 5.4.0. A screen's component is a `Stage:extensionComponent` element, and the
 runtime loads its frontend, builds the contract's context and renders or mounts it. See [In the browser](#in-the-browser).
 
 ## Public settings only
@@ -91,16 +91,35 @@ The context is made of:
 | `settings` | The public settings of the component's system, read from the settings endpoint above. |
 | `strings` | The strings of the element. |
 | `invoke` | The invoke endpoint above, on one interaction identity kept across the waits, so asking again never invokes twice. An ability outside `invokes` is refused in the browser as well as by the host, and a refusal arrives as an `ExtensionInvocationError` with the status and the reason the host gave. |
-| `raise` | A signal in `signals`. It reaches the `onSignal` of `StageExtensionServicesProvider` and is dispatched as a bubbling `stage-extension-signal` event on the component's element. |
+| `raise` | A signal in `signals`. It runs the screen's `on <signal>` interactions (see [Handling a raised signal](#handling-a-raised-signal)), reaches the `onSignal` of `StageExtensionServicesProvider` and is dispatched as a bubbling `stage-extension-signal` event on the component's element. |
 | `on` | A trigger sent to the component's element as a `stage-extension-trigger` event, with `detail` `{ name, values }`. |
 
 **Secrets never reach the browser.** The only requests a component's page makes are the identity, the public settings and invocations, and an
 invocation carries the ability, the interaction identity and the inputs the component gave, and nothing else. The credentials and the secret
 settings stay on the host, which runs the ability.
 
-Two things are not final. Scene 5.3.0 has no trigger kind for a signal, so a screen's `on <signal>` interactions are not yet bound to a raised
-signal by Scene: the Stage delivers the signal as above, and the binding follows when Scene adds the trigger. Scene 5.3.1, which only changes
-`@cratis/scene.model`, is not used because the publish of `@cratis/scene.extensions` 5.3.1 is not finished; Stage depends on 5.3.0 of every Scene package.
+## Handling a raised signal
+
+A screen handles a signal with `on <signal>` on the component it places, and reads what the signal carried as `signal.<value>`:
+
+```play
+component Notifier.NoticeBoard board
+  on dismissed
+    execute DismissNotice
+      with noticeId from signal.noticeId
+```
+
+The model writes `on <signal>` as an application trigger, so the host decides what it is. When the name is a signal the component's contract declares,
+Stage binds the interaction to Scene's signal trigger (`SignalInteractionTrigger`, serialized as `{ "signalName": "dismissed" }`); a name the contract
+does not declare stays the application trigger it is. When the component raises the signal, the runtime resolves the behaviors attached to that
+component with `resolveSignalBehaviors` and runs them with the Scene interaction engine, the same engine that runs every other interaction. A
+`signal.<value>` argument reads the value the component raised the signal with, every other path is the screen's own, and the data is read again
+once the interaction has run. A signal never starts an application trigger of the same name, and the reverse. The contract is on
+[Binding a raised signal to a screen interaction](https://github.com/Cratis/Scene/blob/main/Documentation/extensions/contract.md).
+
+Stage depends on Scene 5.4.0 for every Scene package, and on `@cratis/components` 4.40.1, which Scene 5.4.0 requires. The Notifier sample's
+[`contract.play`](https://github.com/Cratis/Stage/blob/main/Samples/Extensions/Notifier/contract.play) declares the `dismissed` signal, and the
+[end-to-end](https://github.com/Cratis/Stage/blob/main/Documentation/extensions/end-to-end.md) specification raises it.
 
 ## Static placeholders
 

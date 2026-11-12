@@ -10,19 +10,29 @@
 #
 # usage: run.sh <stage image> <results directory>
 #   Needs `npm ci` and a playwright browser in ../generated-react-browser, and network access to the npm registry.
+#   STAGE_LIVE_CONCURRENCY opts into batches of 1-3 models (default 1); STAGE_LIVE_PORT is the first model's port.
 # exit:  0 every scenario passed, 1 a scenario found a defect, 2 the scenarios could not run.
 set -uo pipefail
 
 image=${1:?usage: run.sh <stage image> <results directory>}
 results=${2:?usage: run.sh <stage image> <results directory>}
 here=$(cd "$(dirname "$0")" && pwd)
-port=${STAGE_LIVE_PORT:-19392}
-container="stage-live-blueprints-$$"
+base_port=${STAGE_LIVE_PORT:-19392}
+concurrency=${STAGE_LIVE_CONCURRENCY:-1}
+case "$concurrency" in
+    1|2|3) ;;
+    *) echo "could not run: STAGE_LIVE_CONCURRENCY must be 1, 2 or 3"; exit 2 ;;
+esac
 work=$(mktemp -d)
 mkdir -p "$results"
+pids=()
 
-cleanup() { docker rm --force --volumes "$container" >/dev/null 2>&1; rm -rf "$work"; }
-trap cleanup EXIT
+trap '
+    for pid in ${pids[@]+"${pids[@]}"}; do kill "$pid" 2>/dev/null || true; done
+    for pid in ${pids[@]+"${pids[@]}"}; do wait "$pid" 2>/dev/null || true; done
+    rm -rf "$work"
+' EXIT
+trap 'exit 2' INT TERM
 
 [ -d "$here/../generated-react-browser/node_modules/playwright" ] || { echo "could not run: run 'npm ci' in generated-react-browser first"; exit 2; }
 
@@ -41,15 +51,24 @@ for wait in ${STAGE_LIVE_INSTALL_RETRY_WAITS:-15 30 60 120}; do
 done
 $installed || { echo "could not run: the blueprint packages could not be installed"; exit 2; }
 
-count=$(node -e "console.log(require('$here/blueprints.json').length)")
-status=0
-for index in $(seq 0 $((count - 1))); do
-    model=$(node -e "console.log(require('$here/blueprints.json')[$index].model)")
+run_model() (
+    index=$1
+    model=$2
+    port=$((base_port + index))
+    container="stage-live-blueprints-$$-$index"
+    packages="$work/$model/packages"
+    model_results="$results/$model"
+    mkdir -p "$work/$model" "$model_results"
+    # A worker owns its container until its browser has finished. Keep full logs even on startup or browser failure.
+    trap '
+        docker logs "$container" >"$model_results/stage.log" 2>&1
+        docker rm --force --volumes "$container" >/dev/null 2>&1
+    ' EXIT
+    trap 'exit 2' INT TERM
+    exec >"$model_results/scenario.log" 2>&1
     echo "== $model"
-    packages="$work/packages-$model"
     node "$here/prepare.cjs" "$work/node_modules" "$index" "$packages" || { echo "could not run: the approved set of $model could not be made"; exit 2; }
 
-    docker rm --force --volumes "$container" >/dev/null 2>&1
     docker run --detach --name "$container" --publish "127.0.0.1:$port:9090" \
         --volume "$here/models/$model:/eventmodel:ro" \
         --volume "$packages:/packages:ro" \
@@ -71,10 +90,36 @@ for index in $(seq 0 $((count - 1))); do
     $ready || { docker logs "$container" 2>&1 | tail -30; echo "could not run: the Stage did not become ready for $model"; exit 2; }
 
     STAGE_LIVE_URL="http://127.0.0.1:$port" STAGE_LIVE_NAME="$model" STAGE_LIVE_MODEL="$here/models/$model/$model.play" STAGE_LIVE_APPROVED="$packages/approved-packages.json" \
-        STAGE_LIVE_RESULT="$results/live-blueprints-$model.json" node "$here/scenario.cjs"
-    code=$?
-    [ $code -eq 2 ] && exit 2
-    [ $code -ne 0 ] && status=1
+        STAGE_LIVE_RESULT="$model_results/live-blueprints-$model.json" node "$here/scenario.cjs"
+    exit $?
+)
+
+status=0
+wait_batch() {
+    # The guarded expansion keeps an empty batch valid under set -u on bash 3.2.
+    for pid in ${pids[@]+"${pids[@]}"}; do
+        wait "$pid"
+        code=$?
+        if [ "$code" -eq 2 ]; then status=2
+        elif [ "$code" -ne 0 ] && [ "$status" -eq 0 ]; then status=1
+        fi
+    done
+    pids=()
+}
+
+count=$(node -e "console.log(require('$here/blueprints.json').length)")
+[ "${count:-0}" -gt 0 ] || { echo "could not run: no blueprints were found"; exit 2; }
+# Join every worker, including failed ones, and keep scheduling: no model may be silently skipped by an earlier failure.
+for index in $(seq 0 $((count - 1))); do
+    model=$(node -e "console.log(require('$here/blueprints.json')[$index].model)")
+    run_model "$index" "$model" &
+    pids+=("$!")
+    [ "${#pids[@]}" -lt "$concurrency" ] || wait_batch
+done
+wait_batch
+for index in $(seq 0 $((count - 1))); do
+    model=$(node -e "console.log(require('$here/blueprints.json')[$index].model)")
+    cat "$results/$model/scenario.log"
 done
 
-exit $status
+exit "$status"

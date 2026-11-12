@@ -970,6 +970,9 @@ jobs:
       - name: Run the live domain blueprint scenarios
         id: blueprints
         if: needs.routing.outputs.live-blueprints == 'true'
+        env:
+          # Bound Stage/Chromium pairs on the 4-vCPU, 16-GB runner; models need no database or build.
+          STAGE_LIVE_CONCURRENCY: "3"
         run: Verification/live-blueprints/run.sh cratis/stage:ci "$PWD/TestResults/live-blueprints"
 
       - name: Run the live blueprint template scenarios

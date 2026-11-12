@@ -33,7 +33,8 @@ public class when_the_registry_answers_with_another_manifest : Specification
 
         registry.Put($"/v2/acme/extension-mail/manifests/{entry.Digest}", manifest);
         registry.Put($"/v2/acme/extension-mail/blobs/{FakeRegistry.Digest(archive)}", other);
-        _layer = await Assert.ThrowsAsync<PackageRefusedException>(() => channel.Download(entry, CancellationToken.None));
+        var downloaded = await channel.Download(entry, CancellationToken.None);
+        _layer = Assert.Throws<PackageRefusedException>(() => channel.Open(entry, downloaded));
 
         registry.Put($"/v2/acme/extension-mail/blobs/{FakeRegistry.Digest(archive)}", archive);
         var artifact = await channel.Download(entry, CancellationToken.None);

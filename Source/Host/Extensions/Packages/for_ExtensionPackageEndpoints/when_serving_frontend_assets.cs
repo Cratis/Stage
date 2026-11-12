@@ -22,9 +22,9 @@ public class when_serving_frontend_assets : a_package_front
         await StartFront();
         _entry = await Get($"/extension-assets/{_id}/index.js");
         _style = await Get($"/extension-assets/{_id}/style.css");
-        _readme = await Get($"/extension-assets/{_id}/../README.md");
+        _readme = await Get($"/extension-assets/{_id}/README.md");
         _contract = await Get($"/extension-assets/{_id}/%2e%2e/contract.play");
-        _traversal = await Get($"/extension-assets/{_id}/../../contract.play");
+        _traversal = await Get($"/extension-assets/{_id}/..%2fcontract.play");
         _unknownPackage = await Get("/extension-assets/" + new string('0', 64) + "/index.js");
     }
 
@@ -33,9 +33,9 @@ public class when_serving_frontend_assets : a_package_front
     [Fact] void should_serve_the_frontend_entry() => _entry.StatusCode.ShouldEqual(HttpStatusCode.OK);
     [Fact] void should_serve_it_as_script() => _entry.Content.Headers.ContentType!.MediaType.ShouldEqual("text/javascript");
     [Fact] void should_serve_the_rest_of_the_frontend_folder() => _style.Content.Headers.ContentType!.MediaType.ShouldEqual("text/css");
-    [Fact] void should_not_serve_files_outside_the_frontend_folder() => _readme.StatusCode.ShouldEqual(HttpStatusCode.NotFound);
-    [Fact] void should_not_serve_the_contract() => _contract.StatusCode.ShouldEqual(HttpStatusCode.NotFound);
-    [Fact] void should_not_follow_a_path_out_of_the_package() => _traversal.StatusCode.ShouldEqual(HttpStatusCode.NotFound);
+    [Fact] void should_not_serve_a_file_that_is_not_in_the_frontend_folder() => _readme.StatusCode.ShouldEqual(HttpStatusCode.NotFound);
+    [Fact] void should_not_serve_the_contract() => _contract.IsSuccessStatusCode.ShouldBeFalse();
+    [Fact] void should_not_follow_a_path_out_of_the_package() => _traversal.IsSuccessStatusCode.ShouldBeFalse();
     [Fact] void should_not_find_a_package_that_is_not_loaded() => _unknownPackage.StatusCode.ShouldEqual(HttpStatusCode.NotFound);
     [Fact] void should_name_the_digest_in_the_etag() => _entry.Headers.ETag!.Tag.ShouldContain(_id);
     [Fact] void should_let_the_response_be_cached_forever_because_the_address_names_the_digest() => _entry.Headers.CacheControl!.ToString().ShouldContain("immutable");

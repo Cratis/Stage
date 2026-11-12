@@ -9,6 +9,9 @@ the things the
 server side of that: what reaches the browser, and what a component may ask Stage to do. To build a component, see
 [Build an extension component](https://github.com/Cratis/Scene/blob/main/Documentation/extensions/build-a-component.md).
 
+Where the catalog of placements comes from, and how a model reaches a running extension, is on
+[From a model to a running extension](https://github.com/Cratis/Stage/blob/main/Documentation/extensions/end-to-end.md).
+
 The browser half runs in the Stage runtime on `@cratis/scene.extensions` 5.3.0. A screen's component is a `Stage:extensionComponent` element, and the
 runtime loads its frontend, builds the contract's context and renders or mounts it. See [In the browser](#in-the-browser).
 

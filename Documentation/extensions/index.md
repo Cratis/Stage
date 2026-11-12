@@ -36,6 +36,9 @@ and TypeScript. It implements section 9 of
   [triggers](https://github.com/Cratis/Screenplay/blob/main/Documentation/screenplay/triggers.md) page.
 - The extension protocol is the seam between the two: for every attempt Stage calls the backend, and the backend answers with what happened.
 
+- A model reaches a running extension through the catalogs Stage builds from the compiled model and the locked packages. See
+  [From a model to a running extension](https://github.com/Cratis/Stage/blob/main/Documentation/extensions/end-to-end.md).
+
 ## Where things live
 
 Decision, recorded here because it was left open by decision 0159: **the protocol and the SDKs live in the Cratis/Stage repository**, under

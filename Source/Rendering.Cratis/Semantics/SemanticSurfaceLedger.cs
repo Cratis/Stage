@@ -426,6 +426,10 @@ internal static class SemanticSurfaceLedger
         // ESM v42 screens are a stack-neutral UI contract; the backend target renders none of them and no screen changes a command, query or event.
         Add(entries, "SemanticSlice", ignored("Screens are a stack-neutral UI contract; the Cratis backend target renders none of them."), "Screens");
         Add(entries, "SemanticScreen", ignored("Screens are a stack-neutral UI contract; the Cratis backend target renders none of them."), "Id Name Title Description Data Actions Navigation Layout");
+        Add(entries, "SemanticScreen", ignored("Screens are a stack-neutral UI contract; the Cratis backend target renders none of them."), "Extensions Components");
+        Add(entries, "SemanticScreenExtension", ignored("A screen's extension needs are part of the stack-neutral UI contract; the Stage host reads them from it, not from the rendered backend."), "System Reference");
+        Add(entries, "SemanticScreenComponent", ignored("A screen's extension components are part of the stack-neutral UI contract; the Stage host reads them from it, not from the rendered backend."), "Name System Component Properties Handles");
+        Add(entries, "SemanticScreenSignalHandler", ignored("A screen's signal handlers are part of the stack-neutral UI contract."), "Signal Commands");
         Add(entries, "SemanticScreenData", ignored("Screens are a stack-neutral UI contract."), "Query By Fields");
         Add(entries, "SemanticScreenField", ignored("Screens are a stack-neutral UI contract."), "Label Property");
         Add(entries, "SemanticScreenAction", ignored("Screens are a stack-neutral UI contract."), "Command Label Subject Inputs When Then");
@@ -476,6 +480,17 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticExpressionRootKind", rendered, "Trigger");
         Add(entries, "SemanticProducedEvent", rendered, "DestinationType");
         Add(entries, "SemanticInvocation", rendered, "Command Mappings OnRefused");
+
+        // Invoking an ability from a reaction, a workflow action or a state entry waits for Cratis/Stage#1118: STAGE-ESM-016 refuses the owner.
+        var abilityInvocation = rejected("STAGE-ESM-016");
+        Add(entries, "SemanticInvocation", abilityInvocation, "System Ability Inputs Branches");
+        Add(entries, "SemanticInvocationBranch", abilityInvocation, "Selector Produces");
+        Add(entries, "SemanticAbilityInputMapping", abilityInvocation, "Input Source");
+        Add(entries, "SemanticInvocationValueExpression", abilityInvocation, "Source Member Type");
+        Add(entries, "SemanticExpressionKind", abilityInvocation, "InvocationValue");
+        Add(entries, "SemanticAbilityAnswer", abilityInvocation, "System Ability Kind Outcome Reason Values");
+        Add(entries, "SemanticAbilityAnswerKind", abilityInvocation, "Returned Outcome Failed");
+        Add(entries, "SemanticAbilityFieldValue", abilityInvocation, "Name Value");
         Add(entries, "SemanticInvocationRefusal", rendered, "Selector Constraint Produces");
         Add(entries, "SemanticReaction", rendered, "Id Name Triggers");
         Add(entries, "SemanticReactionTrigger", rendered, "Invokes Kind Produces Source Where");
@@ -554,6 +569,8 @@ internal static class SemanticSurfaceLedger
         // The invocation-preservation gate refuses every shape outside the single-hop recording scenario with STAGE-ESM-016.
         Add(entries, "SemanticSpecification", rendered, "ThenInvocations");
         Add(entries, "SemanticSpecificationInvocation", rendered, "Command Values");
+        Add(entries, "SemanticSpecificationInvocation", rejected("STAGE-ESM-016"), "System Ability Inputs");
+        Add(entries, "SemanticSpecification", rejected("STAGE-ESM-016"), "GivenAbilityAnswers");
 
         // Screenplay 4.125 added ESM v10: reaction execution identity, observer filters and production routes.
         // Admit each construct only on the paths that can preserve it.
@@ -595,6 +612,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticState", rendered, "Name IsInitial IsFinal Entering");
         Add(entries, "SemanticStateEntry", rendered, "Kind Command Workflow");
         Add(entries, "SemanticStateEntryKind", rendered, "SendCommand StartWorkflow");
+        Add(entries, "SemanticStateEntry", abilityInvocation, "System Ability Inputs RequirementId");
+        Add(entries, "SemanticStateEntryKind", abilityInvocation, "InvokeAbility RunBody");
         Add(entries, "SemanticStateTransition", rendered, "From Event Guard To");
         Add(entries, "SemanticWorkflow", rendered, "Name Subject Nodes Edges");
         Add(entries, "SemanticWorkflow", verifiedByTheReferenceEvaluator, "Specifications");
@@ -604,10 +623,13 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticWorkflowEdge", rendered, "From Outlet To");
         Add(entries, "SemanticWorkflowNodeKind", rendered, "Trigger Action Wait");
         Add(entries, "SemanticWorkflowNodeKind", lifecycleNotRendered, "Decision Approval ForEach Join");
+        Add(entries, "SemanticWorkflowNode", lifecycleNotRendered, "System Ability Inputs Returns RequirementId");
+        Add(entries, "SemanticWorkflowNodeKind", lifecycleNotRendered, "Compute");
         Add(entries, "SemanticLifecycleSpecification", verifiedByTheReferenceEvaluator, "Name Given WhenAppended WhenStarted Outcomes Then");
         Add(entries, "SemanticLifecycleOutcome", verifiedByTheReferenceEvaluator, "Node Outlet");
         Add(entries, "SemanticLifecycleExpectation", verifiedByTheReferenceEvaluator, "Kind Target Command");
         Add(entries, "SemanticLifecycleExpectationKind", verifiedByTheReferenceEvaluator, "State Sends Starts Completes Fails Waits");
+        Add(entries, "SemanticLifecycleExpectationKind", verifiedByTheReferenceEvaluator, "Invokes");
 
         return entries;
     }

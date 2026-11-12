@@ -9,6 +9,7 @@ same document, and names resolve across all of them. That is not a convention th
 | Sample | What it is |
 | --- | --- |
 | [`Billing`](Billing) | An invoicing application, and the broadest exercise of the language in this repository. |
+| [`Extensions/Notifier`](Extensions/Notifier) | A minimal Stage extension: a contract, a React component, a placeholder and a C# backend. Not a Screenplay application. |
 | [`Customization`](Customization) | C# and CSS fragments to copy into a rendered application, not a standalone Screenplay application. |
 
 ## Customization

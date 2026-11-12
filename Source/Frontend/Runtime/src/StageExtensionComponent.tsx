@@ -20,6 +20,7 @@ import {
     defaultTenant,
     localeOf,
     readExtensionSettings,
+    reachExtensionScreen,
     readExtensionTheme,
     readExtensionUser,
     type ExtensionComponentAddress
@@ -119,6 +120,7 @@ export function StageExtensionComponent({ element, slots }: { element: ExternalC
         const abort = new AbortController();
         const fetcher = services.fetcher ?? ((input: RequestInfo | URL, init?: RequestInit) => fetch(input, init));
         setLoaded({ phase: 'loading' });
+        void reachExtensionScreen(address.screen, fetcher, abort.signal);
         (async () => {
             const [definition, settings, identity] = await Promise.all([
                 loadExtensionDefinition({ module: moduleAddress, component: address.component, kind, importer: services.importer }),

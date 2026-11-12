@@ -50,6 +50,21 @@ public static class ExtensionPackageHosting
         return await loader.Load(extensionLock, cancellationToken);
     }
 
+    /// <summary>
+    /// Makes the contracts of the loaded packages what the compiler resolves a model's extensions against, looking for the lock beside the model
+    /// rather than beside wherever the process runs.
+    /// </summary>
+    /// <param name="modelPath">A <c language="shell">.play</c> file or a folder of them.</param>
+    /// <param name="packages">The <see cref="ExtensionPackageSet"/>.</param>
+    /// <returns>The <see cref="ExtensionContractResolver"/> that is now current, or <see langword="null"/> when the packages kept no contracts.</returns>
+    public static ExtensionContractResolver? UseContracts(string modelPath, ExtensionPackageSet packages)
+    {
+        if (packages.Contracts is null) return null;
+
+        var root = Directory.Exists(modelPath) ? Path.GetFullPath(modelPath) : Path.GetDirectoryName(Path.GetFullPath(modelPath));
+        return ExtensionContractResolver.Current = new(packages.Contracts, ExtensionResolutionMode.Strict, null, root);
+    }
+
     static class Versions
     {
         public static string Stage { get; } = StageRuntimeVersion.Current;

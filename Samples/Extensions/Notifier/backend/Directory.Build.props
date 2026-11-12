@@ -1,0 +1,4 @@
+<Project>
+    <!-- The sample builds the way the sources do, against the same extension SDK project. -->
+    <Import Project="$(MSBuildThisFileDirectory)../../../../Source/Directory.Build.props" />
+</Project>

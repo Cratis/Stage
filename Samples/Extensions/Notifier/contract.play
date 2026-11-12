@@ -1,0 +1,29 @@
+extension Notifier
+  display name "Notice board"
+  description "Posts a notice to a channel and shows the notices on a screen"
+  icon "assets/icon.svg"
+  requires stage "^5"
+  activation on demand idle after 10 minutes
+
+  setting channel public
+  setting token secret
+
+  ability Notify once
+    description "Posts a notice to the channel"
+    message String
+    returns
+      noticeId String
+    outcome Muted
+      description "The channel is muted, so nothing was posted"
+
+  component NoticeBoard
+    kind react
+    platform web
+    placeholder "placeholders/notice-board.html"
+    property title String
+    invokes Notify
+    raises dismissed
+      noticeId String
+
+  backend runtime dotnet 10 assembly "Notifier.dll"
+  frontend "frontend/index.js"

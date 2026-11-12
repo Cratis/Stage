@@ -8,6 +8,8 @@
   href: connect-a-backend.md
 - name: Run extension components
   href: components.md
+- name: From a model to a running extension
+  href: end-to-end.md
 - name: Built-in http extension
   href: http.md
 - name: Inbound traffic and webhooks

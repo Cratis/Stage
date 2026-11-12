@@ -28,11 +28,11 @@ describe('when the page holds secrets for the extension', () => {
         expect((await view.findByTestId('settings')).textContent).toBe('{"region":"eu"}');
     });
 
-    it('asks the host for nothing but the identity, the public settings and invocations', async () => {
+    it('asks the host for nothing but the identity, the public settings, the screen reached and invocations', async () => {
         const host = aHost();
         const view = aPlacedComponent(placement(), { fetcher: host.fetcher, importer });
         await view.findByTestId('settings');
-        expect(host.calls.map(call => call.url).sort()).toEqual(['.cratis/me', 'stage/extension-components/Dashboard/ledger/Chart/settings']);
+        expect(host.calls.map(call => call.url).sort()).toEqual(['.cratis/me', 'stage/extension-components/Dashboard/ledger/Chart/settings', 'stage/extensions/activation/screens/Dashboard']);
     });
 
     it('refuses an ability outside the contract without calling the host', async () => {

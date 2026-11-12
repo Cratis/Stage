@@ -30,13 +30,17 @@ internal static class SemanticTypedContextAdmission
     // PolicyPredicate retains the per-use-site descriptor check below.
     // AbilityEffect (ESM v50) bodies run in the host, not in generated code, and carry no typed context; a model that declares one is
     // refused by the capability admission (STAGE-ESM-016) until the host runs it.
+    // WorkflowCompute (ESM v51) and StateEntryBody (ESM v52) are the same: a body the host would run, refused by the ledger entries for the
+    // workflow node and the state entry that carry it (STAGE-LIFECYCLE-010 and STAGE-ESM-016).
     static readonly ImmutableHashSet<SemanticImplementationRole> _descriptorExemptRoles =
     [
         SemanticImplementationRole.QueryPerformer,
         SemanticImplementationRole.ReactionEffect,
         SemanticImplementationRole.ConstraintPredicate,
         SemanticImplementationRole.PolicyPredicate,
-        SemanticImplementationRole.AbilityEffect
+        SemanticImplementationRole.AbilityEffect,
+        SemanticImplementationRole.WorkflowCompute,
+        SemanticImplementationRole.StateEntryBody
     ];
 
     internal static bool RequiresDescriptor(SemanticImplementationRole role) => _descriptorBackedRoles.Contains(role);

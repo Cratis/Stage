@@ -22,7 +22,10 @@ internal static class SemanticDependencyReferences
         SemanticApplication:Systems
         SemanticSystem:Abilities
         SemanticAbility:Inputs Returns
-        SemanticScreen:Id Data Actions Navigation
+        SemanticScreen:Id Data Actions Navigation Extensions Components
+        SemanticScreenExtension:System
+        SemanticScreenComponent:System Handles
+        SemanticScreenSignalHandler:Commands
         SemanticSlice:Commands Constraints Events Projections Queries ReadModels Specifications Reducers Reactions Captures Screens
         """,
         [SemanticDependencyKind.TypeReference] = """
@@ -118,7 +121,9 @@ internal static class SemanticDependencyReferences
         SemanticQueryFilterValue:Filter Value
         """,
         [SemanticDependencyKind.Specification] = """
-        SemanticSpecification:GivenEvents GivenReadModels ThenEvents ThenReadModels ThenQueries When ThenAbsentReadModels WhenAppended WhenRedelivered GivenCaptures WhenCapture WhenTrigger GivenGenerated ThenReturns ThenInvocations
+        SemanticSpecification:GivenEvents GivenReadModels ThenEvents ThenReadModels ThenQueries When ThenAbsentReadModels WhenAppended WhenRedelivered GivenCaptures WhenCapture WhenTrigger GivenGenerated ThenReturns ThenInvocations GivenAbilityAnswers
+        SemanticAbilityAnswer:System Values
+        SemanticAbilityFieldValue:Value
         SemanticSpecificationAbsentReadModel:Key ReadModel
         SemanticGraphSpecification:Given GivenGraphs WhenAppended ThenGraphs ThenQueries
         SemanticGraphQueryExpectation:Arguments Rows
@@ -128,7 +133,7 @@ internal static class SemanticDependencyReferences
         SemanticGraphPropertyValue:Value
         SemanticSpecificationRedelivery:Reaction Given
         SemanticSpecificationCommand:Command Values EventSource GeneratedValues
-        SemanticSpecificationInvocation:Command Values
+        SemanticSpecificationInvocation:Command Values System Inputs
         SemanticSpecificationAppend:EventContract EventSource Values Route
         SemanticSpecificationEvent:EventContract EventSource Values Route
         SemanticFixtureRoute:Source Stream StreamId StreamIdParts
@@ -176,14 +181,17 @@ internal static class SemanticDependencyReferences
         [SemanticDependencyKind.Reaction] = """
         SemanticReaction:From Triggers
         SemanticReactionTrigger:Source Where Produces Invokes
-        SemanticInvocation:Command Mappings OnRefused
+        SemanticInvocation:Command Mappings OnRefused System Inputs Branches
+        SemanticInvocationBranch:Produces
+        SemanticAbilityInputMapping:Source
+        SemanticInvocationValueExpression:Type
         SemanticApplication:StateMachines Workflows
         SemanticStateMachine:ReadModel States Transitions Specifications
         SemanticState:Entering
-        SemanticStateEntry:Command
+        SemanticStateEntry:Command System Inputs
         SemanticStateTransition:Event Guard
         SemanticWorkflow:Subject Nodes Edges Specifications
-        SemanticWorkflowNode:Event Command Condition Items
+        SemanticWorkflowNode:Event Command Condition Items System Inputs Returns
         SemanticLifecycleSpecification:Given WhenAppended WhenStarted Then
         SemanticLifecycleExpectation:Command
         """,

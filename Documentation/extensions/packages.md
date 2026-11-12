@@ -257,7 +257,7 @@ Only a registry on loopback may be reached without TLS.
 ## What loading does not do
 
 Loading reads and verifies packages. It does not run a backend, choose how it runs or start it when something needs it; that is the work of
-execution tiers and lazy activation (Cratis/Stage#1066), which build on the loaded packages: `IExtensionPackages` tells which package a system's extension is,
+[execution tiers and activation](execution-tiers.md), which build on the loaded packages: `IExtensionPackages` tells which package a system's extension is,
 and `LoadedExtensionPackage.UnpackBackend` unpacks its backend from bytes that are verified against the locked digest again first. Vendoring a package into the
 model folder is `screenplay restore --vendor`.
 

@@ -81,4 +81,10 @@ describe('the dialog of a toolbar slice button whose slice declares its own dial
         const { container } = dialog([]);
         expect(container.querySelector('[data-stage-slice-screen]')).toBeNull();
     });
+
+    it('leaves a dialog screen with neither a form nor a destination to the Scene task dialog', () => {
+        const { container } = dialog([{ ...newProduct, forms: [], slotContent: { actions: [element('action-DraftProduct', 'core:action', { command: 'DraftProduct' })] } } as unknown as Screen]);
+        expect(container.querySelector('[data-stage-slice-screen]')).toBeNull();
+        expect(container.querySelector('form.scene-slice-dialog')).not.toBeNull();
+    });
 });

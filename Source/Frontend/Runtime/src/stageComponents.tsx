@@ -408,8 +408,10 @@ function StageSliceDialogContent(props: Partial<RegisteredProps>) {
     const close = useCallback(() => navigation?.closeDialog(), [navigation]);
     const [footer, setFooter] = useState<HTMLElement | null>(null);
     const screens = useStageScreens();
-    // The slice's own dialog screen, when it declares one, is what opens: its form, its labels, and where its action goes afterwards.
-    const own = useMemo(() => sliceDialogScreenOf(screens, text(element, 'slice') || opened?.slice, command), [screens, element, opened?.slice, command]);
+    // The slice's own dialog screen, when it declares one, is what opens: its form, its labels, and where its action goes afterwards. A screen
+    // that declares neither adds nothing to the task dialog Scene draws from the schema.
+    const declared = useMemo(() => sliceDialogScreenOf(screens, text(element, 'slice') || opened?.slice, command), [screens, element, opened?.slice, command]);
+    const own = declared?.form || declared?.navigateToScreen ? declared : undefined;
 
     // A key the row the person selected carries is not asked for: the form fills it from that row (the command acts on it).
     const fromSelectedRow = (property: SchemaProperty) => property.identifier && property.required && carriedBy(property, selectableRows) && selectedIdentifier(property, selectedRows) !== undefined;

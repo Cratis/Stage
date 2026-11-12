@@ -991,7 +991,7 @@ keeps the dialog open, and a successful one closes it and refreshes what the scr
 When the slice declares its own dialog screen - a screen written inside the slice that fits a dialog (`fits dialog`) or fills a dialog
 template such as `QuickCreateDialog` - the button opens that screen instead of a form made from the schema: the fields and labels of the
 form the screen declares for the command, without the identity the command creates, and the screen its action names with `navigate to`
-once the command succeeded.
+once the command succeeded. A dialog screen that declares neither a form nor a `navigate to` opens the task dialog above.
 
 Creation intent (`x-creates`) classifies a command as creating a row in some listed read model, not necessarily on the current screen; `STAGE-INTENT-001` reports only guarded or ambiguous creation candidates, not ordinary updates.
 

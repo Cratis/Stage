@@ -9,10 +9,11 @@ Refresh measured prefix weights from directories of successful runs:
 Each immediate child of the TRX root is one run. A sharded project is refreshed from
 the runs that contain its TRX files, which must be one per shard (eight Rendering,
 six Conformance); a project without TRX files keeps its stored weights.
-Each prefix weighs its wall-attributed seconds: the class span plus the idle time
-before the class starts, which is where its shared fixture runs. xUnit's per-test
-duration omits the Establish/Because a class shares, so it cannot be used.
-`estimate` reports those sums per shard.
+A Rendering prefix weighs its share of the shard's test wall time (concurrent classes split the
+time they overlap; idle time before a class starts, where its shared fixture runs, goes to that class), so a
+shard's weights sum to its wall time. A Conformance prefix weighs its wall-attributed seconds: the class span
+plus that idle time. xUnit's per-test duration omits the Establish/Because a class shares, so it cannot be
+used. `estimate` reports those sums per shard.
 Each shard artifact also carries a per-project generated-app-timings.tsv of process slot timings.
 """
 
@@ -60,11 +61,11 @@ class Sharding(NamedTuple):
     split: tuple       # Namespaces split per test class; every other for_* namespace stays together.
     every_class: bool  # Split every top-level test class in a file, not only the first declaration.
     assembly: str      # Identifies the project's TRX files; namespaces overlap between projects.
-    measure: str       # "class-span" or "wall-attributed".
+    measure: str       # "class-span", "wall-attributed" or "wall-share".
 
 
 RENDERING_SHARDING = Sharding("rendering", RENDERING, "Source/Rendering.Cratis", RENDERING_SHARDS, (PLANNER,),
-                              False, "Cratis.Stage.Rendering.Cratis.dll", "wall-attributed")
+                              False, "Cratis.Stage.Rendering.Cratis.dll", "wall-share")
 # Conformance runs the planner namespace too (its RootNamespace is Rendering.Cratis), against its own assembly.
 # Its shared class fixtures run before the first test starts, so plain class spans undercount it.
 CONFORMANCE_SHARDING = Sharding("conformance", CONFORMANCE, "Source/Conformance.Specs", 6, (PLANNER, THREE_WAY),
@@ -307,12 +308,43 @@ def wall_attributed(root):
     return seconds
 
 
-MEASURES = {"class-span": class_spans, "wall-attributed": wall_attributed}
+def wall_share(root):
+    """Each class's share of the TRX's test wall time, so one TRX sums exactly to its wall time.
+
+    Concurrent classes overlap, so class spans (and the idle time wall-attributed adds) sum to far more than
+    the shard's wall time, and shards that overlap more look heavier than they are. Here the time between
+    two consecutive class start/end boundaries is divided equally among the classes running in it, and idle
+    time with no class running goes to the class that ends it (a class fixture runs before its first test).
+    """
+    bounds = class_bounds(root)
+    boundaries = sorted({moment for first, last in bounds.values() for moment in (first, last)})
+    seconds = dict.fromkeys(bounds, 0.0)
+    idle = 0.0
+    for start, end in zip(boundaries, boundaries[1:]):
+        running = [name for name, (first, last) in bounds.items() if first <= start and end <= last]
+        elapsed = (end - start).total_seconds()
+        if not running:
+            idle += elapsed
+            continue
+        for name in running:
+            seconds[name] += elapsed / len(running)
+        if idle:
+            starting = min(running, key=lambda name: (bounds[name][0], name))
+            seconds[starting] += idle
+            idle = 0.0
+    return seconds
+
+
+MEASURES = {"class-span": class_spans, "wall-attributed": wall_attributed, "wall-share": wall_share}
 MEASUREMENTS = {
     "class-span": "Mean per-run sum of test-class wall-clock spans (first startTime to last endTime) in "
                   "seconds; includes shared class setup. Dedicated-lane fixtures are excluded. Concurrent "
                   "classes overlap, so this is test work, not job wall time. Unmeasured prefixes use one "
                   "second per source file.",
+    "wall-share": "Mean per-run sum of each test class's share of its TRX's test wall time: the time between "
+                  "consecutive class boundaries is divided among the classes running in it, and idle time goes to "
+                  "the class that ends it, which is where shared class fixtures run. Each TRX sums to its test "
+                  "wall time. Dedicated-lane fixtures are excluded. Unmeasured prefixes use one second per test class.",
     "wall-attributed": "Mean per-run sum of wall-attributed seconds per test class: the class span (first "
                        "startTime to last endTime) plus the idle time before its first test starts while no "
                        "other class in the same TRX was running, which is where shared class fixtures run. "
@@ -387,7 +419,8 @@ def refresh_timings(directory):
 
 def estimate():
     units = {"class-span": "class-span seconds (not parallel job wall time)",
-             "wall-attributed": "wall-attributed seconds (about the shard's test wall time)"}
+             "wall-attributed": "wall-attributed seconds (about the shard's test wall time)",
+             "wall-share": "wall-share seconds (the shard's test wall time)"}
     for sharding in SHARDED:
         prefix_weights = weights(sharding, source_groups(sharding))
         loads = [sum(prefix_weights[prefix] for prefix in part) for part in partitions(sharding)]

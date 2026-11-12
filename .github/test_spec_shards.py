@@ -309,15 +309,29 @@ class SpecShardsTests(unittest.TestCase):
                            [(planner[:-1], "should_x", 0, 59, "Passed")], assembly="Cratis.Stage.Conformance.Specs.dll")
 
             # Conformance runs planner namespaces too; only the Rendering assembly weighs Rendering.
-            self.assertEqual(Counter({planner: 35, scaffold: 7}), SHARDS["run_timings"](root / "1", groups))
+            spans = SHARDS["RENDERING_SHARDING"]._replace(measure="class-span")
+            self.assertEqual(Counter({planner: 35, scaffold: 7}), SHARDS["run_timings"](root / "1", groups, spans))
             (root / "1" / "conformance" / "specs.trx").unlink()  # An incomplete Conformance run is refused.
             timings = root / "timings.json"
             with patch.dict(SHARDS["refresh_timings"].__globals__,
-                            {"TIMINGS": timings, "source_groups": lambda sharding: groups}):
+                            {"TIMINGS": timings, "source_groups": lambda sharding: groups,
+                             "SHARDED": (spans, SHARDS["CONFORMANCE_SHARDING"])}):
                 SHARDS["refresh_timings"](root)
             measured = json.loads(timings.read_text())
         self.assertEqual(["1", "2"], measured["runs"])
         self.assertEqual({planner: 70.0, scaffold: 14.0}, measured["prefix_seconds"])
+
+    def test_wall_share_splits_overlapping_class_time_and_sums_to_the_wall_time(self):
+        work = SHARDS["ROOT"] / ".ai-work"
+        work.mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix="spec-shard-timing-tests-", dir=work) as directory:
+            path = Path(directory) / "specs.trx"
+            # a runs 0-10; b idles 10-20 (its fixture) and runs 20-40 while c (30-50) overlaps its last 10 s.
+            self.write_trx(path, [("a", "should_a", 0, 10, "Passed"), ("b", "should_b", 20, 40, "Passed"),
+                                  ("c", "should_c", 30, 50, "Passed")])
+            shares = SHARDS["wall_share"](ET.parse(path).getroot())
+        self.assertEqual({"a": 10.0, "b": 10.0 + 10.0 + 5.0, "c": 5.0 + 10.0}, shares)
+        self.assertEqual(50.0, sum(shares.values()))
 
     def test_timings_reject_failed_runs_and_missing_shards(self):
         name = SHARDS["PLANNER"] + ".when_rendering"

@@ -73,6 +73,11 @@ jobs:
       generated-react-blueprint-templates: ${{ steps.routes.outputs.generated-react-blueprint-templates }}
       generated-react: ${{ steps.routes.outputs.generated-react }}
       standalone-generated-application: ${{ steps.routes.outputs.standalone-generated-application }}
+      build-scope: ${{ steps.routes.outputs.build-scope }}
+      affected-projects: ${{ steps.routes.outputs.affected-projects }}
+      build-projects: ${{ steps.routes.outputs.build-projects }}
+      specs-selected: ${{ steps.routes.outputs.specs-selected }}
+      spec-shards: ${{ steps.routes.outputs.spec-shards }}
     steps:
       - name: Skip when this workflow already succeeded on this commit
         id: already-ran
@@ -111,6 +116,7 @@ jobs:
     timeout-minutes: 30
     outputs:
       spec-matrix: ${{ steps.spec-coverage.outputs.matrix }}
+      has-specs: ${{ steps.spec-coverage.outputs.has-specs }}
 
     steps:
       - name: Checkout code
@@ -130,18 +136,34 @@ jobs:
       # This job owns analyzers for both configurations. Inline specs and their test SDK exist only in
       # Debug; every spec lane reuses its binaries (including Host's isolated specrunner) with --no-build.
       # Release still compiles without specs and remains the zero-warning/package-validation gate below.
+      # Pull requests build only the projects the diff reaches (plus what the selected lanes consume);
+      # every other event, ci:full and any routing doubt build the whole solution.
       - name: Build Debug
-        run: dotnet build --configuration Debug
+        env:
+          BUILD_SCOPE: ${{ needs.routing.outputs.build-scope }}
+          BUILD_PROJECTS: ${{ needs.routing.outputs.build-projects }}
+        run: |
+          if [ "$BUILD_SCOPE" = affected ]; then
+            python3 .github/ci-routing.py write-slnf "$BUILD_PROJECTS" > "$RUNNER_TEMP/affected.slnf"
+            dotnet build "$RUNNER_TEMP/affected.slnf" --configuration Debug
+          else
+            dotnet build --configuration Debug
+          fi
 
       - name: Require every solution test project to be sharded
         id: spec-coverage
         # When the browser lane is omitted, the rendering shard owns its build fixture.
         env:
           BLUEPRINT_TEMPLATES_LANE: ${{ needs.routing.outputs.generated-react-blueprint-templates }}
+          BUILD_SCOPE: ${{ needs.routing.outputs.build-scope }}
+          AFFECTED_PROJECTS: ${{ needs.routing.outputs.affected-projects }}
         run: |
           args=()
           if [ "$BLUEPRINT_TEMPLATES_LANE" = true ]; then
             args+=(--blueprint-templates-lane)
+          fi
+          if [ "$BUILD_SCOPE" = affected ]; then
+            args+=(--affected "$AFFECTED_PROJECTS")
           fi
           python3 .github/spec-shards.py guard "${args[@]}"
 
@@ -230,7 +252,9 @@ jobs:
         run: python3 Verification/verify-packed-reducer-consumer.py ./Artifacts/NuGet
 
   specs:
-    if: ${{ needs.routing.outputs.skip != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
+    # An empty matrix cannot expand, so a pull request touching no spec-bearing project skips the job; the
+    # `build` aggregate accepts that only when routing explicitly output specs-selected=false.
+    if: ${{ needs.routing.outputs.skip != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && needs.dotnet-build.outputs.has-specs == 'true' }}
     name: specs (${{ matrix.name }})
     needs: [preflight, routing, dotnet-build]
     runs-on: ubuntu-latest
@@ -322,8 +346,9 @@ jobs:
           FRONTEND_RESULT: ${{ needs.frontend.result }}
           RELEASE_PACK_RESULT: ${{ needs.release-pack.result }}
           SPECS_RESULT: ${{ needs.specs.result }}
+          SPECS_SELECTED: ${{ needs.routing.outputs.specs-selected }}
           STANDALONE_RESULT: ${{ needs.standalone-generated-application.result }}
-        run: test "$PREFLIGHT_RESULT" = success && test "$BUILD_RESULT" = success && test "$FRONTEND_RESULT" = success && test "$RELEASE_PACK_RESULT" = success && test "$SPECS_RESULT" = success && test "$STANDALONE_RESULT" = success
+        run: test "$PREFLIGHT_RESULT" = success && test "$BUILD_RESULT" = success && test "$FRONTEND_RESULT" = success && test "$RELEASE_PACK_RESULT" = success && { test "$SPECS_RESULT" = success || { test "$SPECS_RESULT" = skipped && test "$SPECS_SELECTED" = false; }; } && test "$STANDALONE_RESULT" = success
 
       - name: Validate routing and any expected standalone skip
         # Pass only what check-build reads: the full needs context includes the spec matrix output,

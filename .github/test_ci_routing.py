@@ -18,6 +18,7 @@ from unittest.mock import mock_open, patch
 CI = runpy.run_path(str(Path(__file__).with_name("ci-routing.py")))
 ALL = set(CI["LANE_PATHS"])
 ALWAYS_ON = CI["ALWAYS_ON"]
+CI_SHARDS = runpy.run_path(str(Path(__file__).with_name("spec-shards.py")))
 ROUTED = ALL - {"standalone-generated-application"}
 WORKFLOW = Path(__file__).with_name("workflows").joinpath("dotnet-build.yml").read_text()
 SECTIONS = re.split(r"^  ([\w-]+):\n", WORKFLOW.split("jobs:\n", 1)[1], flags=re.MULTILINE)
@@ -65,10 +66,11 @@ class RoutingTests(unittest.TestCase):
     def test_outputs_include_each_lane_without_a_tested_merge_sha_claim(self):
         for selected in (ALL, set(), {"generated-react"}):
             output = mock_open()
+            plan = CI["select_build"](["README.md"], "pull_request", (), selected)
             with patch.dict(os.environ, GITHUB_OUTPUT="unused"), patch("builtins.open", output), \
                     patch("subprocess.check_output") as git, \
                     contextlib.redirect_stdout(io.StringIO()):
-                CI["write_routes"](selected)
+                CI["write_routes"](selected, plan)
             written = "".join(call.args[0] for call in output().write.call_args_list)
             for lane in ALL:
                 self.assertIn(f"{lane}={str(lane in selected).lower()}\n", written)
@@ -283,8 +285,10 @@ class RoutingTests(unittest.TestCase):
         self.assertIn("GH_TOKEN: ${{ github.token }}", JOBS["routing"])
         self.assertIn("needs: routing", JOBS["preflight"])
         self.assertIn(f"    if: ${{{{ {DRAFT_GATE} }}}}\n", JOBS["routing"])
-        for job in ("preflight", "dotnet-build", "frontend", "release-pack", "specs"):
+        for job in ("preflight", "dotnet-build", "frontend", "release-pack"):
             self.assertIn(f"    if: ${{{{ {SKIP_GATE} && ({DRAFT_GATE}) }}}}\n", JOBS[job], job)
+        self.assertIn(f"    if: ${{{{ {SKIP_GATE} && ({DRAFT_GATE}) && needs.dotnet-build.outputs.has-specs == 'true' }}}}\n",
+                      JOBS["specs"])
         for lane in ALL - {"live-custom-packages", "live-blueprints"}:
             self.assertIn(f"\n      && needs.routing.outputs.{lane} == 'true'\n", JOBS[lane])
         live = JOBS["live-custom-packages"]
@@ -403,7 +407,7 @@ class RoutingTests(unittest.TestCase):
     def test_dry_run_table_covers_requested_scenarios(self):
         with contextlib.redirect_stdout(io.StringIO()) as output:
             CI["dry_run_table"]()
-        self.assertEqual(11, len(output.getvalue().splitlines()))
+        self.assertEqual(13, len(output.getvalue().splitlines()))
         self.assertIn("ci:full | yes | yes | yes | yes | yes", output.getvalue())
         self.assertIn("Source/Rendering.Cratis only | yes | yes | yes | yes | yes", output.getvalue())
 
@@ -486,6 +490,34 @@ class RequiredChecksTests(unittest.TestCase):
                 with self.subTest(job=job, result=result), self.assertRaises(ValueError):
                     CI["require_build"](needs)
 
+    def test_build_accepts_skipped_specs_only_with_an_explicit_unselected_route(self):
+        for selected, result, accepted in (
+                ("false", "skipped", True), ("false", "success", True), ("true", "success", True),
+                ("true", "skipped", False), (None, "skipped", False), ("", "skipped", False),
+                ("TRUE", "skipped", False), ("false", "failure", False), ("false", "cancelled", False),
+                ("true", "failure", False), ("true", "cancelled", False), ("false", "", False)):
+            needs = self.build_needs()
+            needs["specs"]["result"] = result
+            if selected is None:
+                needs["routing"]["outputs"].pop("specs-selected", None)
+            else:
+                needs["routing"]["outputs"]["specs-selected"] = selected
+            with self.subTest(selected=selected, result=result):
+                if accepted:
+                    CI["require_build"](needs)
+                else:
+                    with self.assertRaises(ValueError):
+                        CI["require_build"](needs)
+
+    def test_build_requires_the_build_even_when_specs_are_unselected(self):
+        for job in ("preflight", "dotnet-build", "frontend", "release-pack"):
+            needs = self.build_needs()
+            needs["routing"]["outputs"]["specs-selected"] = "false"
+            needs["specs"]["result"] = "skipped"
+            needs[job]["result"] = "skipped"
+            with self.subTest(job=job), self.assertRaises(ValueError):
+                CI["require_build"](needs)
+
     def test_split_live_probes_must_actually_execute(self):
         for selected, required, optional in (
             ({"live-custom-packages"}, ("custom-result", "navigation-result"), ("blueprints-result", "templates-result")),
@@ -501,6 +533,143 @@ class RequiredChecksTests(unittest.TestCase):
                     changed["live-custom-packages"]["outputs"][step] = result
                     with self.subTest(step=step, result=result), self.assertRaises(ValueError):
                         CI["require_success"](changed)
+
+
+def build_plan(*paths, event="pull_request", labels=(), lanes=None):
+    return CI["select_build"](paths, event, labels, lanes if lanes is not None else set())
+
+
+class AffectedBuildTests(unittest.TestCase):
+    ROOTS = {"Source/Rendering.Cratis/Rendering.Cratis.csproj"}
+    EVERYTHING = set(CI["solution_projects"]())
+    EVERY_SHARD = {shard["name"] for shard in CI["spec_matrix"]()}
+
+    def assert_full(self, plan):
+        self.assertTrue(plan.full)
+        self.assertEqual(self.EVERYTHING, set(plan.projects))
+        self.assertEqual(self.EVERYTHING, set(plan.affected))
+        self.assertEqual(self.EVERY_SHARD, set(plan.shards))
+
+    def test_documentation_builds_only_lane_roots_and_runs_no_specs(self):
+        plan = build_plan("Documentation/guide.md", "README.md", lanes={"generated-react"})
+        self.assertFalse(plan.full)
+        self.assertEqual((), plan.affected)
+        self.assertEqual(tuple(self.ROOTS), plan.projects)
+        self.assertEqual((), plan.shards)
+        self.assertEqual((), build_plan("README.md").projects)
+
+    def test_a_leaf_project_runs_only_its_shard_and_its_own_projects(self):
+        plan = build_plan("Source/Extensions/DotNET/Foo.cs")
+        extensions = "Source/Extensions/DotNET/Cratis.Stage.Extensions.csproj"
+        self.assertIn(extensions, plan.affected)
+        self.assertEqual({"small-projects"}, set(plan.shards))
+        self.assertLess(len(plan.affected), len(self.EVERYTHING))
+        self.assertNotIn("Source/Rendering.Cratis/Rendering.Cratis.csproj", plan.projects)
+        narrowed = CI_SHARDS["narrow"](CI_SHARDS["matrix"](), plan.affected)["include"]
+        self.assertEqual(["small-projects"], [shard["name"] for shard in narrowed])
+        self.assertIn(extensions, narrowed[0]["projects"])
+        self.assertNotIn("Source/Host/Host.csproj", narrowed[0]["projects"])
+
+    def test_the_renderer_reaches_its_dependents_and_every_shard_of_sharded_projects(self):
+        plan = build_plan("Source/Rendering.Cratis/X.cs")
+        for project in ("Source/Rendering.Cratis/Rendering.Cratis.csproj", "Source/Rendering.Cratis.Scaffolding/Rendering.Cratis.Scaffolding.csproj",
+                        "Source/Host/Host.csproj", "Source/BodyWorker/BodyWorker.csproj", CI["CONFORMANCE_PROJECT"]):
+            self.assertIn(project, plan.affected)
+        for prefix in ("rendering-", "conformance-"):
+            expected = {name for name in self.EVERY_SHARD if name.startswith(prefix)}
+            self.assertTrue(expected <= set(plan.shards), prefix)
+
+    def test_stage_changes_reach_the_host_through_its_nested_publish(self):
+        self.assertIn(CI["HOST_PROJECT"], build_plan("Source/Stage/X.cs").affected)
+
+    def test_lane_roots_are_built_for_selected_lanes_and_cover_every_lane(self):
+        self.assertEqual(set(CI["LANE_PATHS"]), set(CI["LANE_BUILD_ROOTS"]))
+        plan = build_plan("Source/Extensions/DotNET/Foo.cs", lanes={"reducer-mongo", "generated-name-matrix"})
+        for project in (CI["RENDERING_PROJECT"], CI["HOST_PROJECT"], CI["CONFORMANCE_PROJECT"]):
+            self.assertIn(project, plan.projects)
+            self.assertNotIn(project, plan.affected)
+        self.assertTrue(set(plan.affected) <= set(plan.projects) <= self.EVERYTHING)
+
+    def test_shared_build_inputs_workflows_and_the_routing_itself_fall_back_to_full(self):
+        for path in ("Directory.Build.props", "Source/Directory.Build.props", "Source/Directory.Build.targets", "Directory.Packages.props",
+                     "global.json", "NuGet.config", "Source/Host/nuget.config", "Source/Host/packages.lock.json", "Stage.slnx",
+                     ".github/workflows/x.yml", ".github/ci-routing.py", ".github/test_ci_routing.py", ".github/spec-shards.py",
+                     ".github/spec-shard-timings.json"):
+            with self.subTest(path=path):
+                self.assert_full(build_plan("Documentation/guide.md", path))
+
+    def test_unmapped_and_disk_read_paths_fall_back_to_full(self):
+        for path in ("Foo/bar.txt", "Source/NewProject/X.cs", "Samples/Billing/Ledger/Payments/Payments.play",
+                     "Verification/live-navigation/model/x.play", "Source/Frontend/Runtime/package.json"):
+            with self.subTest(path=path):
+                self.assert_full(build_plan("Source/Extensions/DotNET/Foo.cs", path))
+
+    def test_a_project_folder_document_is_an_input_not_a_harmless_doc(self):
+        plan = build_plan("Source/Extensions/DotNET/Notes.md")
+        self.assertIn("Source/Extensions/DotNET/Cratis.Stage.Extensions.csproj", plan.affected)
+
+    def test_every_event_other_than_a_plain_pull_request_is_full(self):
+        for event, labels in (("schedule", ()), ("workflow_dispatch", ()), ("pull_request", ("ci:full",))):
+            with self.subTest(event=event):
+                self.assert_full(build_plan("Documentation/guide.md", event=event, labels=labels))
+        with self.assertRaises(ValueError):
+            build_plan("README.md", event="push")
+
+    def test_any_error_computing_the_plan_fails_closed_to_full(self):
+        with patch.dict(CI, {}), contextlib.redirect_stdout(io.StringIO()):
+            original = CI["affected_by"].__globals__["project_inputs"]
+            CI["affected_by"].__globals__["project_inputs"] = lambda *args, **kwargs: (_ for _ in ()).throw(OSError("boom"))
+            try:
+                self.assert_full(build_plan("Source/Extensions/DotNET/Foo.cs"))
+            finally:
+                CI["affected_by"].__globals__["project_inputs"] = original
+
+    def test_a_lane_root_missing_from_the_solution_fails_closed_to_full(self):
+        roots = CI["LANE_BUILD_ROOTS"]
+        with patch.dict(roots, {"generated-react": ("Source/Gone/Gone.csproj",)}), contextlib.redirect_stdout(io.StringIO()):
+            self.assert_full(build_plan("README.md", lanes={"generated-react"}))
+
+    def test_both_sides_of_a_rename_count(self):
+        with patch("subprocess.check_output", side_effect=["base", "Source/Stage/A.cs\0Source/Extensions/DotNET/A.cs\0", '{"labels": []}']), \
+                patch.dict(os.environ, GITHUB_REPOSITORY="Cratis/Stage"):
+            _, plan = CI["github_plan"]("pull_request", {"number": 1, "pull_request": {"base": {"ref": "main"}}})
+        self.assertIn(CI["HOST_PROJECT"], plan.affected)
+        self.assertIn("Source/Extensions/DotNET/Cratis.Stage.Extensions.csproj", plan.affected)
+
+    def test_the_full_plan_matches_the_unnarrowed_matrix_and_narrowing_never_invents_shards(self):
+        self.assertEqual(CI["spec_matrix"](), CI_SHARDS["matrix"]()["include"])
+        self.assertEqual(CI_SHARDS["matrix"](), CI_SHARDS["narrow"](CI_SHARDS["matrix"](), self.EVERYTHING))
+        for paths in (["README.md"], ["Source/Extensions/DotNET/A.cs"], ["Source/Host/A.cs"]):
+            self.assertTrue(set(build_plan(*paths).shards) <= self.EVERY_SHARD)
+
+    def test_routes_write_the_build_outputs(self):
+        output = mock_open()
+        plan = build_plan("Documentation/guide.md")
+        with patch.dict(os.environ, GITHUB_OUTPUT="unused"), patch("builtins.open", output), contextlib.redirect_stdout(io.StringIO()):
+            CI["write_routes"](set(), plan)
+        written = "".join(call.args[0] for call in output().write.call_args_list)
+        for expected in ("build-scope=affected\n", "specs-selected=false\n", "spec-shards=[]\n", "affected-projects=[]\n"):
+            self.assertIn(expected, written)
+        self.assertIn("build-projects=[", written)
+
+    def test_solution_filter_lists_only_solution_projects(self):
+        with contextlib.redirect_stdout(io.StringIO()) as output:
+            CI["write_solution_filter"](json.dumps([CI["HOST_PROJECT"]]))
+        self.assertEqual([CI["HOST_PROJECT"]], json.loads(output.getvalue())["solution"]["projects"])
+        for bad in ([], ["Source/Gone/Gone.csproj"]):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                CI["write_solution_filter"](json.dumps(bad))
+
+    def test_workflow_builds_the_filter_only_for_affected_scope_and_keeps_check_names(self):
+        build = JOBS["dotnet-build"]
+        self.assertIn("dotnet build --configuration Debug\n", build)
+        self.assertIn('if [ "$BUILD_SCOPE" = affected ]', build)
+        self.assertIn('dotnet build "$RUNNER_TEMP/affected.slnf" --configuration Debug', build)
+        self.assertIn('args+=(--affected "$AFFECTED_PROJECTS")', build)
+        self.assertIn("has-specs: ${{ steps.spec-coverage.outputs.has-specs }}", build)
+        for job in ("routing", "preflight", "dotnet-build", "frontend", "release-pack", "specs", "build", *CI["LANE_PATHS"]):
+            self.assertIn(job if job != "live-blueprints" else "live-custom-packages", JOBS)
+        self.assertIn("name: specs (${{ matrix.name }})", JOBS["specs"])
 
 
 class PublishGateTests(unittest.TestCase):

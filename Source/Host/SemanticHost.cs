@@ -62,10 +62,7 @@ internal static class SemanticHost
             reloadOnChange: true);
         var mode = hostMode ?? StageHostModeSelection.Read(builder.Configuration, args, StageRuntimeEngine.Semantic);
         var packages = await LoadExtensionPackages(modelPath, builder.Configuration, issues);
-        if (packages.Contracts is not null)
-        {
-            ExtensionContractResolver.Current = new(packages.Contracts);
-        }
+        ExtensionPackageHosting.UseContracts(modelPath, packages);
 
         // A package that is refused stops the model being loaded at all: nothing it names may be compiled against, let alone run.
         var (loaded, scene) = packages.Refusals.Count > 0 ? (null, null) : await LoadModel(modelPath, issues, notes, package?.Manifest.ApplicationName);
@@ -93,10 +90,10 @@ internal static class SemanticHost
         if (packages.Loaded.Count > 0)
         {
             var modelPackages = new ExtensionPackages(packages, SystemExtensionReferences.Read(modelPath));
-            if (loaded is not null)
+            if (loaded is not null && ExtensionUiContracts.Read(modelPath, loaded.Model) is { } uiContract)
             {
                 // What the extension hosting answers from is what the model names and the locked packages describe, not an empty seam.
-                var placed = ExtensionModelHosting.Add(builder.Services, loaded.Model.Application, modelPackages);
+                var placed = ExtensionModelHosting.Add(builder.Services, loaded.Model.Application, uiContract, modelPackages);
                 scene = scene is null ? null : ExtensionSceneComponents.Apply(scene, placed, modelPackages);
             }
 

@@ -1,9 +1,9 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Collections.Immutable;
 using Cratis.Screenplay.Extensions;
 using Cratis.Screenplay.Semantics;
+using Cratis.Screenplay.Ui;
 using Cratis.Stage.Host.Extensions.Activation;
 using Cratis.Stage.Host.Extensions.Packages;
 using Cratis.Stage.Host.Invocations;
@@ -36,23 +36,22 @@ public static class ExtensionModelCatalogs
     ];
 
     /// <summary>
-    /// Finds every extension component a screen places and what its contract lets it do.
+    /// Finds every extension component a screen places and what its package's contract lets it do.
     /// </summary>
-    /// <param name="application">The <see cref="SemanticApplication"/>.</param>
+    /// <param name="contract">The <see cref="UiContract"/> of the model, which says which screen places which component of which system.</param>
     /// <param name="packages">The <see cref="IExtensionPackages"/>.</param>
     /// <returns>The placements. A component the package's contract does not declare is not placed.</returns>
-    public static IReadOnlyList<ExtensionComponentPlacement> Placements(SemanticApplication application, IExtensionPackages packages)
+    public static IReadOnlyList<ExtensionComponentPlacement> Placements(UiContract contract, IExtensionPackages packages)
     {
         var placements = new List<ExtensionComponentPlacement>();
-        foreach (var screen in Screens(application))
+        foreach (var screen in contract.Screens)
         {
-            foreach (var placed in screen.Components)
+            foreach (var placed in (screen.Scene?.Components ?? []).Select(component => component.Extension).OfType<UiExtensionComponent>())
             {
-                var system = application.Systems.FirstOrDefault(candidate => candidate.Id == placed.System)?.Name;
-                var declared = system is null ? null : packages.ForSystem(system)?.Contract.Components.FirstOrDefault(component => component.Name == placed.Component);
-                if (system is null || declared is null) continue;
+                var declared = packages.ForSystem(placed.System)?.Contract.Components.FirstOrDefault(component => component.Name == placed.Component);
+                if (declared is null) continue;
 
-                placements.Add(new(screen.Name, system, declared.Name, KindOf(declared.Kind), [.. declared.Invokes], [.. declared.Signals.Select(signal => signal.Name)]));
+                placements.Add(new(screen.Name, placed.System, declared.Name, KindOf(placed.Kind ?? declared.Kind), [.. declared.Invokes], [.. declared.Signals.Select(signal => signal.Name)]));
             }
         }
 
@@ -79,23 +78,13 @@ public static class ExtensionModelCatalogs
     /// <summary>
     /// Finds the systems each screen needs, so a backend can be started when someone reaches the screen.
     /// </summary>
-    /// <param name="application">The <see cref="SemanticApplication"/>.</param>
+    /// <param name="contract">The <see cref="UiContract"/> of the model, which lists the extensions each screen needs.</param>
     /// <returns>The <see cref="IScreenExtensionUsage"/>.</returns>
-    public static ModelScreenExtensionUsage Usage(SemanticApplication application) =>
-        new(Screens(application).ToDictionary(
+    public static ModelScreenExtensionUsage Usage(UiContract contract) =>
+        new(contract.Screens.ToDictionary(
             screen => screen.Name,
-            screen => (IReadOnlyList<string>)[.. screen.Extensions
-                .Concat(screen.Components.Select(component => new SemanticScreenExtension(component.System, string.Empty)))
-                .Select(need => application.Systems.FirstOrDefault(system => system.Id == need.System)?.Name)
-                .OfType<string>()
-                .Distinct(StringComparer.Ordinal)],
+            screen => (IReadOnlyList<string>)[.. (screen.Extensions ?? []).Select(need => need.System).Distinct(StringComparer.Ordinal)],
             StringComparer.OrdinalIgnoreCase));
-
-    static IEnumerable<SemanticScreen> Screens(SemanticApplication application) =>
-        application.Modules.SelectMany(module => Slices(module.Features)).SelectMany(slice => slice.Screens);
-
-    static IEnumerable<SemanticSlice> Slices(ImmutableArray<SemanticFeature> features) =>
-        features.SelectMany(feature => feature.Slices.Concat(Slices(feature.Features)));
 
     static ExtensionComponentKind KindOf(string? kind) => kind switch
     {

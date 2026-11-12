@@ -109,6 +109,20 @@ jobs:
       - name: Verify Host kernel and client compatibility pins
         run: python3 Verification/verify-runtime-compatibility.py --self-test
 
+  # CI script tests run beside the build, not ahead of the Debug producer or its consumers.
+  ci-scripts:
+    name: ci-scripts
+    if: ${{ needs.routing.outputs.skip != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
+    needs: routing
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Verify spec shard routing and guards
+        run: python3 -B -m unittest discover -s .github -p 'test_*.py'
+
   dotnet-build:
     if: ${{ needs.routing.outputs.skip != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
     needs: [preflight, routing]
@@ -129,9 +143,6 @@ jobs:
 
       - name: Restore NuGet packages
         uses: Cratis/Workflows/.github/actions/dotnet-cache@main
-
-      - name: Verify spec shard routing and guards
-        run: python3 -B -m unittest discover -s .github -p 'test_*.py'
 
       # This job produces Debug binaries without analyzers; the parallel analyzers job enforces them,
       # including inline specs and their test SDK, which exist only in Debug. Every spec lane reuses these
@@ -365,7 +376,7 @@ jobs:
   # any spec shard fails or is skipped. The standalone application may skip only with an explicit
   # false routing output; failed, cancelled or missing jobs never pass. Live/generated checks stay separate.
   build:
-    needs: [preflight, dotnet-build, analyzers, frontend, release-pack, specs, routing, standalone-generated-application]
+    needs: [preflight, ci-scripts, dotnet-build, analyzers, frontend, release-pack, specs, routing, standalone-generated-application]
     if: needs.routing.outputs.skip != 'true' && always() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -373,18 +384,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Require preflight, build, analyzers, every spec shard and the selected standalone application spec to succeed
+      - name: Require preflight, CI scripts, build, analyzers, every spec shard and the selected standalone application spec to succeed
         if: needs.routing.outputs.standalone-generated-application == 'true'
         env:
           PREFLIGHT_RESULT: ${{ needs.preflight.result }}
           BUILD_RESULT: ${{ needs.dotnet-build.result }}
           ANALYZERS_RESULT: ${{ needs.analyzers.result }}
+          CI_SCRIPTS_RESULT: ${{ needs.ci-scripts.result }}
           FRONTEND_RESULT: ${{ needs.frontend.result }}
           RELEASE_PACK_RESULT: ${{ needs.release-pack.result }}
           SPECS_RESULT: ${{ needs.specs.result }}
           SPECS_SELECTED: ${{ needs.routing.outputs.specs-selected }}
           STANDALONE_RESULT: ${{ needs.standalone-generated-application.result }}
-        run: test "$PREFLIGHT_RESULT" = success && test "$BUILD_RESULT" = success && test "$ANALYZERS_RESULT" = success && test "$FRONTEND_RESULT" = success && test "$RELEASE_PACK_RESULT" = success && { test "$SPECS_RESULT" = success || { test "$SPECS_RESULT" = skipped && test "$SPECS_SELECTED" = false; }; } && test "$STANDALONE_RESULT" = success
+        run: test "$PREFLIGHT_RESULT" = success && test "$BUILD_RESULT" = success && test "$ANALYZERS_RESULT" = success && test "$CI_SCRIPTS_RESULT" = success && test "$FRONTEND_RESULT" = success && test "$RELEASE_PACK_RESULT" = success && { test "$SPECS_RESULT" = success || { test "$SPECS_RESULT" = skipped && test "$SPECS_SELECTED" = false; }; } && test "$STANDALONE_RESULT" = success
 
       - name: Validate routing and any expected standalone skip
         # Pass only what check-build reads: the full needs context includes the spec matrix output,
@@ -394,6 +406,7 @@ jobs:
             {"preflight": {"result": "${{ needs.preflight.result }}"},
             "dotnet-build": {"result": "${{ needs.dotnet-build.result }}"},
             "analyzers": {"result": "${{ needs.analyzers.result }}"},
+            "ci-scripts": {"result": "${{ needs.ci-scripts.result }}"},
             "frontend": {"result": "${{ needs.frontend.result }}"},
             "release-pack": {"result": "${{ needs.release-pack.result }}"},
             "specs": {"result": "${{ needs.specs.result }}"},

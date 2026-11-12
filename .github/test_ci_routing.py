@@ -12,7 +12,9 @@ import os
 from pathlib import Path
 import re
 import runpy
+import textwrap
 import unittest
+import xml.etree.ElementTree as ET
 from unittest.mock import mock_open, patch
 
 CI = runpy.run_path(str(Path(__file__).with_name("ci-routing.py")))
@@ -535,6 +537,98 @@ class RequiredChecksTests(unittest.TestCase):
                         CI["require_success"](changed)
 
 
+class ReducerMongoMatrixTests(unittest.TestCase):
+    FILTERS = {
+        "runtime-proofs": '"--filter", "|".join("FullyQualifiedName=" + name for name in sorted(expected))',
+        "rendering-probes": "|".join("FullyQualifiedName~" + name for name in (
+            "when_verifying_billing_mongo_deletion.should_match_model_bound_read_model_query_in_mongo_container_when_configured",
+            "when_verifying_scoped_projections_against_mongo.should_report_both_mongo_shapes_when_configured",
+            "when_verifying_routed_appends_against_mongo.should_append_all_routes_when_configured",
+            "when_verifying_reducer_filters_against_mongo.should_filter_reducer_appends_when_configured",
+            "when_verifying_reactions_against_the_pinned_kernel.should_settle_event_reactions_when_configured",
+            "when_verifying_reducer_migration_against_the_pinned_kernel.should_keep_one_builder_with_the_previous_observer_id_when_configured",
+            "when_verifying_inline_code_against_the_pinned_kernel.should_verify_demo_when_configured",
+            "when_verifying_inline_code_against_the_pinned_kernel.should_verify_min_a3_when_configured",
+            "when_verifying_application_trigger_reactions_against_the_pinned_kernel.should_append_once_per_namespace_and_skip_a_receipted_redelivery_when_configured",
+            "when_verifying_application_trigger_invocations_against_the_pinned_kernel.should_resume_commands_and_retain_refusals_when_configured",
+            "when_verifying_reaction_bodies_against_the_pinned_kernel.should_settle_native_reaction_bodies_when_configured",
+        )),
+        "reconnect": (
+            "FullyQualifiedName~when_reconnecting_against_the_pinned_kernel.should_keep_stage_projections_updating_when_configured"
+            "|FullyQualifiedName~when_encrypting_against_the_pinned_kernel.should_encrypt_and_release_concepts_when_configured"
+        ),
+    }
+
+    def validation_script(self):
+        step = JOBS["reducer-mongo"].split("      - name: Require all live probes to execute and pass\n", 1)[1]
+        return textwrap.dedent(step.split("          python3 - <<'PY'\n", 1)[1].split("          PY\n", 1)[0])
+
+    def test_original_filters_run_once_on_separate_legs_without_rebuilding(self):
+        job = JOBS["reducer-mongo"]
+        matrix = re.search(r"^        probe: \[(.+)\]$", job, re.MULTILINE)[1].split(", ")
+        self.assertCountEqual(self.FILTERS, matrix)
+        self.assertCountEqual(CI["REDUCER_MONGO_PROBES"], matrix)
+        self.assertIn("fail-fast: false", job)
+        test_steps = [step for step in job.split("      - name: ")[1:] if "--filter" in step]
+        self.assertEqual(3, len(test_steps))
+        for probe, expression in self.FILTERS.items():
+            with self.subTest(probe=probe):
+                step, = [step for step in test_steps if expression in step]
+                self.assertEqual(1, step.count(expression))
+                self.assertIn(f"if: matrix.probe == '{probe}'", step)
+                self.assertIn("--no-build", step)
+                self.assertIn("net11.0", step)
+        self.assertIn("name: reducer-mongo (${{ matrix.probe }})", job)
+        self.assertIn("-${{ matrix.probe }}", job.split("REDUCER_MONGO_CONTAINER:", 1)[1].splitlines()[0])
+        artifacts = re.findall(r"^          name: (reducer-mongo-.+)$", job, re.MULTILINE)
+        self.assertEqual(3, len(artifacts))
+        self.assertTrue(all(name.endswith("-${{ matrix.probe }}") for name in artifacts))
+        self.assertIn("reducer-mongo", JOBS["routed-checks"].splitlines()[0])
+        self.assertIn("NEEDS_JSON: ${{ toJson(needs) }}", JOBS["routed-checks"])
+        self.assertEqual((CI["RENDERING_PROJECT"], CI["HOST_PROJECT"]), CI["LANE_BUILD_ROOTS"]["reducer-mongo"])
+
+    def expected_names(self, probe):
+        # Evaluate only the expected-name construction, not the result checks.
+        namespace = {}
+        with patch.dict(os.environ, PROBE=probe), patch.object(ET, "parse", return_value=ET.ElementTree(ET.Element("TestRun"))):
+            exec(self.validation_script().split("counters =", 1)[0], namespace)
+        return namespace["expected"]
+
+    def validate_results(self, probe, names, outcome="Passed"):
+        ns = "{http://microsoft.com/schemas/VisualStudio/TeamTest/2010}"
+        root = ET.Element(ns + "TestRun")
+        definitions = ET.SubElement(root, ns + "TestDefinitions")
+        results = ET.SubElement(root, ns + "Results")
+        for index, name in enumerate(names):
+            class_name, method = name.rsplit(".", 1)
+            unit = ET.SubElement(definitions, ns + "UnitTest", id=str(index))
+            ET.SubElement(unit, ns + "TestMethod", className=class_name, name=method)
+            ET.SubElement(results, ns + "UnitTestResult", testId=str(index), outcome=outcome)
+        summary = ET.SubElement(root, ns + "ResultSummary")
+        ET.SubElement(summary, ns + "Counters", executed=str(len(names)))
+        filename = {"rendering-probes": "billing-mongo.trx", "reconnect": "stage-reconnect.trx"}[probe]
+        with patch.dict(os.environ, PROBE=probe), patch.object(ET, "parse", return_value=ET.ElementTree(root)) as parse:
+            exec(self.validation_script(), {})
+        parse.assert_called_once_with("TestResults/reducer-mongo/" + filename)
+
+    def test_each_persistence_leg_requires_exactly_its_original_tests(self):
+        rendering = self.expected_names("rendering-probes")
+        reconnect = self.expected_names("reconnect")
+        self.assertEqual(11, len(rendering))
+        self.assertEqual(2, len(reconnect))
+        self.assertFalse(rendering & reconnect)
+        for probe, names in (("rendering-probes", rendering), ("reconnect", reconnect)):
+            with self.subTest(probe=probe):
+                self.validate_results(probe, names)
+                self.assertTrue(all(name.startswith("Cratis.Stage.Host.") == (probe == "reconnect") for name in names))
+                self.assertIn("if: matrix.probe != 'runtime-proofs'", JOBS["reducer-mongo"])
+                for invalid in (list(names)[:-1], list(names) + list(names)[:1], rendering | reconnect):
+                    with self.assertRaises(SystemExit):
+                        self.validate_results(probe, invalid)
+                with self.assertRaises(SystemExit):
+                    self.validate_results(probe, names, outcome="NotExecuted")
+
+
 def build_plan(*paths, event="pull_request", labels=(), lanes=None):
     return CI["select_build"](paths, event, labels, lanes if lanes is not None else set())
 
@@ -681,8 +775,9 @@ class PublishGateTests(unittest.TestCase):
                     html_url="https://github.com/Cratis/Stage/actions/runs/42")
 
     def jobs(self):
-        jobs = [{"name": name, "conclusion": "success", "steps": []}
-                for name in sorted((ALL - {"live-blueprints"}) | {"routing", "build", "routed-checks"})]
+        names = (ALL - {"live-blueprints", "reducer-mongo"}) | {"routing", "build", "routed-checks"} | {
+            "reducer-mongo (runtime-proofs)", "reducer-mongo (rendering-probes)", "reducer-mongo (reconnect)"}
+        jobs = [{"name": name, "conclusion": "success", "steps": []} for name in sorted(names)]
         for job in jobs:
             if job["name"] == "live-custom-packages":
                 job["steps"] = [{"name": name, "conclusion": "success"} for name in CI["LIVE_STEPS"]]
@@ -709,6 +804,26 @@ class PublishGateTests(unittest.TestCase):
             live = next(job for job in changed if job["name"] == "live-custom-packages")
             next(step for step in live["steps"] if step["name"] == name)["conclusion"] = "skipped"
             self.assertFalse(CI["full_run_succeeded"](run, self.sha, changed))
+
+    def test_legacy_reducer_job_cannot_replace_all_or_any_matrix_leg(self):
+        jobs = self.jobs()
+        legacy = {"name": "reducer-mongo", "conclusion": "success", "steps": []}
+        matrix = [job for job in jobs if job["name"].startswith("reducer-mongo (")]
+        self.assertEqual(3, len(matrix))
+        singles = [job for job in jobs if job not in matrix]
+        self.assertFalse(CI["full_run_succeeded"](self.run_record(), self.sha, singles + [legacy]))
+        for leg in matrix:
+            with self.subTest(leg=leg["name"]):
+                missing = [job for job in jobs if job != leg]
+                self.assertFalse(CI["full_run_succeeded"](self.run_record(), self.sha, missing + [legacy]))
+
+    def test_failed_duplicate_matrix_job_cannot_hide_behind_success(self):
+        jobs = self.jobs()
+        for probe in ("runtime-proofs", "rendering-probes", "reconnect"):
+            failed = {"name": f"reducer-mongo ({probe})", "conclusion": "failure"}
+            for changed in ([failed] + jobs, jobs + [failed]):
+                with self.subTest(probe=probe, changed=changed):
+                    self.assertFalse(CI["full_run_succeeded"](self.run_record(), self.sha, changed))
 
     def test_pr_is_rejected_even_with_exact_sha_and_faked_full_job_and_step_names(self):
         run = {**self.run_record(), "event": "pull_request"}

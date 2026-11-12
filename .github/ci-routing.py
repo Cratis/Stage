@@ -312,6 +312,8 @@ def gh(*arguments):
     return subprocess.check_output(["gh", *arguments], text=True).strip()
 
 
+REDUCER_MONGO_PROBES = ("runtime-proofs", "rendering-probes", "reconnect")
+
 LIVE_STEPS = (
     "Run the live custom package scenarios", "Run the live navigation scenarios",
     "Run the live domain blueprint scenarios", "Run the live blueprint template scenarios",
@@ -332,13 +334,27 @@ def full_run_candidate(run, sha):
     return trusted_full_run(run, sha)
 
 
+def required_full_run_jobs():
+    """Only the current matrix proves full coverage; the legacy single-job name cannot replace a leg."""
+    reducer_jobs = {f"reducer-mongo ({probe})" for probe in REDUCER_MONGO_PROBES}
+    lanes = LANE_PATHS.keys() - {"live-blueprints", "reducer-mongo"}
+    return frozenset(lanes | {"routing", "build", "routed-checks"} | reducer_jobs)
+
+
+def required_jobs_succeeded(jobs, required):
+    """Require every expected name and reject any non-success, including duplicate job names."""
+    names = {job["name"] for job in jobs}
+    if not required <= names:
+        return False
+    return all(job.get("conclusion") == "success" for job in jobs if job["name"] in required)
+
+
 def full_run_succeeded(run, sha, jobs):
     """Require trusted main-branch metadata and every lane executing, not just a green aggregate."""
     if not full_run_candidate(run, sha):
         return False
     by_name = {job["name"]: job for job in jobs}
-    required = (LANE_PATHS.keys() - {"live-blueprints"}) | {"routing", "build", "routed-checks"}
-    if any(by_name.get(name, {}).get("conclusion") != "success" for name in required):
+    if not required_jobs_succeeded(jobs, required_full_run_jobs()):
         return False
     steps = by_name["live-custom-packages"].get("steps", [])
     return set(LIVE_STEPS) <= successful_step_names(steps)

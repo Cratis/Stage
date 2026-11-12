@@ -945,11 +945,11 @@ jobs:
   # handing it the approved package set and the package's browser build as `cratis run --package-set` does. A browser asserts
   # the live Stage loaded the package at runtime and rendered its component, and refused to render when the package is missing.
   live-custom-packages:
-    needs: [preflight, routing, dotnet-build]
-    # Pull requests start heavy lanes after the build passes, in parallel with the spec shards; nightly/manual runs keep full coverage.
+    needs: [preflight, routing]
+    # This lane publishes Host and builds the image itself and uses nothing dotnet-build produces, so it starts with
+    # the build instead of after it; the routed-checks gate still requires its result.
     if: >-
       needs.routing.outputs.skip != 'true' && !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && needs.preflight.result == 'success' && needs.routing.result == 'success'
-      && (github.event_name != 'pull_request' || needs.dotnet-build.result == 'success')
       && (needs.routing.outputs.live-custom-packages == 'true' || needs.routing.outputs.live-blueprints == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 30

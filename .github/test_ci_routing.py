@@ -392,11 +392,11 @@ class RoutingTests(unittest.TestCase):
         self.assertNotIn("analyzers", JOBS["specs"].split("runs-on:")[0])
 
     def test_heavy_lanes_need_the_build_but_run_in_parallel_with_specs(self):
-        live_packages_gate = f"""    needs: [preflight, routing, dotnet-build]
-    # Pull requests start heavy lanes after the build passes, in parallel with the spec shards; nightly/manual runs keep full coverage.
+        live_packages_gate = f"""    needs: [preflight, routing]
+    # This lane publishes Host and builds the image itself and uses nothing dotnet-build produces, so it starts with
+    # the build instead of after it; the routed-checks gate still requires its result.
     if: >-
-      {SKIP_GATE} && !cancelled() && ({DRAFT_GATE}) && needs.preflight.result == 'success' && needs.routing.result == 'success'
-      && (github.event_name != 'pull_request' || needs.dotnet-build.result == 'success')"""
+      {SKIP_GATE} && !cancelled() && ({DRAFT_GATE}) && needs.preflight.result == 'success' && needs.routing.result == 'success'"""
         # Lanes that reuse the Debug build output cannot run without it, on any trigger.
         gate = f"""    needs: [preflight, routing, dotnet-build]
     # Lanes reuse the Debug build output, so they need a passing build; they run in parallel with the spec shards.

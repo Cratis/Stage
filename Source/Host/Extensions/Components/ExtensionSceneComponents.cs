@@ -4,6 +4,7 @@
 using Cratis.Stage.Contracts.Scene;
 using Cratis.Stage.Host.Extensions.Packages;
 using SceneElements = Cratis.Scene.Model.Elements;
+using SceneInteractions = Cratis.Scene.Model.Interactions;
 using SceneScreens = Cratis.Scene.Model.Screens;
 
 namespace Cratis.Stage.Host.Extensions.Components;
@@ -14,8 +15,10 @@ namespace Cratis.Stage.Host.Extensions.Components;
 /// <remarks>
 /// The model names <c language="csharp">Mailer.MailPreview</c>, never a package. This is where the system becomes a locked package: the element gets the address of
 /// the package's frontend, the abilities the contract lets the component invoke and the signals it raises, so the browser asks for nothing the
-/// contract does not allow. A signal a screen handles with <c language="csharp">on &lt;signal&gt;</c> is not bound here yet: the element carries the signals the
-/// component may raise and the runtime reports them to the page, but wiring a signal to a screen interaction waits for Scene's signal trigger.
+/// contract does not allow. A signal a screen handles with <c language="csharp">on &lt;signal&gt;</c> is bound here: the model writes it as an application
+/// trigger, and where the name is a signal the component's contract declares it becomes Scene's signal trigger, so the runtime runs the interaction when the
+/// component raises that signal. A name the contract does not declare stays the application trigger it is. See
+/// <see href="https://github.com/Cratis/Stage/blob/main/Documentation/extensions/components.md">the extension components documentation</see>.
 /// </remarks>
 public static class ExtensionSceneComponents
 {
@@ -64,9 +67,18 @@ public static class ExtensionSceneComponents
         {
             ComponentName = ElementName,
             Slots = slots,
+            Behaviors = [.. component.Behaviors.Select(behavior => BindSignals(behavior, placement.Signals))],
             Properties = Properties(screen, component, placement, package)
         };
     }
+
+    static SceneInteractions.Behavior BindSignals(SceneInteractions.Behavior behavior, IReadOnlyList<string> signals) =>
+        behavior with
+        {
+            Bindings = [.. behavior.Bindings.Select(binding => binding.Trigger is SceneInteractions.ApplicationTriggerInteractionTrigger application && signals.Contains(application.TriggerName, StringComparer.Ordinal)
+                ? binding with { Trigger = new SceneInteractions.SignalInteractionTrigger(application.TriggerName) }
+                : binding)]
+        };
 
     static Dictionary<string, object?> Properties(string screen, SceneElements.ExternalComponent component, ExtensionComponentPlacement placement, LoadedExtensionPackage? package)
     {

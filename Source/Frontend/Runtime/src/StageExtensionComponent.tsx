@@ -14,6 +14,7 @@ import {
 } from '@cratis/scene.extensions';
 import type { ExternalComponent } from '@cratis/scene.model';
 import { useStageData } from './stageData';
+import { useSignalBehaviors } from './stageExtensionSignals';
 import { loadExtensionDefinition, type ExtensionModuleImporter } from './stageExtensionModule';
 import {
     createStageExtensionContext,
@@ -106,11 +107,13 @@ export function StageExtensionComponent({ element, slots }: { element: ExternalC
     const [slotHosts, setSlotHosts] = useState<SlotHost[]>([]);
     const wrapper = useRef<HTMLDivElement>(null);
     const onSignal = services.onSignal;
+    const runSignalBehaviors = useSignalBehaviors(element);
 
     const raise = useCallback((signal: string, values: ExtensionValues) => {
         onSignal?.({ ...address, signal, values });
+        runSignalBehaviors(signal, values);
         wrapper.current?.dispatchEvent(new CustomEvent('stage-extension-signal', { bubbles: true, detail: { ...address, signal, values } }));
-    }, [address, onSignal]);
+    }, [address, onSignal, runSignalBehaviors]);
 
     // The context is made once per placed component; what changes later (language, theme, strings) is updated in it, not rebuilt.
     const latest = useRef({ locale, locales, dictionary });

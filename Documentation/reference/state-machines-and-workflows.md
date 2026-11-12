@@ -121,7 +121,7 @@ A model that uses something the renderer cannot emit fails the plan with the dia
 | --- | --- |
 | `STAGE-LIFECYCLE-007` | A trigger is a schedule. |
 | `STAGE-LIFECYCLE-008` | A transition guard compares something other than a text, number or flag member of the followed read model. |
-| `STAGE-LIFECYCLE-010` | A decision, approval, foreach or join; an action whose command has more than its identifier; or a command a state machine sends that has a property the followed read model does not carry with the same name and type. |
+| `STAGE-LIFECYCLE-010` | A decision, approval, foreach or join; an action that invokes an ability or computes a value (not run until [Cratis/Stage#1118](https://github.com/Cratis/Stage/issues/1118)); an action whose command has more than its identifier; or a command a state machine sends that has a property the followed read model does not carry with the same name and type. |
 
 The render plan reports one warning per state machine, `STAGE-LIFECYCLE-009`. An event-sourced machine resolves its state from
 the followed read model when its grain activates. The generated `ResolveState` returns `InitialState` unconditionally, so the

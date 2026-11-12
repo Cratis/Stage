@@ -35,6 +35,9 @@ public static class LifecycleCodes
     /// <summary>A state machine whose state after a restart cannot be derived from its read model alone.</summary>
     public const string RestartState = "STAGE-LIFECYCLE-009";
 
-    /// <summary>A workflow action that invokes an ability, which the engine's graph does not run yet (Cratis/Stage#1118).</summary>
+    /// <summary>
+    /// A workflow action that invokes an ability. This is the same code as the renderer's "not rendered" lifecycle refusal: the engine's graph
+    /// does not run ability nodes yet (Cratis/Stage#1118).
+    /// </summary>
     public const string AbilityNode = "STAGE-LIFECYCLE-010";
 }

@@ -993,6 +993,9 @@ template such as `QuickCreateDialog` - the button opens that screen instead of a
 form the screen declares for the command, without the identity the command creates, and the screen its action names with `navigate to`
 once the command succeeded. A dialog screen that declares neither a form nor a `navigate to` opens the task dialog above.
 
+A toolbar the screen places acts `for item` on the row selected in the screen's table: a button that `runs` its slice waits until one row is
+selected, reads that row in its `enabled when`, and sends the command's inputs from it.
+
 Creation intent (`x-creates`) classifies a command as creating a row in some listed read model, not necessarily on the current screen; `STAGE-INTENT-001` reports only guarded or ambiguous creation candidates, not ordinary updates.
 
 ### Root template, options and appearance

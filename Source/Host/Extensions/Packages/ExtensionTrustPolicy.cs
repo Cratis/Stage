@@ -46,7 +46,7 @@ public sealed class ExtensionTrustPolicy(ExtensionPackageOptions deployment, Pro
             if (allow.References.Length > 0 && !Matches(allow.References, entry.Resolved)) return Refuse($"The package '{entry.Resolved}' is not allowed by {source}.", signatures);
         }
 
-        if (signatures && keys.Count == 0) return Refuse($"No signing key is configured for the publisher '{entry.Publisher}', so its signature cannot be verified.", signatures);
+        if (signatures && keys.Length == 0) return Refuse($"No signing key is configured for the publisher '{entry.Publisher}', so its signature cannot be verified.", signatures);
 
         return new(true, string.Empty, keys, signatures);
     }
@@ -57,7 +57,7 @@ public sealed class ExtensionTrustPolicy(ExtensionPackageOptions deployment, Pro
         ? value.StartsWith(pattern[..^1], StringComparison.Ordinal)
         : string.Equals(pattern, value, StringComparison.Ordinal));
 
-    IReadOnlyList<string> KeysOf(string publisher)
+    string[] KeysOf(string publisher)
     {
         if (deployment.Publishers.TryGetValue(publisher, out var configured) && configured.Keys.Length > 0) return configured.Keys;
         return project.Publishers.TryGetValue(publisher, out var listed) ? listed.Keys : [];

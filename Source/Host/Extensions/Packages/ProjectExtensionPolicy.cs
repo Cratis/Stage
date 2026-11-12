@@ -48,7 +48,7 @@ public sealed record ProjectExtensionPolicy(PackageAllowOptions Allow, IReadOnly
         try
         {
             var file = JsonSerializer.Deserialize<ProjectFile>(File.ReadAllText(path), _json) ?? new();
-            return new(file.Allow ?? new(), file.Publishers ?? new Dictionary<string, PublisherOptions>(), path, string.Empty);
+            return new(file.Allow ?? new(), file.Publishers ?? [], path, string.Empty);
         }
         catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException)
         {

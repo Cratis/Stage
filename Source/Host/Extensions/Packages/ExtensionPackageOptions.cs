@@ -67,12 +67,12 @@ public sealed class ExtensionPackageOptions
 public sealed class PackageAllowOptions
 {
     /// <summary>
-    /// Gets or sets the publisher identities that are allowed. A trailing <c>*</c> matches a prefix.
+    /// Gets or sets the publisher identities that are allowed. A trailing <c lang="text">*</c> matches a prefix.
     /// </summary>
     public string[] Publishers { get; set; } = [];
 
     /// <summary>
-    /// Gets or sets the resolved references that are allowed, such as <c lang="text">ghcr.io/cratis/extension-mail</c>. A trailing <c>*</c> matches a prefix.
+    /// Gets or sets the resolved references that are allowed, such as <c lang="text">ghcr.io/cratis/extension-mail</c>. A trailing <c lang="text">*</c> matches a prefix.
     /// </summary>
     public string[] References { get; set; } = [];
 

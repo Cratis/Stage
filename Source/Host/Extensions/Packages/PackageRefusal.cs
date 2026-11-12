@@ -21,7 +21,7 @@ public enum PackageRefusalReason
     ContractMismatch,
 
     /// <summary>The package is not signed, or the signature is not by the publisher the lock records.</summary>
-    Unsigned,
+    NotSigned,
 
     /// <summary>A signature is present but does not verify.</summary>
     SignatureInvalid,

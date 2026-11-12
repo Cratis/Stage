@@ -2,9 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Reflection;
-using Cratis.Stage.Publishing;
 using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Extensions;
+using Cratis.Stage.Publishing;
 
 namespace Cratis.Stage.Host.Extensions.Packages;
 
@@ -26,7 +26,7 @@ public static class ExtensionPackageHosting
         var anchor = Path.Combine(Directory.Exists(modelPath) ? Path.GetFullPath(modelPath) : Path.GetDirectoryName(Path.GetFullPath(modelPath))!, "model.play");
         if (ExtensionContractResolver.FindLock([anchor]) is not { } lockPath) return ExtensionPackageSet.Empty;
 
-        var parsed = ExtensionLock.Parse(File.ReadAllText(lockPath), lockPath);
+        var parsed = ExtensionLock.Parse(await File.ReadAllTextAsync(lockPath, cancellationToken), lockPath);
         if (parsed.Diagnostics.Any(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error))
         {
             return new([], [new(ExtensionLock.FileName, PackageRefusalReason.Malformed, string.Join(' ', parsed.Diagnostics.Select(diagnostic => diagnostic.Message)))]);

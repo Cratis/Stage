@@ -7,13 +7,6 @@ using System.Text.Json;
 namespace Cratis.Stage.Host.Extensions.Packages;
 
 /// <summary>
-/// One signature found for a package.
-/// </summary>
-/// <param name="Payload">The bytes that were signed.</param>
-/// <param name="Signature">The ECDSA signature over the SHA-256 of the payload, in DER form.</param>
-public sealed record PackageSignature(byte[] Payload, byte[] Signature);
-
-/// <summary>
 /// What verifying a package's signatures found.
 /// </summary>
 public enum SignatureVerdict
@@ -22,11 +15,18 @@ public enum SignatureVerdict
     Valid,
 
     /// <summary>The package carries no signature at all.</summary>
-    Unsigned,
+    NotSigned,
 
     /// <summary>There are signatures, but none by the publisher's keys that covers this package.</summary>
     Invalid
 }
+
+/// <summary>
+/// One signature found for a package.
+/// </summary>
+/// <param name="Payload">The bytes that were signed.</param>
+/// <param name="Signature">The ECDSA signature over the SHA-256 of the payload, in DER form.</param>
+public sealed record PackageSignature(byte[] Payload, byte[] Signature);
 
 /// <summary>
 /// Verifies a package's signatures against the keys of the publisher the lock records. Keys are ECDSA P-256 public keys, as <c lang="text">cosign generate-key-pair</c> writes them.
@@ -48,7 +48,7 @@ public static class PackageSignatureVerifier
     /// <returns>The <see cref="SignatureVerdict"/>.</returns>
     public static SignatureVerdict Verify(IReadOnlyList<PackageSignature> signatures, IReadOnlyList<string> keys, Func<byte[], bool> coversPackage)
     {
-        if (signatures.Count == 0) return SignatureVerdict.Unsigned;
+        if (signatures.Count == 0) return SignatureVerdict.NotSigned;
 
         var parsed = keys.Select(Parse).OfType<ECDsa>().ToList();
         try
@@ -56,7 +56,7 @@ public static class PackageSignatureVerifier
             foreach (var signature in signatures)
             {
                 if (!coversPackage(signature.Payload)) continue;
-                if (parsed.Any(key => Verifies(key, signature))) return SignatureVerdict.Valid;
+                if (parsed.Exists(key => Verifies(key, signature))) return SignatureVerdict.Valid;
             }
 
             return SignatureVerdict.Invalid;

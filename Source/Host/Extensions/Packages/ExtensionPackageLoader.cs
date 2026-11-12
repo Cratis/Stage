@@ -44,7 +44,7 @@ public sealed class ExtensionPackageLoader(
             {
                 var package = await LoadOne(entry, cancellationToken);
                 loaded.Add(package);
-                ExtensionPackageLog.Loaded(logger, entry.Reference, entry.Version, entry.Digest, package.Channel, package.Signed);
+                ExtensionPackageLog.Loaded(logger, entry.Reference, entry.Version, entry.Digest, package.Channel, package.SignatureVerified);
             }
             catch (PackageRefusedException refused)
             {
@@ -54,6 +54,20 @@ public sealed class ExtensionPackageLoader(
         }
 
         return new(loaded, refusals, contracts);
+    }
+
+    static bool Verify(FetchedPackage fetched, PackageTrust decision)
+    {
+        if (!decision.RequireSignature && decision.Keys.Count == 0) return false;
+
+        var verdict = PackageSignatureVerifier.Verify(fetched.Signatures, decision.Keys, fetched.CoversPackage);
+        return verdict switch
+        {
+            SignatureVerdict.Valid => true,
+            SignatureVerdict.NotSigned when !decision.RequireSignature => false,
+            SignatureVerdict.NotSigned => throw new PackageRefusedException(PackageRefusalReason.NotSigned, "The package is not signed."),
+            _ => throw new PackageRefusedException(PackageRefusalReason.SignatureInvalid, "No signature by a key of the publisher the lock records covers this package.")
+        };
     }
 
     async Task<LoadedExtensionPackage> LoadOne(ExtensionLockEntry entry, CancellationToken cancellationToken)
@@ -105,19 +119,5 @@ public sealed class ExtensionPackageLoader(
         var fetched = channel.Open(entry, artifact);
         cache.Store(entry.Digest, artifact);
         return fetched;
-    }
-
-    static bool Verify(FetchedPackage fetched, PackageTrust decision)
-    {
-        if (!decision.RequireSignature && decision.Keys.Count == 0) return false;
-
-        var verdict = PackageSignatureVerifier.Verify(fetched.Signatures, decision.Keys, fetched.CoversPackage);
-        return verdict switch
-        {
-            SignatureVerdict.Valid => true,
-            SignatureVerdict.Unsigned when !decision.RequireSignature => false,
-            SignatureVerdict.Unsigned => throw new PackageRefusedException(PackageRefusalReason.Unsigned, "The package is not signed."),
-            _ => throw new PackageRefusedException(PackageRefusalReason.SignatureInvalid, "No signature by a key of the publisher the lock records covers this package.")
-        };
     }
 }

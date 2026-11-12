@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Net;
+using Cratis.Specifications;
 using Cratis.Stage.Host.Extensions.Packages.given;
 using Xunit;
 

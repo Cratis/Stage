@@ -143,7 +143,7 @@ A package is loaded only when every step passes, in this order. The first failur
 | `NotFound` | The registry does not have the locked digest, cannot be reached or needs credentials. | Check the lock and the registry credentials in configuration. |
 | `DigestMismatch` | What the registry or the cache returned does not hash to the locked digest, or a layer does not hash to the digest in the manifest. | The package was changed after it was locked. Review the change, then restore. |
 | `ContractMismatch` | The package's `contract.play` is not the contract the lock pinned. | Review the change, then restore. |
-| `Unsigned` | The package carries no signature and signatures are required. | Have the publisher sign it. |
+| `NotSigned` | The package carries no signature and signatures are required. | Have the publisher sign it. |
 | `SignatureInvalid` | There are signatures, but none by a key of the publisher the lock records covers this package. | The publisher changed, or the signature is for something else. Review, then restore. |
 | `TooLarge` | The package is larger than `MaxPackageBytes` or has more than `MaxPackageFiles` files. | Raise the limit if the size is expected. |
 | `RequirementsNotMet` | The package requires a Stage or Screenplay version this Stage is not. | Use a release of the package that supports this Stage. |
@@ -155,7 +155,7 @@ GET /stage/semantic/admission
 
 {
   "engine": "semantic",
-  "issues": [ "acme/mail: Unsigned: The package is not signed." ],
+  "issues": [ "acme/mail: NotSigned: The package is not signed." ],
   "entries": []
 }
 ```
@@ -213,7 +213,7 @@ The icon and images are served with a policy that lets an SVG draw and nothing e
       "digest": "sha256:13c80dcd…",
       "publisher": "https://github.com/cratis",
       "channel": "oci",
-      "signed": true,
+      "signatureVerified": true,
       "displayName": "Transactional mail",
       "description": "Sends invoices and receipts through a transactional mail service",
       "icon": "/stage/extensions/packages/13c80dcd…/icon",

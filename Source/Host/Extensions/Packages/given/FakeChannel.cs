@@ -8,6 +8,9 @@ namespace Cratis.Stage.Host.Extensions.Packages.given;
 /// <summary>
 /// A channel that serves one archive from memory and counts what was asked of it. Its digest is the sha256 of the archive.
 /// </summary>
+/// <param name="archive">The archive it serves.</param>
+/// <param name="root">The folder in the archive that is the package.</param>
+/// <param name="signatures">The signatures it reports.</param>
 public sealed class FakeChannel(byte[] archive, string root, IReadOnlyList<PackageSignature> signatures) : IPackageChannel
 {
     public int Downloads { get; private set; }

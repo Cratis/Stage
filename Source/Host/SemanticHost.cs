@@ -64,8 +64,7 @@ internal static class SemanticHost
         }
 
         // A package that is refused stops the model being loaded at all: nothing it names may be compiled against, let alone run.
-        (LoadedSemanticModel? Model, SceneApplication? Scene) loadedModel = packages.Refusals.Count > 0 ? (null, null) : await LoadModel(modelPath, issues, notes, package?.Manifest.ApplicationName);
-        var (loaded, scene) = loadedModel;
+        var (loaded, scene) = packages.Refusals.Count > 0 ? (null, null) : await LoadModel(modelPath, issues, notes, package?.Manifest.ApplicationName);
         var authentication = mode == StageHostMode.Published ? published ?? PublishedOptions.From(builder.Configuration) : null;
         authentication?.EnsureComplete();
         var development = SandboxActingUserAccess.Configure(builder, mode);
@@ -410,7 +409,7 @@ internal static class SemanticHost
         ? []
         : PublishedHostExtensions.Select(PublishedHostExtensions.Registered, PublishedHostExtensions.NotesEnabled(published, package!.Manifest));
 
-    static async Task<ExtensionPackageSet> LoadExtensionPackages(string modelPath, IConfiguration configuration, List<StageUnsupportedIssue> issues)
+    static async Task<ExtensionPackageSet> LoadExtensionPackages(string modelPath, ConfigurationManager configuration, List<StageUnsupportedIssue> issues)
     {
         using var loggers = LoggerFactory.Create(logging => logging.AddConfiguration(configuration.GetSection("Logging")).AddConsole());
         var packages = await ExtensionPackageHosting.Load(modelPath, configuration, loggers);

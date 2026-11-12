@@ -29,7 +29,7 @@ public static class ExtensionPackageView
             html.Append($"<h2>{Encode(description.DisplayName)} <small>{Encode(description.Version)}</small></h2><p>{Encode(description.Description)}</p><dl>");
             Row(html, "Reference", $"{description.Reference} ({description.Resolved})");
             Row(html, "Digest", description.Digest);
-            Row(html, "Publisher", $"{description.Publisher}{(description.Signed ? " (signature verified)" : " (not signed)")}");
+            Row(html, "Publisher", $"{description.Publisher}{(description.SignatureVerified ? " (signature verified)" : " (not signed)")}");
             Row(html, "Abilities", string.Join(", ", description.Contents.Abilities));
             Row(html, "Triggers", string.Join(", ", description.Contents.Triggers));
             Row(html, "Components", string.Join(", ", description.Contents.Components.Select(component => $"{component.Name} ({component.Kind ?? "unspecified"})")));

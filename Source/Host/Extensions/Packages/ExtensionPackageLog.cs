@@ -8,8 +8,8 @@ namespace Cratis.Stage.Host.Extensions.Packages;
 /// </summary>
 public static partial class ExtensionPackageLog
 {
-    [LoggerMessage(LogLevel.Information, "Loaded the extension package {Reference} {Version} ({Digest}) from {Channel}; signed: {Signed}")]
-    internal static partial void Loaded(ILogger logger, string reference, string version, string digest, string channel, bool signed);
+    [LoggerMessage(LogLevel.Information, "Loaded the extension package {Reference} {Version} ({Digest}) from {Channel}; signed: {SignatureVerified}")]
+    internal static partial void Loaded(ILogger logger, string reference, string version, string digest, string channel, bool signatureVerified);
 
     [LoggerMessage(LogLevel.Error, "The extension package {Reference} was refused ({Reason}): {Details}")]
     internal static partial void Refused(ILogger logger, string reference, PackageRefusalReason reason, string details);

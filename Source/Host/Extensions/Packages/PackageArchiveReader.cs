@@ -62,30 +62,11 @@ public sealed class PackageArchiveReader(long maxBytes, int maxFiles)
             total += data.Length;
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);
             File.WriteAllBytes(target, data);
-            if (!OperatingSystem.IsWindows() && (entry.Mode & UnixFileMode.UserExecute) != 0) File.SetUnixFileMode(target, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            if (!OperatingSystem.IsWindows() && entry.Mode.HasFlag(UnixFileMode.UserExecute)) File.SetUnixFileMode(target, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         });
     }
 
-    void Enumerate(IEnumerable<Stream> archives, string root, Action<string, TarEntry> visit)
-    {
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var archive in archives)
-        {
-            using var stream = Decompressed(archive);
-            using var reader = new TarReader(stream);
-            while (reader.GetNextEntry(copyData: false) is { } entry)
-            {
-                if (entry.EntryType is TarEntryType.Directory or TarEntryType.GlobalExtendedAttributes) continue;
-                if (entry.EntryType is not (TarEntryType.RegularFile or TarEntryType.V7RegularFile)) Refuse($"'{entry.Name}' is a {entry.EntryType}; only files and folders are allowed.");
-
-                var path = Relative(entry.Name, root);
-                if (!seen.Add(path)) Refuse($"'{path}' appears more than once.");
-                if (seen.Count > maxFiles) Refuse($"The package holds more than {maxFiles} files.", PackageRefusalReason.TooLarge);
-
-                visit(path, entry);
-            }
-        }
-    }
+    internal static bool IsUnsafeSegment(string part) => part.Length == 0 || string.Equals(part, ".", StringComparison.Ordinal) || string.Equals(part, "..", StringComparison.Ordinal);
 
     static Stream Decompressed(Stream archive)
     {
@@ -112,7 +93,7 @@ public sealed class PackageArchiveReader(long maxBytes, int maxFiles)
     static string Relative(string name, string root)
     {
         var path = name.StartsWith("./", StringComparison.Ordinal) ? name[2..] : name;
-        if (path.Length == 0 || path.StartsWith('/') || path.Contains('\\') || path.Contains('\0') || path.Split('/').Any(part => part is ".." or "." or ""))
+        if (path.Length == 0 || path.StartsWith('/') || path.Contains('\\') || path.Contains('\0') || path.Split('/').Any(IsUnsafeSegment))
         {
             Refuse($"'{name}' is not a safe path.");
         }
@@ -124,4 +105,25 @@ public sealed class PackageArchiveReader(long maxBytes, int maxFiles)
     }
 
     static void Refuse(string details, PackageRefusalReason reason = PackageRefusalReason.Malformed) => throw new PackageRefusedException(reason, details);
+
+    void Enumerate(IEnumerable<Stream> archives, string root, Action<string, TarEntry> visit)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var archive in archives)
+        {
+            using var stream = Decompressed(archive);
+            using var reader = new TarReader(stream);
+            while (reader.GetNextEntry(copyData: false) is { } entry)
+            {
+                if (entry.EntryType is TarEntryType.Directory or TarEntryType.GlobalExtendedAttributes) continue;
+                if (entry.EntryType is not (TarEntryType.RegularFile or TarEntryType.V7RegularFile)) Refuse($"'{entry.Name}' is a {entry.EntryType}; only files and folders are allowed.");
+
+                var path = Relative(entry.Name, root);
+                if (!seen.Add(path)) Refuse($"'{path}' appears more than once.");
+                if (seen.Count > maxFiles) Refuse($"The package holds more than {maxFiles} files.", PackageRefusalReason.TooLarge);
+
+                visit(path, entry);
+            }
+        }
+    }
 }

@@ -24,6 +24,9 @@ public sealed partial class OciPackageChannel(OciRegistryClient registry, Extens
     const string ManifestPart = "manifest.json";
     const string SignatureManifestPart = "signature-manifest.json";
 
+    [GeneratedRegex("^sha256:[0-9a-f]{64}$", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex DigestPattern { get; }
+
     /// <inheritdoc/>
     public bool Handles(string resolved) => !resolved.StartsWith("npm:", StringComparison.Ordinal);
 
@@ -100,7 +103,7 @@ public sealed partial class OciPackageChannel(OciRegistryClient registry, Extens
             foreach (var item in array.EnumerateArray())
             {
                 var digest = item.TryGetProperty("digest", out var value) ? value.GetString() ?? string.Empty : string.Empty;
-                if (!Digest().IsMatch(digest)) throw new PackageRefusedException(PackageRefusalReason.Malformed, $"'{digest}' is not a layer digest.");
+                if (!DigestPattern.IsMatch(digest)) throw new PackageRefusedException(PackageRefusalReason.Malformed, $"'{digest}' is not a layer digest.");
 
                 var media = item.TryGetProperty("mediaType", out var type) ? type.GetString() ?? string.Empty : string.Empty;
                 byte[]? signature = null;
@@ -126,9 +129,6 @@ public sealed partial class OciPackageChannel(OciRegistryClient registry, Extens
             throw new PackageRefusedException(PackageRefusalReason.Malformed, $"The manifest is not valid JSON: {exception.Message}");
         }
     }
-
-    [GeneratedRegex("^sha256:[0-9a-f]{64}$")]
-    private static partial Regex Digest();
 
     sealed record Layer(string Digest, string MediaType, byte[]? Signature)
     {

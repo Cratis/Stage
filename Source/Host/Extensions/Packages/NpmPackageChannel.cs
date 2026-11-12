@@ -120,19 +120,8 @@ public sealed class NpmPackageChannel(HttpClient http, ExtensionPackageOptions o
         {
             using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             if (!response.IsSuccessStatusCode) throw new PackageRefusedException(PackageRefusalReason.NotFound, $"The npm registry answered {(int)response.StatusCode} for {address}.");
-            if (response.Content.Headers.ContentLength > maxBytes) throw new PackageRefusedException(PackageRefusalReason.TooLarge, "The registry's answer is larger than the deployment allows.");
 
-            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-            using var buffer = new MemoryStream();
-            var chunk = new byte[81920];
-            int read;
-            while ((read = await stream.ReadAsync(chunk, cancellationToken)) > 0)
-            {
-                if (buffer.Length + read > maxBytes) throw new PackageRefusedException(PackageRefusalReason.TooLarge, "The registry's answer is larger than the deployment allows.");
-                buffer.Write(chunk, 0, read);
-            }
-
-            return buffer.ToArray();
+            return await BoundedResponse.Read(response, maxBytes, cancellationToken);
         }
         catch (HttpRequestException exception)
         {

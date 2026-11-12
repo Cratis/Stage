@@ -15,7 +15,7 @@ public sealed class FakeRegistry : HttpMessageHandler
 {
     public const string LayerType = "application/vnd.cratis.extension.layer.v1.tar+gzip";
 
-    readonly Dictionary<string, byte[]> _answers = new(StringComparer.Ordinal);
+    readonly Dictionary<string, byte[]> _answers = [];
 
     public List<string> Requests { get; } = [];
 

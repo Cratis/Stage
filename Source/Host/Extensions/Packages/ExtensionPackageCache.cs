@@ -13,14 +13,14 @@ namespace Cratis.Stage.Host.Extensions.Packages;
 public sealed class ExtensionPackageCache(string root)
 {
     /// <summary>
-    /// Gets the folder the cache lives in.
-    /// </summary>
-    public string Root => root;
-
-    /// <summary>
     /// Gets the folder Stage keeps by default, in the local application data folder.
     /// </summary>
     public static string DefaultRoot { get; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Cratis", "Stage", "extensions");
+
+    /// <summary>
+    /// Gets the folder the cache lives in.
+    /// </summary>
+    public string Root => root;
 
     /// <summary>
     /// Reads what was kept for a digest.
@@ -48,6 +48,7 @@ public sealed class ExtensionPackageCache(string root)
     /// </summary>
     /// <param name="digest">The digest from the lock.</param>
     /// <param name="artifact">The <see cref="PackageArtifact"/>.</param>
+    /// <exception cref="ArgumentException">Thrown when the digest or a part name is not safe to use as a path.</exception>
     public void Store(string digest, PackageArtifact artifact)
     {
         var folder = FolderOf(digest);

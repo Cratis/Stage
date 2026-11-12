@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using PackageContract = Cratis.Screenplay.Extensions.ExtensionContract;
+
 namespace Cratis.Stage.Host.Extensions.Packages;
 
 /// <summary>
@@ -15,7 +17,7 @@ namespace Cratis.Stage.Host.Extensions.Packages;
 /// <param name="ContractHash">The locked hash of the contract.</param>
 /// <param name="Publisher">The publisher recorded in the lock.</param>
 /// <param name="Channel">The channel it came from.</param>
-/// <param name="Signed">Whether a signature by the publisher was verified.</param>
+/// <param name="SignatureVerified">Whether a signature by the publisher was verified.</param>
 /// <param name="Name">The name the contract declares.</param>
 /// <param name="DisplayName">The name a person sees.</param>
 /// <param name="Description">What the package does.</param>
@@ -32,7 +34,7 @@ public sealed record ExtensionPackageDescription(
     string ContractHash,
     string Publisher,
     string Channel,
-    bool Signed,
+    bool SignatureVerified,
     string Name,
     string DisplayName,
     string Description,
@@ -64,7 +66,7 @@ public sealed record ExtensionPackageDescription(
             package.Lock.ContractHash,
             package.Lock.Publisher,
             package.Channel,
-            package.Signed,
+            package.SignatureVerified,
             contract.Name,
             contract.DisplayName ?? contract.Name,
             contract.Description ?? string.Empty,
@@ -78,7 +80,13 @@ public sealed record ExtensionPackageDescription(
                 [.. contract.Settings.Select(setting => new PackageSetting(setting.Name, setting.Exposure.ToString().ToLowerInvariant()))],
                 contract.Backend is null ? null : new PackageBackend(contract.Backend.Runtime, contract.Backend.Version),
                 contract.Frontend is not null,
-                contract.Activation is null ? null : contract.Activation.Always ? "always" : "on demand"));
+                ActivationOf(contract)));
+    }
+
+    static string? ActivationOf(PackageContract contract)
+    {
+        if (contract.Activation is null) return null;
+        return contract.Activation.Always ? "always" : "on demand";
     }
 }
 

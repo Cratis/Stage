@@ -21,7 +21,10 @@ public sealed partial record OciReference(string Host, string Repository)
     /// </summary>
     public Uri BaseAddress => new($"{(IsLoopback ? "http" : "https")}://{Host}/");
 
-    bool IsLoopback => Host.Split(':')[0] is "localhost" or "127.0.0.1" or "[::1]";
+    [GeneratedRegex(@"^(?<host>(?:[a-z0-9.-]+|\[::1\])(?::[0-9]{1,5})?)/(?<repository>[a-z0-9]+(?:[._-][a-z0-9]+)*(?:/[a-z0-9]+(?:[._-][a-z0-9]+)*)*)$", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex Reference { get; }
+
+    bool IsLoopback => Array.Exists(["localhost", "127.0.0.1", "[::1]"], name => string.Equals(Host.Split(':')[0], name, StringComparison.Ordinal));
 
     /// <summary>
     /// Reads a resolved reference such as <c lang="text">ghcr.io/cratis/extension-mail</c>.
@@ -31,13 +34,10 @@ public sealed partial record OciReference(string Host, string Repository)
     /// <exception cref="PackageRefusedException">Thrown when it is not a registry reference.</exception>
     public static OciReference Parse(string resolved)
     {
-        var match = Reference().Match(resolved);
+        var match = Reference.Match(resolved);
         if (!match.Success) throw new PackageRefusedException(PackageRefusalReason.Malformed, $"'{resolved}' is not a registry reference without a tag or digest.");
-        return new(match.Groups[1].Value, match.Groups[2].Value);
+        return new(match.Groups["host"].Value, match.Groups["repository"].Value);
     }
-
-    [GeneratedRegex(@"^((?:[a-z0-9.-]+|\[::1\])(?::[0-9]{1,5})?)/([a-z0-9]+(?:[._-][a-z0-9]+)*(?:/[a-z0-9]+(?:[._-][a-z0-9]+)*)*)$")]
-    private static partial Regex Reference();
 }
 
 /// <summary>
@@ -45,8 +45,11 @@ public sealed partial record OciReference(string Host, string Repository)
 /// </summary>
 /// <param name="http">The <see cref="HttpClient"/>.</param>
 /// <param name="options">The <see cref="ExtensionPackageOptions"/>.</param>
-public sealed class OciRegistryClient(HttpClient http, ExtensionPackageOptions options)
+public sealed partial class OciRegistryClient(HttpClient http, ExtensionPackageOptions options)
 {
+    [GeneratedRegex("(?<name>\\w+)=\"(?<value>[^\"]*)\"", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex HeaderParameter { get; }
+
     /// <summary>
     /// Reads a manifest or a blob.
     /// </summary>
@@ -63,8 +66,8 @@ public sealed class OciRegistryClient(HttpClient http, ExtensionPackageOptions o
         using var first = await Send(address, reference, kind, null, cancellationToken);
         if (first.StatusCode != HttpStatusCode.Unauthorized) return await Read(first, maxBytes, cancellationToken);
 
-        var authorization = await Authorize(first, reference, cancellationToken);
-        if (authorization is null) throw new PackageRefusedException(PackageRefusalReason.NotFound, $"The registry {reference.Host} requires credentials for {reference.Repository}; configure them under {ExtensionPackageOptions.Section}:Registries.");
+        var authorization = await Authorize(first, reference, cancellationToken)
+            ?? throw new PackageRefusedException(PackageRefusalReason.NotFound, $"The registry {reference.Host} requires credentials for {reference.Repository}; configure them under {ExtensionPackageOptions.Section}:Registries.");
         using var second = await Send(address, reference, kind, authorization, cancellationToken);
         return await Read(second, maxBytes, cancellationToken);
     }
@@ -73,20 +76,11 @@ public sealed class OciRegistryClient(HttpClient http, ExtensionPackageOptions o
     {
         if (response.StatusCode == HttpStatusCode.NotFound) return null;
         if (!response.IsSuccessStatusCode) throw new PackageRefusedException(PackageRefusalReason.NotFound, $"The registry answered {(int)response.StatusCode} for {response.RequestMessage?.RequestUri}.");
-        if (response.Content.Headers.ContentLength > maxBytes) throw new PackageRefusedException(PackageRefusalReason.TooLarge, "The registry's answer is larger than the deployment allows.");
 
-        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-        using var buffer = new MemoryStream();
-        var chunk = new byte[81920];
-        int read;
-        while ((read = await stream.ReadAsync(chunk, cancellationToken)) > 0)
-        {
-            if (buffer.Length + read > maxBytes) throw new PackageRefusedException(PackageRefusalReason.TooLarge, "The registry's answer is larger than the deployment allows.");
-            buffer.Write(chunk, 0, read);
-        }
-
-        return buffer.ToArray();
+        return await BoundedResponse.Read(response, maxBytes, cancellationToken);
     }
+
+    static Dictionary<string, string> Parameters(string text) => HeaderParameter.Matches(text).ToDictionary(match => match.Groups["name"].Value, match => match.Groups["value"].Value, StringComparer.OrdinalIgnoreCase);
 
     async Task<HttpResponseMessage> Send(Uri address, OciReference reference, string kind, AuthenticationHeaderValue? authorization, CancellationToken cancellationToken)
     {
@@ -129,9 +123,10 @@ public sealed class OciRegistryClient(HttpClient http, ExtensionPackageOptions o
         if (!response.IsSuccessStatusCode) return null;
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
-        var token = document.RootElement.TryGetProperty("token", out var value) ? value.GetString() : document.RootElement.TryGetProperty("access_token", out var access) ? access.GetString() : null;
+        string? token = null;
+        if (document.RootElement.TryGetProperty("token", out var value)) token = value.GetString();
+        else if (document.RootElement.TryGetProperty("access_token", out var access)) token = access.GetString();
+
         return token is null ? null : new("Bearer", token);
     }
-
-    static Dictionary<string, string> Parameters(string text) => Regex.Matches(text, "(\\w+)=\"([^\"]*)\"").ToDictionary(match => match.Groups[1].Value, match => match.Groups[2].Value, StringComparer.OrdinalIgnoreCase);
 }

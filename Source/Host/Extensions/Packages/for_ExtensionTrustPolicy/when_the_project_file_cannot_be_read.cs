@@ -27,7 +27,7 @@ public class when_the_project_file_cannot_be_read : Specification
 
     void Destroy() => Directory.Delete(_folder, recursive: true);
 
-    [Fact] void should_find_the_file_above_the_model() => _policy.Source.ShouldEndWith("extensions.json");
+    [Fact] void should_find_the_file_above_the_model() => _policy.Source.EndsWith("extensions.json", StringComparison.Ordinal).ShouldBeTrue();
     [Fact] void should_say_why_it_could_not_be_read() => _policy.Error.ShouldContain("could not be read");
     [Fact] void should_allow_nothing_even_when_the_deployment_does() => _trust.Allowed.ShouldBeFalse();
 }

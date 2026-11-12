@@ -4,6 +4,7 @@
 using System.Text;
 using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Extensions;
+using PackageContract = Cratis.Screenplay.Extensions.ExtensionContract;
 
 namespace Cratis.Stage.Host.Extensions.Packages;
 
@@ -20,9 +21,9 @@ public sealed class ExtensionPackageAdmission(string stageVersion, string screen
     /// </summary>
     /// <param name="entry">The <see cref="ExtensionLockEntry"/>.</param>
     /// <param name="contents">The <see cref="PackageContents"/>.</param>
-    /// <returns>The package's <see cref="ExtensionContract"/>.</returns>
+    /// <returns>The package's <see cref="PackageContract"/>.</returns>
     /// <exception cref="PackageRefusedException">Thrown when the package must not be loaded.</exception>
-    public ExtensionContract Admit(ExtensionLockEntry entry, PackageContents contents)
+    public PackageContract Admit(ExtensionLockEntry entry, PackageContents contents)
     {
         var bytes = contents.Contract ?? throw new PackageRefusedException(PackageRefusalReason.Malformed, $"The package has no {PackageContents.ContractPath}.");
         var hash = ExtensionHashes.Of(bytes);
@@ -37,7 +38,7 @@ public sealed class ExtensionPackageAdmission(string stageVersion, string screen
         return contract;
     }
 
-    static void CheckFiles(ExtensionContract contract, PackageContents contents)
+    static void CheckFiles(PackageContract contract, PackageContents contents)
     {
         if (contract.Icon is not null) Require("icon", contract.Icon, contents);
         foreach (var image in contract.Images) Require("image", image.Path, contents);
@@ -55,21 +56,21 @@ public sealed class ExtensionPackageAdmission(string stageVersion, string screen
     static byte[] Require(string kind, string path, PackageContents contents)
     {
         var normalized = path.StartsWith("./", StringComparison.Ordinal) ? path[2..] : path;
-        if (normalized.Split('/').Any(part => part is ".." or "") || normalized.Contains('\\')) throw new PackageRefusedException(PackageRefusalReason.Malformed, $"The {kind} '{path}' is outside the package.");
+        if (normalized.Split('/').Any(PackageArchiveReader.IsUnsafeSegment) || normalized.Contains('\\')) throw new PackageRefusedException(PackageRefusalReason.Malformed, $"The {kind} '{path}' is outside the package.");
         return contents.Find(normalized) ?? throw new PackageRefusedException(PackageRefusalReason.Malformed, $"The {kind} '{path}' is not in the package.");
     }
 
-    void CheckRequirements(ExtensionContract contract)
+    string? OfferedFor(string kind)
+    {
+        if (string.Equals(kind, "stage", StringComparison.Ordinal)) return stageVersion;
+        return string.Equals(kind, "screenplay", StringComparison.Ordinal) ? screenplayVersion : null;
+    }
+
+    void CheckRequirements(PackageContract contract)
     {
         foreach (var requirement in contract.Requirements)
         {
-            var offered = requirement.Kind switch
-            {
-                "stage" => stageVersion,
-                "screenplay" => screenplayVersion,
-                _ => null
-            };
-
+            var offered = OfferedFor(requirement.Kind);
             if (offered is not null && !ExtensionVersionRange.Satisfies(requirement.Value.Trim('"'), offered))
             {
                 throw new PackageRefusedException(PackageRefusalReason.RequirementsNotMet, $"The package requires {requirement.Kind} {requirement.Value}, and this is {offered}.");

@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.Extensions;
+using PackageContract = Cratis.Screenplay.Extensions.ExtensionContract;
 
 namespace Cratis.Stage.Host.Extensions.Packages;
 
@@ -9,12 +10,12 @@ namespace Cratis.Stage.Host.Extensions.Packages;
 /// An extension package that was fetched by its locked digest, allowed, verified and admitted.
 /// </summary>
 /// <param name="Lock">The <see cref="ExtensionLockEntry"/> it was loaded for.</param>
-/// <param name="Contract">The <see cref="ExtensionContract"/> read from the package.</param>
+/// <param name="Contract">The <see cref="PackageContract"/> read from the package.</param>
 /// <param name="Contents">The <see cref="PackageContents"/>.</param>
 /// <param name="Channel">The channel it came from, <c lang="text">oci</c> or <c lang="text">npm</c>.</param>
-/// <param name="Signed">Whether a signature by the publisher's key was verified.</param>
+/// <param name="SignatureVerified">Whether a signature by the publisher's key was verified.</param>
 /// <param name="BackendUnpacker">Unpacks the backend into a folder from the verified bytes, or null when the package was not loaded by a loader.</param>
-public sealed record LoadedExtensionPackage(ExtensionLockEntry Lock, ExtensionContract Contract, PackageContents Contents, string Channel, bool Signed, Action<string>? BackendUnpacker = null)
+public sealed record LoadedExtensionPackage(ExtensionLockEntry Lock, PackageContract Contract, PackageContents Contents, string Channel, bool SignatureVerified, Action<string>? BackendUnpacker = null)
 {
     /// <summary>
     /// Gets the locked digest, which is what identifies the package everywhere.

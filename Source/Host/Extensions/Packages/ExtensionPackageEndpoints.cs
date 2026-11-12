@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Net.Mime;
+using Cratis.Stage.Contracts;
 using Microsoft.AspNetCore.Routing;
 
 namespace Cratis.Stage.Host.Extensions.Packages;
@@ -44,15 +45,15 @@ public static class ExtensionPackageEndpoints
     /// <param name="packages">The loaded packages.</param>
     public static void MapTooling(IEndpointRouteBuilder endpoints, ExtensionPackageSet packages)
     {
-        var route = ExtensionPackageDescription.Route;
+        const string route = ExtensionPackageDescription.Route;
         endpoints.MapGet(route, () => Results.Json(
             new { Packages = packages.Loaded.Select(ExtensionPackageDescription.From), Refused = packages.Refusals.Select(refusal => new { refusal.Reference, Reason = refusal.Reason.ToString(), refusal.Details }) },
             StageJson.Options));
         endpoints.MapGet($"{route}/view", () => Results.Content(ExtensionPackageView.Render(packages), "text/html; charset=utf-8"));
         endpoints.MapGet($"{route}/packages/{{id}}/icon", (HttpContext context, string id) =>
-            Serve(context, Find(packages, id), package => package.Contract.Icon is { } icon ? package.Contents.Find(Clean(icon)) is { } bytes ? (bytes, Clean(icon)) : null : null, ImagePolicy));
+            Serve(context, Find(packages, id), package => FileAt(package, package.Contract.Icon), ImagePolicy));
         endpoints.MapGet($"{route}/packages/{{id}}/images/{{index:int}}", (HttpContext context, string id, int index) =>
-            Serve(context, Find(packages, id), package => index >= 0 && index < package.Contract.Images.Length && package.Contents.Find(Clean(package.Contract.Images[index].Path)) is { } bytes ? (bytes, Clean(package.Contract.Images[index].Path)) : null, ImagePolicy));
+            Serve(context, Find(packages, id), package => FileAt(package, index >= 0 && index < package.Contract.Images.Length ? package.Contract.Images[index].Path : null), ImagePolicy));
         endpoints.MapGet($"{route}/packages/{{id}}/placeholders/{{component}}", (HttpContext context, string id, string component) =>
             RefusesNavigation(context) ? Results.StatusCode(StatusCodes.Status403Forbidden) : Serve(context, Find(packages, id), package => Placeholder(package, component), PlaceholderPolicy));
     }
@@ -61,6 +62,13 @@ public static class ExtensionPackageEndpoints
 
     static bool RefusesNavigation(HttpContext context) =>
         context.Request.Headers.TryGetValue("Sec-Fetch-Dest", out var destination) && destination.Count > 0 && destination[0] is not ("iframe" or "frame" or "empty");
+
+    static (byte[] Bytes, string Path)? FileAt(LoadedExtensionPackage package, string? path)
+    {
+        if (path is null) return null;
+        var clean = Clean(path);
+        return package.Contents.Find(clean) is { } bytes ? (bytes, clean) : null;
+    }
 
     static (byte[] Bytes, string Path)? Placeholder(LoadedExtensionPackage package, string component)
     {

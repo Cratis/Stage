@@ -374,9 +374,18 @@ jobs:
       && needs.dotnet-build.result == 'success'
       && needs.routing.outputs.reducer-mongo == 'true'
     runs-on: ubuntu-latest
+    name: reducer-mongo (${{ matrix.probe }})
     timeout-minutes: 20
+    permissions:
+      contents: read
+    # Keep the original filter groups intact; each leg owns a kernel and its result checks.
+    # Runtime proofs are the slowest group, so subdividing the other probes adds setup, not speed.
+    strategy:
+      fail-fast: false
+      matrix:
+        probe: [runtime-proofs, rendering-probes, reconnect]
     env:
-      REDUCER_MONGO_CONTAINER: stage-reducer-mongo-${{ github.run_id }}-${{ github.run_attempt }}
+      REDUCER_MONGO_CONTAINER: stage-reducer-mongo-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.probe }}
 
     steps:
       # This cannot use a repository helper: checkout has not run and may clean the workspace.
@@ -472,6 +481,7 @@ jobs:
 
       # Setup/health is not runtime evidence. This separate gate requires the two exact MongoFacts.
       - name: Run default and atomic mixed-refusal runtime proofs
+        if: matrix.probe == 'runtime-proofs'
         id: mixed342
         # Allow 5 minutes for bounded preflight, evidence validation and cleanup around the 600-second test.
         timeout-minutes: 15
@@ -533,7 +543,7 @@ jobs:
               check_disk = guard.check
               env = dict(os.environ, AI_WORK_OUTPUT=str(output))
               command = ["timeout", "--kill-after=10s", "600s", "dotnet", "test",
-                         "Source/Rendering.Cratis/Rendering.Cratis.csproj", "--configuration", "Debug", "--framework", "net11.0",
+                         "Source/Rendering.Cratis/Rendering.Cratis.csproj", "--configuration", "Debug", "--no-build", "--framework", "net11.0",
                          "--filter", "|".join("FullyQualifiedName=" + name for name in sorted(expected)),
                          "--logger", "trx;LogFileName=stage342-runtime.trx", "--results-directory", str(evidence)]
               with (evidence / "runtime.log").open("wb") as log:
@@ -578,6 +588,7 @@ jobs:
           PY
 
       - name: Run Billing deletion, scoped-projection, routed-append, reducer-filter, reducer-migration and reaction persistence probes
+        if: matrix.probe == 'rendering-probes'
         env:
           STAGE_CHRONICLE_MONGO_CONNECTION: chronicle://localhost:35000
           # Keeps the generated application's own build and test logs with the uploaded results.
@@ -588,6 +599,7 @@ jobs:
           --logger "trx;LogFileName=billing-mongo.trx" --results-directory ./TestResults/reducer-mongo
 
       - name: Run Stage projection reconnect probe
+        if: matrix.probe == 'reconnect'
         env:
           STAGE_CHRONICLE_MONGO_CONNECTION: chronicle://localhost:35000
         run: >-
@@ -598,11 +610,16 @@ jobs:
       # A zero exit from dotnet test can mean that nothing ran. Require every named probe to
       # execute and pass, so a missing or skipped probe cannot silently make this gate green.
       - name: Require all live probes to execute and pass
+        if: matrix.probe != 'runtime-proofs'
+        env:
+          PROBE: ${{ matrix.probe }}
         run: |
           python3 - <<'PY'
+          import os
           import xml.etree.ElementTree as ET
-          roots = [ET.parse("TestResults/reducer-mongo/" + name).getroot()
-                   for name in ("billing-mongo.trx", "stage-reconnect.trx")]
+          probe = os.environ["PROBE"]
+          result_file = {"rendering-probes": "billing-mongo.trx", "reconnect": "stage-reconnect.trx"}[probe]
+          roots = [ET.parse("TestResults/reducer-mongo/" + result_file).getroot()]
           ns = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
           results = [result for root in roots for result in root.findall("t:Results/t:UnitTestResult", ns)]
           # testName is the display name; identify each result by its test method instead.
@@ -626,6 +643,8 @@ jobs:
               "Cratis.Stage.Host.for_CratisServiceConfiguration.when_reconnecting_against_the_pinned_kernel.should_keep_stage_projections_updating_when_configured",
               "Cratis.Stage.Host.for_CratisServiceConfiguration.when_encrypting_against_the_pinned_kernel.should_encrypt_and_release_concepts_when_configured",
           }
+          project_prefix = {"rendering-probes": prefix, "reconnect": "Cratis.Stage.Host."}[probe]
+          expected = {name for name in expected if name.startswith(project_prefix)}
           counters = [root.find("t:ResultSummary/t:Counters", ns) for root in roots]
           if (len(results) != len(expected)
                   or names != expected
@@ -676,7 +695,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: reducer-mongo-bootstrap
+          name: reducer-mongo-bootstrap-${{ matrix.probe }}
           path: ${{ runner.temp }}/stage342-bootstrap-${{ github.run_id }}-${{ github.run_attempt }}.log
           if-no-files-found: error
           retention-days: 3
@@ -685,7 +704,7 @@ jobs:
         if: ${{ always() && steps.scratch.outputs.scratch != '' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: reducer-mongo-filesystems
+          name: reducer-mongo-filesystems-${{ matrix.probe }}
           path: |
             ${{ steps.scratch.outputs.scratch }}/.stage342-owner
             ${{ steps.scratch.outputs.scratch }}/disk-*.json
@@ -700,7 +719,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: reducer-mongo-results
+          name: reducer-mongo-results-${{ matrix.probe }}
           path: |
             TestResults/reducer-mongo
             .ai-work/342/ci

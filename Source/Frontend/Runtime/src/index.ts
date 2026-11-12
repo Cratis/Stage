@@ -22,3 +22,7 @@ export { readSandboxActingUser, writeSandboxActingUser } from './sandboxActingUs
 export type { SandboxActingUserState } from './sandboxActingUser';
 export { readStageNotes } from './stageNotes';
 export type { StageNotesState } from './stageNotes';
+export { StageExtensionComponent, StageExtensionServicesProvider, ExtensionComponentPlaceholder, stageExtensionComponent } from './StageExtensionComponent';
+export type { RaisedExtensionSignal, StageExtensionServices } from './StageExtensionComponent';
+export { ExtensionInvocationError, createStageExtensionContext, extensionComponentEndpoints } from './stageExtensionContext';
+export type { ExtensionComponentAddress } from './stageExtensionContext';

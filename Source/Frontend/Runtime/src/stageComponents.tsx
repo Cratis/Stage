@@ -29,6 +29,7 @@ import { useStageFilterArguments } from './stageSceneRouting';
 import { StageConfirmDialog } from './StageConfirmDialog';
 import { stageConfirmDialogComponent } from './stageDialogScreens';
 import { StageKanbanBoard, kanbanBoardKey } from './stageItemChange';
+import { StageExtensionComponent, stageExtensionComponent } from './StageExtensionComponent';
 
 export const stageCommandFormComponent = 'Stage:commandForm';
 
@@ -625,6 +626,7 @@ export const stageComponents: Record<string, ComponentType<RegisteredProps>> = {
     [stageCommandFormComponent]: StageCommandForm,
     [stageConfirmDialogComponent]: StageConfirmDialog,
     [kanbanBoardKey]: StageKanbanBoard,
+    [stageExtensionComponent]: StageExtensionComponent as ComponentType<RegisteredProps>,
 };
 
 /** Whether an element tree contains anything the Stage can act on. */

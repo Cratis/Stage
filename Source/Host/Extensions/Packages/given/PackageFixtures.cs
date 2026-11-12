@@ -21,9 +21,9 @@ public static class PackageFixtures
     public const string ScreenplayVersion = "6.22.0";
     public const string Placeholder = "<html><body><style>p{color:red}</style><p>Mail preview</p></body></html>";
 
-    public static string Contract(string stage = "^5", string placeholder = "placeholders/preview.html", string extra = "") => $$"""
+    public static string Contract(string stage = "^5", string placeholder = "placeholders/preview.html", string extra = "", string display = "Transactional mail") => $$"""
         extension Mail
-          display name "Transactional mail"
+          display name "{{display}}"
           description "Sends mail"
           icon "assets/icon.svg"
           image "assets/screenshot.png"

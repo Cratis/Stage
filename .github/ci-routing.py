@@ -334,17 +334,27 @@ def full_run_candidate(run, sha):
     return trusted_full_run(run, sha)
 
 
+def required_full_run_jobs():
+    """Only the current matrix proves full coverage; the legacy single-job name cannot replace a leg."""
+    reducer_jobs = {f"reducer-mongo ({probe})" for probe in REDUCER_MONGO_PROBES}
+    lanes = LANE_PATHS.keys() - {"live-blueprints", "reducer-mongo"}
+    return frozenset(lanes | {"routing", "build", "routed-checks"} | reducer_jobs)
+
+
+def required_jobs_succeeded(jobs, required):
+    """Require every expected name and reject any non-success, including duplicate job names."""
+    names = {job["name"] for job in jobs}
+    if not required <= names:
+        return False
+    return all(job.get("conclusion") == "success" for job in jobs if job["name"] in required)
+
+
 def full_run_succeeded(run, sha, jobs):
     """Require trusted main-branch metadata and every lane executing, not just a green aggregate."""
     if not full_run_candidate(run, sha):
         return False
     by_name = {job["name"]: job for job in jobs}
-    # Only the current matrix proves full coverage; the legacy single-job name cannot replace a leg.
-    reducer_jobs = {f"reducer-mongo ({probe})" for probe in REDUCER_MONGO_PROBES}
-    required = (LANE_PATHS.keys() - {"live-blueprints", "reducer-mongo"}) | {"routing", "build", "routed-checks"} | reducer_jobs
-    if not required <= by_name.keys():
-        return False
-    if any(job.get("conclusion") != "success" for job in jobs if job["name"] in required):
+    if not required_jobs_succeeded(jobs, required_full_run_jobs()):
         return False
     steps = by_name["live-custom-packages"].get("steps", [])
     return set(LIVE_STEPS) <= successful_step_names(steps)

@@ -162,6 +162,18 @@ export function StageExtensionComponent({ element, slots }: { element: ExternalC
         return () => observer.disconnect();
     }, [controller]);
 
+    // A screen or host that wants the component to react (a `uses` of a trigger) sends it to the component's element, and it arrives as `on(trigger)`.
+    useEffect(() => {
+        const element = wrapper.current;
+        if (!controller || !element) return;
+        const deliver = (event: Event) => {
+            const detail = (event as CustomEvent<{ name?: unknown; values?: ExtensionValues }>).detail;
+            if (typeof detail?.name === 'string') controller.trigger(detail.name, detail.values ?? {});
+        };
+        element.addEventListener('stage-extension-trigger', deliver);
+        return () => element.removeEventListener('stage-extension-trigger', deliver);
+    }, [controller]);
+
     const name = `${address.system}.${address.component}`;
     return (
         <div ref={wrapper} data-stage-extension-host={name}>

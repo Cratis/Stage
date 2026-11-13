@@ -30,10 +30,10 @@ public class when_auditing_the_ui_surface : Specification
     // ScreenShowSyntax is the slot it stands in
     // (TemplateSlotPlacement); FormFieldSyntax.Choices is a plain input with a STAGE-SCENE-FORM-004 warning from UiSyntaxAdmission until Scene's form field can carry it.
     [Theory]
-    [InlineData(typeof(ApplicationSyntax), "Agents Authentication Behaviors CommandReadMode Concepts Context DesignSystems Domain EventSources Examples Exposures FileImports Identity Imports InstanceContributions Layouts Modules Onboarding Personas Policies Purposes ReactionProductionMode RetiredForms SampleDataPacks Secrets Seeds Sinks SourceOptions StateMachines StickyNotes Storylines Systems Templates Themes TimeZone Triggers Types UiProfiles Users Workflows")]
-    [InlineData(typeof(ModuleSyntax), "Authorize Behaviors Contributions DependsOn Description DialogTemplates Documentation Examples Features FileImports Forms IsPlacement Name Outlets Purposes RetiredForms ScreenTemplates Templates UsedBehaviors")]
-    [InlineData(typeof(FeatureSyntax), "Authorize Behaviors Contributions DependsOn Description Documentation Examples Features FileImports IsPlacement Name Outlets Purposes RetiredForms Slices Templates UsedBehaviors")]
-    [InlineData(typeof(SliceSyntax), "Captures Commands Constraints Description DescriptionLocation DescriptionRawLength Direction Documentation EffectiveDirection Events Examples File GraphProjections GraphQueries Graphs Name Operations Placements Projections Purposes Queries Reactions ReadModels Reducers Screens Specifications Templates Type")]
+    [InlineData(typeof(ApplicationSyntax), "Agents Audiences Authentication Availabilities Behaviors CommandReadMode Concepts Context DesignSystems Domain EventSources Examples Exposures FileImports Identity Imports InstanceContributions Layouts Modules Onboarding Personas Policies Provides Purposes ReactionProductionMode RetiredForms SampleDataPacks Secrets Seeds Sinks SourceOptions StateMachines StickyNotes Storylines Systems Templates Themes TimeZone Triggers Types UiProfiles Users Workflows")]
+    [InlineData(typeof(ModuleSyntax), "Authorize Available Behaviors Contributions DependsOn Description DialogTemplates Documentation Examples Features FileImports Forms IsPlacement Name Outlets Provides Purposes RetiredForms ScreenTemplates Templates UsedBehaviors")]
+    [InlineData(typeof(FeatureSyntax), "Authorize Available Behaviors Contributions DependsOn Description Documentation Examples Features FileImports IsPlacement Name Outlets Provides Purposes RetiredForms Slices Templates UsedBehaviors")]
+    [InlineData(typeof(SliceSyntax), "Available Captures Commands Constraints Description DescriptionLocation DescriptionRawLength Direction Documentation EffectiveDirection Events Examples File GraphProjections GraphQueries Graphs Name Operations Placements Projections Provides Purposes Queries Reactions ReadModels Reducers Screens Specifications Templates Type")]
     [InlineData(typeof(InteractionBindingSyntax), "Actions Alternatives Condition Otherwise Trigger")]
     [InlineData(typeof(InteractionAlternativeSyntax), "Actions Condition")]
     [InlineData(typeof(InteractionOtherwiseSyntax), "Actions")]
@@ -44,7 +44,7 @@ public class when_auditing_the_ui_surface : Specification
     [InlineData(typeof(DialogTemplateSyntax), "Arrangement Behaviors Category Content Description DisplayName Exposes Name Outlets RecursiveSlots RestrictsScopes RetiredForms Scopes SliceKinds Slots TemplateType UsedBehaviors")]
     [InlineData(typeof(TemplateExposedValueSyntax), "Name Type")]
     [InlineData(typeof(TemplateSlotSyntax), "Name")]
-    [InlineData(typeof(ScreenSyntax), "Contributions Description Directives File Fits Name Outlets Visuals")]
+    [InlineData(typeof(ScreenSyntax), "Available Contributions Description Directives File Fits Name Outlets Visuals")]
     [InlineData(typeof(ScreenNavigateSyntax), "By Parameters Route Screen Slot")]
     [InlineData(typeof(ExposureSyntax), "Owner Properties")]
     [InlineData(typeof(ExposedPropertySyntax), "Component EditableFields IsCollection Label Operations Path ReExposes RestrictsFields")]

@@ -168,7 +168,7 @@ internal static class SemanticTypedContextRenderer
         SemanticContextSourceKinds.ReadModel, SemanticContextSourceKinds.CurrentEvent, SemanticContextSourceKinds.EventSourceId,
         SemanticContextSourceKinds.ModelProperty, SemanticContextSourceKinds.ConceptValue, SemanticContextSourceKinds.ValidatedProperty,
         SemanticContextSourceKinds.ValidatedArtifact, SemanticContextSourceKinds.AuthorizedOperation,
-        SemanticContextSourceKinds.CommandIdentifier, SemanticContextSourceKinds.QueryKey, SemanticContextSourceKinds.Unavailable
+        SemanticContextSourceKinds.CommandIdentifier, SemanticContextSourceKinds.QueryKey, SemanticContextSourceKinds.Provided, SemanticContextSourceKinds.Unavailable
     }.Contains(kind, StringComparer.Ordinal);
 
     static InvalidTypedContext Rejected(string reason) => new($"Typed context cannot be rendered: {reason}");

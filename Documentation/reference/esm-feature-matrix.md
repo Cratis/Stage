@@ -21,11 +21,12 @@ Stage admits a model whose language and semantic versions are the same audited p
 | 39 | Refused |
 | 40, 41 | Audited |
 | 43 to 49 | Audited |
+| 53 | Audited |
 | 32.x minor versions (for example 32.1) | Admitted with a warning that Stage has not audited the pair |
-| Any other version, including 33.x, 34.x, 42 and 50 or later | Refused |
+| Any other version, including 33.x, 34.x, 42, 50 to 52 and 54 or later | Refused |
 | Language and semantic versions that differ | Refused |
 
-ESM 37 is the command clock, 38 adds graphs, 40 adds graph queries, 43 adds set-once projection mappings and ordered children, 44 to 47 add policies that decide from recorded state and row narrowing, and 48 and 49 add agents and the caller's identifier. The models of 37, 38, 40, 41 and 43 to 49 are
+ESM 37 is the command clock, 38 adds graphs, 40 adds graph queries, 43 adds set-once projection mappings and ordered children, 44 to 47 add policies that decide from recorded state and row narrowing, 48 and 49 add agents and the caller's identifier, and 53 adds provided values, audiences and availability gates. The models of 37, 38, 40, 41 and 43 to 49 are
 admitted, but Stage checks each member they populate against its audit ledger. A member that is not audited is
 handled as described in the next section.
 

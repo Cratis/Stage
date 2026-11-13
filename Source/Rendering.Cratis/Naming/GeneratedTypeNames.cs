@@ -183,6 +183,12 @@ internal static class GeneratedTypeNames
         // adds PolicyValues. Operations that share an effective policy share one `{name}Policy` declaration.
         foreach (var name in Names("GeneratedPolicies", "Registration", application.Id, "Generated")) yield return name;
 
+        // The scaffold declares Registration for provided values; the selection-independent ProvidedValues.cs implements it and adds ProvidedValueResolvers.
+        foreach (var type in new[] { "Registration", "ProvidedValueResolvers", "ProvidedReadModelQuery" })
+        {
+            foreach (var name in Names("GeneratedProvides", type, application.Id, "Generated")) yield return name;
+        }
+
         // The scaffold declares the optional Entra ID sign-in types in every application.
         foreach (var type in new[] { "Authentication", "AuthenticationPerimeter", "AuthenticationSettings", "InvalidAuthenticationConfiguration" })
         {

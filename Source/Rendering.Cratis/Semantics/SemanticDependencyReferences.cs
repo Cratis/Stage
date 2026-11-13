@@ -119,6 +119,14 @@ internal static class SemanticDependencyReferences
         SemanticQueryKeyPart:Type KeyProperty
         SemanticQueryFilter:Type Property
         SemanticQueryFilterValue:Filter Value
+        SemanticApplication:Provides
+        SemanticModule:Provides
+        SemanticFeature:Provides
+        SemanticSlice:Provides
+        SemanticProvidedValue:Source ReadModel Type
+        SemanticQueryProvideSource:Query By
+        SemanticValueProvideSource:Value
+        SemanticContextOperand:Value
         """,
         [SemanticDependencyKind.Specification] = """
         SemanticSpecification:GivenEvents GivenReadModels ThenEvents ThenReadModels ThenQueries When ThenAbsentReadModels WhenAppended WhenRedelivered GivenCaptures WhenCapture WhenTrigger GivenGenerated ThenReturns ThenInvocations GivenAbilityAnswers
@@ -209,10 +217,20 @@ internal static class SemanticDependencyReferences
         """
     };
 
+    // Audiences and availability gates reference declarations an owner cannot omit around: a populated member is refused, as STAGE-ESM-016 refuses it at render.
+    static readonly string[] _gated =
+    [
+        "SemanticApplication.Audiences", "SemanticApplication.Availabilities", "SemanticModule.Available", "SemanticFeature.Available",
+        "SemanticSlice.Available", "SemanticCommand.Available", "SemanticKeyedQuery.Available", "SemanticScreen.Available",
+        "SemanticAvailability.Requirements", "SemanticAvailabilityComparison.Operand", "SemanticConditionRequirement.Condition", "SemanticLogicalAvailability.Left",
+        "SemanticLogicalAvailability.Right", "SemanticLogicalAvailabilityCondition.Left", "SemanticLogicalAvailabilityCondition.Right"
+    ];
+
     internal static IReadOnlyDictionary<string, SemanticDependencyClassification> Build()
     {
         var entries = new Dictionary<string, SemanticDependencyClassification>(StringComparer.Ordinal);
         foreach (var group in _groups) Add(entries, group.Value, new(group.Key));
+        foreach (var member in _gated) entries.Add(member, new(null, null, "Availability gates and audiences are not rendered (STAGE-ESM-016)."));
         return entries;
     }
 

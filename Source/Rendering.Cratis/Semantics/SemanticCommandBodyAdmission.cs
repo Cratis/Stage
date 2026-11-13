@@ -108,8 +108,13 @@ internal static class SemanticCommandBodyAdmission
         if (members.Any(member => member is not { Source: not null, Type: not null })) return false;
         var commands = members.Where(member => member.Name == "Command").ToArray();
         if (commands.Length != 1) return false;
-        return MatchesCommandSnapshot(commands[0], command) && HasOnlyKnownAmbientMembers(members.Where(other => other.Name != "Command"));
+        return MatchesCommandSnapshot(commands[0], command) &&
+            HasOnlyKnownAmbientMembers(members.Where(other => other.Name != "Command" && !IsProvidedMember(other)));
     }
+
+    // A provided value (Cratis/Stage#1116) is a nullable member sourced from `provide`; SemanticProvidedValueRendering renders it into the handler context.
+    static bool IsProvidedMember(SemanticTypedContextMember member) =>
+        member.Source is { } source && string.Equals(source.Kind, SemanticContextSourceKinds.Provided, StringComparison.Ordinal) && string.Equals(source.Path, member.Name, StringComparison.Ordinal) && member.IsNullable && !member.IsDerived;
 
     static bool MatchesCommandSnapshot(SemanticTypedContextMember member, SemanticCommand command) =>
         MatchesCommandMember(member, command) && MatchesSnapshotShape(member.Type, command) &&

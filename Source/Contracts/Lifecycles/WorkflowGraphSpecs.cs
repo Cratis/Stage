@@ -3,6 +3,7 @@
 
 using System.Collections.Immutable;
 using System.Globalization;
+using System.Text.Json.Nodes;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 
@@ -94,8 +95,7 @@ public static class WorkflowGraphSpecs
             case SemanticWorkflowNodeKind.Trigger:
                 return Make($"workflows.trigger.{node.TriggerKind.ToString()!.ToLowerInvariant()}", "{}", "next");
             case SemanticWorkflowNodeKind.Action when !string.IsNullOrEmpty(node.Ability):
-                refusals.Add(new(LifecycleCodes.AbilityNode, workflow.Name, $"Action '{name}' invokes the ability '{node.Ability}'; the engine's graph does not run ability nodes yet (Cratis/Stage#1118)."));
-                return Make("workflows.unknown", "{}");
+                return Invoke(plan, workflow, node, refusals, Make);
             case SemanticWorkflowNodeKind.Action:
                 var refusalRouted = workflow.Edges.Any(edge => edge.From == name && edge.Outlet == RefusedOutlet);
                 return Make(SendCapability(plan.Commands[node.Command].Name), refusalRouted ? RefusalRoutedConfiguration : "{}", "next", "failed", RefusedOutlet);
@@ -127,6 +127,25 @@ public static class WorkflowGraphSpecs
                 refusals.Add(new(LifecycleCodes.UnknownNode, workflow.Name, $"Node '{name}' has the unknown kind {node.Kind}."));
                 return Make("workflows.unknown", "{}");
         }
+    }
+
+    // An ability action leaves through what the ability returned, each outcome it declares, a failure and, when it answers later, an expiry.
+    static WorkflowGraphNodeSpec Invoke(SemanticExecutionPlan plan, SemanticWorkflow workflow, SemanticWorkflowNode node, List<LifecycleRefusal> refusals, Func<string, string, string[], WorkflowGraphNodeSpec> make)
+    {
+        if (AbilityInputs.Find(plan.Model.Application, node.System, node.Ability) is not ({ } system, { } ability))
+        {
+            refusals.Add(new(LifecycleCodes.UnknownNode, workflow.Name, $"Action '{node.Name}' invokes the ability '{node.Ability}', which no system of the model declares."));
+            return make("workflows.unknown", "{}", []);
+        }
+
+        if (AbilityInputs.Describe(node.Inputs) is not { } inputs)
+        {
+            refusals.Add(new(LifecycleCodes.AbilityNode, workflow.Name, $"Action '{node.Name}' maps an input of the ability '{ability.Name}' from something other than a literal, the subject or an earlier node's field; the engine cannot compose it."));
+            return make("workflows.unknown", "{}", []);
+        }
+
+        var configuration = new JsonObject { ["address"] = $"{workflow.Name}/{node.Name}", ["inputs"] = inputs };
+        return make(AbilityInputs.Capability(system.Name, ability.Name), configuration.ToJsonString(), [.. AbilityInputs.Outlets(ability)]);
     }
 
     // Each foreach is gathered by exactly one join: the first one its branches reach. The engine keys a join by its foreach.
@@ -185,24 +204,7 @@ public static class WorkflowGraphSpecs
         foreach (var edge in workflow.Edges)
         {
             if (!byName.TryGetValue(edge.From, out var from)) continue;
-            var outlet = edge.Outlet;
-            var origin = edge.From;
-            switch (from.Kind)
-            {
-                case SemanticWorkflowNodeKind.Trigger:
-                    outlet = "next";
-                    break;
-                case SemanticWorkflowNodeKind.Wait when from.Source.Duration is not null && outlet == "resumed":
-                    outlet = "elapsed";
-                    break;
-                case SemanticWorkflowNodeKind.ForEach when outlet == "completed":
-                    if (!forEachToJoin.TryGetValue(edge.From, out var join)) continue;
-                    origin = join;
-                    break;
-                case SemanticWorkflowNodeKind.Join when outlet == "next":
-                    outlet = "completed";
-                    break;
-            }
+            if (Endpoint(from, edge, forEachToJoin) is not ({ } origin, { } outlet)) continue;
 
             if (!byName[origin].Outlets.Contains(outlet))
             {
@@ -215,6 +217,17 @@ public static class WorkflowGraphSpecs
 
         return edges.ToImmutable();
     }
+
+    // Screenplay names some outlets differently from the engine, and a foreach completes through the join that gathers it.
+    static (string Origin, string Outlet)? Endpoint(WorkflowGraphNodeSpec from, SemanticWorkflowEdge edge, Dictionary<string, string> forEachToJoin) => from.Kind switch
+    {
+        SemanticWorkflowNodeKind.Trigger => (edge.From, "next"),
+        SemanticWorkflowNodeKind.Wait when from.Source.Duration is not null && edge.Outlet == "resumed" => (edge.From, "elapsed"),
+        SemanticWorkflowNodeKind.ForEach when edge.Outlet == "completed" => forEachToJoin.TryGetValue(edge.From, out var join) ? (join, edge.Outlet) : null,
+        SemanticWorkflowNodeKind.Join when edge.Outlet == "next" => (edge.From, "completed"),
+        SemanticWorkflowNodeKind.Action when !string.IsNullOrEmpty(from.Source.Ability) && edge.Outlet == "next" => (edge.From, AbilityInputs.ReturnedOutlet),
+        _ => (edge.From, edge.Outlet)
+    };
 
     static string Span(long seconds) => TimeSpan.FromSeconds(seconds).ToString("c", CultureInfo.InvariantCulture);
 

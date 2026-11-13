@@ -8,6 +8,7 @@ using Cratis.DependencyInjection;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Lifecycles;
+using Cratis.Stage.Host.Invocations;
 
 namespace Cratis.Stage.Host.Lifecycles;
 
@@ -44,13 +45,14 @@ internal sealed class StageWorkflowDefinitions : IWorkflowDefinitions
     /// Builds the snapshots of every workflow the runtime drives; a refused workflow has none, so a start for it is rejected.
     /// </summary>
     /// <param name="plan">The execution plan.</param>
+    /// <param name="abilities">The ability catalog, which versions ability nodes; null when the host runs no abilities.</param>
     /// <returns>The definitions.</returns>
-    internal static StageWorkflowDefinitions For(SemanticExecutionPlan plan)
+    internal static StageWorkflowDefinitions For(SemanticExecutionPlan plan, IAbilityCatalog? abilities = null)
     {
         var executable = LifecycleAdmission.ExecutableWorkflows(plan);
         var snapshots = WorkflowGraphSpecs.For(plan)
             .Where(graph => executable.Contains(graph.Workflow.Name))
-            .ToDictionary(graph => graph.Workflow.Name, graph => Snapshot(plan, graph), StringComparer.Ordinal);
+            .ToDictionary(graph => graph.Workflow.Name, graph => Snapshot(plan, graph, abilities), StringComparer.Ordinal);
         return new(snapshots);
     }
 
@@ -59,13 +61,14 @@ internal sealed class StageWorkflowDefinitions : IWorkflowDefinitions
     /// </summary>
     /// <param name="plan">The execution plan.</param>
     /// <param name="graph">The translated workflow.</param>
+    /// <param name="abilities">The ability catalog, which versions ability nodes; null when the host runs no abilities.</param>
     /// <returns>The snapshot.</returns>
-    internal static WorkflowDefinitionSnapshot Snapshot(SemanticExecutionPlan plan, WorkflowGraphSpec graph)
+    internal static WorkflowDefinitionSnapshot Snapshot(SemanticExecutionPlan plan, WorkflowGraphSpec graph, IAbilityCatalog? abilities = null)
     {
         var nodes = graph.Nodes.Select(node => new WorkflowNode(
             node.Name,
             Kind(node.Kind),
-            new CapabilityReference(node.Capability, 1),
+            new CapabilityReference(node.Capability, Version(node.Capability, abilities)),
             node.ConfigurationJson,
             node.Outlets.Select(outlet => new OutletName(outlet)),
             new WorkflowNodePolicy(node.MaxAttempts, node.AttemptTimeout, node.RetryDelay, 1)));
@@ -79,6 +82,12 @@ internal sealed class StageWorkflowDefinitions : IWorkflowDefinitions
             new WorkflowCatalogVersion(plan.Revision.ToString()),
             []);
     }
+
+    // An ability node is performed by the ability's performer, which serves the contract major the catalog declares. Every other capability is version 1.
+    static int Version(string capability, IAbilityCatalog? abilities) =>
+        AbilityReference.TryParse(capability, out var system, out var ability) && abilities?.Find(system, ability) is { } descriptor
+            ? descriptor.Reference.ContractMajor
+            : 1;
 
     static WorkflowNodeKind Kind(SemanticWorkflowNodeKind kind) => kind switch
     {

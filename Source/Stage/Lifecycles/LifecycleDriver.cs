@@ -96,20 +96,39 @@ public sealed class LifecycleDriver(SemanticExecutionPlan plan, ISemanticRuntime
         return [.. keys.Select(key => (key, SemanticLifecycleRunner.Derive(plan, machine, committed, key).State))];
     }
 
+    static bool Starts(SemanticWorkflowNode node, SemanticFact fact, List<EnteredState> entered) =>
+        node.Kind == SemanticWorkflowNodeKind.Trigger && node.TriggerKind switch
+        {
+            SemanticWorkflowTriggerKind.Event => node.Event == fact.EventContract,
+            SemanticWorkflowTriggerKind.StateEntered => entered.Exists(item => item.Machine.Name == node.StateMachine && item.State == node.State),
+            _ => false
+        };
+
+    async Task Enter(StateEntryInvocation entry, Func<SemanticId, Task<ImmutableArray<SemanticPropertyValue>>> subject)
+    {
+        var effect = entry.Effect;
+        switch (effect.Kind)
+        {
+            case SemanticStateEntryKind.SendCommand:
+                await effects.Send(plan.Commands[effect.Command], entry.Key, await subject(entry.Machine.ReadModel));
+                break;
+            case SemanticStateEntryKind.InvokeAbility:
+                await effects.Invoke(entry, await subject(entry.Machine.ReadModel));
+                break;
+            default:
+                if (plan.Model.Application.Workflows.FirstOrDefault(workflow => workflow.Name == effect.Workflow) is { } started && executableWorkflows.Contains(started.Name))
+                {
+                    await effects.Start(started, entry.Key, entry.Causation, await subject(started.Subject));
+                }
+
+                break;
+        }
+    }
+
     async Task Act(ImmutableArray<SemanticFact> committed, int index)
     {
         var fact = committed[index];
-        var before = committed[..index];
-        var after = committed[..(index + 1)];
-        var application = plan.Model.Application;
-        var entered = new List<(SemanticStateMachine Machine, string State, ImmutableArray<SemanticStateEntry> Effects)>();
-        foreach (var machine in application.StateMachines.Where(machine => machine.Transitions.Any(transition => transition.Event == fact.EventContract)))
-        {
-            var previous = SemanticLifecycleRunner.Derive(plan, machine, before, fact.Destination).State;
-            var (state, entering) = SemanticLifecycleRunner.Derive(plan, machine, after, fact.Destination);
-            if (state != previous) entered.Add((machine, state, entering));
-        }
-
+        var entered = Entered(committed, index);
         var subjects = new Dictionary<SemanticId, ImmutableArray<SemanticPropertyValue>>();
         async Task<ImmutableArray<SemanticPropertyValue>> Subject(SemanticId readModel)
         {
@@ -121,37 +140,54 @@ public sealed class LifecycleDriver(SemanticExecutionPlan plan, ISemanticRuntime
 
         foreach (var (machine, state, entering) in entered)
         {
-            foreach (var effect in entering)
+            for (var position = 0; position < entering.Length; position++)
             {
-                if (effect.Kind == SemanticStateEntryKind.SendCommand)
-                {
-                    await effects.Send(plan.Commands[effect.Command], fact.Destination, await Subject(machine.ReadModel));
-                }
-                else if (application.Workflows.FirstOrDefault(workflow => workflow.Name == effect.Workflow) is { } started && executableWorkflows.Contains(started.Name))
-                {
-                    await effects.Start(started, fact.Destination, $"entered:{machine.Name}:{state}:{index}", await Subject(started.Subject));
-                }
+                await Enter(new(machine, state, position + 1, entering[position], fact.Destination, $"entered:{machine.Name}:{state}:{index}"), Subject);
             }
         }
 
-        foreach (var workflow in application.Workflows.Where(workflow => executableWorkflows.Contains(workflow.Name)))
+        foreach (var workflow in plan.Model.Application.Workflows.Where(workflow => executableWorkflows.Contains(workflow.Name)))
         {
             foreach (var node in workflow.Nodes)
             {
-                var starts = node.Kind == SemanticWorkflowNodeKind.Trigger &&
-                    ((node.TriggerKind == SemanticWorkflowTriggerKind.Event && node.Event == fact.EventContract) ||
-                     (node.TriggerKind == SemanticWorkflowTriggerKind.StateEntered && entered.Exists(item => item.Machine.Name == node.StateMachine && item.State == node.State)));
-                if (starts)
-                {
-                    // A state entered by a machine that also starts this workflow shares the dedup key, so the run starts once.
-                    var enteredBy = node.TriggerKind == SemanticWorkflowTriggerKind.StateEntered ? $"entered:{node.StateMachine}:{node.State}:{index}" : $"event:{index}";
-                    await effects.Start(workflow, fact.Destination, enteredBy, await Subject(workflow.Subject));
-                }
-                else if (node.Kind == SemanticWorkflowNodeKind.Wait && node.Event == fact.EventContract)
-                {
-                    await effects.Resume(workflow, node.Name, fact.Destination);
-                }
+                await Observe(workflow, node, fact, index, entered, Subject);
             }
         }
     }
+
+    List<EnteredState> Entered(ImmutableArray<SemanticFact> committed, int index)
+    {
+        var fact = committed[index];
+        var entered = new List<EnteredState>();
+        foreach (var machine in plan.Model.Application.StateMachines.Where(machine => machine.Transitions.Any(transition => transition.Event == fact.EventContract)))
+        {
+            var previous = SemanticLifecycleRunner.Derive(plan, machine, committed[..index], fact.Destination).State;
+            var (state, entering) = SemanticLifecycleRunner.Derive(plan, machine, committed[..(index + 1)], fact.Destination);
+            if (state != previous) entered.Add(new(machine, state, entering));
+        }
+
+        return entered;
+    }
+
+    async Task Observe(
+        SemanticWorkflow workflow,
+        SemanticWorkflowNode node,
+        SemanticFact fact,
+        int index,
+        List<EnteredState> entered,
+        Func<SemanticId, Task<ImmutableArray<SemanticPropertyValue>>> subject)
+    {
+        if (Starts(node, fact, entered))
+        {
+            // A state entered by a machine that also starts this workflow shares the dedup key, so the run starts once.
+            var enteredBy = node.TriggerKind == SemanticWorkflowTriggerKind.StateEntered ? $"entered:{node.StateMachine}:{node.State}:{index}" : $"event:{index}";
+            await effects.Start(workflow, fact.Destination, enteredBy, await subject(workflow.Subject));
+        }
+        else if (node.Kind == SemanticWorkflowNodeKind.Wait && node.Event == fact.EventContract)
+        {
+            await effects.Resume(workflow, node.Name, fact.Destination);
+        }
+    }
+
+    sealed record EnteredState(SemanticStateMachine Machine, string State, ImmutableArray<SemanticStateEntry> Effects);
 }

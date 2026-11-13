@@ -26,7 +26,8 @@ namespace Cratis.Stage.Host.Lifecycles;
 /// <param name="plan">The execution plan of the loaded model.</param>
 /// <param name="runtime">The semantic runtime commands are sent through.</param>
 /// <param name="workflows">The workflow engine runs are admitted to.</param>
-internal sealed class StageLifecycleEffects(SemanticExecutionPlan plan, ISemanticRuntime runtime, IWorkflows workflows) : ILifecycleEffects
+/// <param name="abilities">Invokes the abilities a state entry invokes.</param>
+internal sealed class StageLifecycleEffects(SemanticExecutionPlan plan, ISemanticRuntime runtime, IWorkflows workflows, StateEntryAbilities abilities) : ILifecycleEffects
 {
     /// <summary>The workflow scope every Stage run belongs to; it is the Chronicle namespace the sandbox uses.</summary>
     internal static readonly WorkflowScope Scope = new("Default");
@@ -45,6 +46,9 @@ internal sealed class StageLifecycleEffects(SemanticExecutionPlan plan, ISemanti
             throw new InvalidOperationException($"Entering a state sent {command.Name} for {text}, which was not accepted: {result}");
         }
     }
+
+    /// <inheritdoc/>
+    public Task Invoke(StateEntryInvocation invocation, ImmutableArray<SemanticPropertyValue> subject) => abilities.Invoke(invocation, subject);
 
     /// <inheritdoc/>
     public async Task Start(SemanticWorkflow workflow, SemanticValue key, string deduplication, ImmutableArray<SemanticPropertyValue> subject)

@@ -7,8 +7,10 @@ using Cratis.Choreography.Workflows.Definitions;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Lifecycles;
+using Cratis.Stage.Host.Invocations;
 using Cratis.Stage.Lifecycles;
 using Cratis.Stage.Semantics;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 
 namespace Cratis.Stage.Host.Lifecycles;
@@ -26,9 +28,11 @@ internal static class StageLifecycleHosting
     /// <param name="plan">The execution plan of the loaded model.</param>
     internal static void Add(IServiceCollection services, SemanticExecutionPlan plan)
     {
-        services.AddSingleton<IWorkflowDefinitions>(StageWorkflowDefinitions.For(plan));
+        services.AddSingleton<IWorkflowDefinitions>(provider => StageWorkflowDefinitions.For(plan, provider.GetService<IAbilityCatalog>()));
         services.AddSingleton<IWorkflowNodePerformers>(provider => new StageWorkflowPerformers(plan, () => provider.GetRequiredService<ISemanticRuntime>()));
-        services.AddSingleton(provider => new StageLifecycleEffects(plan, provider.GetRequiredService<ISemanticRuntime>(), provider.GetRequiredService<IWorkflows>()));
+        services.AddSingleton(provider => new StateEntryAbilities(plan, provider.GetService<IAbilityInvocations>));
+        services.AddSingleton(provider => new StageLifecycleEffects(plan, provider.GetRequiredService<ISemanticRuntime>(), provider.GetRequiredService<IWorkflows>(), provider.GetRequiredService<StateEntryAbilities>()));
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IInvocationOriginHandler, StateMachineEntryOriginHandler>());
     }
 
     /// <summary>

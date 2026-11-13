@@ -21,6 +21,14 @@ public interface ILifecycleEffects
     Task Send(SemanticCommand command, SemanticValue key, ImmutableArray<SemanticPropertyValue> subject);
 
     /// <summary>
+    /// Invokes an ability on behalf of a state a machine entered.
+    /// </summary>
+    /// <param name="invocation">The state entry that invokes the ability.</param>
+    /// <param name="subject">The current values of the followed read model instance; empty when there is none.</param>
+    /// <returns>A task that completes when the invocation was admitted.</returns>
+    Task Invoke(StateEntryInvocation invocation, ImmutableArray<SemanticPropertyValue> subject);
+
+    /// <summary>
     /// Starts a run of a workflow for one subject.
     /// </summary>
     /// <param name="workflow">The workflow.</param>

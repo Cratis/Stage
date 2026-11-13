@@ -7,6 +7,7 @@ using Cratis.Choreography.Workflows.Adapters;
 using Cratis.Choreography.Workflows.Contracts;
 using Cratis.Choreography.Workflows.Graphs;
 using Cratis.Choreography.Workflows.Waits;
+using Cratis.Stage.Contracts.Lifecycles;
 using Microsoft.Extensions.Logging;
 
 namespace Cratis.Stage.Host.Invocations;
@@ -73,12 +74,16 @@ internal sealed class AbilityPerformer(AbilityDescriptor descriptor, IInvocation
                 payload["answerPolicy"]?.GetValue<string>() ?? string.Empty);
         }
 
-        // A workflow action performs the ability itself: its identity is the node execution of its run.
+        // A workflow action performs the ability itself: its identity is the node execution of its run, and its input is composed from what the
+        // model maps - literals, the subject the run started for and the fields earlier nodes returned.
         var configuration = JsonNode.Parse(invocation.Configuration.Value) as JsonObject;
         var address2 = configuration?["address"]?.GetValue<string>() ?? invocation.Execution.Node.Value;
+        var input = configuration?["inputs"] is JsonArray inputs
+            ? AbilityInputs.Compose(inputs, payload, node["nodes"] as JsonObject).ToJsonString()
+            : invocation.Input.Value;
         return (
             new(InvocationOriginKind.WorkflowAction, address2, $"{invocation.Run}/{invocation.Execution}"),
-            invocation.Input.Value,
+            input,
             configuration?["answerPolicy"]?.GetValue<string>() ?? string.Empty);
     }
 

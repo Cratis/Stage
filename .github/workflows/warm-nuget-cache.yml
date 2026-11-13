@@ -91,4 +91,4 @@ jobs:
             printf '%s\t%s\t%s\t%s\t%s\n' "$dir_bytes" "$dir_nupkg" "$version_count" \
               "${name//[[:cntrl:]]/?}" "$(printf '%s' "${versions%,}" | tr -c '[:print:]' '?' | cut -c1-300)"
           done | sort -t "$(printf '\t')" -k1,1nr | head -n 10 |
-            awk -F '\t' '{printf "%s: bytes=%s nupkg_bytes=%s versions=%s [%s]\n", $4, $1, $2, $3, $5}'
+            awk -F '\t' '{printf "%s: bytes=%s nupkg_bytes=%s versions=%s [%s]\n", $4, $1, $2, $3, $5}' || true

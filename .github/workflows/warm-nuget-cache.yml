@@ -73,5 +73,22 @@ jobs:
             'BEGIN {printf "%.2f", (total > 0 ? 100 * packages / total : 0)}')
           echo "Global-package file bytes: $total_bytes"
           echo "nupkg bytes: $nupkg_bytes; count: $nupkg_count; percentage: $percentage%"
-          echo 'Largest package directories (apparent bytes; includes global-packages total, up to 10 packages):'
-          du --apparent-size --block-size=1 --max-depth=1 -- "$packages" | sort -nr | head -n 11
+          echo 'Top 10 package directories by apparent bytes (bytes; nupkg bytes; version dirs; versions):'
+          for package_dir in "$packages"/*/; do
+            [[ -d "$package_dir" ]] || continue
+            package_dir=${package_dir%/}
+            dir_bytes=$(find "$package_dir" -type f -printf '%s\n' | awk '{total += $1} END {printf "%.0f", total}')
+            dir_nupkg=$(find "$package_dir" -type f -name '*.nupkg' -printf '%s\n' | awk '{total += $1} END {printf "%.0f", total}')
+            version_count=0
+            versions=''
+            for version_dir in "$package_dir"/*/; do
+              [[ -d "$version_dir" ]] || continue
+              version_dir=${version_dir%/}
+              version_count=$((version_count + 1))
+              versions+="${version_dir##*/},"
+            done
+            name=${package_dir##*/}
+            printf '%s\t%s\t%s\t%s\t%s\n' "$dir_bytes" "$dir_nupkg" "$version_count" \
+              "${name//[[:cntrl:]]/?}" "$(printf '%s' "${versions%,}" | tr -c '[:print:]' '?' | cut -c1-300)"
+          done | sort -t "$(printf '\t')" -k1,1nr | head -n 10 |
+            awk -F '\t' '{printf "%s: bytes=%s nupkg_bytes=%s versions=%s [%s]\n", $4, $1, $2, $3, $5}'

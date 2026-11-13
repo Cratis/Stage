@@ -132,6 +132,7 @@ public sealed partial class CratisBackendApplicationScaffold
               <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             </PackageReference>
           </ItemGroup>
+          <Import Project="GeneratedAvailability/Availability.props" Condition="Exists('GeneratedAvailability/Availability.props')" />
           <Import Project="Customizations/Dependencies.props" Condition="Exists('Customizations/Dependencies.props')" />
         </Project>
         """;

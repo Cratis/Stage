@@ -39,7 +39,6 @@ A render that cannot honor a provided value fails with a diagnostic instead of r
 | --- | --- |
 | `STAGE-ESM-075` | A query source that is not a keyed snapshot query by a Uuid or String key, that has filters, composite keys, a performer, authorization or narrowing, that is keyed by anything but one `$context` value, that is declared apart from its read model, or that belongs to a slice the render does not select. An in-process read would bypass the query's authorization, so a protected query is refused. |
 | `STAGE-ESM-076` | A collection, a concept or a composite type. A provided value is a read model, a Uuid, a String, a number or a Boolean. |
-| `STAGE-ESM-016` | An `audience`, an `availability` or an `available` gate, which Stage does not render yet. |
 
 Code and `file` sources are not part of ESM 53: Screenplay refuses them before Stage sees the model.
 

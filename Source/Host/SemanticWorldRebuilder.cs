@@ -137,6 +137,7 @@ internal static class SemanticWorldRebuilder
             Context = plan.Model.SemanticVersion != SemanticVersion.V1 ? new(new(destinationType, destination)) : null,
             Tags = [.. context.Tags],
             Occurred = occurred,
+            CausedBy = context.CausedBy is { } causedBy ? new SemanticCausedBy(causedBy.Subject ?? string.Empty, causedBy.Name ?? string.Empty, causedBy.UserName ?? string.Empty) : null,
             Route = route
         };
     }

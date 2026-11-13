@@ -36,16 +36,19 @@ function unavailableParts(value: unknown): value is { name: string }[] {
 }
 
 function screenIsAvailable(screen: string | undefined, parts: ScreenParts | undefined, unavailable: Set<string> | undefined): boolean {
-    if (!screen || !parts || !Object.hasOwn(parts, screen)) return true;
+    if (!screen) return true;
+    if (!parts) return true;
+    if (!Object.hasOwn(parts, screen)) return true;
     return unavailable !== undefined && !unavailable.has(parts[screen]);
 }
 
 /**
  * Hides a gated screen until its exact part is known to be available; failures stay closed. Ungated screens need no request.
  * @param routes The routes, including the gated screen map.
+ * @param lookupFailed Whether the route lookup failed to establish the screen gate map.
  * @returns Whether a screen may be rendered or linked to.
  */
-export function useScreenAvailability(routes: StageRoutes | undefined): (screen: string | undefined) => boolean {
+export function useScreenAvailability(routes: StageRoutes | undefined, lookupFailed = false): (screen: string | undefined) => boolean {
     const parts = routes?.screens;
     const key = JSON.stringify(parts ?? {});
     const [snapshot, setSnapshot] = useState<{ key: string; unavailable: Set<string> }>();
@@ -58,10 +61,9 @@ export function useScreenAvailability(routes: StageRoutes | undefined): (screen:
             abort.abort();
             const request = new AbortController();
             abort = request;
-            setSnapshot(undefined);
             void fetchUnavailableScreens(request.signal)
                 .then(unavailable => { if (!request.signal.aborted) setSnapshot({ key, unavailable }); })
-                .catch(() => { /* Keep the pending snapshot closed on failure. The next refresh can retry. */ });
+                .catch(() => { if (!request.signal.aborted) setSnapshot(undefined); });
         };
         refresh();
         const interval = globalThis.setInterval(refresh, 30_000);
@@ -72,7 +74,10 @@ export function useScreenAvailability(routes: StageRoutes | undefined): (screen:
             globalThis.removeEventListener('focus', refresh);
         };
     }, [key]);
-    return useCallback(screen => screenIsAvailable(screen, parts, snapshot?.key === key ? snapshot.unavailable : undefined), [parts, key, snapshot]);
+    return useCallback(screen => {
+        if (lookupFailed) return !screen;
+        return screenIsAvailable(screen, parts, snapshot?.key === key ? snapshot.unavailable : undefined);
+    }, [lookupFailed, parts, key, snapshot]);
 }
 
 /** Waits for the route lookup so content cannot flash before its screen gate map arrives. */

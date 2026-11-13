@@ -309,7 +309,8 @@ function availableNavigation(scene: StageSceneApplication, isAvailable: (screen:
 }
 
 function StageApplication({ scene, registry, routing, routeState, strings, packageCatalog, screenTemplates, isVisible }: StageApplicationProps) {
-    const isScreenAvailable = useScreenAvailability(routeState.routes);
+    const isScreenAvailable = useScreenAvailability(routeState.routes, routeState.failed);
+    const chromeScene = useMemo(() => ({ ...scene, screens: scene.screens.filter(screen => isScreenAvailable(screen.name)) }), [scene, isScreenAvailable]);
     const safeScene = useMemo(() => withoutUnavailableScreenContent(scene, isScreenAvailable), [scene, isScreenAvailable]);
     const routeShape = useMemo(() => stageRouteShapeOf(scene), [scene]);
     const sceneRouting = useMemo(() => {
@@ -338,8 +339,8 @@ function StageApplication({ scene, registry, routing, routeState, strings, packa
     const source = useStageSource();
     const showActingUser = !!source.actingUser && !!source.selectActingUser;
     const composition = useMemo(
-        () => stageComposition(scene, strings.locales, strings.locale, packageCatalog, strings.dictionary, screenTemplates, showFooter, showThemeSwitcher, showActingUser),
-        [scene, strings.locales, strings.locale, strings.dictionary, packageCatalog, screenTemplates, showFooter, showThemeSwitcher, showActingUser]);
+        () => stageComposition(chromeScene, strings.locales, strings.locale, packageCatalog, strings.dictionary, screenTemplates, showFooter, showThemeSwitcher, showActingUser),
+        [chromeScene, strings.locales, strings.locale, strings.dictionary, packageCatalog, screenTemplates, showFooter, showThemeSwitcher, showActingUser]);
     const onSystemSchemeChange = useCallback((dark: boolean) => setPrefersDark(dark), []);
     const navigationModel = useMemo(() => availableNavigation(scene, isScreenAvailable, isVisible, strings.dictionary), [scene, isVisible, isScreenAvailable, strings.dictionary]);
     // Own templates come first: a template of the application wins over a blueprint's of the same name, as in composition.

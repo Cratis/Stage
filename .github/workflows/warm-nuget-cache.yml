@@ -49,3 +49,29 @@ jobs:
       - name: Restore solution packages
         if: steps.nuget.outputs.cache-hit != 'true'
         run: dotnet restore --verbosity minimal
+
+      - name: Report NuGet cache composition
+        continue-on-error: true
+        shell: bash
+        run: |
+          packages=$(dotnet nuget locals global-packages --list 2>/dev/null) || {
+            echo 'NuGet global-packages directory unavailable; skipping diagnostics.'
+            exit 0
+          }
+          packages=${packages#global-packages: }
+          if [[ ! -d "$packages" ]]; then
+            echo 'NuGet global-packages directory unavailable; skipping diagnostics.'
+            exit 0
+          fi
+
+          total_bytes=$(find "$packages" -type f -printf '%s\n' | awk '{total += $1} END {printf "%.0f", total}')
+          read -r nupkg_bytes nupkg_count < <(
+            find "$packages" -type f -name '*.nupkg' -printf '%s\n' |
+              awk '{bytes += $1; count++} END {printf "%.0f %d\n", bytes, count}'
+          )
+          percentage=$(awk -v total="$total_bytes" -v packages="$nupkg_bytes" \
+            'BEGIN {printf "%.2f", (total > 0 ? 100 * packages / total : 0)}')
+          echo "Global-package file bytes: $total_bytes"
+          echo "nupkg bytes: $nupkg_bytes; count: $nupkg_count; percentage: $percentage%"
+          echo 'Largest package directories (apparent bytes; includes global-packages total, up to 10 packages):'
+          du --apparent-size --block-size=1 --max-depth=1 -- "$packages" | sort -nr | head -n 11

@@ -49,7 +49,7 @@ public class with_the_default_composition : a_register_project_render_request
     // Recomputed for Screenplay 6.24.0: only the Screenplay pins in Directory.Packages.props and the scaffold catalog change.
     // Recomputed for the Scene 5.4.0 pins and Cratis Components 4.40.1 that Scene 5.4.0 requires.
     // Recomputed for Screenplay 6.27.0: only the Screenplay pins in Directory.Packages.props and the scaffold catalog change.
-    const string Before = "2b02f30f498ac3c4915544960dd4537a2eb71c6cc3c4bd00631e35391ce4cba1";
+    const string Before = "224091461ac3168a83c5947e00bae5f17a63e5675c85c1ce03d4fa62372531e7";
 
     ArtifactRenderPlan _plan = null!;
 

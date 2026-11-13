@@ -72,7 +72,12 @@ internal static class SemanticProvidedValueRendering
             .Line("/// <param name=\"scope\">The module, feature and slice names the request runs in, outermost first.</param>")
             .Line("/// <param name=\"ambient\">The values the request supplies by name, such as the command or the query arguments.</param>")
             .Line("/// <returns>The resolver.</returns>")
-            .OpenBlock($"public {Choreography}.ContextValueResolver Create(global::System.Collections.Generic.IReadOnlyList<string> scope, global::System.Collections.Generic.IReadOnlyDictionary<string, object?> ambient)")
+            .Line($"public {Choreography}.ContextValueResolver Create(global::System.Collections.Generic.IReadOnlyList<string> scope, global::System.Collections.Generic.IReadOnlyDictionary<string, object?> ambient) => CreateCatalog(services).CreateResolver(new {Choreography}.ContextScope(scope), ambient);")
+            .BlankLine()
+            .Summary("Creates the catalog of the provided values, which the availability engine shares.")
+            .Line("/// <param name=\"services\">The application's services.</param>")
+            .Line("/// <returns>The catalog.</returns>")
+            .OpenBlock($"public static {Choreography}.ContextValueCatalog CreateCatalog(global::System.IServiceProvider services)")
             .Line($"var catalog = new {Choreography}.ContextValueCatalog();");
         foreach (var declaration in declarations)
         {
@@ -82,7 +87,7 @@ internal static class SemanticProvidedValueRendering
             builder.Line($"catalog.Declare(new {Choreography}.ContextValueDeclaration({CSharpCodeBuilder.StringLiteral(provided.Name)}, {Provider(provided, types, context)}, {scope}, {(required ? "true" : "false")}));");
         }
 
-        builder.Line("return catalog.CreateResolver(new " + Choreography + ".ContextScope(scope), ambient);")
+        builder.Line("return catalog;")
             .EndBlock()
             .EndBlock();
         if (queries.Length > 0) RenderQuery(builder, queries, context);

@@ -39,6 +39,7 @@ public sealed partial class CratisBackendApplicationScaffold
             ("GeneratedAuthenticationPerimeter.cs", AuthenticationPerimeter(request)),
             ("GeneratedPolicyRegistration.cs", PolicyRegistration(request)),
             ("GeneratedProvideRegistration.cs", ProvideRegistration(request)),
+            ("GeneratedAvailabilityRegistration.cs", AvailabilityRegistration(request)),
             ("GlobalUsings.cs", GlobalUsings()),
             ("appsettings.json", AppSettings(request)),
             ("docker-compose.yml", DockerCompose(profile))
@@ -118,6 +119,7 @@ public sealed partial class CratisBackendApplicationScaffold
         builder.Services.AddEventSourcedWorkflows();
         {{request.RootNamespace}}.GeneratedPolicies.Registration.Register(builder.Services);
         {{request.RootNamespace}}.GeneratedProvides.Registration.Register(builder.Services);
+        {{request.RootNamespace}}.GeneratedAvailability.Registration.Register(builder);
         {{request.RootNamespace}}.GeneratedAuthentication.Authentication.Add(builder);
         ConfigureServices(builder);
 
@@ -179,6 +181,27 @@ public sealed partial class CratisBackendApplicationScaffold
             public static void Register(IServiceCollection services) => RegisterGenerated(services);
 
             static partial void RegisterGenerated(IServiceCollection services);
+        }
+        """;
+
+    static string AvailabilityRegistration(CratisBackendApplicationScaffoldRequest request) =>
+        $$"""
+        using Microsoft.Extensions.Hosting;
+
+        namespace {{request.RootNamespace}}.GeneratedAvailability;
+
+        /// <summary>
+        /// Registers the audiences, availability blocks and gates of the Screenplay application.
+        /// </summary>
+        public static partial class Registration
+        {
+            /// <summary>
+            /// Registers the availability engine, its gates and the audience source when the model uses availability.
+            /// </summary>
+            /// <param name="builder">The application's builder.</param>
+            public static void Register(IHostApplicationBuilder builder) => RegisterGenerated(builder);
+
+            static partial void RegisterGenerated(IHostApplicationBuilder builder);
         }
         """;
 

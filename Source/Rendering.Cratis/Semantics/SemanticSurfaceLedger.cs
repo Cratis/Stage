@@ -115,24 +115,25 @@ internal static class SemanticSurfaceLedger
 
         var gated = rejected("STAGE-ESM-016");
 
-        // ESM v53 audiences and availability gates are not rendered yet: STAGE-ESM-016 refuses each owner that declares or gates on one.
-        Add(entries, "SemanticApplication", gated, "Audiences Availabilities");
-        Add(entries, "SemanticModule", gated, "Available");
-        Add(entries, "SemanticFeature", gated, "Available");
-        Add(entries, "SemanticSlice", gated, "Available");
-        Add(entries, "SemanticCommand", gated, "Available");
-        Add(entries, "SemanticKeyedQuery", gated, "Available");
+        // ESM v53 audiences, availability blocks and available gates render as Choreography gates evaluated by Arc before authorize (Cratis/Stage#1117).
+        // A screen's gate has no backend part to gate, so STAGE-ESM-016 still refuses it.
+        Add(entries, "SemanticApplication", rendered, "Audiences Availabilities");
+        Add(entries, "SemanticModule", rendered, "Available");
+        Add(entries, "SemanticFeature", rendered, "Available");
+        Add(entries, "SemanticSlice", rendered, "Available");
+        Add(entries, "SemanticCommand", rendered, "Available");
+        Add(entries, "SemanticKeyedQuery", rendered, "Available");
         Add(entries, "SemanticScreen", gated, "Available");
-        Add(entries, "SemanticAudience", gated, "Name");
-        Add(entries, "SemanticAvailability", gated, "Name Requirements");
-        Add(entries, "SemanticAvailabilityRequirement", gated, "$type");
-        Add(entries, "SemanticAudienceRequirement", gated, "Audience");
-        Add(entries, "SemanticConditionRequirement", gated, "Condition");
-        Add(entries, "SemanticAvailabilityCondition", gated, "$type");
-        Add(entries, "SemanticAvailabilityReference", gated, "Availability");
-        Add(entries, "SemanticAvailabilityComparison", gated, "Path Operator Operand");
-        Add(entries, "SemanticLogicalAvailability", gated, "Left Operator Right");
-        Add(entries, "SemanticLogicalAvailabilityCondition", gated, "Left Operator Right");
+        Add(entries, "SemanticAudience", rendered, "Name");
+        Add(entries, "SemanticAvailability", rendered, "Name Requirements");
+        Add(entries, "SemanticAvailabilityRequirement", rendered, "$type");
+        Add(entries, "SemanticAudienceRequirement", rendered, "Audience");
+        Add(entries, "SemanticConditionRequirement", rendered, "Condition");
+        Add(entries, "SemanticAvailabilityCondition", rendered, "$type");
+        Add(entries, "SemanticAvailabilityReference", rendered, "Availability");
+        Add(entries, "SemanticAvailabilityComparison", rendered, "Path Operator Operand");
+        Add(entries, "SemanticLogicalAvailability", rendered, "Left Operator Right");
+        Add(entries, "SemanticLogicalAvailabilityCondition", rendered, "Left Operator Right");
         Add(entries, "SemanticClockOperand", clock, "Amount DateOf Kind Unit");
         Add(entries, "SemanticClockKind", clock, "Now Today");
         Add(entries, "SemanticClockUnit", clock, "Day Hour Minute");

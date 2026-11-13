@@ -60,6 +60,7 @@ internal static partial class SemanticCratisAdmission
         Collect(() => ValidateGeneratedTypeNames(context, slices, diagnostics), context.Application.Id, diagnostics, context);
         Collect(() => ValidateEventTypeIdentities(context, slices, diagnostics), context.Application.Id, diagnostics, context);
         Collect(() => SemanticProvidedValueRendering.Admit(context, slices, diagnostics), context.Application.Id, diagnostics, context);
+        Collect(() => SemanticAvailabilityRendering.Admit(context, diagnostics), context.Application.Id, diagnostics, context);
 
         var analysedBodies = 0;
         foreach (var located in slices)

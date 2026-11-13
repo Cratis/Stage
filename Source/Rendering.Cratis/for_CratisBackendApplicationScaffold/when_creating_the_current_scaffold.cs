@@ -22,6 +22,7 @@ public class when_creating_the_current_scaffold : a_current_scaffold
         "Directory.Packages.props",
         "GeneratedAuthentication.cs",
         "GeneratedAuthenticationPerimeter.cs",
+        "GeneratedAvailabilityRegistration.cs",
         "GeneratedPolicyRegistration.cs",
         "GeneratedProvideRegistration.cs",
         "GlobalUsings.cs",

@@ -26,6 +26,7 @@ public class when_creating_a_zoo_project : Specification
             "Directory.Packages.props",
             "GeneratedAuthentication.cs",
             "GeneratedAuthenticationPerimeter.cs",
+            "GeneratedAvailabilityRegistration.cs",
             "GeneratedPolicyRegistration.cs",
             "GeneratedProvideRegistration.cs",
             "GlobalUsings.cs",

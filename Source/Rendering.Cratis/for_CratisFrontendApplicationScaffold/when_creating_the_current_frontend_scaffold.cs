@@ -40,7 +40,9 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
     [Fact] void should_end_every_input_with_exactly_one_line_feed_byte() => _first.All(EndsWithExactlyOneLineFeed).ShouldBeTrue();
     [Fact] void should_reject_a_missing_request_with_the_project_exception() => Catch.Exception(() => new CratisFrontendApplicationScaffold().Create(null!)).ShouldBeOfExactType<InvalidCratisBackendApplicationScaffold>();
     [Fact] void should_pin_every_dependency_exactly() => DependencyVersions().ShouldEqual(ExpectedDependencyVersions());
-    [Fact] void should_keep_emitted_npm_arc_on_the_nuget_arc_release() => PackageJson().RootElement.GetProperty("dependencies").GetProperty("@cratis/arc").GetString().ShouldEqual(CratisBackendApplicationScaffoldProfile.Current.CratisPackageVersion);
+
+    // The npm Arc packages stay on 22.184.0 while the NuGet release is 23.5.0 (see when_pinning_the_current_frontend_package_set).
+    [Fact] void should_keep_emitted_npm_arc_on_the_line_the_showrunner_notes_peer_accepts() => PackageJson().RootElement.GetProperty("dependencies").GetProperty("@cratis/arc").GetString().ShouldEqual("22.184.0");
 
     /// <summary>
     /// The shell declares what a composed screen imports.

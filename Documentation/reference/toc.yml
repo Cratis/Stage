@@ -38,6 +38,8 @@
   href: sinks.md
 - name: Provided values rendering
   href: provided-values-rendering.md
+- name: Availability rendering
+  href: availability-rendering.md
 - name: Onboarding rendering
   href: onboarding-rendering.md
 - name: Plan artifacts from Screenplay sources

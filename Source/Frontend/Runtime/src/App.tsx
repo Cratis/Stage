@@ -61,7 +61,7 @@ import { applicationChrome, type ApplicationIdentity, type ChromeOptions, stageC
 import { stageResponseContracts, type StageResponseContracts } from './stageResponseContracts';
 import { shellChromeOf, shellStartupProblems, stageShellSettings, themesWithAccent, type StageShellSettings } from './stageShell';
 import { StageShellSettingsApplier, systemPrefersDark } from './StageShellSettings';
-import { declaresRegions, stageNavigationModel, stageScreenFor } from './stageNavigationModel';
+import { declaresRegions, stageNavigationModel } from './stageNavigationModel';
 import { bindDataSources } from './stageDataSources';
 import { navigateToScreen, screenArguments, useStageRouting, type StageRouting } from './stageNavigation';
 import { registeredCommand, useStageCommandExecutor } from './commandExecutor';
@@ -75,6 +75,7 @@ import { StageRouteShapeContext, createStageSceneRouting, stageRouteShapeOf, use
 import { StageOutletsScope } from './stageOutlets';
 import { stageIconAdapters } from './stageIcons';
 import { ScreenAvailabilityGuard, ScreenRoutesReady, useScreenAvailability } from './screenAvailability';
+import { availableNavigationScene } from './availableNavigationScene';
 import './app.css';
 
 export interface StageSceneApplication {
@@ -298,20 +299,29 @@ interface StageApplicationProps {
  * topbar and sidebar are the effective navigation regions. The Stage supplies what is its own: the shell chrome, the data and
  * the commands the screens run against.
  */
-function withoutUnavailableScreenContent(scene: StageSceneApplication, isAvailable: (screen: string | undefined) => boolean): StageSceneApplication {
-    return { ...scene, screens: scene.screens.map(screen => isAvailable(screen.name)
-        ? screen : { ...screen, slotContent: {}, outletContributions: [], forms: [], behaviors: [] }) };
+function refusedScreenRoutes(scene: StageSceneApplication, navigable: StageSceneApplication): Screen[] {
+    const available = new Set(navigable.screens.map(screen => screen.name));
+    return scene.screens.filter(screen => !available.has(screen.name))
+        .map(screen => ({ ...screen, screenTemplate: undefined, contributions: [], slotContent: {}, outletContributions: [], forms: [], behaviors: [] }));
 }
 
-function availableNavigation(scene: StageSceneApplication, isAvailable: (screen: string | undefined) => boolean, isVisible: AppProps['isVisible'], dictionary: ReturnType<typeof useStrings>['dictionary']) {
-    const screenFor = stageScreenFor(scene.screens);
-    return stageNavigationModel(scene, item => isAvailable(screenFor(item)) && (isVisible?.(item) ?? true), dictionary);
+function EmptyScene({ scene, isAvailable }: { scene: StageSceneApplication; isAvailable: (screen: string | undefined) => boolean }) {
+    if (scene.screens.length > 0) {
+        return <ScreenAvailabilityGuard screens={scene.screens.map(screen => screen.name)} isAvailable={isAvailable}>{null}</ScreenAvailabilityGuard>;
+    }
+    return (
+        <main className='stage-message'>
+            <h1>Nothing to show yet</h1>
+            <p>This model has no slice carrying a command or a read model, so there is no screen to render.</p>
+        </main>
+    );
 }
 
 function StageApplication({ scene, registry, routing, routeState, strings, packageCatalog, screenTemplates, isVisible }: StageApplicationProps) {
     const isScreenAvailable = useScreenAvailability(routeState.routes, routeState.failed);
-    const chromeScene = useMemo(() => ({ ...scene, screens: scene.screens.filter(screen => isScreenAvailable(screen.name)) }), [scene, isScreenAvailable]);
-    const safeScene = useMemo(() => withoutUnavailableScreenContent(scene, isScreenAvailable), [scene, isScreenAvailable]);
+    const navigableScene = useMemo(() => availableNavigationScene({ ...scene, navigationTemplates: [...galleryScreenTemplates, ...(screenTemplates ?? [])] }, isScreenAvailable), [scene, screenTemplates, isScreenAvailable]);
+    const refusedRoutes = useMemo(() => refusedScreenRoutes(scene, navigableScene), [scene, navigableScene]);
+    const safeScene = useMemo(() => ({ ...navigableScene, screens: [...navigableScene.screens, ...refusedRoutes] }), [navigableScene, refusedRoutes]);
     const routeShape = useMemo(() => stageRouteShapeOf(scene), [scene]);
     const sceneRouting = useMemo(() => {
         useStageRouting(routing);
@@ -329,9 +339,9 @@ function StageApplication({ scene, registry, routing, routeState, strings, packa
     const history = sceneRouting.history;
     const [prefersDark, setPrefersDark] = useState(systemPrefersDark);
     const notes = useStageNotes();
-    const initial = scene.screens[0]?.name ?? '';
-    const profile = useMemo(() => stageProfile(scene.uiProfiles), [scene]);
-    const shell = useMemo(() => initial ? stageShellOf(scene, screenTemplates) : undefined, [scene, screenTemplates, initial]);
+    const initial = navigableScene.screens[0]?.name ?? '';
+    const profile = useMemo(() => stageProfile(navigableScene.uiProfiles), [navigableScene]);
+    const shell = useMemo(() => initial ? stageShellOf(navigableScene, navigableScene.navigationTemplates) : undefined, [navigableScene, initial]);
     const shellProblems = useMemo(() => shell ? shellStartupProblems(profile, shell) : [], [profile, shell]);
     const shellSettings = useMemo(() => shell ? stageShellSettings(profile, shell, prefersDark) : undefined, [profile, shell, prefersDark]);
     const themes = useMemo(() => themesWithAccent(defaultBlueprintThemes, shellSettings?.accent), [shellSettings?.accent]);
@@ -339,24 +349,17 @@ function StageApplication({ scene, registry, routing, routeState, strings, packa
     const source = useStageSource();
     const showActingUser = !!source.actingUser && !!source.selectActingUser;
     const composition = useMemo(
-        () => stageComposition(chromeScene, strings.locales, strings.locale, packageCatalog, strings.dictionary, screenTemplates, showFooter, showThemeSwitcher, showActingUser),
-        [chromeScene, strings.locales, strings.locale, strings.dictionary, packageCatalog, screenTemplates, showFooter, showThemeSwitcher, showActingUser]);
+        () => ({ ...stageComposition(navigableScene, strings.locales, strings.locale, packageCatalog, strings.dictionary, navigableScene.navigationTemplates, showFooter, showThemeSwitcher, showActingUser), blueprintTemplates: navigableScene.navigationTemplates }),
+        [navigableScene, strings.locales, strings.locale, strings.dictionary, packageCatalog, showFooter, showThemeSwitcher, showActingUser]);
     const onSystemSchemeChange = useCallback((dark: boolean) => setPrefersDark(dark), []);
-    const navigationModel = useMemo(() => availableNavigation(scene, isScreenAvailable, isVisible, strings.dictionary), [scene, isVisible, isScreenAvailable, strings.dictionary]);
+    const navigationModel = useMemo(() => stageNavigationModel(navigableScene, isVisible, strings.dictionary), [navigableScene, isVisible, strings.dictionary]);
     // Own templates come first: a template of the application wins over a blueprint's of the same name, as in composition.
     const document = useMemo(() => ({
         ...safeScene,
-        screens: asDialogScreens(withoutSeededSlots(safeScene.screens, [...scene.screenTemplates, ...(scene.dialogTemplates ?? []), ...galleryScreenTemplates, ...(screenTemplates ?? [])]), ownTemplatesOf(scene)),
-    }) as ApplicationDocument, [scene, safeScene, screenTemplates]);
+        screens: [...asDialogScreens(withoutSeededSlots(navigableScene.screens, [...navigableScene.screenTemplates, ...(navigableScene.dialogTemplates ?? []), ...navigableScene.navigationTemplates]), ownTemplatesOf(navigableScene)), ...refusedRoutes],
+    }) as ApplicationDocument, [navigableScene, safeScene, refusedRoutes]);
 
-    if (!initial) {
-        return (
-            <main className='stage-message'>
-                <h1>Nothing to show yet</h1>
-                <p>This model has no slice carrying a command or a read model, so there is no screen to render.</p>
-            </main>
-        );
-    }
+    if (!initial) return <EmptyScene scene={scene} isAvailable={isScreenAvailable} />;
 
     // A root template that cannot be the shell stops the application with the reason, rather than drawing it in some other shell.
     if (shellProblems.length > 0) {

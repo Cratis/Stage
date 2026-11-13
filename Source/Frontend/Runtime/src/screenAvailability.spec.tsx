@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { renderHook, act } from '@testing-library/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { cleanup, fireEvent, render, screen, waitFor } from './testing/render';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PrimeReactProvider } from '@primereact/core/config';
@@ -44,6 +44,28 @@ function renderStage(availability: Promise<Response> | (() => Promise<Response>)
         return respond([]);
     }));
     return render(<PrimeReactProvider theme={stageTheme}><App components={options.components} /></PrimeReactProvider>);
+}
+
+const navigationContribution = (label: string, targetScreen: string, destination?: Record<string, string>) => ({
+    contributionPointName: 'Navigation',
+    content: { id: label, name: label, componentName: 'core:contribution', properties: { label, targetScreen, hierarchy: ['Work'], ...(destination ? { destination } : {}) }, slots: {} },
+});
+
+function contributedScene(regions: boolean) {
+    const home = {
+        ...screenOf('Home'),
+        contributions: [
+            navigationContribution('Home entry', 'Home'),
+            navigationContribution('Inherited restricted', 'Restricted'),
+            navigationContribution('Restricted dialog entry', 'Home', { kind: 'dialog', dialog: 'Restricted' }),
+        ],
+        slotContent: { content: [...screenOf('Home').slotContent.content, {
+            id: 'actions', name: 'actions', componentName: 'core:outletItems', slots: {},
+            properties: { name: 'actions', kind: 'actions', items: [{ kind: 'button', id: 'open', title: 'Open restricted', navigateTo: { screen: 'Restricted' } }] },
+        }] },
+    };
+    const restricted = { ...screenOf('Restricted'), contributions: [navigationContribution('Denied owner entry', 'Home')] };
+    return { ...scene, navigation: regions ? scene.navigation : undefined, screens: [home, restricted] };
 }
 
 describe('screen availability', () => {
@@ -109,13 +131,56 @@ describe('screen availability', () => {
         expect(fetched).not.toHaveBeenCalled();
     });
 
-    it('unmounts denied content on a failed refresh instead of retaining stale permission', async () => {
+    it('revokes the hook decision on a failed refresh instead of retaining stale permission', async () => {
         const fetched = vi.fn().mockImplementationOnce(() => respond(answer(true))).mockRejectedValue(new Error('Offline'));
         vi.stubGlobal('fetch', fetched);
         const { result } = renderHook(() => useScreenAvailability(routes));
         await waitFor(() => expect(result.current('Restricted')).toBe(true));
         act(() => globalThis.dispatchEvent(new Event('focus')));
         await waitFor(() => expect(result.current('Restricted')).toBe(false));
+    });
+
+    it.each([
+        [false, 'pending'], [false, 'unavailable'], [false, 'failed'],
+        [true, 'pending'], [true, 'unavailable'], [true, 'failed'],
+    ] as const)('filters inherited destinations and owners (regions=%s, %s)', async (regions, status) => {
+        const availability = () => {
+            if (status === 'pending') return new Promise<Response>(() => {});
+            if (status === 'failed') return Promise.reject(new Error('Offline'));
+            return respond(answer(false));
+        };
+        renderStage(availability, '#/Home', { model: contributedScene(regions) });
+        await screen.findByRole('heading', { name: 'Home content' });
+        for (const label of ['Inherited restricted', 'Restricted dialog entry', 'Denied owner entry', 'Open restricted']) {
+            expect(screen.queryByText(label)).toBeNull();
+        }
+        expect(screen.queryByRole('link', { name: 'Restricted' })).toBeNull();
+    });
+
+    it('keeps inherited contributions and opening actions when their owners and destinations are available', async () => {
+        renderStage(respond(answer(true)), '#/Home', { model: contributedScene(false) });
+        await screen.findByText('Inherited restricted');
+        expect(screen.getByText('Restricted dialog entry')).toBeDefined();
+        expect(screen.getByText('Denied owner entry')).toBeDefined();
+        expect(screen.getByRole('button', { name: 'Open restricted' })).toBeDefined();
+    });
+
+    it('unmounts an available App screen and hides its entries after a failed refresh', async () => {
+        const unmounted = vi.fn();
+        function ProtectedContent() {
+            useEffect(() => () => unmounted(), []);
+            return <span>Mounted private content</span>;
+        }
+        const availability = vi.fn().mockImplementationOnce(() => respond(answer(true))).mockRejectedValue(new Error('Offline'));
+        const restricted = { ...screenOf('Restricted'), slotContent: { content: [{ id: 'private', name: 'private', componentName: 'test:private', properties: {}, slots: {} }] } };
+        renderStage(availability, '#/Restricted', { model: { ...scene, screens: [screenOf('Home'), restricted] }, components: { 'test:private': ProtectedContent } });
+        const content = await screen.findByText('Mounted private content');
+        act(() => globalThis.dispatchEvent(new Event('focus')));
+        await screen.findByRole('alert');
+        expect(content.isConnected).toBe(false);
+        expect(unmounted).toHaveBeenCalledTimes(1);
+        expect(screen.queryByText('Mounted private content')).toBeNull();
+        expect(screen.queryByRole('link', { name: 'Restricted' })).toBeNull();
     });
 
     it.each(['pending', 'unavailable'])('hides %s entries in the fallback menu without navigation regions', async status => {
@@ -169,7 +234,7 @@ describe('screen availability', () => {
         expect((input as HTMLInputElement).value).toBe('Unsaved draft');
     });
 
-    it.each(['pending', 'unavailable'])('refuses a %s dialog before mounting hostile content', async status => {
+    it.each(['pending', 'unavailable'])('hides a %s dialog opening action before mounting hostile content', async status => {
         const hostile = vi.fn(() => <span>Private dialog content</span>);
         const toolbar = {
             id: 'actions', name: 'actions', componentName: 'core:outletItems', slots: {},
@@ -181,8 +246,8 @@ describe('screen availability', () => {
             dialogTemplates: [{ name: 'Restricted', displayName: 'Private dialog', slots: [], content: { content: [{ id: 'private', name: 'private', componentName: 'test:hostile', properties: {}, slots: {} }] } }],
         };
         renderStage(status === 'pending' ? new Promise(() => {}) : respond(answer(false)), '#/Home', { model, components: { 'test:hostile': hostile } });
-        fireEvent.click(await screen.findByRole('button', { name: 'Open restricted' }));
-        await screen.findByRole('alert');
+        await screen.findByRole('heading', { name: 'Home content' });
+        expect(screen.queryByRole('button', { name: 'Open restricted' })).toBeNull();
         expect(screen.queryByRole('dialog', { name: 'Private dialog' })).toBeNull();
         expect(hostile).not.toHaveBeenCalled();
     });

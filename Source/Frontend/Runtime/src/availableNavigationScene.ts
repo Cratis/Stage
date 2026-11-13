@@ -2,111 +2,117 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { ApplicationStructureIndex } from '@cratis/scene.engine';
-import { InteractionActionKind, type DestinationReference } from '@cratis/scene.model';
+import { DestinationReferencePropertyNames, type DestinationReference } from '@cratis/scene.model';
 import { matchSceneRoute, sceneRoutesFrom } from '@cratis/scene.react';
 import type { StageSceneApplication } from './App';
 import { stageScreenFor } from './stageNavigationModel';
 
 type ModelObject = Record<string, unknown>;
 type IsAvailable = (screen: string | undefined) => boolean;
-const screenReferences = ['targetScreen', 'navigateToScreen', 'initialScreen', 'shows'];
-const destinationReferences = ['target', 'destination', 'navigateTo'];
+interface NavigationRules {
+    keyAllowed: (key: string) => boolean;
+    referenceAllowed: (reference: string) => boolean;
+    objectAllowed: (value: ModelObject) => boolean;
+}
+const destinationProperties = new Set<string>(DestinationReferencePropertyNames);
 
 /**
- * The single navigation input for chrome, regions, contributions and opening actions. Resolve destinations against the original
- * scene before pruning, so removing a screen cannot silently retarget a module/feature entry to a different screen.
+ * The single navigation input for chrome, regions, contributions and opening actions. Screen references are recognized
+ * by VALUE throughout the authored document, including unknown future properties, not by an allowlist of property names.
+ * Resolve composite identities against the original scene, so pruning cannot silently retarget an entry.
  */
 export function availableNavigationScene<T extends StageSceneApplication>(scene: T, isAvailable: IsAvailable): T {
-    const allowed = navigationAllowed(scene, isAvailable);
+    const rules = navigationRules(scene, isAvailable);
     const owned = { ...scene, screens: scene.screens.filter(screen => isAvailable(screen.name)) };
-    return pruneNavigation(owned, allowed) as T;
+    return pruneNavigation(owned, rules, true) as T;
 }
 
 function navigationContext(scene: StageSceneApplication, isAvailable: IsAvailable) {
+    const names = [...scene.screens, ...(scene.dialogTemplates ?? [])].map(screen => screen.name);
     return {
         isAvailable,
+        denied: new Set(names.filter(name => !isAvailable(name))),
         index: new ApplicationStructureIndex(scene.structure ?? { modules: [] }),
         screenFor: stageScreenFor(scene.screens),
-        routes: sceneRoutesFrom(scene.screens.map(screen => screen.name)),
+        routes: sceneRoutesFrom(names),
         sliceAllowed: (slice: string) => scene.screens.filter(screen => screen.owner === slice).every(screen => isAvailable(screen.name)),
     };
 }
 
 type NavigationContext = ReturnType<typeof navigationContext>;
 
-function navigationAllowed(scene: StageSceneApplication, isAvailable: IsAvailable): (value: ModelObject) => boolean {
+function navigationRules(scene: StageSceneApplication, isAvailable: IsAvailable): NavigationRules {
     const context = navigationContext(scene, isAvailable);
-    const destinationAllowed = (destination: DestinationReference) => availableDestination(destination, context);
-    return value => referencesAllowed(value, isAvailable, destinationAllowed) && openingAllowed(value, context.index, context.sliceAllowed);
+    return {
+        keyAllowed: key => !context.denied.has(key),
+        referenceAllowed: reference => referenceAllowed(reference, context),
+        objectAllowed: value => compositeDestinationAllowed(value, context) && openingAllowed(value, context),
+    };
 }
 
-function availableDestination(destination: DestinationReference, context: NavigationContext): boolean {
-    if (![destination.screen, destination.dialog, destination.slice].every(context.isAvailable)) return false;
-    if (destination.slice && !context.sliceAllowed(qualifiedSlice(destination))) return false;
-    if (!moduleAvailable(destination, context)) return false;
-    if (destination.kind === 'external') return true;
-    if (!destination.route) return true;
-    const route = destination.route.replace(/^#?\//, '');
-    return context.isAvailable(matchSceneRoute(route, context.routes)?.route.screen);
+function referenceAllowed(reference: string, context: NavigationContext): boolean {
+    if (context.denied.has(reference)) return false;
+    // Instance owners carry the same identity using the model's screen:/dialog: protocol.
+    const named = /^(?:screen|dialog):(.*)$/.exec(reference)?.[1];
+    if (named !== undefined && context.denied.has(named)) return false;
+    return routeReferenceAllowed(reference, context);
 }
 
-function moduleAvailable(destination: DestinationReference, context: NavigationContext): boolean {
-    const module = destination.module;
-    if (!module) return true;
+function routeReferenceAllowed(reference: string, context: NavigationContext): boolean {
+    try {
+        const route = reference.replace(/^#?\//, '');
+        const screen = matchSceneRoute(route, context.routes)?.route.screen;
+        return screen === undefined || !context.denied.has(screen);
+    } catch (error) {
+        if (!(error instanceof URIError)) throw error;
+        // Authored strings also include CSS such as '100%'. Preserve non-URLs; malformed authored links fail closed.
+        return !/^#?\//.test(reference);
+    }
+}
+
+/** Recognize the destination's type shape, wherever it appears, rather than enumerating its possible wrapper fields. */
+function compositeDestinationAllowed(value: ModelObject, context: NavigationContext): boolean {
+    const module = value.module;
+    if (typeof module !== 'string') return true;
+    if (!Object.keys(value).every(key => destinationProperties.has(key))) return true;
+    const destination = value as DestinationReference;
     const resolvedFeature = destination.feature ? `${module}.${destination.feature}` : context.index.firstFeatureId(module);
-    return context.isAvailable(context.screenFor({ target: { module, resolvedFeature } }));
+    if (!context.isAvailable(context.screenFor({ target: { module, resolvedFeature } }))) return false;
+    const slice = [module, destination.feature, destination.slice].filter(Boolean).join('.');
+    return destination.slice === undefined || context.sliceAllowed(slice);
 }
 
-function qualifiedSlice(destination: DestinationReference): string {
-    return [destination.module, destination.feature, destination.slice].filter(Boolean).join('.');
-}
-
-function referencesAllowed(value: ModelObject, isAvailable: IsAvailable, destinationAllowed: (destination: DestinationReference) => boolean): boolean {
-    if (!instanceAllowed(value, isAvailable, destinationAllowed)) return false;
-    const screens = screenReferences.map(key => value[key]);
-    if (value.kind === InteractionActionKind.Navigate) screens.push(value.screen);
-    if (value.kind === InteractionActionKind.OpenDialog) screens.push(value.dialogTemplate);
-    if (!screens.every(screen => typeof screen !== 'string' || isAvailable(screen))) return false;
-    return destinationReferences.map(key => value[key]).filter(isObject).every(destinationAllowed);
-}
-
-function instanceAllowed(value: ModelObject, isAvailable: IsAvailable, destinationAllowed: (destination: DestinationReference) => boolean): boolean {
-    if (typeof value.instance !== 'string') return true;
-    const [kind, ...name] = value.instance.split(':');
-    if (['screen', 'dialog'].includes(kind) && !isAvailable(name.join(':'))) return false;
-    return contributedPropertyAllowed(value, isAvailable, destinationAllowed);
-}
-
-function contributedPropertyAllowed(value: ModelObject, isAvailable: IsAvailable, destinationAllowed: (destination: DestinationReference) => boolean): boolean {
-    if (typeof value.path !== 'string') return true;
-    const property = value.path.split('.').at(-1) ?? '';
-    if (screenReferences.includes(property) && typeof value.value === 'string') return isAvailable(value.value);
-    if (destinationReferences.includes(property) && isObject(value.value)) return destinationAllowed(value.value);
-    return true;
-}
-
-function openingAllowed(value: ModelObject, index: ApplicationStructureIndex, sliceAllowed: (slice: string) => boolean): boolean {
+function openingAllowed(value: ModelObject, context: NavigationContext): boolean {
     if (value.opens === 'none') return true;
-    if (typeof value.slice === 'string') return sliceAllowed(value.slice);
-    if (typeof value.command !== 'string' || value.opens === undefined) return true;
-    return index.findSlicesByCommand(value.command).every(sliceAllowed);
+    if (typeof value.slice === 'string') return context.sliceAllowed(value.slice);
+    const command = openingCommand(value);
+    return command === undefined || context.index.findSlicesByCommand(command).every(context.sliceAllowed);
 }
 
-/** Walk the model's nested items, slots, refinements and behaviors, not just one presentation's menu list. */
-function pruneNavigation(value: unknown, allowed: (value: ModelObject) => boolean): unknown {
-    if (Array.isArray(value)) return value.map(entry => pruneNavigation(entry, allowed)).filter(entry => entry !== undefined);
+function openingCommand(value: ModelObject): string | undefined {
+    const kind = typeof value.kind === 'string' ? value.kind.toLowerCase() : '';
+    if (kind === 'action' && typeof value.target === 'string') return value.target;
+    if (typeof value.command !== 'string') return undefined;
+    if (value.opens !== undefined) return value.command;
+    return ['button', 'menuentry', 'action'].includes(kind) ? value.command : undefined;
+}
+
+/** A denied leaf removes its enclosing offering; arrays retain other offerings. No field-name knowledge is needed. */
+function pruneNavigation(value: unknown, rules: NavigationRules, root = false): unknown {
+    if (typeof value === 'string') return rules.referenceAllowed(value) ? value : undefined;
+    if (Array.isArray(value)) return value.map(entry => pruneNavigation(entry, rules)).filter(entry => entry !== undefined);
     if (!isObject(value)) return value;
-    if (!allowed(value)) return undefined;
-    const entries = Object.entries(value).map(([key, entry]) => [key, pruneNavigation(entry, allowed)] as const);
-    // A contribution/element whose required content/properties was denied must disappear with it, not leave an empty button.
-    if (entries.some(([key, entry]) => lostRequiredContent(value, key, entry))) return undefined;
-    return Object.fromEntries(entries.filter(([, entry]) => entry !== undefined));
+    return pruneObject(value, rules, root);
 }
 
-function lostRequiredContent(value: ModelObject, key: string, entry: unknown): boolean {
-    if (entry !== undefined) return false;
-    if (!['content', 'properties', 'value'].includes(key)) return false;
-    return isObject(value[key]);
+function pruneObject(value: ModelObject, rules: NavigationRules, root: boolean): unknown {
+    if (!root && !rules.objectAllowed(value)) return undefined;
+    const entries = Object.entries(value).filter(([key]) => rules.keyAllowed(key))
+        .map(([key, entry]) => [key, pruneNavigation(entry, rules)] as const);
+    // Propagate through arbitrary wrappers, not just today's content/properties/value fields. Keep the document root.
+    const deniedChild = entries.some(([key, entry]) => entry === undefined && value[key] !== undefined);
+    if (!root && deniedChild) return undefined;
+    return Object.fromEntries(entries.filter(([, entry]) => entry !== undefined));
 }
 
 function isObject(value: unknown): value is ModelObject {

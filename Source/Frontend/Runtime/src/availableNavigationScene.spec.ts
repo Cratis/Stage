@@ -22,7 +22,64 @@ function navigationItems(items: Record<string, unknown>[]) {
     return availableNavigationScene(model, isAvailable).navigation?.application?.outlets[0].defaults;
 }
 
+function authoredStrings(value: unknown): string[] {
+    if (typeof value === 'string') return [value];
+    if (Array.isArray(value)) return value.flatMap(authoredStrings);
+    if (value === null || typeof value !== 'object') return [];
+    return Object.entries(value).flatMap(([key, entry]) => [key, ...authoredStrings(entry)]);
+}
+
+const futureReferenceShapes = [
+    { name: 'scalar', wrap: (id: string): unknown => id },
+    { name: 'array', wrap: (id: string): unknown => [id] },
+    { name: 'unknown wrapper', wrap: (id: string): unknown => ({ futureTarget: id }) },
+    { name: 'nested wrappers', wrap: (id: string): unknown => ({ outer: { futureNestedTarget: id } }) },
+    { name: 'dictionary key', wrap: (id: string): unknown => ({ [id]: { label: 'Private entry' } }) },
+    { name: 'literal binding', wrap: (id: string): unknown => ({ kind: 'literal', path: '', value: id }) },
+    { name: 'screen owner', wrap: (id: string): unknown => `screen:${id}` },
+    { name: 'dialog owner', wrap: (id: string): unknown => `dialog:${id}` },
+    { name: 'hash link', wrap: (id: string): unknown => `#/${id}?from=future` },
+    { name: 'path link', wrap: (id: string): unknown => `/${id}` },
+];
+
 describe('the availability-filtered navigation view', () => {
+    it.each(futureReferenceShapes)('guards references in future properties regardless of field name ($name)', ({ wrap }) => {
+        const denied = 'FuturePrivateScreen';
+        for (let index = 0; index < 8; index++) {
+            const key = `newPropertyNotKnownToTheFilter${index}`;
+            const model = {
+                ...scene,
+                screens: [{ ...scene.screens[0], name: denied }, scene.screens[1]],
+                [key]: wrap(denied),
+                allowedFutureProperty: 'Home',
+            };
+            const result = availableNavigationScene(model, name => name !== denied);
+            expect(authoredStrings(result).some(value => value.includes(denied))).toBe(false);
+            expect(result.allowedFutureProperty).toBe('Home');
+            expect(result.screens.map(screen => screen.name)).toEqual(['Home']);
+        }
+    });
+
+    it('preserves ordinary strings with percent signs while refusing malformed authored links', () => {
+        const model = { ...scene, futureItems: [
+            { label: 'CSS', width: '100%' },
+            { label: 'Malformed link', href: '#/Restricted%ZZ' },
+        ] };
+        expect(availableNavigationScene(model, isAvailable).futureItems).toEqual([model.futureItems[0]]);
+    });
+
+    it('guards composite destinations in new wrapper fields without an enumerated wrapper-name list', () => {
+        const model = { ...scene, newDestinationProperty: { module: 'Work', feature: 'Private' } };
+        expect(availableNavigationScene(model, isAvailable).newDestinationProperty).toBeUndefined();
+    });
+
+    it('prunes homeTargetScreen without treating it as a special field', () => {
+        const model = { ...scene, futureItems: [
+            { id: 'private-breadcrumb', homeTargetScreen: 'Restricted' },
+            { id: 'public-breadcrumb', homeTargetScreen: 'Home' },
+        ] };
+        expect(availableNavigationScene(model, isAvailable).futureItems).toEqual([model.futureItems[1]]);
+    });
     it('resolves module and feature entries before removing screens, without retargeting to an available feature', () => {
         expect(navigationItems([
             { kind: 'navigation', id: 'module', title: 'Work', target: { module: 'Work' } },
@@ -40,6 +97,8 @@ describe('the availability-filtered navigation view', () => {
             { kind: 'navigation', id: 'route', title: 'Private route', target: { route: '/Restricted' } },
             { kind: 'button', id: 'slice', title: 'Open slice', slice: 'Work.Private.Edit' },
             { kind: 'button', id: 'command-dialog', title: 'Open command', command: 'EditPrivate', opens: 'dialog' },
+            { kind: 'button', id: 'command-automatic', title: 'Open automatically', command: 'EditPrivate' },
+            { kind: 'Action', id: 'legacy-command', title: 'Legacy command', target: 'EditPrivate' },
             { kind: 'button', id: 'run', title: 'Run', slice: 'Work.Private.Edit', opens: 'none' },
             { kind: 'navigation', id: 'external', title: 'External', target: { kind: 'external', route: 'https://example.invalid' } },
         ])).toEqual([
@@ -65,7 +124,7 @@ describe('the availability-filtered navigation view', () => {
             { kind: InteractionActionKind.OpenDialog, dialogTemplate: 'Restricted' },
             { kind: InteractionActionKind.ExecuteCommand, command: 'EditPrivate' },
         ];
-        const model = { ...scene, screens: [{ ...scene.screens[1], behaviors: [{ bindings: [{ trigger: { kind: 'Signal', signalName: 'Go' }, actions }] }] }] } as unknown as StageSceneApplication;
+        const model = { ...scene, screens: [scene.screens[0], { ...scene.screens[1], behaviors: [{ bindings: [{ trigger: { kind: 'Signal', signalName: 'Go' }, actions }] }] }] } as unknown as StageSceneApplication;
         expect(availableNavigationScene(model, isAvailable).screens[0].behaviors?.[0].bindings[0].actions).toEqual([actions[2]]);
     });
 

@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { cleanup, fireEvent, render, screen, waitFor } from './testing/render';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PrimeReactProvider } from '@primereact/core/config';
+import { ComponentName, externalComponent } from '@cratis/scene.blueprint.default';
 import { App, type AppProps } from './App';
 import { stageTheme } from './stageTheme';
 import { ScreenAvailabilityGuard, useScreenAvailability } from './screenAvailability';
@@ -155,6 +156,36 @@ describe('screen availability', () => {
             expect(screen.queryByText(label)).toBeNull();
         }
         expect(screen.queryByRole('link', { name: 'Restricted' })).toBeNull();
+    });
+
+    it.each([
+        [false, 'pending'], [false, 'denied'], [false, 'failed'],
+        [true, 'pending'], [true, 'denied'], [true, 'failed'],
+    ] as const)('hides an authored breadcrumb Home destination (regions=%s, %s)', async (regions, status) => {
+        const availability = () => {
+            if (status === 'pending') return new Promise<Response>(() => {});
+            if (status === 'failed') return Promise.reject(new Error('Offline'));
+            return respond(answer(false));
+        };
+        const breadcrumb = externalComponent('authored-private-breadcrumb', ComponentName.Breadcrumb, {
+            homeTargetScreen: 'Restricted', items: [{ label: 'Authored private trail' }],
+        });
+        const home = { ...screenOf('Home'), slotContent: { content: [...screenOf('Home').slotContent.content, breadcrumb] } };
+        renderStage(availability, '#/Home', { model: { ...scene, navigation: regions ? scene.navigation : undefined, screens: [home, screenOf('Restricted')] } });
+        await screen.findByRole('heading', { name: 'Home content' });
+        expect(screen.queryByText('Authored private trail')).toBeNull();
+        expect(document.querySelector('[data-scene-id="authored-private-breadcrumb"]')).toBeNull();
+        expect(screen.queryAllByRole('link', { name: 'Home' }).some(link => link.getAttribute('href')?.includes('Restricted'))).toBe(false);
+    });
+
+    it('retains an authored breadcrumb Home link when its destination is available', async () => {
+        const breadcrumb = externalComponent('authored-private-breadcrumb', ComponentName.Breadcrumb, {
+            homeTargetScreen: 'Restricted', items: [{ label: 'Authored private trail' }],
+        });
+        const home = { ...screenOf('Home'), slotContent: { content: [...screenOf('Home').slotContent.content, breadcrumb] } };
+        renderStage(respond(answer(true)), '#/Home', { model: { ...scene, screens: [home, screenOf('Restricted')] } });
+        await screen.findByText('Authored private trail');
+        expect(screen.getAllByRole('link', { name: 'Home' }).some(link => link.getAttribute('href')?.includes('Restricted'))).toBe(true);
     });
 
     it('keeps inherited contributions and opening actions when their owners and destinations are available', async () => {

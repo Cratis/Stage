@@ -13,6 +13,8 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.Policies;
 /// </summary>
 internal static class SemanticPolicyArtifactRenderer
 {
+    const string AuthorizeSignature = "public global::System.Threading.Tasks.ValueTask<bool> IsAuthorized(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, global::System.Threading.CancellationToken cancellationToken)";
+
     public static string PolicyName(SemanticApplicationContext context, SemanticId id) =>
         SemanticPolicyNames.PolicyNameOf(context, id);
 
@@ -27,77 +29,98 @@ internal static class SemanticPolicyArtifactRenderer
         foreach (var operation in SemanticPolicyNames.Operations(slices, context.Application.Policies))
         {
             var name = names[operation.Id];
-            if (!emitted.Add(name.ClassName))
+            if (emitted.Add(name.ClassName))
             {
-                continue;
+                yield return RenderPolicy(context, operation, name);
             }
-
-            var (properties, isCommand, argument, subject) = operation.Inputs();
-            var builder = context.CodeBuilder()
-                .Namespace(context.PoliciesNamespace)
-                .Using("Cratis.Arc.Authorization");
-            var expression = Authorization(operation.Authorization, context, properties, isCommand, argument, subject, operation.Id);
-            var statePolicies = SemanticStatePolicyRendering.Referenced(operation.Authorization, context);
-            const string signature = "public global::System.Threading.Tasks.ValueTask<bool> IsAuthorized(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, global::System.Threading.CancellationToken cancellationToken)";
-            builder.Summary("Enforces the effective Screenplay authorization of a modeled policy.")
-                .OpenBlock(statePolicies.Count == 0
-                    ? $"public sealed class {name.ClassName} : global::Cratis.Arc.Authorization.IAuthorizationPolicy"
-                    : $"public sealed class {name.ClassName}(global::Cratis.Chronicle.ReadModels.IReadModels readModels) : global::Cratis.Arc.Authorization.IAuthorizationPolicy")
-                .Line("/// <inheritdoc/>");
-            if (statePolicies.Count > 0)
-            {
-                // Each state policy reads its models first and is unavailable, so denies, when a key, an instance or the read is missing.
-                builder.OpenBlock(signature.Replace("public global", "public async global", StringComparison.Ordinal))
-                    .Line("#pragma warning disable CA1031 // A failing read denies the policy: it fails closed.");
-                foreach (var (policy, reference) in statePolicies)
-                {
-                    SemanticStatePolicyRendering.Preamble(builder, policy, reference, context, properties, isCommand, argument);
-                }
-
-                builder.Line("#pragma warning restore CA1031");
-                if (SemanticCratisAdmission.OpaquePolicies(operation.Authorization, context.Application.Policies).Any())
-                {
-                    builder.Line("var unavailable = false;")
-                        .Line($"var allowed = {expression};")
-                        .Line("return allowed && !unavailable;");
-                }
-                else
-                {
-                    builder.Line($"return {expression};");
-                }
-
-                builder.EndBlock();
-            }
-            else if (SemanticCratisAdmission.OpaquePolicies(operation.Authorization, context.Application.Policies).Any())
-            {
-                // Terms evaluate left to right with C# short-circuiting, as Screenplay's ordered gates do. A reached
-                // opaque term that cannot be given its context denies the whole authorization rather than becoming false.
-                builder.OpenBlock(signature)
-                    .Line("var unavailable = false;")
-                    .Line($"var allowed = {expression};")
-                    .Line("return global::System.Threading.Tasks.ValueTask.FromResult(allowed && !unavailable);")
-                    .EndBlock();
-            }
-            else
-            {
-                builder.ExpressionMember(signature, $"global::System.Threading.Tasks.ValueTask.FromResult({expression})");
-            }
-
-            // Arc strips guest roles and claims. Preserve this policy's exact anonymous opt-in.
-            var anonymous = AllowsGuest(operation.Authorization, context, properties, subject) ? ", evaluatesAnonymous: true" : string.Empty;
-            var registration = context.Domain.Count == 0 ? "Registration" : $"global::{context.RootNamespace}.GeneratedPolicies.Registration";
-            var policyName = CSharpCodeBuilder.StringLiteral(PolicyName(context, operation.Id));
-            builder.BlankLine()
-                .Line("// Module initialization registers a known generated policy, without assembly scanning.")
-                .Line("#pragma warning disable CA2255 // Generated application registration is intentionally initialized at module load.")
-                .Line("[global::System.Runtime.CompilerServices.ModuleInitializer]")
-                .OpenBlock("internal static void InitializeGeneratedAuthorization()")
-                .Line($"{registration}.Add({policyName}, services => services.AddArcAuthorizationPolicy<{name.ClassName}>({policyName}{anonymous}));")
-                .EndBlock()
-                .Line("#pragma warning restore CA2255")
-                .EndBlock();
-            yield return new(Path.Combine(context.PoliciesFolder, $"{name.ClassName}.cs"), builder.ToString()) { Sources = [.. name.Sources] };
         }
+    }
+
+    static RenderedFile RenderPolicy(SemanticApplicationContext context, PolicyOperation operation, PolicyName name)
+    {
+        var (properties, isCommand, argument, subject) = operation.Inputs();
+        var builder = context.CodeBuilder()
+            .Namespace(context.PoliciesNamespace)
+            .Using("Cratis.Arc.Authorization");
+        var expression = Authorization(operation.Authorization, context, properties, isCommand, argument, subject, operation.Id);
+        var statePolicies = SemanticStatePolicyRendering.Referenced(operation.Authorization, context);
+        builder.Summary("Enforces the effective Screenplay authorization of a modeled policy.")
+            .OpenBlock(statePolicies.Count == 0
+                ? $"public sealed class {name.ClassName} : global::Cratis.Arc.Authorization.IAuthorizationPolicy"
+                : $"public sealed class {name.ClassName}(global::Cratis.Chronicle.ReadModels.IReadModels readModels) : global::Cratis.Arc.Authorization.IAuthorizationPolicy")
+            .Line("/// <inheritdoc/>");
+        if (statePolicies.Count > 0)
+        {
+            AppendStateAuthorization(builder, operation, context, expression, statePolicies);
+        }
+        else
+        {
+            AppendStatelessAuthorization(builder, operation, context, expression);
+        }
+
+        AppendModuleInitializer(builder, operation, context, name);
+        return new(Path.Combine(context.PoliciesFolder, $"{name.ClassName}.cs"), builder.ToString()) { Sources = [.. name.Sources] };
+    }
+
+    // Each state policy reads its models first and is unavailable, so denies, when a key, an instance or the read is missing.
+    static void AppendStateAuthorization(CSharpCodeBuilder builder, PolicyOperation operation, SemanticApplicationContext context, string expression, IReadOnlyList<(SemanticPolicy Policy, SemanticPolicyReference Reference)> statePolicies)
+    {
+        var (properties, isCommand, argument, _) = operation.Inputs();
+        builder.OpenBlock(AuthorizeSignature.Replace("public global", "public async global", StringComparison.Ordinal))
+            .Line("#pragma warning disable CA1031 // A failing read denies the policy: it fails closed.");
+        foreach (var (policy, reference) in statePolicies)
+        {
+            SemanticStatePolicyRendering.Preamble(builder, policy, reference, context, properties, isCommand, argument);
+        }
+
+        builder.Line("#pragma warning restore CA1031");
+        if (SemanticCratisAdmission.OpaquePolicies(operation.Authorization, context.Application.Policies).Any())
+        {
+            builder.Line("var unavailable = false;")
+                .Line($"var allowed = {expression};")
+                .Line("return allowed && !unavailable;");
+        }
+        else
+        {
+            builder.Line($"return {expression};");
+        }
+
+        builder.EndBlock();
+    }
+
+    static void AppendStatelessAuthorization(CSharpCodeBuilder builder, PolicyOperation operation, SemanticApplicationContext context, string expression)
+    {
+        if (!SemanticCratisAdmission.OpaquePolicies(operation.Authorization, context.Application.Policies).Any())
+        {
+            builder.ExpressionMember(AuthorizeSignature, $"global::System.Threading.Tasks.ValueTask.FromResult({expression})");
+            return;
+        }
+
+        // Terms evaluate left to right with C# short-circuiting, as Screenplay's ordered gates do. A reached
+        // opaque term that cannot be given its context denies the whole authorization rather than becoming false.
+        builder.OpenBlock(AuthorizeSignature)
+            .Line("var unavailable = false;")
+            .Line($"var allowed = {expression};")
+            .Line("return global::System.Threading.Tasks.ValueTask.FromResult(allowed && !unavailable);")
+            .EndBlock();
+    }
+
+    // Arc strips guest roles and claims. Preserve this policy's exact anonymous opt-in.
+    static void AppendModuleInitializer(CSharpCodeBuilder builder, PolicyOperation operation, SemanticApplicationContext context, PolicyName name)
+    {
+        var (properties, _, _, subject) = operation.Inputs();
+        var anonymous = AllowsGuest(operation.Authorization, context, properties, subject) ? ", evaluatesAnonymous: true" : string.Empty;
+        var registration = context.Domain.Count == 0 ? "Registration" : $"global::{context.RootNamespace}.GeneratedPolicies.Registration";
+        var policyName = CSharpCodeBuilder.StringLiteral(PolicyName(context, operation.Id));
+        builder.BlankLine()
+            .Line("// Module initialization registers a known generated policy, without assembly scanning.")
+            .Line("#pragma warning disable CA2255 // Generated application registration is intentionally initialized at module load.")
+            .Line("[global::System.Runtime.CompilerServices.ModuleInitializer]")
+            .OpenBlock("internal static void InitializeGeneratedAuthorization()")
+            .Line($"{registration}.Add({policyName}, services => services.AddArcAuthorizationPolicy<{name.ClassName}>({policyName}{anonymous}));")
+            .EndBlock()
+            .Line("#pragma warning restore CA2255")
+            .EndBlock();
     }
 
     /// <summary>
@@ -110,6 +133,19 @@ internal static class SemanticPolicyArtifactRenderer
         // Every reflection call below is an instance member of Type, PropertyInfo or MethodInfo, which C# prefers over the
         // extension members System.Reflection also declares, so importing it cannot change what those calls bind to.
         var builder = context.CodeBuilder().Namespace($"{context.RootNamespace}.GeneratedPolicies").Using("System.Reflection");
+        AppendRegistration(builder);
+        AppendClaimMatching(builder);
+        AppendCallerId(builder);
+        AppendThreeValuedHelpers(builder);
+        AppendCanonicalTargets(builder);
+        AppendValueResolution(builder);
+        AppendPathResolution(builder);
+        builder.EndBlock();
+
+        return new(Path.Combine("GeneratedPolicies", "Policies.cs"), builder.ToString()) { Sources = [context.Application.Id] };
+    }
+
+    static void AppendRegistration(CSharpCodeBuilder builder) =>
         builder.Summary("Registers every generated authorization policy with Arc.")
             .OpenBlock("public static partial class Registration")
             .Line("static readonly global::System.Collections.Generic.List<(string Name, global::System.Action<global::Microsoft.Extensions.DependencyInjection.IServiceCollection> Apply)> _policies = [];")
@@ -121,8 +157,9 @@ internal static class SemanticPolicyArtifactRenderer
             .Line("policy.Apply(services);")
             .EndBlock().EndBlock().EndBlock().BlankLine();
 
-        // Reflection is limited to the declared public property path, using ordinal names. Missing values
-        // deny; an empty-string text target matches an empty claim. Uuid, Date and DateTime targets must be canonical.
+    // Reflection is limited to the declared public property path, using ordinal names. Missing values
+    // deny; an empty-string text target matches an empty claim. Uuid, Date and DateTime targets must be canonical.
+    static void AppendClaimMatching(CSharpCodeBuilder builder) =>
         builder.Summary("Evaluates policy claim targets and three-valued authorization expressions.")
             .OpenBlock("internal static partial class PolicyValues")
             .Summary("Matches a claim against the target using ordinal value comparison.")
@@ -132,9 +169,10 @@ internal static class SemanticPolicyArtifactRenderer
                 "public static bool Match(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, string claim, string? target)",
                 "target is not null && context.Principal.Claims.Any(value => global::System.String.Equals(value.Type, claim, global::System.StringComparison.OrdinalIgnoreCase) && global::System.String.Equals(value.Value, target, global::System.StringComparison.Ordinal))");
 
-        // The caller's identifier is the subject the identity provider gave, as the generated MemberIdentity reads it. An application that
-        // declares another resolution implements ResolveCallerId; a principal with no identifier, or two that disagree, has none, and a
-        // policy that compares with it is unavailable, so it denies.
+    // The caller's identifier is the subject the identity provider gave, as the generated MemberIdentity reads it. An application that
+    // declares another resolution implements ResolveCallerId; a principal with no identifier, or two that disagree, has none, and a
+    // policy that compares with it is unavailable, so it denies.
+    static void AppendCallerId(CSharpCodeBuilder builder) =>
         builder.Summary("Lets an application declare how the caller's identifier is read from the authorized principal.")
             .Parameter("context", "The authorization context.").Parameter("identifier", "The identifier, left unset to use the default resolution.")
             .Line("static partial void ResolveCallerId(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, ref string? identifier);")
@@ -157,8 +195,9 @@ internal static class SemanticPolicyArtifactRenderer
             .Line("return string.IsNullOrEmpty(identifier) ? null : identifier;")
             .EndBlock().BlankLine();
 
-        // Always emit Screenplay's three-valued helpers: shared bytes never depend on selected operations.
-        // Missing targets stay unknown under negation; only a definite true allows.
+    // Always emit Screenplay's three-valued helpers: shared bytes never depend on selected operations.
+    // Missing targets stay unknown under negation; only a definite true allows.
+    static void AppendThreeValuedHelpers(CSharpCodeBuilder builder) =>
         builder.Summary("Matches a claim while preserving an unknown target.")
             .Parameter("context", "The authorization context.").Parameter("claim", "The claim type.").Parameter("target", "The expected claim value.")
             .Returns("The claim comparison, or null when the target is missing.")
@@ -175,6 +214,7 @@ internal static class SemanticPolicyArtifactRenderer
             .Parameter("left", "The left policy value.").Parameter("right", "The right policy value.").Returns("The disjunction, preserving unknown unless either value is true.")
             .ExpressionMember("public static bool? Or(bool? left, bool? right)", "(left, right) switch { (true, _) or (_, true) => true, (false, false) => false, _ => null }");
 
+    static void AppendCanonicalTargets(CSharpCodeBuilder builder) =>
         builder.Summary("Resolves a canonical UUID policy target.")
             .Parameter("value", "The target value.").Returns("The canonical UUID text, or null for an unsupported value.")
             .OpenBlock("public static string? Uuid(object? value)")
@@ -197,8 +237,10 @@ internal static class SemanticPolicyArtifactRenderer
             .Line("if (value is string text && global::System.DateTimeOffset.TryParseExact(text, \"O\", global::System.Globalization.CultureInfo.InvariantCulture, global::System.Globalization.DateTimeStyles.RoundtripKind, out var parsed) &&")
             .Line("    global::System.String.Equals(text, DateTime(parsed), global::System.StringComparison.Ordinal)) return text;")
             .Line("return null;")
-            .EndBlock()
-            .Summary("Resolves a primitive or concept policy target without coercing unsupported types.")
+            .EndBlock();
+
+    static void AppendValueResolution(CSharpCodeBuilder builder) =>
+        builder.Summary("Resolves a primitive or concept policy target without coercing unsupported types.")
             .Parameter("value", "The target value.")
             .Parameter("uuidTarget", "Whether the target requires canonical UUID text.")
             .Parameter("dateTarget", "Whether the target requires canonical date text.")
@@ -221,8 +263,10 @@ internal static class SemanticPolicyArtifactRenderer
             .Line("        (current.GetGenericTypeDefinition() == typeof(global::Cratis.Concepts.ConceptAs<>) || current.GetGenericTypeDefinition() == typeof(global::Cratis.Chronicle.Events.EventSourceId<>))) return true;")
             .Line("}")
             .Line("return false;")
-            .EndBlock()
-            .Summary("Resolves a declared public-property path as a policy target.")
+            .EndBlock();
+
+    static void AppendPathResolution(CSharpCodeBuilder builder) =>
+        builder.Summary("Resolves a declared public-property path as a policy target.")
             .Parameter("value", "The object owning the path.").Parameter("path", "The dot-separated public-property path.")
             .Parameter("uuidTarget", "Whether the target requires canonical UUID text.")
             .Parameter("dateTarget", "Whether the target requires canonical date text.")
@@ -247,11 +291,7 @@ internal static class SemanticPolicyArtifactRenderer
             .Line("if (context.Target is not global::System.Reflection.MethodInfo method || !method.GetParameters().Any(parameter => string.Equals(parameter.Name, argument, global::System.StringComparison.Ordinal)) ||")
             .Line("    context.Resource is not global::Cratis.Arc.Queries.QueryContext { Arguments: { } arguments } || !arguments.TryGetValue(argument, out var key)) return null;")
             .Line("return path == argument ? Value(key, uuidTarget, dateTarget, dateTimeTarget) : Path(key, path[(argument.Length + 1)..], uuidTarget, dateTarget, dateTimeTarget);")
-            .EndBlock()
             .EndBlock();
-
-        return new(Path.Combine("GeneratedPolicies", "Policies.cs"), builder.ToString()) { Sources = [context.Application.Id] };
-    }
 
     /// <summary>
     /// Renders the verified opaque policy bodies and their typed context, when a rendered operation uses one.

@@ -189,6 +189,9 @@ internal static class GeneratedTypeNames
             foreach (var name in Names("GeneratedProvides", type, application.Id, "Generated")) yield return name;
         }
 
+        // The scaffold declares Registration for availability; the model-dependent Availability.cs implements it.
+        foreach (var name in Names("GeneratedAvailability", "Registration", application.Id, "Generated")) yield return name;
+
         // The scaffold declares the optional Entra ID sign-in types in every application.
         foreach (var type in new[] { "Authentication", "AuthenticationPerimeter", "AuthenticationSettings", "InvalidAuthenticationConfiguration" })
         {

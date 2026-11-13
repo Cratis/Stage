@@ -48,7 +48,7 @@ public class with_the_default_composition : a_register_project_render_request
     // Recomputed for the Scene 5.3.0 pins and the @cratis/scene.extensions dependency of the Stage runtime.
     // Recomputed for Screenplay 6.24.0: only the Screenplay pins in Directory.Packages.props and the scaffold catalog change.
     // Recomputed for the Scene 5.4.0 pins and Cratis Components 4.40.1 that Scene 5.4.0 requires.
-    const string Before = "9d573a343c57387a6f19030ac7499ef1e5c76f2241818e2c18c31553798764a0";
+    const string Before = "24156bd8a24d316a4d10ef2144134954881b85d321b5f784e726ec41acbc4064";
 
     ArtifactRenderPlan _plan = null!;
 

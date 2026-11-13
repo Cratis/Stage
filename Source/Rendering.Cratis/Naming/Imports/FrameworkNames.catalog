@@ -5,8 +5,8 @@ scaffold	3
 pin	Cratis	23.5.0
 pin	Cratis.Arc.Chronicle.Testing	23.5.0
 pin	Cratis.Arc.MongoDB	23.5.0
-pin	Cratis.Choreography	2.7.0
-pin	Cratis.Choreography.Chronicle	2.7.0
+pin	Cratis.Choreography	2.8.0
+pin	Cratis.Choreography.Chronicle	2.8.0
 pin	Cratis.Chronicle	19.155.1
 pin	Cratis.Chronicle.AspNetCore	19.155.1
 pin	Cratis.Chronicle.Testing	19.155.1
@@ -38,9 +38,9 @@ package	AS	Cratis.Arc.ProxyGenerator.Build	23.5.0
 package	AS	Cratis.Arc.Screenplay.Embedded	23.5.0
 package	AS	Cratis.Arc.Swagger	23.5.0
 package	AS	Cratis.Arc.Testing	23.5.0
-package	AS	Cratis.Choreography	2.7.0
-package	AS	Cratis.Choreography.Chronicle	2.7.0
-package	AS	Cratis.Choreography.Storage	2.7.0
+package	AS	Cratis.Choreography	2.8.0
+package	AS	Cratis.Choreography.Chronicle	2.8.0
+package	AS	Cratis.Choreography.Storage	2.8.0
 package	AS	Cratis.Choreography.Storage.MongoDB	2.3.1
 package	AS	Cratis.Chronicle	19.155.1
 package	AS	Cratis.Chronicle.AspNetCore	19.155.1
@@ -3552,12 +3552,17 @@ type	AS	Cratis.Arc.Validation	ValidatorInvoker	class
 type	AS	Cratis.Choreography	KeyHelper	static
 type	AS	Cratis.Choreography	SerializationConfigurationExtensions	static
 type	AS	Cratis.Choreography	WellKnownGrainStorageProviders	static
+type	AS	Cratis.Choreography.Availability	AudienceDeclaration	class
+type	AS	Cratis.Choreography.Availability	AvailabilityAlternative	class
 type	AS	Cratis.Choreography.Availability	AvailabilityAnd	class
+type	AS	Cratis.Choreography.Availability	AvailabilityBlockEntry	class
 type	AS	Cratis.Choreography.Availability	AvailabilityCatalog	class
 type	AS	Cratis.Choreography.Availability	AvailabilityDefinition	class
 type	AS	Cratis.Choreography.Availability	AvailabilityEnvironments	static
 type	AS	Cratis.Choreography.Availability	AvailabilityEvaluator	class
 type	AS	Cratis.Choreography.Availability	AvailabilityExpression	class
+type	AS	Cratis.Choreography.Availability	AvailabilityGateEntry	class
+type	AS	Cratis.Choreography.Availability	AvailabilityManifest	class
 type	AS	Cratis.Choreography.Availability	AvailabilityOptions	class
 type	AS	Cratis.Choreography.Availability	AvailabilityOr	class
 type	AS	Cratis.Choreography.Availability	AvailabilityOutcome	enum
@@ -3569,9 +3574,13 @@ type	AS	Cratis.Choreography.Availability	AvailableWith	class
 type	AS	Cratis.Choreography.Availability	CircularAvailabilityException	class
 type	AS	Cratis.Choreography.Availability	ComparisonOperator	enum
 type	AS	Cratis.Choreography.Availability	ContextComparison	class
+type	AS	Cratis.Choreography.Availability	ContextValueEntry	class
 type	AS	Cratis.Choreography.Availability	EnvironmentSwitchRefusedException	class
 type	AS	Cratis.Choreography.Availability	IAvailabilityCondition	interface
 type	AS	Cratis.Choreography.Availability	IAvailabilityEvaluator	interface
+type	AS	Cratis.Choreography.Availability	IAvailabilityManifest	interface
+type	AS	Cratis.Choreography.Availability	InMemoryAvailabilityManifest	class
+type	AS	Cratis.Choreography.Availability	PersonaEntry	class
 type	AS	Cratis.Choreography.Availability	UndefinedAvailabilityException	class
 type	AS	Cratis.Choreography.Availability.Audiences	AudienceChange	class
 type	AS	Cratis.Choreography.Availability.Audiences	AudienceGrant	class
@@ -14888,19 +14897,24 @@ base	AS	Cratis.Arc.Validation.ReadModelValidatorRequiresCommandPipeline	System.E
 base	AS	Cratis.Arc.Validation.ValidationResult	System.Object	Deconstruct EqualityContract Equals Error GetHashCode Information Members Message PrintMembers Reason ReasonDetail Severity State ToString Warning	-
 base	AS	Cratis.Arc.Validation.ValidationResultReason	Cratis.Concepts.ConceptAs`1	ConcurrencyViolation ConstraintViolation Deconstruct DependencyUnavailable EqualityContract Equals FrameworkFailure GetHashCode MalformedRequest PrintMembers Rule ValidatorFailed	-
 base	AS	Cratis.Arc.Validation.ValidatorInvoker	System.Object	CouldNotValidateMessage Invoke	-
+base	AS	Cratis.Choreography.Availability.AudienceDeclaration	System.Object	Deconstruct Description EqualityContract Equals GetHashCode Name PrintMembers Source ToString	-
 base	AS	Cratis.Choreography.Availability.Audiences.AudienceChange	System.Object	Deconstruct EqualityContract Equals GetHashCode Key Level PrintMembers ToString	-
 base	AS	Cratis.Choreography.Availability.Audiences.AudienceGrant	System.Object	Audience Deconstruct EqualityContract Equals GetHashCode Level PrintMembers ToString	-
 base	AS	Cratis.Choreography.Availability.Audiences.AudienceName	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
 base	AS	Cratis.Choreography.Availability.Audiences.AudienceResolver	System.Object	Resolve	-
 base	AS	Cratis.Choreography.Availability.Audiences.AudienceSubject	System.Object	Deconstruct EqualityContract Equals GetHashCode IsSystem PrintMembers Tenant ToString User	-
-base	AS	Cratis.Choreography.Availability.Audiences.DeclaredAudiences	System.Object	All IsDeclared	-
+base	AS	Cratis.Choreography.Availability.Audiences.DeclaredAudiences	System.Object	All Declarations IsDeclared	-
 base	AS	Cratis.Choreography.Availability.Audiences.EffectiveAudiences	System.Object	Deconstruct EqualityContract Equals GetHashCode Holds Matching None PrintMembers ToString Undeclared	-
 base	AS	Cratis.Choreography.Availability.Audiences.InMemoryAudienceSource	System.Object	GetGrants Grant OnChanged Withdraw	-
+base	AS	Cratis.Choreography.Availability.AvailabilityAlternative	System.Object	And Audiences Conditions Deconstruct EqualityContract Equals GetHashCode PrintMembers ToString Unconditional	-
 base	AS	Cratis.Choreography.Availability.AvailabilityAnd	Cratis.Choreography.Availability.AvailabilityExpression	Deconstruct EqualityContract Equals GetHashCode Parts PrintMembers ToString	-
+base	AS	Cratis.Choreography.Availability.AvailabilityBlockEntry	System.Object	Alternatives Deconstruct Description EqualityContract Equals From GetHashCode Name PrintMembers Source ToString	-
 base	AS	Cratis.Choreography.Availability.AvailabilityCatalog	System.Object	Add Definitions Get Validate	-
-base	AS	Cratis.Choreography.Availability.AvailabilityDefinition	System.Object	Deconstruct EqualityContract Equals Expression FromLines GetHashCode Name PrintMembers ToString	-
+base	AS	Cratis.Choreography.Availability.AvailabilityDefinition	System.Object	Deconstruct Description EqualityContract Equals Expression FromLines GetHashCode Name PrintMembers ToString	-
 base	AS	Cratis.Choreography.Availability.AvailabilityEvaluator	System.Object	Evaluate EvaluatePath	-
-base	AS	Cratis.Choreography.Availability.AvailabilityExpression	System.Object	AllOf AnyOf EqualityContract Equals For GetHashCode PrintMembers ToString When With	-
+base	AS	Cratis.Choreography.Availability.AvailabilityExpression	System.Object	AllOf Alternatives AnyOf EqualityContract Equals For GetHashCode PrintMembers ToString When With	-
+base	AS	Cratis.Choreography.Availability.AvailabilityGateEntry	System.Object	Alternatives Deconstruct EqualityContract Equals From GetHashCode PrintMembers Target ToString	-
+base	AS	Cratis.Choreography.Availability.AvailabilityManifest	System.Object	Audiences Blocks ContextValues Deconstruct Empty EqualityContract Equals Gates GetHashCode Origin Personas PrintMembers ToString	-
 base	AS	Cratis.Choreography.Availability.AvailabilityOptions	System.Object	EnvironmentName GrantAllDeclaredAudiences Validate	-
 base	AS	Cratis.Choreography.Availability.AvailabilityOr	Cratis.Choreography.Availability.AvailabilityExpression	Deconstruct EqualityContract Equals GetHashCode Parts PrintMembers ToString	-
 base	AS	Cratis.Choreography.Availability.AvailabilityResult	System.Object	Available Causes Deconstruct EqualityContract Equals GetHashCode IsAvailable Outcome PrintMembers Reason ToString	-
@@ -14924,7 +14938,10 @@ base	AS	Cratis.Choreography.Availability.Context.Providers.ReadModelContextValue
 base	AS	Cratis.Choreography.Availability.Context.RequiredContextValueAbsentException	System.Exception	Name	-
 base	AS	Cratis.Choreography.Availability.Context.ReservedContextValueNameException	System.Exception	Name	-
 base	AS	Cratis.Choreography.Availability.ContextComparison	System.Object	Description Evaluate	-
+base	AS	Cratis.Choreography.Availability.ContextValueEntry	System.Object	Deconstruct EqualityContract Equals From GetHashCode Name Origin PrintMembers Required Scope ToString Type	-
 base	AS	Cratis.Choreography.Availability.EnvironmentSwitchRefusedException	System.Exception	EnvironmentName	-
+base	AS	Cratis.Choreography.Availability.InMemoryAvailabilityManifest	System.Object	Current	-
+base	AS	Cratis.Choreography.Availability.PersonaEntry	System.Object	Audiences Deconstruct EqualityContract Equals GetHashCode Name PrintMembers ToString	-
 base	AS	Cratis.Choreography.Availability.UndefinedAvailabilityException	System.Exception	Name	-
 base	AS	Cratis.Choreography.Chronicle.StateMachines.EventSourcedStateMachineDefinition	System.Object	Deconstruct EqualityContract Equals EventTypes GetHashCode IsPassive ModelType PrintMembers ProjectionEventTypes ProjectionSource ReactorId StateMachineType ToString TransitionEventTypes	-
 base	AS	Cratis.Choreography.Chronicle.StateMachines.EventSourcedStateMachineDefinitions	System.Object	All	-

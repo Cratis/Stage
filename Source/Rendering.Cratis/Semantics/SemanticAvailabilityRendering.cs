@@ -139,13 +139,16 @@ internal static partial class SemanticAvailabilityRendering
             .Line($"    options.ScopeFor = type => Scopes.TryGetValue(type.Namespace ?? string.Empty, out var scope) ? scope : {Engine}.Context.ContextScope.Application;");
         foreach (var gate in Gates(context).OrderBy(gate => gate.Key, StringComparer.Ordinal))
         {
-            var expression = gate.Requirements.Length == 1 ? Expression(gate.Requirements[0]) : $"{Engine}.AvailabilityExpression.AllOf({string.Join(", ", gate.Requirements.Select(Expression))})";
+            var expression = GateExpression(gate);
             builder.Line(gate.IsType
                 ? $"    GateType(options, {CSharpCodeBuilder.StringLiteral(gate.Key)}, {expression});"
                 : $"    options.GateNamespace({CSharpCodeBuilder.StringLiteral(gate.Key)}, {expression});");
         }
 
         builder.Line("}, engine);")
+            .BlankLine();
+        AppendManifest(builder, context);
+        builder
             .EndBlock().BlankLine()
             .Summary("Gates a command or read model by its full name, and fails loudly when the type is not part of the application instead of leaving it open.")
             .Line("/// <param name=\"options\">The Arc availability options.</param>")

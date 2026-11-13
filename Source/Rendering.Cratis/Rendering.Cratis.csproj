@@ -196,6 +196,9 @@
             <_ScaffoldPackage Include="Cratis.Chronicle.ForAnte" Constant="AnteChronicle" PinVersion="$(AnteContractsChronicleVersion)" />
             <_ScaffoldPackage Include="Cratis.Choreography" Constant="Choreography" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Choreography')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Choreography.Chronicle" Constant="ChoreographyChronicle" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Choreography.Chronicle')->Metadata('Version'))" />
+            <_ScaffoldPackage Include="Cratis.Arc.Availability" Constant="ArcAvailability" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Arc.Availability')->Metadata('Version'))" />
+            <_ScaffoldPackage Include="Cratis.Showrunner.GuestList" Constant="GuestList" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Showrunner.GuestList')->Metadata('Version'))" />
+            <_ScaffoldPackage Include="Cratis.Showrunner.GuestList.Availability" Constant="GuestListAvailability" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Showrunner.GuestList.Availability')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Chronicle" Constant="Chronicle" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Chronicle')->Metadata('Version'))" />
         </ItemGroup>
         <Error Code="STAGE-MISSING-SCAFFOLD-PIN" Condition="'%(_ScaffoldPackage.PinVersion)' == ''"

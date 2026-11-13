@@ -2,9 +2,9 @@
 # Regenerate: STAGE_WRITE_FRAMEWORK_NAME_CATALOG=1 dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --filter "FullyQualifiedName~for_FrameworkNameCatalog"
 format	1
 scaffold	3
-pin	Cratis	22.184.0
-pin	Cratis.Arc.Chronicle.Testing	22.184.0
-pin	Cratis.Arc.MongoDB	22.184.0
+pin	Cratis	23.5.0
+pin	Cratis.Arc.Chronicle.Testing	23.5.0
+pin	Cratis.Arc.MongoDB	23.5.0
 pin	Cratis.Choreography	2.7.0
 pin	Cratis.Choreography.Chronicle	2.7.0
 pin	Cratis.Chronicle	19.155.1
@@ -26,18 +26,18 @@ package	AS	Azure.Security.KeyVault.Certificates	4.6.0
 package	AS	Azure.Security.KeyVault.Secrets	4.6.0
 package	AS	BouncyCastle.Cryptography	2.7.0
 package	AS	Castle.Core	5.2.1
-package	AS	Cratis	22.184.0
-package	AS	Cratis.Arc	22.184.0
-package	AS	Cratis.Arc.Chronicle	22.184.0
-package	AS	Cratis.Arc.Chronicle.CodeAnalysis	22.184.0
-package	AS	Cratis.Arc.Chronicle.Testing	22.184.0
-package	AS	Cratis.Arc.Core	22.184.0
-package	AS	Cratis.Arc.Core.CodeAnalysis	22.184.0
-package	AS	Cratis.Arc.MongoDB	22.184.0
-package	AS	Cratis.Arc.ProxyGenerator.Build	22.184.0
-package	AS	Cratis.Arc.Screenplay.Embedded	22.184.0
-package	AS	Cratis.Arc.Swagger	22.184.0
-package	AS	Cratis.Arc.Testing	22.184.0
+package	AS	Cratis	23.5.0
+package	AS	Cratis.Arc	23.5.0
+package	AS	Cratis.Arc.Chronicle	23.5.0
+package	AS	Cratis.Arc.Chronicle.CodeAnalysis	23.5.0
+package	AS	Cratis.Arc.Chronicle.Testing	23.5.0
+package	AS	Cratis.Arc.Core	23.5.0
+package	AS	Cratis.Arc.Core.CodeAnalysis	23.5.0
+package	AS	Cratis.Arc.MongoDB	23.5.0
+package	AS	Cratis.Arc.ProxyGenerator.Build	23.5.0
+package	AS	Cratis.Arc.Screenplay.Embedded	23.5.0
+package	AS	Cratis.Arc.Swagger	23.5.0
+package	AS	Cratis.Arc.Testing	23.5.0
 package	AS	Cratis.Choreography	2.7.0
 package	AS	Cratis.Choreography.Chronicle	2.7.0
 package	AS	Cratis.Choreography.Storage	2.7.0

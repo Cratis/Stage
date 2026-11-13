@@ -79,6 +79,24 @@ describe('screen availability', () => {
         expect(screen.getAllByRole('link', { name: 'Home' }).length).toBeGreaterThan(0);
     });
 
+    it.each([false, true])('preserves colliding layout, template, slot and data identities (regions=%s)', async regions => {
+        const home = { ...screenOf('Home'), layout: 'Restricted', slotContent: {
+            content: [...screenOf('Home').slotContent.content, { id: 'Restricted', name: 'Restricted', componentName: 'core:title', properties: { text: 'Restricted' }, slots: {} }],
+            Restricted: [],
+        } };
+        const model = { ...scene, navigation: regions ? scene.navigation : undefined,
+            layouts: [{ ...scene.layouts[0], name: 'Restricted', slots: [...scene.layouts[0].slots, { name: 'Restricted' }] }],
+            screenTemplates: [{ name: 'Restricted', slots: [{ name: 'Restricted' }], fitsSlot: 'Restricted' }],
+            screens: [home, screenOf('Restricted')],
+        };
+        const components: AppProps['components'] = { Restricted: ({ slots }) => <main>{slots.content}{slots.Restricted}</main> };
+        renderStage(respond(answer(false)), '#/Home', { model, components });
+        await screen.findByRole('heading', { name: 'Home content' });
+        expect(screen.getByRole('heading', { name: 'Restricted' })).toBeTruthy();
+        expect(screen.queryByText('Restricted content')).toBeNull();
+        expect(screen.queryByRole('link', { name: 'Restricted' })).toBeNull();
+    });
+
     it('refuses a pending deep link without mounting its content', async () => {
         renderStage(new Promise(() => {}), '#/Restricted');
         await screen.findByRole('alert');

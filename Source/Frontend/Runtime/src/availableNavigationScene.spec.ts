@@ -22,63 +22,36 @@ function navigationItems(items: Record<string, unknown>[]) {
     return availableNavigationScene(model, isAvailable).navigation?.application?.outlets[0].defaults;
 }
 
-function authoredStrings(value: unknown): string[] {
-    if (typeof value === 'string') return [value];
-    if (Array.isArray(value)) return value.flatMap(authoredStrings);
-    if (value === null || typeof value !== 'object') return [];
-    return Object.entries(value).flatMap(([key, entry]) => [key, ...authoredStrings(entry)]);
-}
-
-const futureReferenceShapes = [
-    { name: 'scalar', wrap: (id: string): unknown => id },
-    { name: 'array', wrap: (id: string): unknown => [id] },
-    { name: 'unknown wrapper', wrap: (id: string): unknown => ({ futureTarget: id }) },
-    { name: 'nested wrappers', wrap: (id: string): unknown => ({ outer: { futureNestedTarget: id } }) },
-    { name: 'dictionary key', wrap: (id: string): unknown => ({ [id]: { label: 'Private entry' } }) },
-    { name: 'literal binding', wrap: (id: string): unknown => ({ kind: 'literal', path: '', value: id }) },
-    { name: 'screen owner', wrap: (id: string): unknown => `screen:${id}` },
-    { name: 'dialog owner', wrap: (id: string): unknown => `dialog:${id}` },
-    { name: 'hash link', wrap: (id: string): unknown => `#/${id}?from=future` },
-    { name: 'path link', wrap: (id: string): unknown => `/${id}` },
-];
-
 describe('the availability-filtered navigation view', () => {
-    it.each(futureReferenceShapes)('guards references in future properties regardless of field name ($name)', ({ wrap }) => {
-        const denied = 'FuturePrivateScreen';
-        for (let index = 0; index < 8; index++) {
-            const key = `newPropertyNotKnownToTheFilter${index}`;
-            const model = {
-                ...scene,
-                screens: [{ ...scene.screens[0], name: denied }, scene.screens[1]],
-                [key]: wrap(denied),
-                allowedFutureProperty: 'Home',
-            };
-            const result = availableNavigationScene(model, name => name !== denied);
-            expect(authoredStrings(result).some(value => value.includes(denied))).toBe(false);
-            expect(result.allowedFutureProperty).toBe('Home');
-            expect(result.screens.map(screen => screen.name)).toEqual(['Home']);
-        }
+    it('preserves layout, template and slot namespaces when they collide with a denied screen', () => {
+        const slot = { name: 'Restricted', routed: true };
+        const layout = { name: 'Restricted', slots: [slot] };
+        const template = { name: 'Restricted', slots: [slot], fitsSlot: 'Restricted' };
+        const home = { ...scene.screens[1], layout: 'Restricted', screenTemplate: 'Restricted', slotContent: { Restricted: [] } };
+        const model = { ...scene, layouts: [layout], screenTemplates: [template], screens: [scene.screens[0], home] };
+        const result = availableNavigationScene(model, isAvailable);
+        expect(result.screens).toEqual([home]);
+        expect(result.layouts).toEqual([layout]);
+        expect(result.screenTemplates).toEqual([template]);
+        expect(result.screens[0].slotContent).toEqual({ Restricted: [] });
     });
 
-    it('preserves ordinary strings with percent signs while refusing malformed authored links', () => {
-        const model = { ...scene, futureItems: [
-            { label: 'CSS', width: '100%' },
-            { label: 'Malformed link', href: '#/Restricted%ZZ' },
-        ] };
-        expect(availableNavigationScene(model, isAvailable).futureItems).toEqual([model.futureItems[0]]);
+    it('preserves data ids, dictionary keys, literal bindings and opaque component properties with colliding names', () => {
+        const properties = { id: 'Restricted', label: 'Restricted', width: '100%', rows: [{ id: 'Restricted', homeTargetScreen: 'Restricted' }],
+            data: { Restricted: 'Restricted' }, binding: { kind: 'literal', value: 'Restricted' } };
+        const element = { id: 'Restricted', name: 'Restricted', componentName: 'core:table', properties, slots: {} };
+        const home = { ...scene.screens[1], slotContent: { content: [element] } };
+        const model = { ...scene, screens: [scene.screens[0], home], commandSchemas: { Restricted: 'Restricted' } };
+        const result = availableNavigationScene(model, isAvailable);
+        expect(result.screens).toEqual([home]);
+        expect(result.commandSchemas).toEqual(model.commandSchemas);
+        expect(result.structure).toEqual(scene.structure);
     });
 
-    it('guards composite destinations in new wrapper fields without an enumerated wrapper-name list', () => {
-        const model = { ...scene, newDestinationProperty: { module: 'Work', feature: 'Private' } };
-        expect(availableNavigationScene(model, isAvailable).newDestinationProperty).toBeUndefined();
-    });
-
-    it('prunes homeTargetScreen without treating it as a special field', () => {
-        const model = { ...scene, futureItems: [
-            { id: 'private-breadcrumb', homeTargetScreen: 'Restricted' },
-            { id: 'public-breadcrumb', homeTargetScreen: 'Home' },
-        ] };
-        expect(availableNavigationScene(model, isAvailable).futureItems).toEqual([model.futureItems[1]]);
+    it('refuses malformed routes only at a semantic destination path', () => {
+        expect(navigationItems([{ kind: 'navigation', id: 'bad', title: 'Bad', target: { route: '#/Restricted%ZZ' } }])).toEqual([]);
+        const model = { ...scene, data: { href: '#/Restricted%ZZ', homeTargetScreen: 'Restricted' } };
+        expect(availableNavigationScene(model, isAvailable).data).toEqual(model.data);
     });
     it('resolves module and feature entries before removing screens, without retargeting to an available feature', () => {
         expect(navigationItems([
@@ -116,6 +89,19 @@ describe('the availability-filtered navigation view', () => {
             { instance: 'screen:Home', component: 'nav', path: 'targetScreen', value: 'Home' },
         ] };
         expect(availableNavigationScene(model, isAvailable).instanceContributions).toEqual([model.instanceContributions[3]]);
+    });
+
+    it('filters exposed collection entries by their consumer shape, without reinterpreting data property paths', () => {
+        const model = { ...scene, instanceContributions: [
+            { instance: 'screen:Home', component: 'menu', path: 'items', items: [
+                { id: 'Restricted', values: { label: 'Restricted', destination: { screen: 'Home' } } },
+                { id: 'denied', values: { destination: { screen: 'Restricted' } } },
+            ] },
+            { instance: 'screen:Home', component: 'core:table', path: 'data.targetScreen', value: 'Restricted' },
+        ] };
+        const result = availableNavigationScene(model, isAvailable).instanceContributions;
+        expect(result?.[0].items).toEqual([model.instanceContributions[0].items?.[0]]);
+        expect(result?.[1]).toEqual(model.instanceContributions[1]);
     });
 
     it('removes denied behavior actions without stripping unrelated command behavior', () => {

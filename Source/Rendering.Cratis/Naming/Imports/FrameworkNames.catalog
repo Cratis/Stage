@@ -10,8 +10,8 @@ pin	Cratis.Choreography.Chronicle	2.7.0
 pin	Cratis.Chronicle	19.155.1
 pin	Cratis.Chronicle.AspNetCore	19.155.1
 pin	Cratis.Chronicle.Testing	19.155.1
-pin	Cratis.Screenplay	6.26.0
-pin	Cratis.Screenplay.Matching	6.26.0
+pin	Cratis.Screenplay	6.27.0
+pin	Cratis.Screenplay.Matching	6.27.0
 pin	Cratis.Specifications	5.2.3
 pin	Cratis.Specifications.XUnit	5.2.3
 pin	Microsoft.NET.Test.Sdk	18.11.0
@@ -50,9 +50,9 @@ package	AS	Cratis.Chronicle.Testing	19.155.1
 package	AS	Cratis.Fundamentals	7.34.0
 package	AS	Cratis.Metrics.Roslyn	7.34.0
 package	AS	Cratis.Observability.SourceGenerators	7.34.0
-package	AS	Cratis.Screenplay	6.26.0
-package	AS	Cratis.Screenplay.Contexts	6.26.0
-package	AS	Cratis.Screenplay.Matching	6.26.0
+package	AS	Cratis.Screenplay	6.27.0
+package	AS	Cratis.Screenplay.Contexts	6.27.0
+package	AS	Cratis.Screenplay.Matching	6.27.0
 package	AS	Cratis.Specifications	5.2.3
 package	AS	Cratis.Specifications.XUnit	5.2.3
 package	AS	DnsClient	1.8.0
@@ -6129,6 +6129,7 @@ type	AS	Cratis.Screenplay.Semantics.Execution	SemanticAccepted	class
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticAvailability	enum
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticBodyExecutionResult	class
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticBodyIdentity	class
+type	AS	Cratis.Screenplay.Semantics.Execution	SemanticCausedBy	class
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticCommandBodyFaultException	class
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticCommandBodyFaultKind	enum
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticCommandBodyItem	class

@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "6.26.0",
+  "corpusVersion": "6.27.0",
   "minimumVectorCount": 99,
   "excludedTypes": {
     "ClockScheduleVectors": "Raw schedule bytes only; the package carries no model for it.",
@@ -2287,8 +2287,7 @@
       "loader": { "outcome": "supported" },
       "executor": { "outcome": "supported" },
       "host": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-065", "kind": "graph", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 },
-        { "code": "STAGE-PLAN-004", "kind": "readModel", "artifact": "sem1:cf2b670b1786eca60a6942c0abab0f9c31dd459d95bfb3be3e6a8105aa512f0f", "issue": 1083 } ] },
+        { "code": "STAGE-ESM-065", "kind": "graph", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 } ] },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 809 } ] }
     },
@@ -2296,8 +2295,7 @@
       "loader": { "outcome": "supported" },
       "executor": { "outcome": "supported" },
       "host": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-065", "kind": "graph", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 },
-        { "code": "STAGE-PLAN-004", "kind": "readModel", "artifact": "sem1:cf2b670b1786eca60a6942c0abab0f9c31dd459d95bfb3be3e6a8105aa512f0f", "issue": 1083 } ] },
+        { "code": "STAGE-ESM-065", "kind": "graph", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 } ] },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 809 } ] }
     },
@@ -2305,8 +2303,7 @@
       "loader": { "outcome": "supported" },
       "executor": { "outcome": "supported" },
       "host": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-065", "kind": "graph", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 },
-        { "code": "STAGE-PLAN-004", "kind": "readModel", "artifact": "sem1:cf2b670b1786eca60a6942c0abab0f9c31dd459d95bfb3be3e6a8105aa512f0f", "issue": 1083 } ] },
+        { "code": "STAGE-ESM-065", "kind": "graph", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 } ] },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 809 } ] }
     },
@@ -2314,8 +2311,7 @@
       "loader": { "outcome": "supported" },
       "executor": { "outcome": "supported" },
       "host": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-065", "kind": "graph", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 },
-        { "code": "STAGE-PLAN-004", "kind": "readModel", "artifact": "sem1:cf2b670b1786eca60a6942c0abab0f9c31dd459d95bfb3be3e6a8105aa512f0f", "issue": 1083 } ] },
+        { "code": "STAGE-ESM-065", "kind": "graph", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 } ] },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 809 } ] }
     },
@@ -2323,8 +2319,7 @@
       "loader": { "outcome": "supported" },
       "executor": { "outcome": "supported" },
       "host": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-065", "kind": "graph", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 },
-        { "code": "STAGE-PLAN-004", "kind": "readModel", "artifact": "sem1:cf2b670b1786eca60a6942c0abab0f9c31dd459d95bfb3be3e6a8105aa512f0f", "issue": 1083 } ] },
+        { "code": "STAGE-ESM-065", "kind": "graph", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 } ] },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 809 } ] }
     },
@@ -2332,8 +2327,7 @@
       "loader": { "outcome": "supported" },
       "executor": { "outcome": "supported" },
       "host": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-065", "kind": "graph", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 },
-        { "code": "STAGE-PLAN-004", "kind": "readModel", "artifact": "sem1:cf2b670b1786eca60a6942c0abab0f9c31dd459d95bfb3be3e6a8105aa512f0f", "issue": 1083 } ] },
+        { "code": "STAGE-ESM-065", "kind": "graph", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 } ] },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 809 } ] }
     },
@@ -2343,8 +2337,7 @@
         { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 809 } ] },
       "host": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-016", "kind": "specification", "artifact": "sem1:66f66049eca5fa663300bd7351d84a283b7ba631c9555d6b3220892dbe17beb2", "issue": 1061 },
-        { "code": "STAGE-ESM-065", "kind": "graph", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 },
-        { "code": "STAGE-PLAN-004", "kind": "readModel", "artifact": "sem1:cf2b670b1786eca60a6942c0abab0f9c31dd459d95bfb3be3e6a8105aa512f0f", "issue": 1083 } ] },
+        { "code": "STAGE-ESM-065", "kind": "graph", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 } ] },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 809 } ] }
     },
@@ -2402,8 +2395,7 @@
         { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 809 } ] },
       "host": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-016", "kind": "application", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 809 },
-        { "code": "STAGE-ESM-016", "kind": "specification", "artifact": "sem1:66f66049eca5fa663300bd7351d84a283b7ba631c9555d6b3220892dbe17beb2", "issue": 1061 },
-        { "code": "STAGE-PLAN-004", "kind": "readModel", "artifact": "sem1:cf2b670b1786eca60a6942c0abab0f9c31dd459d95bfb3be3e6a8105aa512f0f", "issue": 1083 } ] },
+        { "code": "STAGE-ESM-016", "kind": "specification", "artifact": "sem1:66f66049eca5fa663300bd7351d84a283b7ba631c9555d6b3220892dbe17beb2", "issue": 1061 } ] },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 809 } ] }
     },
@@ -2417,8 +2409,7 @@
         { "code": "STAGE-ESM-016", "kind": "specification", "artifact": "sem1:66f66049eca5fa663300bd7351d84a283b7ba631c9555d6b3220892dbe17beb2", "issue": 1061 },
         { "code": "STAGE-ESM-016", "kind": "specification", "artifact": "sem1:a71d62c6c589cdc64b49de0b017e04e7f767806489c5b51c32a142d6c62a9d53", "issue": 1118 },
         { "code": "STAGE-ESM-016", "kind": "specification", "artifact": "sem1:bbd3d49ced7c61322b05360264765cb7a23103a74df512b6ea443b5f80c3eac9", "issue": 1118 },
-        { "code": "STAGE-LIFECYCLE-010", "kind": "workflow", "artifact": "Pickup", "issue": 1118 },
-        { "code": "STAGE-PLAN-004", "kind": "readModel", "artifact": "sem1:cf2b670b1786eca60a6942c0abab0f9c31dd459d95bfb3be3e6a8105aa512f0f", "issue": 1083 } ] },
+        { "code": "STAGE-LIFECYCLE-010", "kind": "workflow", "artifact": "Pickup", "issue": 1118 } ] },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 809 } ] }
     },
@@ -2432,8 +2423,7 @@
         { "code": "STAGE-ESM-016", "kind": "specification", "artifact": "sem1:66f66049eca5fa663300bd7351d84a283b7ba631c9555d6b3220892dbe17beb2", "issue": 1061 },
         { "code": "STAGE-ESM-016", "kind": "specification", "artifact": "sem1:a71d62c6c589cdc64b49de0b017e04e7f767806489c5b51c32a142d6c62a9d53", "issue": 1118 },
         { "code": "STAGE-ESM-016", "kind": "specification", "artifact": "sem1:bbd3d49ced7c61322b05360264765cb7a23103a74df512b6ea443b5f80c3eac9", "issue": 1118 },
-        { "code": "STAGE-LIFECYCLE-010", "kind": "workflow", "artifact": "Pickup", "issue": 1118 },
-        { "code": "STAGE-PLAN-004", "kind": "readModel", "artifact": "sem1:cf2b670b1786eca60a6942c0abab0f9c31dd459d95bfb3be3e6a8105aa512f0f", "issue": 1083 } ] },
+        { "code": "STAGE-LIFECYCLE-010", "kind": "workflow", "artifact": "Pickup", "issue": 1118 } ] },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 809 } ] }
     },
@@ -2451,8 +2441,7 @@
         { "code": "STAGE-ESM-016", "kind": "specification", "artifact": "sem1:a71d62c6c589cdc64b49de0b017e04e7f767806489c5b51c32a142d6c62a9d53", "issue": 1117 },
         { "code": "STAGE-ESM-016", "kind": "specification", "artifact": "sem1:bbd3d49ced7c61322b05360264765cb7a23103a74df512b6ea443b5f80c3eac9", "issue": 1117 },
         { "code": "STAGE-ESM-065", "kind": "graph", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 1117 },
-        { "code": "STAGE-LIFECYCLE-010", "kind": "workflow", "artifact": "Pickup", "issue": 1117 },
-        { "code": "STAGE-PLAN-004", "kind": "readModel", "artifact": "sem1:cf2b670b1786eca60a6942c0abab0f9c31dd459d95bfb3be3e6a8105aa512f0f", "issue": 1117 } ] },
+        { "code": "STAGE-LIFECYCLE-010", "kind": "workflow", "artifact": "Pickup", "issue": 1117 } ] },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 1117 },
         { "code": "STAGE-ESM-016", "artifact": "sem1:2e13ee6dbbeea5e71298e0b9733fd8e567128ded49aaecd5d471d3fba58efb5b", "issue": 1117 },

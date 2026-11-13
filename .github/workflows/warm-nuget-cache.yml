@@ -58,6 +58,8 @@ jobs:
           set -euo pipefail
           listing=$(dotnet nuget locals global-packages --list)
           dir=${listing#global-packages: }
+          dir=${dir%$'\r'}
+          while [[ "$dir" == */ && "$dir" != / ]]; do dir=${dir%/}; done
           expected="$HOME/.nuget/packages"
           if [[ -z "$dir" || "$dir" != /* || "${dir##*/}" != 'packages' || "${dir%/*}" != "$HOME/.nuget" || "$dir" != "$expected" ]]; then
             echo "::error::Refusing to prune unexpected NuGet global-packages path: '$dir' (expected '$expected')."

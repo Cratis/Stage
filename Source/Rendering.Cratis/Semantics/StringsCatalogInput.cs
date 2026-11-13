@@ -38,76 +38,24 @@ internal static class StringsCatalogInput
         }
 
         var locales = new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal);
-        var origins = new Dictionary<(string Locale, string Key), string>();
+        var accumulator = new CatalogAccumulator(locales);
         foreach (var (path, content) in files.OrderBy(_ => _.Key, StringComparer.Ordinal))
         {
-            var file = Path.GetFileName(path);
-            if (path.StartsWith('/') || path.Split('/').Any(_ => _.Length == 0 || _ == "." || _ == "..") ||
-                path.Contains('\\') || path.Any(char.IsControl) || !file.EndsWith(".strings", StringComparison.Ordinal))
-            {
-                throw Invalid();
-            }
-
-            var stem = file[..^".strings".Length];
-            var separator = stem.LastIndexOf('.');
-            if (separator <= 0 || !LocalePattern().IsMatch(stem[(separator + 1)..]))
-            {
-                throw Invalid();
-            }
-
-            var locale = stem[(separator + 1)..];
-            if (locales.Keys.Any(existing => string.Equals(existing, locale, StringComparison.OrdinalIgnoreCase) && existing != locale))
-            {
-                throw Invalid();
-            }
-
-            if (!locales.TryGetValue(locale, out var entries))
-            {
-                entries = [with(comparer: StringComparer.Ordinal)];
-                locales.Add(locale, entries);
-            }
-
-            try
-            {
-                foreach (var entry in StringsFile.Parse(content).Entries)
-                {
-                    if (entry.Value.Any(character => char.IsControl(character) || char.IsSurrogate(character)))
-                    {
-                        throw Invalid();
-                    }
-
-                    if (entries.TryGetValue(entry.Key, out var existing))
-                    {
-                        if (!string.Equals(existing, entry.Value, StringComparison.Ordinal))
-                        {
-                            throw ConflictingKey(locale, entry.Key, origins[(locale, entry.Key)], path);
-                        }
-
-                        continue;
-                    }
-
-                    entries.Add(entry.Key, entry.Value);
-                    origins.Add((locale, entry.Key), path);
-                }
-            }
-            catch (InvalidStringsLine)
-            {
-                throw Invalid();
-            }
+            MergeFile(accumulator, path, content);
         }
 
-        if (!locales.ContainsKey(defaultLocale))
+        if (!accumulator.Locales.ContainsKey(defaultLocale))
         {
             throw Invalid();
         }
 
-        return ArtifactRenderInput.Create(Name, Version, [.. Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new Catalog(defaultLocale, locales)))]);
+        return ArtifactRenderInput.Create(Name, Version, [.. Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new Catalog(defaultLocale, accumulator.Locales)))]);
     }
 
     internal static bool TryRead(ArtifactRenderInput input, out Catalog? catalog)
     {
         catalog = null;
-        if (input.Name != Name || input.Version != Version || input.Sha256 != Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(input.Bytes.AsSpan())))
+        if (!IsIntact(input))
         {
             return false;
         }
@@ -115,22 +63,12 @@ internal static class StringsCatalogInput
         try
         {
             var serialized = JsonSerializer.Deserialize<DictionaryCatalog>(new UTF8Encoding(false, true).GetString(input.Bytes.AsSpan()));
-            if (serialized is null || serialized.Locales is null || !LocalePattern().IsMatch(serialized.DefaultLocale) ||
-                !serialized.Locales.ContainsKey(serialized.DefaultLocale) ||
-                serialized.Locales.Keys.Distinct(StringComparer.OrdinalIgnoreCase).Count() != serialized.Locales.Count ||
-                serialized.Locales.Any(locale => !LocalePattern().IsMatch(locale.Key) || locale.Value?.Any(entry => !KeyPattern().IsMatch(entry.Key) ||
-                    entry.Value?.Any(character => char.IsControl(character) || char.IsSurrogate(character)) != false ||
-                    !StringsFileEntryValid(entry.Key, entry.Value)) != false))
+            if (!IsAdmissible(serialized))
             {
                 return false;
             }
 
-            var value = new Catalog(serialized.DefaultLocale, [with(comparer: StringComparer.Ordinal)]);
-            foreach (var (locale, entries) in serialized.Locales)
-            {
-                value.Locales.Add(locale, new SortedDictionary<string, string>(entries, StringComparer.Ordinal));
-            }
-
+            var value = ToCatalog(serialized!);
             if (!input.Bytes.SequenceEqual(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(value))))
             {
                 return false;
@@ -144,6 +82,109 @@ internal static class StringsCatalogInput
             return false;
         }
     }
+
+    static bool IsIntact(ArtifactRenderInput input) =>
+        input.Name == Name && input.Version == Version && input.Sha256 == Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(input.Bytes.AsSpan()));
+
+    static bool IsAdmissible(DictionaryCatalog? serialized) =>
+        serialized is { Locales: not null } &&
+        LocalePattern().IsMatch(serialized.DefaultLocale) &&
+        serialized.Locales.ContainsKey(serialized.DefaultLocale) &&
+        serialized.Locales.Keys.Distinct(StringComparer.OrdinalIgnoreCase).Count() == serialized.Locales.Count &&
+        serialized.Locales.All(locale => IsAdmissibleLocale(locale.Key, locale.Value));
+
+    static bool IsAdmissibleLocale(string locale, Dictionary<string, string>? entries) =>
+        LocalePattern().IsMatch(locale) && entries?.All(entry => IsAdmissibleEntry(entry.Key, entry.Value)) == true;
+
+    static bool IsAdmissibleEntry(string key, string? value) =>
+        KeyPattern().IsMatch(key) && value is not null && !HasUnsafeCharacter(value) && StringsFileEntryValid(key, value);
+
+    static bool HasUnsafeCharacter(string value) => value.Any(character => char.IsControl(character) || char.IsSurrogate(character));
+
+    static Catalog ToCatalog(DictionaryCatalog serialized)
+    {
+        var value = new Catalog(serialized.DefaultLocale, [with(comparer: StringComparer.Ordinal)]);
+        foreach (var (locale, entries) in serialized.Locales)
+        {
+            value.Locales.Add(locale, new SortedDictionary<string, string>(entries, StringComparer.Ordinal));
+        }
+
+        return value;
+    }
+
+    static void MergeFile(CatalogAccumulator accumulator, string path, string content)
+    {
+        var locale = LocaleOf(path);
+        if (accumulator.Locales.Keys.Any(existing => string.Equals(existing, locale, StringComparison.OrdinalIgnoreCase) && existing != locale))
+        {
+            throw Invalid();
+        }
+
+        if (!accumulator.Locales.TryGetValue(locale, out var entries))
+        {
+            entries = [with(comparer: StringComparer.Ordinal)];
+            accumulator.Locales.Add(locale, entries);
+        }
+
+        try
+        {
+            foreach (var entry in StringsFile.Parse(content).Entries)
+            {
+                MergeEntry(accumulator, new(locale, path), entry.Key, entry.Value);
+            }
+        }
+        catch (InvalidStringsLine)
+        {
+            throw Invalid();
+        }
+    }
+
+    static void MergeEntry(CatalogAccumulator accumulator, LocaleSource source, string key, string value)
+    {
+        var entries = accumulator.Locales[source.Locale];
+        if (HasUnsafeCharacter(value))
+        {
+            throw Invalid();
+        }
+
+        if (entries.TryGetValue(key, out var existing))
+        {
+            if (!string.Equals(existing, value, StringComparison.Ordinal))
+            {
+                throw ConflictingKey(source.Locale, key, accumulator.Origins[(source.Locale, key)], source.Path);
+            }
+
+            return;
+        }
+
+        entries.Add(key, value);
+        accumulator.Origins.Add((source.Locale, key), source.Path);
+    }
+
+    static string LocaleOf(string path)
+    {
+        var file = Path.GetFileName(path);
+        if (!IsSafeStringsPath(path, file))
+        {
+            throw Invalid();
+        }
+
+        var stem = file[..^".strings".Length];
+        var separator = stem.LastIndexOf('.');
+        if (separator <= 0 || !LocalePattern().IsMatch(stem[(separator + 1)..]))
+        {
+            throw Invalid();
+        }
+
+        return stem[(separator + 1)..];
+    }
+
+    static bool IsSafeStringsPath(string path, string file) =>
+        !path.StartsWith('/') &&
+        !path.Split('/').Any(_ => _.Length == 0 || _ == "." || _ == "..") &&
+        !path.Contains('\\') &&
+        !path.Any(char.IsControl) &&
+        file.EndsWith(".strings", StringComparison.Ordinal);
 
     internal static Catalog? From(ArtifactRenderProfile profile) =>
         profile.Inputs.FirstOrDefault(_ => _.Name == Name) is { } input && TryRead(input, out var catalog) ? catalog : null;
@@ -252,6 +293,15 @@ internal static class StringsCatalogInput
     {
         internal bool Contains(string reference) => Locales[DefaultLocale].ContainsKey(reference["$strings.".Length..]);
     }
+
+    sealed class CatalogAccumulator(SortedDictionary<string, SortedDictionary<string, string>> locales)
+    {
+        internal SortedDictionary<string, SortedDictionary<string, string>> Locales { get; } = locales;
+
+        internal Dictionary<(string Locale, string Key), string> Origins { get; } = [];
+    }
+
+    sealed record LocaleSource(string Locale, string Path);
 
     sealed record DictionaryCatalog(string DefaultLocale, Dictionary<string, Dictionary<string, string>> Locales);
 }

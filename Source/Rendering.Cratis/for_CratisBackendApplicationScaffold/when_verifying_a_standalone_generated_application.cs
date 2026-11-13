@@ -29,7 +29,7 @@ public class when_verifying_a_standalone_generated_application(when_verifying_a_
     [Fact] void should_reference_no_test_packages_in_release() => fixture.ReleaseAssets.Contains("\"xunit/", StringComparison.Ordinal).ShouldBeFalse();
     [Fact] void should_accept_the_long_match_and_reject_the_near_miss() => fixture.AssertLongMatchPassed("generated.trx");
     [Fact] void should_record_docker_availability_explicitly() => fixture.DockerEvidence.ShouldNotBeEmpty();
-    [Fact] void should_pass_health_when_docker_is_available() => (fixture.DockerAvailable ? fixture.HealthEvidence : fixture.DockerEvidence).ShouldEqual(fixture.DockerAvailable ? "GET /healthz returned 200." : fixture.DockerEvidence);
+    [Fact] void should_pass_health_when_docker_is_available() => (fixture.DockerAvailable ? fixture.HealthEvidence : fixture.DockerEvidence).ShouldEqual(fixture.DockerAvailable ? context.Healthy : fixture.DockerEvidence);
     [Fact] void should_serve_a_read_model_query_immediately_after_the_first_healthy_response_when_docker_is_available() => (fixture.DockerAvailable ? fixture.FirstQueryStatus : HttpStatusCode.OK).ShouldEqual(HttpStatusCode.OK);
 
     internal static ExecutableSemanticModel CreateLongMatchModel() => context.CreateLongMatchModel();
@@ -52,6 +52,8 @@ public class when_verifying_a_standalone_generated_application(when_verifying_a_
         internal string[] SpecSources { get; private set; } = null!;
         internal bool DockerAvailable { get; private set; }
         internal string DockerEvidence { get; private set; } = null!;
+        internal const string Healthy = "GET /healthz returned 200.";
+
         internal string HealthEvidence { get; private set; } = null!;
         internal HttpStatusCode FirstQueryStatus { get; private set; }
 
@@ -296,13 +298,22 @@ public class when_verifying_a_standalone_generated_application(when_verifying_a_
                 return chroniclePort.Failure;
             }
 
-            if (!await WaitForInfrastructure(mongoDBPort.Port, chroniclePort.Port))
+            var infrastructure = await WaitForInfrastructure(mongoDBPort.Port, chroniclePort.Port);
+            if (infrastructure.Length > 0)
             {
                 var logs = await container.Logs();
-                return $"The pinned Chronicle container did not expose ready MongoDB and Chronicle endpoints. {logs.Output}";
+                return $"The pinned Chronicle container did not become ready: {infrastructure} {logs.Output}";
             }
 
-            return await VerifyGeneratedHost(mongoDBPort.Port, chroniclePort.Port);
+            var evidence = await VerifyGeneratedHost(mongoDBPort.Port, chroniclePort.Port);
+            if (evidence != Healthy)
+            {
+                // The generated host reports only that it could not reach the kernel; the kernel's own log says why.
+                var logs = await container.Logs();
+                return $"{evidence}{Environment.NewLine}Chronicle container log:{Environment.NewLine}{logs.Output}";
+            }
+
+            return evidence;
         }
 
         async Task<string> VerifyGeneratedHost(int mongoDBPort, int chroniclePort)
@@ -356,7 +367,7 @@ public class when_verifying_a_standalone_generated_application(when_verifying_a_
                         new Uri($"http://127.0.0.1:{port}/api/projects/registration/project-lookup/project-by-id?projectId=4fa85f64-5717-4562-b3fc-2c963f66afa7"),
                         timeout.Token);
                     FirstQueryStatus = query.StatusCode;
-                    return "GET /healthz returned 200.";
+                    return Healthy;
                 }
 
                 if (!host.HasExited)
@@ -395,21 +406,46 @@ public class when_verifying_a_standalone_generated_application(when_verifying_a_
             return (port, string.Empty);
         }
 
-        static async Task<bool> WaitForInfrastructure(int mongoDBPort, int chroniclePort)
+        // An open port is not a ready kernel: the development container accepts connections before the kernel answers the client
+        // handshake. The kernel's own /health reports ready only once it does, so the generated host starts against a ready kernel.
+        // Returns why the infrastructure is not ready, or an empty string when it is.
+        static async Task<string> WaitForInfrastructure(int mongoDBPort, int chroniclePort)
         {
+            using var handler = new HttpClientHandler { AllowAutoRedirect = false, CheckCertificateRevocationList = true };
+#pragma warning disable MA0039 // The local development kernel on loopback uses a self-signed certificate
+            handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+#pragma warning restore MA0039
+            using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(5) };
+            var health = new Uri($"https://127.0.0.1:{chroniclePort}/health");
             using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+            var last = "MongoDB and Chronicle did not accept connections.";
             while (!timeout.IsCancellationRequested)
             {
                 if (await AcceptsConnections(mongoDBPort, timeout.Token) &&
                     await AcceptsConnections(chroniclePort, timeout.Token))
                 {
-                    return true;
+                    last = await KernelReadiness(client, health, timeout.Token);
+                    if (last.Length == 0) return string.Empty;
                 }
 
+                // Infrastructure readiness backoff, not an observer-completion wait.
                 await Task.Delay(TimeSpan.FromMilliseconds(500), timeout.Token).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
             }
 
-            return false;
+            return $"{last} (within 2 minutes)";
+        }
+
+        static async Task<string> KernelReadiness(HttpClient client, Uri health, CancellationToken cancellationToken)
+        {
+            try
+            {
+                using var response = await client.GetAsync(health, cancellationToken);
+                return response.IsSuccessStatusCode ? string.Empty : $"The Chronicle kernel health returned HTTP {(int)response.StatusCode}.";
+            }
+            catch (Exception exception) when (exception is HttpRequestException or OperationCanceledException)
+            {
+                return $"The Chronicle kernel health did not answer: {exception.GetType().Name}.";
+            }
         }
 
         static async Task<bool> AcceptsConnections(int port, CancellationToken cancellationToken)

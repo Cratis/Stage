@@ -516,13 +516,11 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticProducedEvent", rendered, "DestinationType");
         Add(entries, "SemanticInvocation", rendered, "Command Mappings OnRefused");
 
-        // Invoking an ability from a reaction, a workflow action or a state entry waits for Cratis/Stage#1118: STAGE-ESM-016 refuses the owner.
+        // Invoking an ability from a reaction waits for a Screenplay hook (Cratis/Screenplay#1309): STAGE-ESM-016 refuses the owner. Workflow
+        // actions and state entries invoke abilities in the runtime; their input mappings are admitted with the lifecycles below.
         var abilityInvocation = rejected("STAGE-ESM-016");
         Add(entries, "SemanticInvocation", abilityInvocation, "System Ability Inputs Branches");
         Add(entries, "SemanticInvocationBranch", abilityInvocation, "Selector Produces");
-        Add(entries, "SemanticAbilityInputMapping", abilityInvocation, "Input Source");
-        Add(entries, "SemanticInvocationValueExpression", abilityInvocation, "Source Member Type");
-        Add(entries, "SemanticExpressionKind", abilityInvocation, "InvocationValue");
         Add(entries, "SemanticAbilityAnswer", abilityInvocation, "System Ability Kind Outcome Reason Values");
         Add(entries, "SemanticAbilityAnswerKind", abilityInvocation, "Returned Outcome Failed");
         Add(entries, "SemanticAbilityFieldValue", abilityInvocation, "Name Value");
@@ -647,8 +645,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticState", rendered, "Name IsInitial IsFinal Entering");
         Add(entries, "SemanticStateEntry", rendered, "Kind Command Workflow");
         Add(entries, "SemanticStateEntryKind", rendered, "SendCommand StartWorkflow");
-        Add(entries, "SemanticStateEntry", abilityInvocation, "System Ability Inputs RequirementId");
-        Add(entries, "SemanticStateEntryKind", abilityInvocation, "InvokeAbility RunBody");
+        AddLifecycleAbilities(entries, lifecycleNotRendered, abilityInvocation);
         Add(entries, "SemanticStateTransition", rendered, "From Event Guard To");
         Add(entries, "SemanticWorkflow", rendered, "Name Subject Nodes Edges");
         Add(entries, "SemanticWorkflow", verifiedByTheReferenceEvaluator, "Specifications");
@@ -667,6 +664,19 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticLifecycleExpectationKind", verifiedByTheReferenceEvaluator, "Invokes");
 
         return entries;
+    }
+
+    // A state entry or a workflow action that invokes an ability runs in the runtime, which composes its input from literals, the subject and
+    // earlier nodes' fields; the renderer does not emit it yet. A state entry that runs a body, and every reaction invocation member, stay ESM-016.
+    static void AddLifecycleAbilities(Dictionary<string, SemanticSurfaceDisposition> entries, SemanticSurfaceDisposition notRendered, SemanticSurfaceDisposition gated)
+    {
+        Add(entries, "SemanticStateEntry", notRendered, "System Ability Inputs");
+        Add(entries, "SemanticStateEntryKind", notRendered, "InvokeAbility");
+        Add(entries, "SemanticAbilityInputMapping", notRendered, "Input Source");
+        Add(entries, "SemanticInvocationValueExpression", notRendered, "Source Member Type");
+        Add(entries, "SemanticExpressionKind", notRendered, "InvocationValue");
+        Add(entries, "SemanticStateEntry", gated, "RequirementId");
+        Add(entries, "SemanticStateEntryKind", gated, "RunBody");
     }
 
     static void Add(

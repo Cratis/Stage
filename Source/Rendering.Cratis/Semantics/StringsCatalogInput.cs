@@ -37,7 +37,8 @@ internal static class StringsCatalogInput
             throw Invalid();
         }
 
-        var accumulator = new CatalogAccumulator();
+        var locales = new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal);
+        var accumulator = new CatalogAccumulator(locales);
         foreach (var (path, content) in files.OrderBy(_ => _.Key, StringComparer.Ordinal))
         {
             MergeFile(accumulator, path, content);
@@ -93,7 +94,7 @@ internal static class StringsCatalogInput
         serialized.Locales.All(locale => IsAdmissibleLocale(locale.Key, locale.Value));
 
     static bool IsAdmissibleLocale(string locale, Dictionary<string, string>? entries) =>
-        LocalePattern().IsMatch(locale) && entries is not null && entries.All(entry => IsAdmissibleEntry(entry.Key, entry.Value));
+        LocalePattern().IsMatch(locale) && entries?.All(entry => IsAdmissibleEntry(entry.Key, entry.Value)) == true;
 
     static bool IsAdmissibleEntry(string key, string? value) =>
         KeyPattern().IsMatch(key) && value is not null && !HasUnsafeCharacter(value) && StringsFileEntryValid(key, value);
@@ -293,9 +294,9 @@ internal static class StringsCatalogInput
         internal bool Contains(string reference) => Locales[DefaultLocale].ContainsKey(reference["$strings.".Length..]);
     }
 
-    sealed class CatalogAccumulator
+    sealed class CatalogAccumulator(SortedDictionary<string, SortedDictionary<string, string>> locales)
     {
-        internal SortedDictionary<string, SortedDictionary<string, string>> Locales { get; } = new(StringComparer.Ordinal);
+        internal SortedDictionary<string, SortedDictionary<string, string>> Locales { get; } = locales;
 
         internal Dictionary<(string Locale, string Key), string> Origins { get; } = [];
     }

@@ -131,13 +131,16 @@ export const navigationPropertyPolicies: Record<string, Record<string, Navigatio
     menu: { items: list('MenuEntry') },
     menuItem: { targetScreen: screen, destination: child('DestinationReference'), items: list('MenuEntry'), children: list('MenuEntry') },
     logo: { targetScreen: screen, destination: child('DestinationReference') },
-    userMenu: { actions: list('MenuEntry') },
+    userMenu: { items: list('MenuEntry'), actions: list('MenuEntry') },
+    actionButton: { targetScreen: screen },
     button: { targetScreen: screen, destination: child('DestinationReference') },
     'core:button': { targetScreen: screen, destination: child('DestinationReference') },
     'core:guarded-action': navigationReferencePolicies.GuardedActionProperties,
     'core:action': { navigateToScreen: screen },
     'Stage:commandForm': { navigateToScreen: screen },
     'Stage:extensionComponent': { screen },
+    'Stage:confirmDialog': { home: screen, decisions: list('Decision') },
+    'Stage:navigationTree': { nodes: list('NavigationNode') },
     'core:table': { navigateOnRowClickToScreen: screen },
     'core:slot': { shows: screen },
     'core:outletItems': { items: list('OutletItem') },
@@ -150,6 +153,8 @@ export const navigationPropertyPolicies: Record<string, Record<string, Navigatio
 /** Open blueprint item payloads: ids/labels/routes are classified by their consumer, not by matching any string. */
 export const navigationItemPolicies = {
     BreadcrumbItem: { targetScreen: screen, screen, destination: child('DestinationReference') },
+    Decision: { navigateToScreen: screen },
+    NavigationNode: { screen, destination: child('DestinationReference'), children: list('NavigationNode') },
     MenuEntry: { targetScreen: screen, destination: child('DestinationReference'), target: child('DestinationReference'), children: list('MenuEntry'), items: list('MenuEntry') },
 };
 

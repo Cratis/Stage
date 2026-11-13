@@ -104,6 +104,23 @@ describe('the availability-filtered navigation view', () => {
         expect(result?.[1]).toEqual(model.instanceContributions[1]);
     });
 
+    it('filters destinations in runtime navigation trees and decision-dialog controls', () => {
+        const controls = [
+            { id: 'tree', componentName: 'Stage:navigationTree', properties: { nodes: [
+                { label: 'Available', screen: 'Home', children: [] },
+                { label: 'Denied', screen: 'Restricted', children: [] },
+            ] }, slots: {} },
+            { id: 'decisions', componentName: 'Stage:confirmDialog', properties: { home: 'Home', decisions: [
+                { command: 'Keep', navigateToScreen: 'Home' },
+                { command: 'Remove', navigateToScreen: 'Restricted' },
+            ] }, slots: {} },
+        ];
+        const model = { ...scene, screens: [{ ...scene.screens[1], slotContent: { content: controls } }] };
+        const content = availableNavigationScene(model, isAvailable).screens[0].slotContent.content;
+        expect(content[0].properties.nodes).toEqual([controls[0].properties.nodes?.[0]]);
+        expect(content[1].properties.decisions).toEqual([controls[1].properties.decisions?.[0]]);
+    });
+
     it('removes denied behavior actions without stripping unrelated command behavior', () => {
         const actions = [
             { kind: InteractionActionKind.Navigate, screen: 'Restricted' },

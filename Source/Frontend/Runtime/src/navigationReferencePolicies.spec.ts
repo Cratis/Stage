@@ -8,6 +8,7 @@ import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 import { arrangementNavigationPolicies, navigationReferencePolicies, type NavigationFieldPolicy } from './navigationReferencePolicies';
 import { navigationNonReferenceFields } from './navigationNonReferenceFields';
+import { consumerSources, navigationReads, unclassifiedConsumer } from './testing/navigationConsumers';
 
 const policies: Record<string, Record<string, NavigationFieldPolicy>> = { ...navigationReferencePolicies, ...arrangementNavigationPolicies };
 
@@ -61,6 +62,24 @@ describe('the semantic navigation field inventory', () => {
         const types = Object.assign({}, ...declarations(root).map(path => declaredFields(readFileSync(path, 'utf8'))));
         expect(Object.keys(types).length).toBeGreaterThan(150);
         expect(unclassifiedFields(types)).toEqual([]);
+    });
+
+    it('classifies authored navigation property readers in blueprint and runtime components, including collection item destinations', () => {
+        const require = createRequire(import.meta.url);
+        const blueprint = dirname(require.resolve('@cratis/scene.blueprint.default/package.json'));
+        const react = dirname(require.resolve('@cratis/scene.react/package.json'));
+        const runtime = dirname(new URL(import.meta.url).pathname);
+        const sources = [blueprint, runtime, join(react, 'core')].flatMap(consumerSources);
+        expect(sources.length).toBeGreaterThan(70);
+        expect(navigationReads(sources.find(source => source.name === 'UserMenu')!.source)).toContainEqual({ field: 'items', item: false });
+        expect(navigationReads(sources.find(source => source.name === 'ActionButtonControl')!.source)).toContainEqual({ field: 'targetScreen', item: false });
+        expect(sources.flatMap(({ name, source }) => unclassifiedConsumer(name, source))).toEqual([]);
+    });
+
+    it('rejects new consumer fields and new components without a navigation policy', () => {
+        expect(unclassifiedConsumer('UserMenu', "readOptionalString(element, 'href')")).toEqual(['UserMenu.href']);
+        expect(unclassifiedConsumer('FutureLink', "readOptionalString(element, 'targetScreen')")).toEqual(['FutureLink.targetScreen']);
+        expect(unclassifiedConsumer('UserMenu', "recordString(item, 'route')")).toEqual(['UserMenu.item.route']);
     });
 
     it('rejects future fields on reference, non-reference and new object shapes instead of silently treating them as data', () => {

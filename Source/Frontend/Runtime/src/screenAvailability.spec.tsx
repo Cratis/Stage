@@ -196,6 +196,44 @@ describe('screen availability', () => {
         expect(screen.queryAllByRole('link', { name: 'Home' }).some(link => link.getAttribute('href')?.includes('Restricted'))).toBe(false);
     });
 
+    it.each([
+        [false, 'pending'], [false, 'denied'], [false, 'failed'],
+        [true, 'pending'], [true, 'denied'], [true, 'failed'],
+    ] as const)('filters user-menu items and action-button destinations (regions=%s, %s)', async (regions, status) => {
+        const availability = () => status === 'pending' ? new Promise<Response>(() => {})
+            : status === 'failed' ? Promise.reject(new Error('Offline')) : respond(answer(false));
+        const controls = [
+            externalComponent('private-user-menu', ComponentName.UserMenu, { name: 'Example', items: [
+                { label: 'Allowed user destination', targetScreen: 'Home' },
+                { label: 'Private user destination', targetScreen: 'Restricted' },
+            ] }),
+            externalComponent('private-action-button', ComponentName.ActionButton, { label: 'Private action destination', targetScreen: 'Restricted' }),
+            externalComponent('private-logo', ComponentName.Logo, { label: 'Private logo destination', targetScreen: 'Restricted' }),
+        ];
+        const home = { ...screenOf('Home'), slotContent: { content: [...screenOf('Home').slotContent.content, ...controls] } };
+        renderStage(availability, '#/Home', { model: { ...scene, navigation: regions ? scene.navigation : undefined, screens: [home, screenOf('Restricted')] } });
+        await screen.findByRole('heading', { name: 'Home content' });
+        expect(screen.queryByRole('button', { name: 'Private action destination' })).toBeNull();
+        expect(screen.queryByText('Private logo destination')).toBeNull();
+        fireEvent.keyDown(screen.getByRole('button', { name: 'Open the menu for Example' }), { key: 'ArrowDown', code: 'ArrowDown' });
+        await screen.findByRole('menuitem', { name: 'Allowed user destination' });
+        expect(screen.queryByRole('menuitem', { name: 'Private user destination' })).toBeNull();
+        expect(document.querySelector('a[href*="Restricted"]')).toBeNull();
+    });
+
+    it('retains user-menu and action-button destinations when available', async () => {
+        const controls = [
+            externalComponent('available-user-menu', ComponentName.UserMenu, { name: 'Example', items: [{ label: 'Private user destination', targetScreen: 'Restricted' }] }),
+            externalComponent('available-action-button', ComponentName.ActionButton, { label: 'Private action destination', targetScreen: 'Restricted' }),
+        ];
+        const home = { ...screenOf('Home'), slotContent: { content: [...screenOf('Home').slotContent.content, ...controls] } };
+        renderStage(respond(answer(true)), '#/Home', { model: { ...scene, screens: [home, screenOf('Restricted')] } });
+        await screen.findByRole('button', { name: 'Private action destination' });
+        fireEvent.keyDown(screen.getByRole('button', { name: 'Open the menu for Example' }), { key: 'ArrowDown', code: 'ArrowDown' });
+        const entry = await screen.findByRole('menuitem', { name: 'Private user destination' });
+        expect(entry.getAttribute('href')).toContain('Restricted');
+    });
+
     it('retains an authored breadcrumb Home link when its destination is available', async () => {
         const breadcrumb = externalComponent('authored-private-breadcrumb', ComponentName.Breadcrumb, {
             homeTargetScreen: 'Restricted', items: [{ label: 'Authored private trail' }],

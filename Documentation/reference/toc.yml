@@ -36,6 +36,8 @@
   href: graph-rendering.md
 - name: Named sinks
   href: sinks.md
+- name: Provided values rendering
+  href: provided-values-rendering.md
 - name: Onboarding rendering
   href: onboarding-rendering.md
 - name: Plan artifacts from Screenplay sources

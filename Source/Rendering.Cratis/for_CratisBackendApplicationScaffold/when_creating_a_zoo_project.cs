@@ -27,6 +27,7 @@ public class when_creating_a_zoo_project : Specification
             "GeneratedAuthentication.cs",
             "GeneratedAuthenticationPerimeter.cs",
             "GeneratedPolicyRegistration.cs",
+            "GeneratedProvideRegistration.cs",
             "GlobalUsings.cs",
             "Program.cs",
             "README.md",

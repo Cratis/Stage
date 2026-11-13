@@ -246,6 +246,8 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             artifacts.AddRange(SemanticQueryNarrowingRendering.Render(context, slices).Select(Artifact));
         }
 
+        if (SemanticProvidedValueRendering.Render(context) is { } provided) artifacts.Add(Artifact(provided));
+
         foreach (var located in slices)
         {
             var renderer = SemanticSliceArtifactRenderers.Ordered.FirstOrDefault(_ => _.Handles(located)) ??

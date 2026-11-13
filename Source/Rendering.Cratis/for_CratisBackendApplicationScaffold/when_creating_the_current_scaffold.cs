@@ -23,6 +23,7 @@ public class when_creating_the_current_scaffold : a_current_scaffold
         "GeneratedAuthentication.cs",
         "GeneratedAuthenticationPerimeter.cs",
         "GeneratedPolicyRegistration.cs",
+        "GeneratedProvideRegistration.cs",
         "GlobalUsings.cs",
         "MyApp.csproj",
         "MyApp.slnx",

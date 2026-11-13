@@ -38,6 +38,7 @@ public sealed partial class CratisBackendApplicationScaffold
             ("GeneratedAuthentication.cs", Authentication(request)),
             ("GeneratedAuthenticationPerimeter.cs", AuthenticationPerimeter(request)),
             ("GeneratedPolicyRegistration.cs", PolicyRegistration(request)),
+            ("GeneratedProvideRegistration.cs", ProvideRegistration(request)),
             ("GlobalUsings.cs", GlobalUsings()),
             ("appsettings.json", AppSettings(request)),
             ("docker-compose.yml", DockerCompose(profile))
@@ -116,6 +117,7 @@ public sealed partial class CratisBackendApplicationScaffold
         builder.Services.AddEventSourcedStateMachines();
         builder.Services.AddEventSourcedWorkflows();
         {{request.RootNamespace}}.GeneratedPolicies.Registration.Register(builder.Services);
+        {{request.RootNamespace}}.GeneratedProvides.Registration.Register(builder.Services);
         {{request.RootNamespace}}.GeneratedAuthentication.Authentication.Add(builder);
         ConfigureServices(builder);
 
@@ -151,6 +153,27 @@ public sealed partial class CratisBackendApplicationScaffold
         {
             /// <summary>
             /// Registers generated policies when the application contains protected operations.
+            /// </summary>
+            /// <param name="services">The application's services.</param>
+            public static void Register(IServiceCollection services) => RegisterGenerated(services);
+
+            static partial void RegisterGenerated(IServiceCollection services);
+        }
+        """;
+
+    static string ProvideRegistration(CratisBackendApplicationScaffoldRequest request) =>
+        $$"""
+        using Microsoft.Extensions.DependencyInjection;
+
+        namespace {{request.RootNamespace}}.GeneratedProvides;
+
+        /// <summary>
+        /// Registers the values the Screenplay application provides to its request context.
+        /// </summary>
+        public static partial class Registration
+        {
+            /// <summary>
+            /// Registers the provided value resolvers when the model provides values.
             /// </summary>
             /// <param name="services">The application's services.</param>
             public static void Register(IServiceCollection services) => RegisterGenerated(services);

@@ -169,7 +169,7 @@ public static class ExtensionHttpEndpoints
         }
         catch (RpcException exception)
         {
-            if (exception.StatusCode == StatusCode.Unavailable) connections.Forget(system);
+            connections.ForgetWhenLost(connection, exception);
             return Results.StatusCode(exception.StatusCode == StatusCode.DeadlineExceeded ? StatusCodes.Status504GatewayTimeout : StatusCodes.Status502BadGateway);
         }
     }

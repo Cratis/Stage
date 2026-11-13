@@ -46,6 +46,30 @@ jobs:
         id: nuget
         uses: Cratis/Workflows/.github/actions/dotnet-cache@main
 
+      # The cache action restores by key prefix (restore-keys) when the exact key misses, so the
+      # runner starts with every older package version ever saved. Restoring on top and saving
+      # would keep that stale set forever and every PR job would download it. When there is no
+      # exact hit, empty the global-packages folder so the restore below repopulates it and the
+      # saved cache holds only the versions the current dependency graph resolves.
+      - name: Prune stale NuGet packages
+        if: steps.nuget.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          listing=$(dotnet nuget locals global-packages --list)
+          dir=${listing#global-packages: }
+          dir=${dir%$'\r'}
+          while [[ "$dir" == */ && "$dir" != / ]]; do dir=${dir%/}; done
+          expected="$HOME/.nuget/packages"
+          if [[ -z "$dir" || "$dir" != /* || "${dir##*/}" != 'packages' || "${dir%/*}" != "$HOME/.nuget" || "$dir" != "$expected" ]]; then
+            echo "::error::Refusing to prune unexpected NuGet global-packages path: '$dir' (expected '$expected')."
+            exit 1
+          fi
+          if [[ -d "$dir" ]]; then
+            find "$dir" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
+          fi
+          echo "Emptied $dir before restore."
+
       - name: Restore solution packages
         if: steps.nuget.outputs.cache-hit != 'true'
         run: dotnet restore --verbosity minimal

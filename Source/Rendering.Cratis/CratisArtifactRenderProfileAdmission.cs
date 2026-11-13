@@ -58,6 +58,30 @@ static class CratisArtifactRenderProfileAdmission
             TryAdmitServiceLayout(profile, strictOptions!, out admittedOptions, out mismatch);
     }
 
+    internal static bool TryGetOptions(ArtifactRenderProfile profile, out CratisRenderingOptions? options)
+    {
+        options = null;
+        var projectInputs = profile.Inputs
+            .Where(input => input.Name.StartsWith(ProjectInputPrefix, StringComparison.Ordinal) &&
+                            input.Name.EndsWith(".csproj", StringComparison.Ordinal) &&
+                            !ContainsSeparator(input.Name[ProjectInputPrefix.Length..]))
+            .ToArray();
+        if (projectInputs.Length != 1)
+        {
+            return false;
+        }
+
+        try
+        {
+            options = ReadOptions(profile, projectInputs[0]);
+            return options is not null;
+        }
+        catch (Exception exception) when (exception is DecoderFallbackException or XmlException)
+        {
+            return false;
+        }
+    }
+
     static bool TryAdmitExpectedProfile(ProfileAdmissionTarget target, CratisRenderingOptions options, out ArtifactRenderProfile? expected, out string mismatch)
     {
         var profile = target.Profile;
@@ -81,30 +105,6 @@ static class CratisArtifactRenderProfileAdmission
     {
         var scaffold = profile.Inputs.Where(input => !IsComposedScene(input) && !CratisScaffoldProtocolInputs.Contains(input.Name)).ToArray();
         return scaffold.Length == expected.Inputs.Length && scaffold.Zip(expected.Inputs).All(InputMatches);
-    }
-
-    internal static bool TryGetOptions(ArtifactRenderProfile profile, out CratisRenderingOptions? options)
-    {
-        options = null;
-        var projectInputs = profile.Inputs
-            .Where(input => input.Name.StartsWith(ProjectInputPrefix, StringComparison.Ordinal) &&
-                            input.Name.EndsWith(".csproj", StringComparison.Ordinal) &&
-                            !ContainsSeparator(input.Name[ProjectInputPrefix.Length..]))
-            .ToArray();
-        if (projectInputs.Length != 1)
-        {
-            return false;
-        }
-
-        try
-        {
-            options = ReadOptions(profile, projectInputs[0]);
-            return options is not null;
-        }
-        catch (Exception exception) when (exception is DecoderFallbackException or XmlException)
-        {
-            return false;
-        }
     }
 
     static bool ContainsSeparator(string path) => path.Contains('/') || path.Contains('\\');

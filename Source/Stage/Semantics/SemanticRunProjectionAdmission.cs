@@ -37,11 +37,15 @@ internal static partial class SemanticRunProjectionAdmission
 
     static SemanticUnsupportedCapability? CheckProjections(SemanticExecutionPlan plan, SemanticSpecification specification, IEnumerable<SemanticId> reachableEvents)
     {
-        var emptyQuery = specification.When is null && specification.WhenAppended is null && specification.GivenEvents.IsEmpty &&
-            specification.GivenReadModels.IsEmpty && specification.ThenQueries.Length == 1 && specification.ThenQueries[0].Results.IsEmpty;
-
         var reachable = reachableEvents.ToHashSet();
+        return CheckRequestedProjections(plan, specification, reachable) ??
+            CheckSeededReadModels(plan, specification) ??
+            CheckAssertedReadModels(plan, specification) ??
+            CheckAssertedQueries(plan, specification);
+    }
 
+    static SemanticUnsupportedCapability? CheckRequestedProjections(SemanticExecutionPlan plan, SemanticSpecification specification, HashSet<SemanticId> reachable)
+    {
         // Match the reference projector's identity order, not the plan dictionary's hash order.
         var requested = plan.Projections.Values.Where(value => value.Target != SemanticProjectionTargetKind.Event && (
             specification.GivenReadModels.Any(state => state.ReadModel == value.ReadModel) ||
@@ -72,6 +76,11 @@ internal static partial class SemanticRunProjectionAdmission
             }
         }
 
+        return null;
+    }
+
+    static SemanticUnsupportedCapability? CheckSeededReadModels(SemanticExecutionPlan plan, SemanticSpecification specification)
+    {
         foreach (var seed in specification.GivenReadModels.GroupBy(seed => (seed.ReadModel, seed.Key)).Select(group => group.Last()))
         {
             if (!plan.ReadModels.TryGetValue(seed.ReadModel, out var model))
@@ -86,6 +95,11 @@ internal static partial class SemanticRunProjectionAdmission
             }
         }
 
+        return null;
+    }
+
+    static SemanticUnsupportedCapability? CheckAssertedReadModels(SemanticExecutionPlan plan, SemanticSpecification specification)
+    {
         var assertedModels = specification.ThenReadModels.Select(assertion => assertion.ReadModel)
             .Concat(specification.ThenAbsentReadModels.Select(assertion => assertion.ReadModel));
         foreach (var readModel in assertedModels)
@@ -95,6 +109,15 @@ internal static partial class SemanticRunProjectionAdmission
                 return new(StageExecutionCapability.Projection, readModel.ToString(), "The asserted read model has no projection in this run.");
             }
         }
+
+        return null;
+    }
+
+    static SemanticUnsupportedCapability? CheckAssertedQueries(SemanticExecutionPlan plan, SemanticSpecification specification)
+    {
+        var emptyQuery = specification.When is null && specification.WhenAppended is null && specification.GivenEvents.IsEmpty &&
+            specification.GivenReadModels.IsEmpty && specification.ThenQueries.Length == 1 && specification.ThenQueries[0].Results.IsEmpty;
+
         foreach (var assertion in specification.ThenQueries)
         {
             if (emptyQuery && plan.Queries.ContainsKey(assertion.Query)) continue;
@@ -146,6 +169,17 @@ internal static partial class SemanticRunProjectionAdmission
     static string? Rejection(SemanticExecutionPlan plan, SemanticProjection projection, SemanticReadModel readModel, SemanticSpecification specification, HashSet<SemanticId> reachable)
     {
         if (SemanticKeyedRootJoinOrdering.Divergence([projection], specification) is { } orderingReason) return orderingReason;
+        if (NamingRejection(plan, projection, readModel) is { } naming) return naming;
+        if (readModel.Properties.Count(property => property.IsIdentifier) > 1)
+        {
+            return CompositeProjectionRejection(plan, specification, projection, reachable);
+        }
+
+        return IdentifierRejection(plan, projection, readModel, specification, reachable);
+    }
+
+    static string? NamingRejection(SemanticExecutionPlan plan, SemanticProjection projection, SemanticReadModel readModel)
+    {
         if (ProjectionReferencedEventNamesAreUnique.Contracts(projection)
             .Any(id => plan.Events.TryGetValue(id, out var @event) && !SemanticRunAdmission.RuntimePropertyNamesAreUnique(@event.Properties)))
         {
@@ -178,11 +212,12 @@ internal static partial class SemanticRunProjectionAdmission
         {
             return "Read-model property names are not unique under case-insensitive runtime JSON binding.";
         }
-        if (readModel.Properties.Count(property => property.IsIdentifier) > 1)
-        {
-            return CompositeProjectionRejection(plan, specification, projection, reachable);
-        }
 
+        return null;
+    }
+
+    static string? IdentifierRejection(SemanticExecutionPlan plan, SemanticProjection projection, SemanticReadModel readModel, SemanticSpecification specification, HashSet<SemanticId> reachable)
+    {
         var identifier = readModel.Properties.Single(property => property.IsIdentifier);
         var primitive = identifier.Type.Kind == SemanticTypeReferenceKind.Concept
             ? plan.Model.Application.Concepts.Single(concept => concept.Id == identifier.Type.Target).Primitive : identifier.Type.Primitive;
@@ -191,58 +226,97 @@ internal static partial class SemanticRunProjectionAdmission
             return "A per-run projection's identifier must be a text or UUID key.";
         }
 
-        if (projection.Scope is { } scope)
+        return projection.Scope is { } scope
+            ? ScopedRejection(plan, projection, scope, readModel, specification, reachable)
+            : FlatRejection(plan, projection, readModel, specification);
+    }
+
+    static string? ScopedRejection(SemanticExecutionPlan plan, SemanticProjection projection, SemanticProjectionScope scope, SemanticReadModel readModel, SemanticSpecification specification, HashSet<SemanticId> reachable)
+    {
+        return ScopeFeatureRejection(plan, scope, readModel, specification, reachable) ??
+            ScopeKeyRejection(plan, scope, readModel, specification, reachable) ??
+            ScopeLoweringRejection(plan, projection, scope, readModel, specification);
+    }
+
+    static string? ScopeFeatureRejection(SemanticExecutionPlan plan, SemanticProjectionScope scope, SemanticReadModel readModel, SemanticSpecification specification, HashSet<SemanticId> reachable)
+    {
+        if (scope.Children.Any(child => ChildNullMappings(plan, child.Scope)))
         {
-            if (scope.Children.Any(child => ChildNullMappings(plan, child.Scope)))
-                return "An optional child source or null literal cannot preserve the distinction between a missing member and an explicit null in Chronicle's typed child instances.";
-            if ((!scope.Children.IsEmpty || !scope.Joins.IsEmpty) && specification.GivenReadModels.Any(seed => seed.ReadModel == readModel.Id))
-                return "Structured projection fixtures with children or joins are not admitted: replacing parent history must also replace child and join history.";
-            var rejection = SemanticScopedProjectionSupport.Rejection(scope, new SemanticApplicationContext(plan), readModel.Properties);
-            if (rejection is not null)
-            {
-                return $"The spec runner cannot execute this projection shape: {rejection}";
-            }
-            if (HasProductOutsideFrom(scope))
-            {
-                return "A join or child level adds or subtracts a product of two event values (ESM v29); only a root from block can carry the product on its event.";
-            }
-            if (ProductRejection(plan, scope, readModel, reachable) is { } product)
-            {
-                return $"A projection adds or subtracts a product of two event values (ESM v29) that cannot be carried on the event: {product}.";
-            }
-            if (scope.Removals.Any(removal => !RemovalKeySupported(plan, removal, identifier.Type)))
-            {
-                return "A per-run removal key must be the event source or one required scalar event property with the identifier's value type.";
-            }
-            var sourceKeyedRemovals = scope.Removals.Where(removal => removal.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity });
-            if (scope.Every is { SubscribesToAllEvents: true }
-                ? reachable.Any(eventContract => !scope.Removals.Any(removal => removal.EventContract == eventContract &&
-                    removal.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty }) &&
-                    !ScopedKeysMatch(plan, specification, eventContract, identifier.Type))
-                : scope.From.Where(from => from.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity })
-                    .Select(from => from.EventContract).Concat(sourceKeyedRemovals.Select(removal => removal.EventContract))
-                    .Any(eventContract => reachable.Contains(eventContract) && !ScopedKeysMatch(plan, specification, eventContract, identifier.Type)))
-            {
-                return "A scoped event-source key must have the read-model identifier's value type and enumeration values.";
-            }
-            if (projection.Transitions.Length > 0 ||
-                scope.Removals.Any(removal => removal.ParentKey is not null) ||
-                scope.JoinRemovals.Length > 0 || scope.Nested.Length > 0 ||
-                scope.Joins.Any(join => join.Mappings.Any(mapping => !MappingSupported(mapping))) ||
-                scope.Children.Any(child => !ChildrenSupported(plan, specification, child, readModel.Properties, identifier.Type)) ||
-                (scope.Every is { } every && every.Mappings.Any(mapping => mapping.Operation != SemanticProjectionOperation.Set ||
-                    mapping.Target.Length != 1 || mapping.Source is not (SemanticProjectionEventSourceIdentity or SemanticProjectionLiteral))) ||
-                scope.From.Any(from => from.ParentKey is not null || !FromKeySupported(plan, specification, from, identifier.Type) ||
-                    from.Mappings.Any(mapping => !MappingSupported(mapping))))
-            {
-                return "This admitted ESM scope needs a per-run lowering beyond scalar from/set mappings.";
-            }
-            return scope.Joins.Any(join => !JoinIdentityMatches(plan, specification, join, readModel.Properties, childIdentity: null)) ||
-                scope.Children.Any(child => !ChildJoinIdentitiesMatch(plan, specification, child, readModel.Properties))
-                ? JoinIdentityRefusal
-                : null;
+            return "An optional child source or null literal cannot preserve the distinction between a missing member and an explicit null in Chronicle's typed child instances.";
+        }
+        if ((!scope.Children.IsEmpty || !scope.Joins.IsEmpty) && specification.GivenReadModels.Any(seed => seed.ReadModel == readModel.Id))
+        {
+            return "Structured projection fixtures with children or joins are not admitted: replacing parent history must also replace child and join history.";
+        }
+        var rejection = SemanticScopedProjectionSupport.Rejection(scope, new SemanticApplicationContext(plan), readModel.Properties);
+        if (rejection is not null)
+        {
+            return $"The spec runner cannot execute this projection shape: {rejection}";
+        }
+        if (HasProductOutsideFrom(scope))
+        {
+            return "A join or child level adds or subtracts a product of two event values (ESM v29); only a root from block can carry the product on its event.";
+        }
+        if (ProductRejection(plan, scope, readModel, reachable) is { } product)
+        {
+            return $"A projection adds or subtracts a product of two event values (ESM v29) that cannot be carried on the event: {product}.";
         }
 
+        return null;
+    }
+
+    static string? ScopeKeyRejection(SemanticExecutionPlan plan, SemanticProjectionScope scope, SemanticReadModel readModel, SemanticSpecification specification, HashSet<SemanticId> reachable)
+    {
+        var identifier = readModel.Properties.Single(property => property.IsIdentifier).Type;
+        if (scope.Removals.Any(removal => !RemovalKeySupported(plan, removal, identifier)))
+        {
+            return "A per-run removal key must be the event source or one required scalar event property with the identifier's value type.";
+        }
+
+        return ScopedEventSourceKeysMatch(plan, scope, specification, reachable, identifier)
+            ? null
+            : "A scoped event-source key must have the read-model identifier's value type and enumeration values.";
+    }
+
+    static bool ScopedEventSourceKeysMatch(SemanticExecutionPlan plan, SemanticProjectionScope scope, SemanticSpecification specification, HashSet<SemanticId> reachable, SemanticTypeReference identifier)
+    {
+        if (scope.Every is { SubscribesToAllEvents: true })
+        {
+            return !reachable.Any(eventContract => !scope.Removals.Any(removal => removal.EventContract == eventContract &&
+                removal.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty }) &&
+                !ScopedKeysMatch(plan, specification, eventContract, identifier));
+        }
+
+        var sourceKeyedRemovals = scope.Removals.Where(removal => removal.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity });
+        return !scope.From.Where(from => from.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity })
+            .Select(from => from.EventContract).Concat(sourceKeyedRemovals.Select(removal => removal.EventContract))
+            .Any(eventContract => reachable.Contains(eventContract) && !ScopedKeysMatch(plan, specification, eventContract, identifier));
+    }
+
+    static string? ScopeLoweringRejection(SemanticExecutionPlan plan, SemanticProjection projection, SemanticProjectionScope scope, SemanticReadModel readModel, SemanticSpecification specification)
+    {
+        var identifier = readModel.Properties.Single(property => property.IsIdentifier).Type;
+        if (projection.Transitions.Length > 0 ||
+            scope.Removals.Any(removal => removal.ParentKey is not null) ||
+            scope.JoinRemovals.Length > 0 || scope.Nested.Length > 0 ||
+            scope.Joins.Any(join => join.Mappings.Any(mapping => !MappingSupported(mapping))) ||
+            scope.Children.Any(child => !ChildrenSupported(plan, specification, child, readModel.Properties, identifier)) ||
+            (scope.Every is { } every && every.Mappings.Any(mapping => mapping.Operation != SemanticProjectionOperation.Set ||
+                mapping.Target.Length != 1 || mapping.Source is not (SemanticProjectionEventSourceIdentity or SemanticProjectionLiteral))) ||
+            scope.From.Any(from => from.ParentKey is not null || !FromKeySupported(plan, specification, from, identifier) ||
+                from.Mappings.Any(mapping => !MappingSupported(mapping))))
+        {
+            return "This admitted ESM scope needs a per-run lowering beyond scalar from/set mappings.";
+        }
+
+        return scope.Joins.Any(join => !JoinIdentityMatches(plan, specification, join, readModel.Properties, childIdentity: null)) ||
+            scope.Children.Any(child => !ChildJoinIdentitiesMatch(plan, specification, child, readModel.Properties))
+            ? JoinIdentityRefusal
+            : null;
+    }
+
+    static string? FlatRejection(SemanticExecutionPlan plan, SemanticProjection projection, SemanticReadModel readModel, SemanticSpecification specification)
+    {
         if (readModel.Properties.Any(property => property.Type.IsCollection || !IsScalar(property.Type)) || projection.Transitions.IsEmpty || projection.Transitions.Select(transition => transition.EventContract).Distinct().Count() != projection.Transitions.Length ||
             projection.Transitions.Any(transition => !FlatMatches(plan, specification, transition, readModel)))
         {
@@ -416,69 +490,86 @@ internal static partial class SemanticRunProjectionAdmission
 
     static bool ScopedKeysMatch(SemanticExecutionPlan plan, SemanticSpecification specification, SemanticId eventContract, SemanticTypeReference identifier, SemanticId? keyProperty = null)
     {
-        bool Matches(SemanticEventSourceIdentity? source) => source is not null &&
-            SourceTypeMatches(plan, source.Type, identifier) &&
-            source.Value is SemanticTextValue text &&
-            (Primitive(plan, identifier) != SemanticPrimitiveType.Uuid ||
-                (Guid.TryParseExact(text.Value, "D", out var uuid) && uuid.ToString("D") == text.Value)) &&
-            (identifier.Kind != SemanticTypeReferenceKind.Concept ||
-                plan.Model.Application.Concepts.Single(concept => concept.Id == identifier.Target).Values is not { IsEmpty: false } values || values.Contains(text.Value));
+        var check = new ScopedKeyCheck(plan, specification, eventContract, identifier, keyProperty);
+        return check.FactsMatch() && check.CapturesMatch() && check.CommandMatches();
+    }
 
-        SemanticEventSourceIdentity? Key(SemanticEventSourceIdentity? source, IEnumerable<SemanticPropertyValue> values) =>
-            keyProperty is { } property ? new(
-                plan.Events[eventContract].Properties.Single(candidate => candidate.Id == property).Type,
-                values.SingleOrDefault(value => value.TargetProperty == property)?.Value ?? SemanticValue.Null) : source;
-
-        if (specification.GivenEvents.Any(given => given.EventContract == eventContract && !Matches(Key(given.EventSource, given.Values))) ||
-            (specification.WhenAppended is { } appended && appended.EventContract == eventContract && !Matches(Key(appended.EventSource, appended.Values))))
-        {
-            return false;
-        }
+    /// <summary>
+    /// The event-source keys of one event contract, checked against the identifier a scoped projection keys on.
+    /// </summary>
+    sealed record ScopedKeyCheck(SemanticExecutionPlan Plan, SemanticSpecification Specification, SemanticId EventContract, SemanticTypeReference Identifier, SemanticId? KeyProperty)
+    {
+        public bool FactsMatch() =>
+            !(Specification.GivenEvents.Any(given => given.EventContract == EventContract && !Matches(Key(given.EventSource, given.Values))) ||
+                (Specification.WhenAppended is { } appended && appended.EventContract == EventContract && !Matches(Key(appended.EventSource, appended.Values))));
 
         // An event a capture appends takes the capture's key as its event source: the named field of the event it observes.
-        foreach (var capture in plan.Captures.Values.Where(capture => capture.EventsSource is not null && capture.Appends.Any(append => append.EventContract == eventContract)))
+        public bool CapturesMatch()
         {
-            var observations = specification.GivenEvents.Select(given => (given.EventContract, given.Values))
-                .Concat(specification.WhenAppended is { } trigger ? [(trigger.EventContract, trigger.Values)] : []);
-            foreach (var observed in observations.Where(fact => capture.EventsSource!.Events.Contains(fact.EventContract)))
+            foreach (var capture in Plan.Captures.Values.Where(capture => capture.EventsSource is not null && capture.Appends.Any(append => append.EventContract == EventContract)))
             {
-                var field = plan.Events[observed.EventContract].Properties.SingleOrDefault(property => string.Equals(property.Name, capture.Key, StringComparison.Ordinal));
-                var value = field is null ? null : observed.Values.SingleOrDefault(candidate => candidate.TargetProperty == field.Id)?.Value;
-                if (field is null || value is null || !Matches(new(field.Type, value)))
+                var observations = Specification.GivenEvents.Select(given => (given.EventContract, given.Values))
+                    .Concat(Specification.WhenAppended is { } trigger ? [(trigger.EventContract, trigger.Values)] : []);
+                foreach (var observed in observations.Where(fact => capture.EventsSource!.Events.Contains(fact.EventContract)))
+                {
+                    var field = Plan.Events[observed.EventContract].Properties.SingleOrDefault(property => string.Equals(property.Name, capture.Key, StringComparison.Ordinal));
+                    var value = field is null ? null : observed.Values.SingleOrDefault(candidate => candidate.TargetProperty == field.Id)?.Value;
+                    if (field is null || value is null || !Matches(new(field.Type, value)))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        public bool CommandMatches()
+        {
+            if (Specification.When is not { } when || !Plan.Commands.TryGetValue(when.Command, out var command) ||
+                !Specification.ThenErrors.IsEmpty || Specification.ThenDenied)
+            {
+                return true;
+            }
+
+            foreach (var produced in command.Produces.Where(produced => produced.EventContract == EventContract))
+            {
+                var destination = KeyProperty is { } key
+                    ? produced.Mappings.SingleOrDefault(mapping => mapping.TargetProperty == key)?.Source
+                    : produced.Destination ?? command.Destination?.Value;
+                if (KeyProperty is not null && destination is null) return false;
+                var value = destination switch
+                {
+                    SemanticResolvedExpression { Root: SemanticExpressionRootKind.Command, Source: SemanticExpressionSourceKind.Property } property =>
+                        when.Values.Concat(when.GeneratedValues).SingleOrDefault(input => input.TargetProperty == property.Target)?.Value,
+                    SemanticValueExpression literal => literal.Value,
+                    null => when.EventSource?.Value,
+                    _ => null
+                };
+                var type = destination is SemanticResolvedExpression resolved
+                    ? command.Properties.Single(property => property.Id == resolved.Target).Type : command.Destination?.Type ?? when.EventSource?.Type;
+                if (KeyProperty is { } propertyKey) type = Plan.Events[EventContract].Properties.Single(property => property.Id == propertyKey).Type;
+                if (type is null || value is null || !Matches(new(type, value)))
                 {
                     return false;
                 }
             }
-        }
 
-        if (specification.When is not { } when || !plan.Commands.TryGetValue(when.Command, out var command) ||
-            !specification.ThenErrors.IsEmpty || specification.ThenDenied)
-        {
             return true;
         }
-        foreach (var produced in command.Produces.Where(produced => produced.EventContract == eventContract))
-        {
-            var destination = keyProperty is { } key
-                ? produced.Mappings.SingleOrDefault(mapping => mapping.TargetProperty == key)?.Source
-                : produced.Destination ?? command.Destination?.Value;
-            if (keyProperty is not null && destination is null) return false;
-            var value = destination switch
-            {
-                SemanticResolvedExpression { Root: SemanticExpressionRootKind.Command, Source: SemanticExpressionSourceKind.Property } property =>
-                    when.Values.Concat(when.GeneratedValues).SingleOrDefault(input => input.TargetProperty == property.Target)?.Value,
-                SemanticValueExpression literal => literal.Value,
-                null => when.EventSource?.Value,
-                _ => null
-            };
-            var type = destination is SemanticResolvedExpression resolved
-                ? command.Properties.Single(property => property.Id == resolved.Target).Type : command.Destination?.Type ?? when.EventSource?.Type;
-            if (keyProperty is { } propertyKey) type = plan.Events[eventContract].Properties.Single(property => property.Id == propertyKey).Type;
-            if (type is null || value is null || !Matches(new(type, value)))
-            {
-                return false;
-            }
-        }
-        return true;
+
+        bool Matches(SemanticEventSourceIdentity? source) => source is not null &&
+            SourceTypeMatches(Plan, source.Type, Identifier) &&
+            source.Value is SemanticTextValue text &&
+            (Primitive(Plan, Identifier) != SemanticPrimitiveType.Uuid ||
+                (Guid.TryParseExact(text.Value, "D", out var uuid) && uuid.ToString("D") == text.Value)) &&
+            (Identifier.Kind != SemanticTypeReferenceKind.Concept ||
+                Plan.Model.Application.Concepts.Single(concept => concept.Id == Identifier.Target).Values is not { IsEmpty: false } values || values.Contains(text.Value));
+
+        SemanticEventSourceIdentity? Key(SemanticEventSourceIdentity? source, IEnumerable<SemanticPropertyValue> values) =>
+            KeyProperty is { } property ? new(
+                Plan.Events[EventContract].Properties.Single(candidate => candidate.Id == property).Type,
+                values.SingleOrDefault(value => value.TargetProperty == property)?.Value ?? SemanticValue.Null) : source;
     }
 
     static bool SameScalar(SemanticValue left, SemanticValue right) => (left, right) switch

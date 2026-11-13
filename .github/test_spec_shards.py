@@ -242,7 +242,11 @@ class SpecShardsTests(unittest.TestCase):
         self.assertEqual(1, workflow.count(command))
         self.assertIn(command, jobs["preflight"])
         self.assertNotIn("setup-dotnet", jobs["preflight"])
-        for name in ("dotnet-build", "analyzers", "frontend", "release-pack", "specs", "reducer-mongo", "generated-name-matrix",
+        # The producer, analyzers and Release pack need only routing, so preflight does not delay them; the
+        # aggregate still requires preflight, and specs stay blocked by it.
+        for name in ("dotnet-build", "analyzers", "release-pack"):
+            self.assertNotRegex(jobs[name], r"needs: (?:\[[^\]\n]*)?preflight\b")
+        for name in ("frontend", "specs", "reducer-mongo", "generated-name-matrix",
                      "standalone-generated-application",
                      "live-custom-packages", "generated-react", "generated-react-blueprint-templates", "build"):
             self.assertRegex(jobs[name], r"needs: (?:\[[^\]\n]*)?preflight\b")

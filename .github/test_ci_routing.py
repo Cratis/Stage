@@ -344,8 +344,8 @@ class RoutingTests(unittest.TestCase):
         self.assertIn("NIGHTLY_DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}", job)
 
     def test_frontend_and_release_pack_run_beside_the_debug_build_and_stay_required(self):
-        for job in ("frontend", "release-pack"):
-            self.assertIn("    needs: [preflight, routing]\n", JOBS[job], job)
+        self.assertIn("    needs: [preflight, routing]\n", JOBS["frontend"])
+        self.assertIn("    needs: routing\n", JOBS["release-pack"])
         moved = {
             "frontend": ("npm ci --prefix Source/Frontend", "npm test --prefix Source/Frontend",
                          "npm run build --prefix Source/Frontend", "verify-stage-entrypoint.py"),
@@ -387,7 +387,7 @@ class RoutingTests(unittest.TestCase):
         analyzers = JOBS["analyzers"]
         producer = JOBS["dotnet-build"]
         self.assertIn("    name: analyzers\n", analyzers)
-        self.assertIn("    needs: [preflight, routing]\n", analyzers)
+        self.assertIn("    needs: routing\n", analyzers)
         self.assertIn("    timeout-minutes: 30\n", analyzers)
         self.assertIn("mode: restore", analyzers)
         for action in ("actions/checkout@", "actions/setup-dotnet@", "Cratis/Workflows/.github/actions/dotnet-cache@main"):

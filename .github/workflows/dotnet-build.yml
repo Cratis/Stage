@@ -125,7 +125,7 @@ jobs:
 
   dotnet-build:
     if: ${{ needs.routing.outputs.skip != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
-    needs: [preflight, routing]
+    needs: routing
     runs-on: ubuntu-latest
     timeout-minutes: 30
     outputs:
@@ -201,7 +201,7 @@ jobs:
   analyzers:
     name: analyzers
     if: ${{ needs.routing.outputs.skip != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
-    needs: [preflight, routing]
+    needs: routing
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -264,7 +264,7 @@ jobs:
 
   release-pack:
     if: ${{ needs.routing.outputs.skip != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
-    needs: [preflight, routing]
+    needs: routing
     runs-on: ubuntu-latest
     timeout-minutes: 30
 

@@ -15,13 +15,14 @@ internal static class SemanticDependencyVariants
         "SemanticLogicalPolicyCondition", "SemanticNotPolicyCondition", "SemanticOpaquePolicyCondition", "SemanticPolicyReference", "SemanticLogicalAuthorization",
         "SemanticProjectionValueKey", "SemanticProjectionPartsKey", "SemanticProjectionCompositeKey", "SemanticProjectionLiteral",
         "SemanticProjectionEventProperty", "SemanticProjectionEventSourceIdentity", "SemanticProjectionEventContextValue",
+        "SemanticQueryProvideSource", "SemanticHostProvideSource", "SemanticValueProvideSource",
         "SemanticScalarCommandResponse", "SemanticRecordCommandResponse", "SemanticScalarSpecificationResponse", "SemanticRecordSpecificationResponse"
     ];
 
     static readonly HashSet<string> _contextTypes = new(["runtime", "shape", "model"], StringComparer.Ordinal);
     static readonly HashSet<string> _sources = [with(comparer: StringComparer.Ordinal),
         "context-contract", "derived", "command", "read-model", "current-event", "event-source-id", "model-property", "concept-value",
-        "validated-property", "validated-artifact", "authorized-operation", "command-identifier", "query-key", SemanticContextSourceKinds.Unavailable
+        "validated-property", "validated-artifact", "authorized-operation", "command-identifier", "query-key", SemanticContextSourceKinds.Provided, SemanticContextSourceKinds.Unavailable
     ];
 
     internal static bool Known(object node) => KnownType(node.GetType()) && KnownValue(node);

@@ -494,9 +494,22 @@ internal static partial class SemanticRunProjectionAdmission
         return check.FactsMatch() && check.CapturesMatch() && check.CommandMatches();
     }
 
+    static bool SameScalar(SemanticValue left, SemanticValue right) => (left, right) switch
+    {
+        (SemanticTextValue a, SemanticTextValue b) => a.Value == b.Value,
+        (SemanticNumberValue a, SemanticNumberValue b) => a.Value == b.Value,
+        (SemanticBooleanValue a, SemanticBooleanValue b) => a.Value == b.Value,
+        _ => false
+    };
+
     /// <summary>
     /// The event-source keys of one event contract, checked against the identifier a scoped projection keys on.
     /// </summary>
+    /// <param name="Plan">The execution plan.</param>
+    /// <param name="Specification">The specification whose facts are checked.</param>
+    /// <param name="EventContract">The event contract whose keys are checked.</param>
+    /// <param name="Identifier">The read-model identifier type the keys must match.</param>
+    /// <param name="KeyProperty">The event property that carries the key, when it is not the event source.</param>
     sealed record ScopedKeyCheck(SemanticExecutionPlan Plan, SemanticSpecification Specification, SemanticId EventContract, SemanticTypeReference Identifier, SemanticId? KeyProperty)
     {
         public bool FactsMatch() =>
@@ -571,12 +584,4 @@ internal static partial class SemanticRunProjectionAdmission
                 Plan.Events[EventContract].Properties.Single(candidate => candidate.Id == property).Type,
                 values.SingleOrDefault(value => value.TargetProperty == property)?.Value ?? SemanticValue.Null) : source;
     }
-
-    static bool SameScalar(SemanticValue left, SemanticValue right) => (left, right) switch
-    {
-        (SemanticTextValue a, SemanticTextValue b) => a.Value == b.Value,
-        (SemanticNumberValue a, SemanticNumberValue b) => a.Value == b.Value,
-        (SemanticBooleanValue a, SemanticBooleanValue b) => a.Value == b.Value,
-        _ => false
-    };
 }

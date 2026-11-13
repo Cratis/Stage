@@ -42,6 +42,7 @@ the single command, trigger, reaction or specification that needs it, and the re
 | Specification that sets a time zone or uses the clock | Specifications in that slice are refused | The model is refused | `STAGE-ESM-016` |
 | Application time zone, context members and declared read model property order | Commands and queries run, with properties ordered canonically; specifications in the affected scope are refused | The model is refused | `STAGE-ESM-016` |
 | Graph queries (ESM 40) | Run against Neo4j | Refused | `STAGE-ESM-068` |
+| Screen `available` (ESM 53) | Publishes screen part keys; backend availability registration is required | Publishes exact-name marker parts and a client navigation/route guard; server enforcement stays on commands and queries | — |
 | Form field `choose from query` | Kept as a plain input; the gap is reported as a warning | Kept as a plain input; the gap is reported as a warning | `STAGE-SCENE-FORM-004` |
 | Unaudited ESM pair or unknown version | The whole model is refused | The whole model is refused | `STAGE-ESM-016` |
 | Any other unaudited member, including security-relevant ones | The whole model is refused | The whole model is refused | `STAGE-ESM-016` |

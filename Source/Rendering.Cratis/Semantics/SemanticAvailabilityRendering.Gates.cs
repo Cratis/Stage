@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Collections.Immutable;
 using System.Globalization;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
@@ -26,32 +25,37 @@ internal static partial class SemanticAvailabilityRendering
         foreach (var located in context.AllSlices)
         {
             var modulePrefix = located.Path.Count - located.FeaturePath.Count - 1;
-            Add(gates, SliceNaming.Namespace(context.RootNamespace, located.Path.Take(modulePrefix)), false, located.Module.Available, $"module '{located.Module.Name}'");
+            Add(gates, new(SliceNaming.Namespace(context.RootNamespace, located.Path.Take(modulePrefix)), false, located.Module.Available, $"module '{located.Module.Name}'"));
             for (var index = 0; index < located.FeaturePath.Count; index++)
             {
-                Add(gates, SliceNaming.Namespace(context.RootNamespace, located.Path.Take(modulePrefix + index + 1)), false, located.FeaturePath[index].Available, $"feature '{located.FeaturePath[index].Name}'");
+                Add(gates, new(SliceNaming.Namespace(context.RootNamespace, located.Path.Take(modulePrefix + index + 1)), false, located.FeaturePath[index].Available, $"feature '{located.FeaturePath[index].Name}'"));
             }
 
             var sliceNamespace = SliceNaming.Namespace(context.RootNamespace, located.Path);
-            Add(gates, sliceNamespace, false, located.Slice.Available, $"slice '{located.Slice.Name}'");
+            Add(gates, new(sliceNamespace, false, located.Slice.Available, $"slice '{located.Slice.Name}'"));
             foreach (var command in located.Slice.Commands)
             {
-                Add(gates, $"{sliceNamespace}.{Identifiers.ToPascalCase(command.Name)}", true, command.Available, $"command '{command.Name}'");
+                Add(gates, new($"{sliceNamespace}.{Identifiers.ToPascalCase(command.Name)}", true, command.Available, $"command '{command.Name}'"));
             }
 
             foreach (var query in located.Slice.Queries)
             {
-                Add(gates, $"{sliceNamespace}.{Identifiers.ToPascalCase(context.ReadModels[query.ReadModel].Name)}", true, query.Available, $"query '{query.Name}'");
+                Add(gates, new($"{sliceNamespace}.{Identifiers.ToPascalCase(context.ReadModels[query.ReadModel].Name)}", true, query.Available, $"query '{query.Name}'"));
             }
+        }
+
+        foreach (var part in SemanticScreenAvailability.Parts(context))
+        {
+            Add(gates, new(part.Key, true, part.Requirements, $"screen '{part.Name}'"));
         }
 
         return [.. gates.Values];
     }
 
-    static void Add(Dictionary<string, SemanticAvailabilityGate> gates, string key, bool isType, ImmutableArray<SemanticAvailabilityRequirement> requirements, string description)
+    static void Add(Dictionary<string, SemanticAvailabilityGate> gates, SemanticAvailabilityGate gate)
     {
-        if (requirements.IsDefaultOrEmpty) return;
-        gates[key] = new(key, isType, requirements, description);
+        if (gate.Requirements.IsDefaultOrEmpty) return;
+        gates[gate.Key] = gate;
     }
 
     static string Expression(SemanticAvailabilityRequirement requirement) => requirement switch

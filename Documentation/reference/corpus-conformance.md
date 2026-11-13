@@ -83,6 +83,10 @@ Support is bounded to one fired declarative, invoke-only reaction entered by a d
 
 Other shapes remain explicit `STAGE-ESM-016` refusals on the original specification: Translate, capture and trigger entry points, redelivery, native bodies, fan-out, mixed production/invocation, refusal branches, context mappings, deeper effects and non-comparable expected values. Admitting the V34 version pair does not imply blanket support for V34 invocation scenarios.
 
+## Version 53 screen availability
+
+The V53 audience-and-availability vector renders screen `available` gates as exact-name marker parts instead of refusing them with `STAGE-ESM-016`. Its route map carries each gated screen's marker key, including inherited gates. The client hides unavailable navigation and refuses screen routes; server-side enforcement remains on the screen's commands and queries. See [availability rendering](availability-rendering.md).
+
 ## Update the table
 
 1. Run the Debug specs. Failure messages name the vector, surface, and affected fingerprint or outcome.

@@ -12,6 +12,12 @@ const schemes = ['light', 'dark'];
 async function show(page, baseUrl, screen, scheme) {
     await page.goto(`${baseUrl}/#/${screen.screen}`, { waitUntil: 'domcontentloaded', timeout: 30_000 });
     await page.locator(`[data-scene-id="template-${screen.screen}-${screen.template}"]`).waitFor({ timeout: 30_000 });
+    await applyScheme(page, scheme);
+}
+
+// Switches the screen already shown to a color scheme without loading the page again: a second load of the same screen only adds a
+// chance for the boot to stall, and the scheme is an attribute, not a route.
+async function applyScheme(page, scheme) {
     // The color scheme is the Scene configuration's: the layout wrapper carries it (the Stage's theme switcher sets the same attribute).
     await page.evaluate(value => { document.querySelectorAll('[data-scene-color-scheme]').forEach(element => element.setAttribute('data-scene-color-scheme', value)); }, scheme);
     if (extraCss) await page.addStyleTag({ content: extraCss });
@@ -38,4 +44,4 @@ async function contrast(page) {
     return { violations: formatViolations(violations), checked };
 }
 
-module.exports = { show, schemes, formatViolations, contrast };
+module.exports = { show, applyScheme, schemes, formatViolations, contrast };

@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { describe, expect, it } from 'vitest';
-import { InteractionActionKind, SliceKind } from '@cratis/scene.model';
+import { InteractionActionKind, InteractionTriggerKind, SliceKind } from '@cratis/scene.model';
 import type { StageSceneApplication } from './App';
 import { availableNavigationScene } from './availableNavigationScene';
 
@@ -119,6 +119,24 @@ describe('the availability-filtered navigation view', () => {
         const content = availableNavigationScene(model, isAvailable).screens[0].slotContent.content;
         expect(content[0].properties.nodes).toEqual([controls[0].properties.nodes?.[0]]);
         expect(content[1].properties.decisions).toEqual([controls[1].properties.decisions?.[0]]);
+    });
+
+    it('checks the action-button fallback only when Click does not override it', () => {
+        const button = (id: string, trigger: InteractionTriggerKind) => ({ id, componentName: 'actionButton', properties: { targetScreen: 'Restricted' }, slots: {}, behaviors: [{
+            name: 'Home', bindings: [{ trigger: { kind: trigger }, actions: [{ kind: InteractionActionKind.Navigate, screen: 'Home' }] }],
+        }] });
+        const model = { ...scene, screens: [{ ...scene.screens[1], slotContent: { content: [
+            button('click', InteractionTriggerKind.Click), button('change', InteractionTriggerKind.Change),
+        ] } }] };
+        expect(availableNavigationScene(model, isAvailable).screens[0].slotContent.content.map(element => element.id)).toEqual(['click']);
+    });
+
+    it('filters authored form-response redirects without removing allowed continuations', () => {
+        const actions = [{ kind: InteractionActionKind.Navigate, screen: 'Home' }, { kind: InteractionActionKind.Navigate, screen: 'Restricted' }];
+        const model = { ...scene, screens: [{ ...scene.screens[1], slotContent: { content: [
+            { id: 'form', componentName: 'Stage:commandForm', properties: { command: 'Save', onSubmit: actions }, slots: {} },
+        ] } }] };
+        expect(availableNavigationScene(model, isAvailable).screens[0].slotContent.content[0].properties.onSubmit).toEqual([actions[0]]);
     });
 
     it('removes denied behavior actions without stripping unrelated command behavior', () => {

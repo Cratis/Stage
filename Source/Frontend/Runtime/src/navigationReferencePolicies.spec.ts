@@ -73,6 +73,8 @@ describe('the semantic navigation field inventory', () => {
         expect(sources.length).toBeGreaterThan(70);
         expect(navigationReads(sources.find(source => source.name === 'UserMenu')!.source)).toContainEqual({ field: 'items', item: false });
         expect(navigationReads(sources.find(source => source.name === 'ActionButtonControl')!.source)).toContainEqual({ field: 'targetScreen', item: false });
+        expect(navigationReads(sources.find(source => source.name === 'ScreenplayCoreComponents')!.source)).toContainEqual({ field: 'targetScreen', item: false });
+        expect(navigationReads(sources.find(source => source.name === 'stageFormContinuation')!.source)).toContainEqual({ field: 'onSubmit', item: false });
         expect(sources.flatMap(({ name, source }) => unclassifiedConsumer(name, source))).toEqual([]);
     });
 
@@ -80,6 +82,11 @@ describe('the semantic navigation field inventory', () => {
         expect(unclassifiedConsumer('UserMenu', "readOptionalString(element, 'href')")).toEqual(['UserMenu.href']);
         expect(unclassifiedConsumer('FutureLink', "readOptionalString(element, 'targetScreen')")).toEqual(['FutureLink.targetScreen']);
         expect(unclassifiedConsumer('UserMenu', "recordString(item, 'route')")).toEqual(['UserMenu.item.route']);
+        expect(unclassifiedConsumer('FutureLink', "textProperty(element.properties, 'targetScreen')")).toEqual(['FutureLink.targetScreen']);
+        expect(unclassifiedConsumer('FutureLink', "const props = element.properties; arbitraryReader(props, 'href')")).toEqual(['FutureLink.href']);
+        expect(unclassifiedConsumer('FutureLink', "const target = arbitraryReader(element.properties, 'landing'); dispatcher.navigate(target)")).toEqual(['FutureLink.landing']);
+        expect(unclassifiedConsumer('FutureLink', "navigateToScreen(element.properties['landing'])")).toEqual(['FutureLink.landing']);
+        expect(unclassifiedConsumer('FutureLink', "const targetScreen = arbitraryReader(element.properties, 'landing'); dispatchEvent(new CustomEvent('cratis.scene.navigate', { detail: { targetScreen } }))")).toEqual(['FutureLink.landing']);
     });
 
     it('rejects future fields on reference, non-reference and new object shapes instead of silently treating them as data', () => {

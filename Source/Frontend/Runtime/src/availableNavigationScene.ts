@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { ApplicationStructureIndex } from '@cratis/scene.engine';
+import { InteractionTriggerKind } from '@cratis/scene.model';
 import { matchSceneRoute, sceneRoutesFrom } from '@cratis/scene.react';
 import type { StageSceneApplication } from './App';
 import { arrangementNavigationPolicies, navigationItemPolicies, navigationPropertyPolicies, navigationReferencePolicies, type NavigationFieldPolicy } from './navigationReferencePolicies';
@@ -75,7 +76,26 @@ function componentPolicies(name: unknown): Fields {
 
 function pruneProperties(value: unknown, field: FieldContext): unknown {
     if (!isObject(value)) return value;
-    return pruneFields(value, componentPolicies(field.parent.componentName), field.context);
+    const fields = componentPolicies(field.parent.componentName);
+    const active = hasClickBehavior(field.parent.behaviors) ? Object.fromEntries(Object.entries(fields).filter(([, rule]) => rule.kind !== 'clickFallback')) : fields;
+    return pruneFields(value, active, field.context);
+}
+
+function hasClickBehavior(behaviors: unknown): boolean {
+    if (!Array.isArray(behaviors)) return false;
+    return behaviors.some(behaviorHasClickBinding);
+}
+
+function behaviorHasClickBinding(behavior: unknown): boolean {
+    if (!isObject(behavior)) return false;
+    if (!Array.isArray(behavior.bindings)) return false;
+    return behavior.bindings.some(isClickBinding);
+}
+
+function isClickBinding(binding: unknown): boolean {
+    if (!isObject(binding)) return false;
+    if (!isObject(binding.trigger)) return false;
+    return binding.trigger.kind === InteractionTriggerKind.Click;
 }
 
 function pruneContribution(value: unknown, field: FieldContext): unknown {
@@ -163,6 +183,7 @@ function pruneContributedItem(value: unknown, field: FieldContext): unknown {
 const fieldHandlers: Record<string, (value: unknown, field: FieldContext) => unknown> = {
     keep: value => value,
     screen: (value, field) => allowedScreen(value, field.context),
+    clickFallback: (value, field) => allowedScreen(value, field.context),
     node: (value, field) => pruneNode(value, field.rule.shape ?? '', field.context),
     list: (value, field) => pruneList(value, field.rule.shape ?? '', field.context),
     slots: (value, field) => pruneSlots(value, field.context),

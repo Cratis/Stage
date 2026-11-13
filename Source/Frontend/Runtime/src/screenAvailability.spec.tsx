@@ -7,6 +7,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from './testing/render';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PrimeReactProvider } from '@primereact/core/config';
 import { ComponentName, externalComponent } from '@cratis/scene.blueprint.default';
+import { InteractionActionKind, InteractionTriggerKind } from '@cratis/scene.model';
 import { App, type AppProps } from './App';
 import { stageTheme } from './stageTheme';
 import { ScreenAvailabilityGuard, useScreenAvailability } from './screenAvailability';
@@ -219,6 +220,42 @@ describe('screen availability', () => {
         await screen.findByRole('menuitem', { name: 'Allowed user destination' });
         expect(screen.queryByRole('menuitem', { name: 'Private user destination' })).toBeNull();
         expect(document.querySelector('a[href*="Restricted"]')).toBeNull();
+    });
+
+    it.each([
+        [false, 'pending'], [false, 'denied'], [false, 'failed'],
+        [true, 'pending'], [true, 'denied'], [true, 'failed'],
+    ] as const)('filters core:navigate screen targets (regions=%s, %s)', async (regions, status) => {
+        const availability = () => status === 'pending' ? new Promise<Response>(() => {})
+            : status === 'failed' ? Promise.reject(new Error('Offline')) : respond(answer(false));
+        const controls = [
+            externalComponent('private-core-navigation', 'core:navigate', { targetScreen: 'Restricted' }),
+            externalComponent('available-core-navigation', 'core:navigate', { targetScreen: 'Home' }),
+        ];
+        const home = { ...screenOf('Home'), slotContent: { content: [...screenOf('Home').slotContent.content, ...controls] } };
+        renderStage(availability, '#/Home', { model: { ...scene, navigation: regions ? scene.navigation : undefined, screens: [home, screenOf('Restricted')] } });
+        await screen.findByRole('heading', { name: 'Home content' });
+        expect(screen.queryByRole('button', { name: 'Restricted' })).toBeNull();
+        expect(document.querySelector('[data-scene-id="private-core-navigation"]')).toBeNull();
+        expect(screen.getByRole('button', { name: 'Home' })).toBeTruthy();
+    });
+
+    it.each([
+        [false, 'pending'], [false, 'denied'], [false, 'failed'],
+        [true, 'pending'], [true, 'denied'], [true, 'failed'],
+    ] as const)('retains an action button whose Click behavior overrides its gated fallback (regions=%s, %s)', async (regions, status) => {
+        const availability = () => status === 'pending' ? new Promise<Response>(() => {})
+            : status === 'failed' ? Promise.reject(new Error('Offline')) : respond(answer(false));
+        const button = { ...externalComponent('home-action', ComponentName.ActionButton, { label: 'Navigate Home', targetScreen: 'Restricted' }), behaviors: [{
+            name: 'GoHome', bindings: [{ trigger: { kind: InteractionTriggerKind.Click }, actions: [{ kind: InteractionActionKind.Navigate, screen: 'Home' }] }],
+        }] };
+        const origin = { ...screenOf('Origin'), slotContent: { content: [...screenOf('Origin').slotContent.content, button] } };
+        renderStage(availability, '#/Origin', { model: { ...scene, navigation: regions ? scene.navigation : undefined, screens: [origin, screenOf('Home'), screenOf('Restricted')] } });
+        fireEvent.click(await screen.findByRole('button', { name: 'Navigate Home' }));
+        await waitFor(() => expect(window.location.hash).toBe('#/Home'));
+        await act(async () => window.dispatchEvent(new HashChangeEvent('hashchange')));
+        await screen.findByRole('heading', { name: 'Home content' });
+        expect(screen.queryByText('Restricted content')).toBeNull();
     });
 
     it('retains user-menu and action-button destinations when available', async () => {

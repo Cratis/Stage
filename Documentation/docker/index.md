@@ -475,6 +475,8 @@ extend the semantic world, the session faults instead of returning stale success
 `unsupported` with the fault reason. `ready` means the session is initialized and has no known runtime
 fault, not that it continuously follows the log: status checks do not refresh it. Live query subscriptions
 see outside appends when the next query or command refreshes the world; there is no background polling.
+Each query costs one tail read against the kernel while the session is held, so a slow kernel delays
+concurrent queries. A tail or read failure faults the session until it restarts.
 
 The Cratis renderer renders protected reads as Arc read protection (see [Protected reads rendering](../reference/protected-reads-rendering.md)),
 refusing only the shapes it cannot preserve with `STAGE-ESM-044`. The Contracts `EventModelLoader` admits the preamble and records it as `EventModel.ProtectedCommandReads`; the legacy syntax renderer, the `eventmodel` Host engine, the structural runner and `StageCommandHandlerProvider` refuse such a model with the same code. Without the preamble,

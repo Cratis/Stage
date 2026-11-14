@@ -86,7 +86,9 @@ internal sealed class StageLifecycleEffects(SemanticExecutionPlan plan, ISemanti
     /// <param name="actor">Who decided.</param>
     /// <returns>Whether a run was waiting at the approval.</returns>
     internal Task<bool> Decide(string workflow, string subject, string node, bool approved, string actor) =>
-        Resolve(workflow, subject, node, approved ? WellKnownOutlets.Approved.Value : WellKnownOutlets.Rejected.Value, "{}", new WorkflowActor(actor));
+        IsApproval(workflow, node)
+            ? Resolve(workflow, subject, node, approved ? WellKnownOutlets.Approved.Value : WellKnownOutlets.Rejected.Value, "{}", new WorkflowActor(actor))
+            : Task.FromResult(false);
 
     /// <summary>
     /// Describes the runs the sandbox started for a workflow.
@@ -111,6 +113,10 @@ internal sealed class StageLifecycleEffects(SemanticExecutionPlan plan, ISemanti
 
         return runs;
     }
+
+    bool IsApproval(string workflow, string node) =>
+        plan.Model.Application.Workflows.FirstOrDefault(candidate => candidate.Name == workflow)?.Nodes
+            .Any(candidate => candidate.Name == node && candidate.Kind == SemanticWorkflowNodeKind.Approval) == true;
 
     async Task<bool> Resolve(string workflow, string subject, string node, string outlet, string payload, WorkflowActor actor)
     {

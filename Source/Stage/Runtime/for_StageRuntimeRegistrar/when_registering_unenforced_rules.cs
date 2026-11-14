@@ -41,7 +41,7 @@ public class when_registering_unenforced_rules : Specification
     {
         _registrationException = await Catch.Exception(() =>
             StageRuntimeRegistrar.RegisterAsync(_services, "registry", _model, NullLogger.Instance));
-        _handlerException = Catch.Exception(() => new StageCommandHandlerProvider([_model], [], [], []));
+        _handlerException = Catch.Exception(() => _ = new StageCommandHandlerProvider([_model], [], [], []));
     }
 
     [Fact] void should_fault_registration() => _registrationException.ShouldBeOfExactType<InvalidEventModel>();

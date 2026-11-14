@@ -7,7 +7,7 @@ internal static class SceneModelSource
 {
     internal static string ForEngine(string engine)
     {
-        var source = Cratis.Stage.Api.for_SceneSynthesizer.given.a_scene_model.Source;
+        const string source = Cratis.Stage.Api.for_SceneSynthesizer.given.a_scene_model.Source;
 
         // Picker and guard specs exercise Scene behavior, not enum command admission.
         // Keep semantic enum coverage; use plain stage fields for legacy execution.

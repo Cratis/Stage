@@ -106,7 +106,7 @@ public sealed class InboundDeliveryDispatcher(
             }
             catch (RpcException exception)
             {
-                if (exception.StatusCode == StatusCode.Unavailable) connections.Forget(delivery.System);
+                connections.ForgetWhenLost(connection, exception);
                 return (InboundOutcome.Retry, 0, $"The extension could not be reached: {exception.StatusCode}.");
             }
         }

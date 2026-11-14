@@ -60,7 +60,7 @@ public sealed class GrpcAbilityBackend(ExtensionConnections connections, ILogger
         {
             // The call may have been sent: a dropped connection or a timeout says nothing about whether the effect happened.
             ExtensionLog.InvokeFailed(logger, system, call.IdempotencyKey, exception);
-            if (exception.StatusCode == StatusCode.Unavailable) connections.Forget(system);
+            connections.ForgetWhenLost(connection, exception);
             activity?.SetStatus(ActivityStatusCode.Error, exception.Status.Detail);
             return new AbilityFailed($"{exception.Status.StatusCode}: {exception.Status.Detail}");
         }

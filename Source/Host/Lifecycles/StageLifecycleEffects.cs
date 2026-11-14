@@ -74,7 +74,9 @@ internal sealed class StageLifecycleEffects(SemanticExecutionPlan plan, ISemanti
 
     /// <inheritdoc/>
     public Task Resume(SemanticWorkflow workflow, string node, SemanticValue key) =>
-        Resolve(workflow.Name, LifecycleSubjects.KeyText(key), node, WellKnownOutlets.Resumed.Value, "{}", WorkflowActor.System);
+        Resolve(
+            new WorkflowWait { Workflow = workflow.Name, Subject = LifecycleSubjects.KeyText(key), Node = node },
+            new WaitResolution(WellKnownOutlets.Resumed.Value, WorkflowActor.System));
 
     /// <summary>
     /// Records a person's decision on the approval a run is waiting at.
@@ -85,10 +87,13 @@ internal sealed class StageLifecycleEffects(SemanticExecutionPlan plan, ISemanti
     /// <param name="approved">Whether the person approved.</param>
     /// <param name="actor">Who decided.</param>
     /// <returns>Whether a run was waiting at the approval.</returns>
-    internal Task<bool> Decide(string workflow, string subject, string node, bool approved, string actor) =>
-        IsApproval(workflow, node)
-            ? Resolve(workflow, subject, node, approved ? WellKnownOutlets.Approved.Value : WellKnownOutlets.Rejected.Value, "{}", new WorkflowActor(actor))
+    internal Task<bool> Decide(string workflow, string subject, string node, bool approved, string actor)
+    {
+        var wait = new WorkflowWait { Workflow = workflow, Subject = subject, Node = node };
+        return IsApproval(wait)
+            ? Resolve(wait, new WaitResolution(approved ? WellKnownOutlets.Approved.Value : WellKnownOutlets.Rejected.Value, new WorkflowActor(actor)))
             : Task.FromResult(false);
+    }
 
     /// <summary>
     /// Describes the runs the sandbox started for a workflow.
@@ -103,9 +108,14 @@ internal sealed class StageLifecycleEffects(SemanticExecutionPlan plan, ISemanti
             foreach (var id in ids.Distinct())
             {
                 var snapshot = await workflows.GetRun(Scope, id).GetSnapshot();
-                runs.Add(new(name, subject, id.Value, snapshot.Status.ToString(), [.. snapshot.Executions
-                    .Where(execution => execution.Status == NodeExecutionStatus.Waiting).Select(execution => execution.Execution.Node.Value)])
+                runs.Add(new()
                 {
+                    Workflow = name,
+                    Subject = subject,
+                    Run = id.Value,
+                    Status = snapshot.Status.ToString(),
+                    WaitingAt = [.. snapshot.Executions
+                        .Where(execution => execution.Status == NodeExecutionStatus.Waiting).Select(execution => execution.Execution.Node.Value)],
                     Nodes = [.. snapshot.Executions.Select(execution => $"{execution.Execution.Node.Value}={execution.Status}")]
                 });
             }
@@ -114,39 +124,70 @@ internal sealed class StageLifecycleEffects(SemanticExecutionPlan plan, ISemanti
         return runs;
     }
 
-    bool IsApproval(string workflow, string node) =>
-        plan.Model.Application.Workflows.FirstOrDefault(candidate => candidate.Name == workflow)?.Nodes
-            .Any(candidate => candidate.Name == node && candidate.Kind == SemanticWorkflowNodeKind.Approval) == true;
+    bool IsApproval(WorkflowWait wait) =>
+        plan.Model.Application.Workflows.FirstOrDefault(candidate => candidate.Name == wait.Workflow)?.Nodes
+            .Any(candidate => candidate.Name == wait.Node && candidate.Kind == SemanticWorkflowNodeKind.Approval) == true;
 
-    async Task<bool> Resolve(string workflow, string subject, string node, string outlet, string payload, WorkflowActor actor)
+    async Task<bool> Resolve(WorkflowWait wait, WaitResolution resolution)
     {
         var resolved = false;
-        if (!_runs.TryGetValue((workflow, subject), out var ids)) return false;
+        if (!_runs.TryGetValue((wait.Workflow, wait.Subject), out var ids)) return false;
         foreach (var id in ids.Distinct())
         {
             var run = workflows.GetRun(Scope, id);
             var snapshot = await run.GetSnapshot();
-            foreach (var execution in snapshot.Executions.Where(execution => execution.Status == NodeExecutionStatus.Waiting && execution.Execution.Node.Value == node))
+            foreach (var execution in snapshot.Executions.Where(execution => execution.Status == NodeExecutionStatus.Waiting && execution.Execution.Node.Value == wait.Node))
             {
-                await run.ResolveWait(WaitHandling.WaitIdFor(id, execution.Execution), outlet, new WorkflowData(payload), actor);
+                await run.ResolveWait(WaitHandling.WaitIdFor(id, execution.Execution), resolution.Outlet, new WorkflowData("{}"), resolution.Actor);
                 resolved = true;
             }
         }
 
         return resolved;
     }
+
+    sealed record WorkflowWait
+    {
+        public required string Workflow { get; init; }
+
+        public required string Subject { get; init; }
+
+        public required string Node { get; init; }
+    }
+
+    sealed record WaitResolution(string Outlet, WorkflowActor Actor);
 }
 
 /// <summary>
 /// A run the sandbox started, as the approvals endpoint reports it.
 /// </summary>
-/// <param name="Workflow">The workflow name.</param>
-/// <param name="Subject">The subject key.</param>
-/// <param name="Run">The run id.</param>
-/// <param name="Status">The run status.</param>
-/// <param name="WaitingAt">The nodes the run is suspended at.</param>
-internal sealed record StageWorkflowRun(string Workflow, string Subject, string Run, string Status, IReadOnlyList<string> WaitingAt)
+internal sealed record StageWorkflowRun
 {
+    /// <summary>
+    /// Gets the workflow name.
+    /// </summary>
+    public required string Workflow { get; init; }
+
+    /// <summary>
+    /// Gets the subject key.
+    /// </summary>
+    public required string Subject { get; init; }
+
+    /// <summary>
+    /// Gets the run id.
+    /// </summary>
+    public required string Run { get; init; }
+
+    /// <summary>
+    /// Gets the run status.
+    /// </summary>
+    public required string Status { get; init; }
+
+    /// <summary>
+    /// Gets the nodes the run is suspended at.
+    /// </summary>
+    public required IReadOnlyList<string> WaitingAt { get; init; }
+
     /// <summary>Gets every node execution of the run with its status, in the order the engine recorded them.</summary>
     public IReadOnlyList<string> Nodes { get; init; } = [];
 }

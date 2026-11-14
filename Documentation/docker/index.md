@@ -370,14 +370,17 @@ Rules on paths that cross a collection are skipped, including `not empty` on `li
 scalar rules cannot express element validation. Use `lines not empty` to require a nonempty collection.
 Numeric bounds and comparisons skip values that are neither numbers nor text (booleans, objects and collections).
 
-The legacy engine **drops**, rather than partially enforces, `all >` and `all >=`, equality and
-inequality (`==` / `!=`), checksums, ordinal text rules (`contains`, `not contains`, `starts with`,
-`ends with`), named rules, inline code validation, and rules with non-literal
-operands (including property references, `today` and named match patterns such as `email`). It does
-not turn a collection quantifier into a scalar comparison. Dropped rules do not reject a command;
-compilation alone does not mean the legacy engine enforces all modeled validation. Use semantic
-execution for its admitted rule forms and inspect its admission report for unsupported constructs.
-An unknown rule kind refuses the model.
+Legacy conversion omits `all >` and `all >=`, equality and inequality (`==` / `!=`), checksums,
+ordinal text rules (`contains`, `not contains`, `starts with`, `ends with`), named rules, inline code
+validation, and rules with non-literal operands (including property references, `today` and named
+match patterns such as `email`). The EventModel engine now **refuses execution** of models with
+these omitted command rules, concept validation, enum-typed command inputs, constraint declarations
+(including uniqueness), or query `filter` declarations. It reports `STAGE-ESM-081`, identifying the
+unsupported declaration, before registering definitions with Chronicle or exposing command handlers.
+These checks do not block conversion for rendering or change semantic-engine admission. Compilation
+alone does not mean the legacy engine enforces a modeled rule. Use semantic execution for its
+admitted rule forms and inspect its admission report for unsupported constructs.
+An unknown rule kind continues to refuse conversion.
 
 ## Opt in to semantic execution
 

@@ -19,4 +19,7 @@ public record EventModel(
     /// evaluate and protect decision reads must refuse such a model.
     /// </summary>
     public bool ProtectedCommandReads { get; init; }
+
+    // Syntax-only admission metadata: keep it out of the shared JSON contract and leave rendering unaffected.
+    internal IReadOnlyList<string> UnsupportedEventModelRules { get; init; } = [];
 }

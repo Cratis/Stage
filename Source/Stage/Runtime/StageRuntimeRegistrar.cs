@@ -6,6 +6,7 @@ using Cratis.Chronicle.Contracts;
 using Cratis.Chronicle.Contracts.EventStores;
 using Cratis.Chronicle.EventSequences;
 using Cratis.Stage.Contracts;
+using Cratis.Stage.Contracts.Screenplay;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ChronicleEvents = Cratis.Chronicle.Contracts.Events;
@@ -35,6 +36,7 @@ public static class StageRuntimeRegistrar
         // Pure model validation must fault the task before DI resolution or any remote write. Connection failures
         // retain the existing logging behavior; an invalid local definition is not a recoverable connection failure.
         ProtectedCommandReadsAdmission.EnsureExecutableBy(model, model.Name, "eventmodel");
+        EventModelRuleAdmission.EnsureExecutable(model, model.Name);
         var eventTypes = StageChronicleDefinitions.BuildEventTypes(model);
         string logSequence = EventSequenceId.Log;
         var (readModels, projections) = StageChronicleDefinitions.Build(model, logSequence);

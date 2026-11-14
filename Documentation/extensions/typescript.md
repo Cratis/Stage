@@ -1,6 +1,6 @@
 ---
 title: Write an extension backend in TypeScript
-description: Getting started with the @cratis/stage-extensions SDK for Cratis Stage extension backends - declare abilities, return the right result, use settings, secrets, triggers, answers and telemetry, run the backend and test it.
+description: "Get started with the @cratis/stage-extensions SDK for Cratis Stage extension backends: declare abilities, return results, use settings and secrets, then test."
 ---
 
 The TypeScript SDK is the package `@cratis/stage-extensions` (Node.js 20 or later, ES modules), at

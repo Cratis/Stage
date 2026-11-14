@@ -1,6 +1,6 @@
 ---
 title: Write an extension backend in C#
-description: Getting started with the Cratis.Stage.Extensions SDK - declare abilities, return the right result, use settings, secrets, triggers, answers and telemetry, run the backend and test it.
+description: "Get started with the Cratis.Stage.Extensions SDK in C#: declare abilities, return results, use settings, secrets, triggers and telemetry, then run and test it."
 ---
 
 The C# SDK is the package `Cratis.Stage.Extensions` (`net10.0` and `net11.0`), at

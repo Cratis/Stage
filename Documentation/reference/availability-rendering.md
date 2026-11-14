@@ -1,6 +1,6 @@
 ---
 title: Availability rendering
-description: How Stage renders the audiences, availability blocks and available gates of a Screenplay model, how the gates are evaluated and where the audiences come from, and what Stage refuses.
+description: "How Stage renders the audiences, availability blocks and available gates of a model, where audiences come from, how gates evaluate and what is refused."
 ---
 
 `policy` and `authorize` say who may act. Availability says whether a part of the application is there at all for the caller's tenant, user or system. Stage renders a model's availability as a generated registration that Arc evaluates before `authorize`, through the Choreography availability engine.

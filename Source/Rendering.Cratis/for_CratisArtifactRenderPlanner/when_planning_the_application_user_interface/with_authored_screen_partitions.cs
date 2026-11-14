@@ -50,7 +50,8 @@ public class with_authored_screen_partitions : a_partitioned_screen_plan
     // Recomputed for the Scene 5.4.0 pins and Cratis Components 4.40.1 that Scene 5.4.0 requires.
     // Recomputed for the availability manifest: Choreography 2.8.0 moves the scaffold pin.
     // Recomputed for Arc 23.8.0, Chronicle 19.162.0 and Choreography 2.9.0: only the pins in Directory.Packages.props and the scaffold catalog change.
-    const string Before = "0de8956d495187a0dc8201707238294a5fc1b944d30ffb71a82d6b72663a471f";
+    // Recomputed for Screenplay 6.29.0: only the Screenplay pins in Directory.Packages.props and the scaffold catalog change.
+    const string Before = "2eb0b97fa26c2fd64ba4cb52cc85c6764e14d11d5bad5df8af792a905d4b0445";
 
     void Because() => _application = AppPlan(_profile);
 

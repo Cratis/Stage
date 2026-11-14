@@ -10,8 +10,8 @@ pin	Cratis.Choreography.Chronicle	2.9.0
 pin	Cratis.Chronicle	19.162.0
 pin	Cratis.Chronicle.AspNetCore	19.162.0
 pin	Cratis.Chronicle.Testing	19.162.0
-pin	Cratis.Screenplay	6.27.0
-pin	Cratis.Screenplay.Matching	6.27.0
+pin	Cratis.Screenplay	6.29.0
+pin	Cratis.Screenplay.Matching	6.29.0
 pin	Cratis.Specifications	5.2.3
 pin	Cratis.Specifications.XUnit	5.2.3
 pin	Microsoft.NET.Test.Sdk	18.11.0
@@ -50,9 +50,9 @@ package	AS	Cratis.Chronicle.Testing	19.162.0
 package	AS	Cratis.Fundamentals	7.34.0
 package	AS	Cratis.Metrics.Roslyn	7.34.0
 package	AS	Cratis.Observability.SourceGenerators	7.34.0
-package	AS	Cratis.Screenplay	6.27.0
-package	AS	Cratis.Screenplay.Contexts	6.27.0
-package	AS	Cratis.Screenplay.Matching	6.27.0
+package	AS	Cratis.Screenplay	6.29.0
+package	AS	Cratis.Screenplay.Contexts	6.29.0
+package	AS	Cratis.Screenplay.Matching	6.29.0
 package	AS	Cratis.Specifications	5.2.3
 package	AS	Cratis.Specifications.XUnit	5.2.3
 package	AS	DnsClient	1.8.0
@@ -5821,6 +5821,7 @@ type	AS	Cratis.Screenplay.Semantics	EsmSchemaV50Support	static
 type	AS	Cratis.Screenplay.Semantics	EsmSchemaV51Support	static
 type	AS	Cratis.Screenplay.Semantics	EsmSchemaV52Support	static
 type	AS	Cratis.Screenplay.Semantics	EsmSchemaV53Support	static
+type	AS	Cratis.Screenplay.Semantics	EsmSchemaV54Support	static
 type	AS	Cratis.Screenplay.Semantics	EsmSchemaV5Support	static
 type	AS	Cratis.Screenplay.Semantics	EsmSchemaV6Support	static
 type	AS	Cratis.Screenplay.Semantics	EsmSchemaV7Support	static
@@ -5858,6 +5859,7 @@ type	AS	Cratis.Screenplay.Semantics	PropertyOrderMetadataRefusal	class
 type	AS	Cratis.Screenplay.Semantics	ProvideLevel	enum
 type	AS	Cratis.Screenplay.Semantics	ProvidedValue	class
 type	AS	Cratis.Screenplay.Semantics	ProvidedValues	static
+type	AS	Cratis.Screenplay.Semantics	RefusedSpecification	class
 type	AS	Cratis.Screenplay.Semantics	SemanticAbility	class
 type	AS	Cratis.Screenplay.Semantics	SemanticAbilityAnswer	class
 type	AS	Cratis.Screenplay.Semantics	SemanticAbilityAnswerKind	enum
@@ -5986,6 +5988,10 @@ type	AS	Cratis.Screenplay.Semantics	SemanticFixtureRoute	class
 type	AS	Cratis.Screenplay.Semantics	SemanticFixtureRoutePart	class
 type	AS	Cratis.Screenplay.Semantics	SemanticGeneration	class
 type	AS	Cratis.Screenplay.Semantics	SemanticGraph	class
+type	AS	Cratis.Screenplay.Semantics	SemanticGraphCollect	class
+type	AS	Cratis.Screenplay.Semantics	SemanticGraphCollectCardinality	enum
+type	AS	Cratis.Screenplay.Semantics	SemanticGraphCollectMember	class
+type	AS	Cratis.Screenplay.Semantics	SemanticGraphCollectMemberKind	enum
 type	AS	Cratis.Screenplay.Semantics	SemanticGraphCondition	class
 type	AS	Cratis.Screenplay.Semantics	SemanticGraphEdge	class
 type	AS	Cratis.Screenplay.Semantics	SemanticGraphElementHandlers	class
@@ -6421,6 +6427,7 @@ type	AS	Cratis.Screenplay.Syntax	FormSyntax	class
 type	AS	Cratis.Screenplay.Syntax	FormWidthSyntax	class
 type	AS	Cratis.Screenplay.Syntax	FormWidthUnitSyntax	enum
 type	AS	Cratis.Screenplay.Syntax	GenerationSyntax	class
+type	AS	Cratis.Screenplay.Syntax	GraphCollectSyntax	class
 type	AS	Cratis.Screenplay.Syntax	GraphConditionSyntax	class
 type	AS	Cratis.Screenplay.Syntax	GraphEdgeSyntax	class
 type	AS	Cratis.Screenplay.Syntax	GraphMatchSyntax	class
@@ -16154,7 +16161,7 @@ base	AS	Cratis.Monads.Result`1	OneOf.OneOfBase`2	Failed IsSuccess Success TryGet
 base	AS	Cratis.Monads.Result`2	OneOf.OneOfBase`2	Failed IsSuccess Success TryGetError TryGetResult	-
 base	AS	Cratis.Reactive.TransformingSubject`2	System.Object	CreateSubscriberScoped Dispose OnCompleted OnError OnNext Subscribe	-
 base	AS	Cratis.Reflection.TypeInfo`1	System.Object	HasDefaultConstructor Instance	-
-base	AS	Cratis.Screenplay.CompilationResult`1	System.Object	ContextsFor Deconstruct Diagnostics EqualityContract Equals Failed GetHashCode ImplementationRequirements PrintMembers Success ToString TypedContextDescriptors Value	-
+base	AS	Cratis.Screenplay.CompilationResult`1	System.Object	ContextsFor Deconstruct Diagnostics EqualityContract Equals Failed GetHashCode ImplementationRequirements PrintMembers SpecificationRefusedValue Success ToString TypedContextDescriptors Value	-
 base	AS	Cratis.Screenplay.Contexts.Causation	System.Object	Deconstruct EqualityContract Equals GetHashCode NotSet Occurred PrintMembers Properties ToString Type	-
 base	AS	Cratis.Screenplay.Contexts.CausedBy	System.Object	Deconstruct EqualityContract Equals GetHashCode Name NotSet PrintMembers Subject ToString UserName	-
 base	AS	Cratis.Screenplay.Contexts.Claim	System.Object	Deconstruct EqualityContract Equals GetHashCode Name PrintMembers ToString Value	-
@@ -16343,13 +16350,14 @@ base	AS	Cratis.Screenplay.Syntax.FormPopulateSource	Cratis.Screenplay.Syntax.Syn
 base	AS	Cratis.Screenplay.Syntax.FormPopulateViaQuerySyntax	Cratis.Screenplay.Syntax.FormPopulateSource	By Deconstruct EqualityContract Equals GetHashCode PrintMembers Query ToString	-
 base	AS	Cratis.Screenplay.Syntax.FormSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Behaviors ColumnMode Columns Deconstruct Description EqualityContract Equals Fields For GenerationMode GetHashCode Layout Name OnSubmit Populate PrintMembers ToString UsedBehaviors	-
 base	AS	Cratis.Screenplay.Syntax.FormWidthSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct EqualityContract Equals GetHashCode PrintMembers ToString Unit Value	-
+base	AS	Cratis.Screenplay.Syntax.GraphCollectSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct EqualityContract Equals From GetHashCode Hop PrintMembers Property Returns ToString	-
 base	AS	Cratis.Screenplay.Syntax.GraphConditionSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Alias Deconstruct EqualityContract Equals GetHashCode PrintMembers Property ToString Value	-
 base	AS	Cratis.Screenplay.Syntax.GraphEdgeSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct EqualityContract Equals GetHashCode IdentifiedBy PrintMembers Properties Source Target ToString Type	-
 base	AS	Cratis.Screenplay.Syntax.GraphMatchSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct EqualityContract Equals GetHashCode Hops IsOptional PrintMembers Start ToString	-
 base	AS	Cratis.Screenplay.Syntax.GraphNodeSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct EqualityContract Equals GetHashCode Label PrintMembers Properties ToString	-
 base	AS	Cratis.Screenplay.Syntax.GraphPatternHopSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Alias Deconstruct EqualityContract Equals GetHashCode Node Outgoing PrintMembers ToString Type	-
 base	AS	Cratis.Screenplay.Syntax.GraphPatternNodeSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Alias Deconstruct EqualityContract Equals GetHashCode Label PrintMembers ToString	-
-base	AS	Cratis.Screenplay.Syntax.GraphQuerySyntax	Cratis.Screenplay.Syntax.SyntaxNode	Authorize By Conditions Deconstruct Description EqualityContract Equals Filters GetHashCode Graph IsObservable Matches Name PrintMembers ReturnType Returns ToString	-
+base	AS	Cratis.Screenplay.Syntax.GraphQuerySyntax	Cratis.Screenplay.Syntax.SyntaxNode	Authorize By Collects Conditions Deconstruct Description EqualityContract Equals Filters GetHashCode Graph IsObservable Matches Name PrintMembers ReturnType Returns ToString	-
 base	AS	Cratis.Screenplay.Syntax.GraphReturnSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Alias Deconstruct EqualityContract Equals GetHashCode PrintMembers Property Source ToString	-
 base	AS	Cratis.Screenplay.Syntax.GraphSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct Description Documentation Edges EqualityContract Equals File GetHashCode Name Nodes PrintMembers Sink ToString	-
 base	AS	Cratis.Screenplay.Syntax.HandlerSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Code Deconstruct EqualityContract Equals File GetHashCode Implementation PossibleEvents PrintMembers ToString	-

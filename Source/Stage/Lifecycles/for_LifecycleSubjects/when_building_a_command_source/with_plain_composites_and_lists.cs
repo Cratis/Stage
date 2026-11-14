@@ -19,6 +19,7 @@ public class with_plain_composites_and_lists : given.a_subject
         var application = _plan.Model.Application;
         var type = application.Types.Single(type => type.Id == lines.Type.Target);
         var member = type.Properties.Single() with { Name = "SKU" };
+
         // The parser requires lower-case property initials; exercise the semantic converter's exact-name contract directly.
         typeof(ExecutableSemanticModel).GetField("<Application>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!
             .SetValue(_plan.Model, application with { Types = [type with { Properties = [member] }] });
@@ -28,7 +29,9 @@ public class with_plain_composites_and_lists : given.a_subject
         _command = _command with { Properties = [lines with { Name = "Lines" }, detail, labels] };
         var item = SemanticValue.Composite([new(member.Id, SemanticValue.Text("A"))]);
         var empty = SemanticValue.Composite([new(member.Id, SemanticValue.Null)]);
-        _result = LifecycleSubjects.CommandSource(_plan, _command,
+        _result = LifecycleSubjects.CommandSource(
+            _plan,
+            _command,
         [
             new(lines.Id, SemanticValue.Array([item, empty, SemanticValue.Null])),
             new(detail.Id, empty),

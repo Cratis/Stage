@@ -19,7 +19,9 @@ public class with_matching_values : given.a_subject
             _status with { Id = Id(102), Name = "absent" }]
     };
 
-    void Because() => _result = LifecycleSubjects.CommandSource(_plan, _command,
+    void Because() => _result = LifecycleSubjects.CommandSource(
+        _plan,
+        _command,
         [.. Status(SemanticValue.Text("sent")), new(_subject.Properties.Single(property => property.Name == "overdue").Id, SemanticValue.Boolean(true))]);
 
     [Fact] void should_match_names_case_insensitively_and_keep_command_spelling() => _result["STATUS"]!.GetValue<string>().ShouldEqual("sent");

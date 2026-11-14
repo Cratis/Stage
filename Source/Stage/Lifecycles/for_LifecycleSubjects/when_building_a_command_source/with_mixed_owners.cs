@@ -13,7 +13,9 @@ public class with_mixed_owners : given.a_subject
     {
         var other = _status with { Id = Id(108) };
         Models(_subject, _subject with { Id = Id(109), Name = "Other", Properties = [other] });
-        Assert.Throws<InvalidOperationException>(() => LifecycleSubjects.CommandSource(_plan, _command,
+        Assert.Throws<InvalidOperationException>(() => LifecycleSubjects.CommandSource(
+            _plan,
+            _command,
             [new(_status.Id, SemanticValue.Text("sent")), new(other.Id, SemanticValue.Text("other"))]));
     }
 }

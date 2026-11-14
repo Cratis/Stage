@@ -39,7 +39,14 @@ public static class SemanticDateTimeSchemas
         DateTimes(built, stored, string.Empty).Where(property => !IsVerbatim(property.Stored)).Select(property => property.Path);
 
     static bool IsVerbatim(JsonObject? schema) =>
-        schema?["type"]?.GetValue<string>() == "string" && schema["format"] is null;
+        schema is not null && HasType(schema["type"], "string") && schema["format"] is null;
+
+    static bool HasType(JsonNode? type, string expected) => type switch
+    {
+        JsonValue value when value.TryGetValue<string>(out var name) => name == expected,
+        JsonArray types => types.Any(item => HasType(item, expected)),
+        _ => false
+    };
 
     static IEnumerable<(JsonObject Built, JsonObject? Stored, string Path)> DateTimes(JsonObject built, JsonObject? stored, string path)
     {
@@ -66,7 +73,7 @@ public static class SemanticDateTimeSchemas
     }
 
     static IEnumerable<JsonObject> Branches(JsonObject schema) =>
-        ((schema["anyOf"] ?? schema["oneOf"]) as JsonArray ?? []).OfType<JsonObject>().Where(branch => branch["type"]?.GetValue<string>() != "null");
+        ((schema["anyOf"] ?? schema["oneOf"]) as JsonArray ?? []).OfType<JsonObject>().Where(branch => branch["type"] is not JsonValue type || !HasType(type, "null"));
 
     static JsonObject? Scalar(JsonObject? schema) => schema is null ? null : Branches(schema).FirstOrDefault() ?? schema;
 

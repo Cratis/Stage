@@ -27,9 +27,10 @@ public class a_stored_typed_event : Specification
     /// <summary>Gets the storage evidence the prepared event type's stored schema gives.</summary>
     internal SemanticStorageEvidence Evidence => new(_exactDecimals) { StoredSchemas = _storedSchemas };
 
-    protected void Prepare(string primitive, string jsonValue, bool exactSchema = false)
+    protected void Prepare(string primitive, string jsonValue, bool exactSchema = false, string concepts = "")
     {
         var source = $$"""
+            {{concepts}}
             concept ProjectId : Uuid
             module Projects
               feature Registration

@@ -26,7 +26,8 @@ public class when_executing_enum_validations : Specification
         var result = await Evaluate(source, member, SemanticImplementationRole.CommandValidation);
 
         Assert.Equal(valid ? "satisfied" : "unsatisfied", result.Outcome);
-        Assert.Equal(valid ? Array.Empty<string>() : ["Closed"], result.Messages.ToArray());
+        string[] expected = valid ? [] : ["Closed"];
+        Assert.Equal(expected, result.Messages.ToArray());
         Assert.Null(result.Diagnostic);
     }
 

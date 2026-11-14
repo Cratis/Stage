@@ -18,7 +18,7 @@ public class when_loading_guarded_scene_runtime : given.a_model_path
     [InlineData("eventmodel")]
     public async Task should_serve_guarded_screen_actions_the_runtime_evaluates(string engine)
     {
-        await File.WriteAllTextAsync(_path, Cratis.Stage.Api.for_SceneSynthesizer.given.a_scene_model.Source + "\n        screen Overview\n          data ProjectSummary via query ProjectById\n          action \"Register\"\n            when item.name == \"Ready\" execute RegisterProject\n            otherwise hidden");
+        await File.WriteAllTextAsync(_path, given.SceneModelSource.ForEngine(engine) + "\n        screen Overview\n          data ProjectSummary via query ProjectById\n          action \"Register\"\n            when item.name == \"Ready\" execute RegisterProject\n            otherwise hidden");
         var issues = new List<StageUnsupportedIssue>();
 
         var scene = await LoadScene(engine, issues);
@@ -37,7 +37,7 @@ public class when_loading_guarded_scene_runtime : given.a_model_path
     [InlineData("eventmodel")]
     public async Task should_serve_the_guarded_action_from_the_scene_endpoint(string engine)
     {
-        await File.WriteAllTextAsync(_path, Cratis.Stage.Api.for_SceneSynthesizer.given.a_scene_model.Source + "\n        screen Overview\n          data ProjectSummary via query ProjectById\n          action \"Register\"\n            when item.name == \"Ready\" execute RegisterProject\n            otherwise hidden");
+        await File.WriteAllTextAsync(_path, given.SceneModelSource.ForEngine(engine) + "\n        screen Overview\n          data ProjectSummary via query ProjectById\n          action \"Register\"\n            when item.name == \"Ready\" execute RegisterProject\n            otherwise hidden");
         var issues = new List<StageUnsupportedIssue>();
         var scene = await LoadScene(engine, issues);
         await using var app = WebApplication.CreateBuilder().Build();
@@ -74,7 +74,7 @@ public class when_loading_guarded_scene_runtime : given.a_model_path
     [InlineData("eventmodel")]
     public async Task should_serve_guarded_interactions_as_one_binding_per_branch(string engine)
     {
-        await File.WriteAllTextAsync(_path, Cratis.Stage.Api.for_SceneSynthesizer.given.a_scene_model.Source + """
+        await File.WriteAllTextAsync(_path, given.SceneModelSource.ForEngine(engine) + """
 
                 screen Overview
                   data ProjectSummary via query ProjectById
@@ -109,7 +109,7 @@ public class when_loading_guarded_scene_runtime : given.a_model_path
     {
         var data = knownSubject ? "\n          data ProjectSummary via query ProjectById" : string.Empty;
         var field = knownSubject ? "item.missing" : "item.name";
-        await File.WriteAllTextAsync(_path, Cratis.Stage.Api.for_SceneSynthesizer.given.a_scene_model.Source +
+        await File.WriteAllTextAsync(_path, given.SceneModelSource.ForEngine(engine) +
             $"\n        screen Overview{data}\n          action \"Guarded\"\n            when {field} == \"Ready\" execute RegisterProject\n            otherwise hidden\n          action RegisterProject");
         var issues = new List<StageUnsupportedIssue>();
 
@@ -152,7 +152,7 @@ public class when_loading_guarded_scene_runtime : given.a_model_path
     [InlineData("eventmodel")]
     public async Task should_keep_unguarded_scenes_available(string engine)
     {
-        await File.WriteAllTextAsync(_path, Cratis.Stage.Api.for_SceneSynthesizer.given.a_scene_model.Source + "\n        screen Overview\n          action RegisterProject\n          on click\n            execute RegisterProject");
+        await File.WriteAllTextAsync(_path, given.SceneModelSource.ForEngine(engine) + "\n        screen Overview\n          action RegisterProject\n          on click\n            execute RegisterProject");
         var issues = new List<StageUnsupportedIssue>();
         SceneApplication? scene;
         if (engine == "semantic") (_, scene) = await SemanticHost.LoadModel(_path, issues);

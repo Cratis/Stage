@@ -38,6 +38,7 @@ internal sealed class SemanticFactReader(IChronicleClient client, StageEventStor
             throw new SemanticWorldRebuildRefused($"The event log cannot be read completely from {from} through {through}.");
         }
 
-        return [.. events.Select(@event => SemanticWorldRebuilder.Fact(plan, @event))];
+        var evidence = SemanticStorageEvidence.None with { StoredSchemas = await SemanticStoredSchemas.Read(accessor, eventStore.Value, plan) };
+        return [.. events.Select(@event => SemanticWorldRebuilder.Fact(plan, @event, evidence: evidence))];
     }
 }

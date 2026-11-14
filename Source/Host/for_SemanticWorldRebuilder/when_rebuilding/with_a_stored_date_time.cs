@@ -12,9 +12,12 @@ public class with_a_stored_date_time : a_stored_typed_event
     Exception? _error;
 
     void Establish() => Prepare("DateTime", "\"2026-09-24T12:00:00.1234567+02:00\"");
-    void Because() => _error = Catch.Exception(() => SemanticWorldRebuilder.Fact(_typedPlan, _stored));
+    void Because() => _error = Catch.Exception(() => SemanticWorldRebuilder.Fact(_typedPlan, _stored, evidence: Evidence));
 
     [Fact] void should_convert_through_chronicles_date_time_schema() => _converted.ShouldBeOfExactType<DateTime>();
     [Fact] void should_refuse_the_non_exact_event_property() => _error.ShouldBeOfExactType<SemanticWorldRebuildRefused>();
+    [Fact] void should_name_the_event_type() => _error.Message.ShouldContain("ProjectRegistered");
     [Fact] void should_name_the_refused_property() => _error.Message.ShouldContain("value");
+    [Fact] void should_explain_the_lost_offset() => _error.Message.ShouldContain("offset was not stored");
+    [Fact] void should_require_a_new_history() => _error.Message.ShouldContain("Start a new history");
 }

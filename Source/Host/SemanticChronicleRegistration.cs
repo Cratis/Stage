@@ -100,8 +100,9 @@ internal static class SemanticChronicleRegistration
         store.Connection.Lifecycle.OnConnected += RegisterContracts;
         await RegisterContracts();
 
-        // Never trust what was sent: a restart reads decimals back exactly only from what the kernel now holds.
-        var exactDecimals = SemanticStoredSchemas.ExactDecimals(await SemanticStoredSchemas.Read(accessor, name, plan));
+        // Never trust what was sent: exactness is decided from the schema the kernel now holds.
+        var storedSchemas = await SemanticStoredSchemas.Read(accessor, name, plan);
+        var evidence = new SemanticStorageEvidence(SemanticStoredSchemas.ExactDecimals(storedSchemas), seeds) { StoredSchemas = storedSchemas };
         var tail = await Tail();
         if (!seeds.IsEmpty)
         {
@@ -118,7 +119,7 @@ internal static class SemanticChronicleRegistration
             }
         }
 
-        return IsEmpty(tail) ? SemanticWorld.Empty : await Rebuild(accessor, store.Name, replay, tail, new SemanticStorageEvidence(exactDecimals, seeds));
+        return IsEmpty(tail) ? SemanticWorld.Empty : await Rebuild(accessor, store.Name, replay, tail, evidence);
 
         async Task<ulong> Tail() => (await accessor.Services.Sequences.TailSequenceNumber(new ChronicleSequences.TailSequenceNumberRequest
         {

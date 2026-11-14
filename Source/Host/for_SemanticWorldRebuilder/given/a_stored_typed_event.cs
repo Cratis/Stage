@@ -22,8 +22,10 @@ public class a_stored_typed_event : Specification
     /// <summary>Gets the stored event names whose stored schema is exact; the event type is in it only when prepared with an exact schema.</summary>
     protected HashSet<string> _exactDecimals = [];
 
+    readonly Dictionary<string, SemanticStoredSchema> _storedSchemas = [];
+
     /// <summary>Gets the storage evidence the prepared event type's stored schema gives.</summary>
-    internal SemanticStorageEvidence Evidence => new(_exactDecimals);
+    internal SemanticStorageEvidence Evidence => new(_exactDecimals) { StoredSchemas = _storedSchemas };
 
     protected void Prepare(string primitive, string jsonValue, bool exactSchema = false)
     {
@@ -49,7 +51,11 @@ public class a_stored_typed_event : Specification
         _typedPlan = SemanticExecutionPlan.Compile(compiled.Value.Model).Plan;
         var contract = _typedPlan.Events.Values.Single();
         var built = SemanticSchemas.Schema(contract.Properties, _typedPlan.Model.Application);
-        var schema = JsonSchema.FromJson(exactSchema ? SemanticSchemas.WithDecimalFormats(JsonNode.Parse(built)!.AsObject(), null).ToJsonString() : built);
+        var storageSchema = exactSchema
+            ? SemanticDateTimeSchemas.ForStorage(SemanticSchemas.WithDecimalFormats(JsonNode.Parse(built)!.AsObject(), null), null).ToJsonString()
+            : built;
+        var schema = JsonSchema.FromJson(storageSchema);
+        _storedSchemas[SemanticStoredEventNames.Of(contract)] = new(SemanticStoredSchemaState.Stored, JsonNode.Parse(storageSchema)!.AsObject());
         _exactDecimals = exactSchema ? [SemanticStoredEventNames.Of(contract)] : [];
         var converter = new ExpandoObjectConverter(new TypeFormats());
         var documentJson = JsonNode.Parse($$"""{"projectId":"3fa85f64-5717-4562-b3fc-2c963f66afa6","value":{{jsonValue}}}""").AsObject();

@@ -95,7 +95,7 @@ internal static class SemanticWorldRebuilder
         var contract = contracts[0];
         var route = Route(plan, context);
         evidence ??= SemanticStorageEvidence.None;
-        var seedMustMatch = storageExact && EnsureExactStorageTypes(contract, plan.Model.Application, evidence.HasExactDecimals(context.EventType.Id), isSeed);
+        var seedMustMatch = storageExact && EnsureExactStorageTypes(contract, plan.Model.Application, evidence, isSeed);
 
         var producers = Productions(plan, contract.Id).ToArray();
         if (exact && producers.Length == 0 && plan.Projections.Values.Any(projection => projection.Target == SemanticProjectionTargetKind.Event && projection.ReadModel == contract.Id))
@@ -289,11 +289,16 @@ internal static class SemanticWorldRebuilder
         }
     }
 
-    // A date and time is never read back exactly, but a stored seed is exempt from that, as it was before decimals were checked. A decimal is, when the event type's stored schema carries the exact decimal format on every number;
-    // a stored seed in a type that does not is deferred to the seed match, because the model still holds the value it was seeded with.
+    // DateTime text requires a lossless stored schema, including seeds. Legacy seed decimals may still be matched to the model.
     // Returns whether such a seed decimal must be matched against the model.
-    static bool EnsureExactStorageTypes(SemanticEventContract contract, SemanticApplication application, bool decimalsExact, bool isSeed)
+    static bool EnsureExactStorageTypes(SemanticEventContract contract, SemanticApplication application, SemanticStorageEvidence evidence, bool isSeed)
     {
+        foreach (var path in evidence.LossyDateTimes(contract, application))
+        {
+            throw new SemanticWorldRebuildRefused(SemanticStoredSchemas.DateTimeRefusal(contract.Name, path));
+        }
+
+        var decimalsExact = evidence.HasExactDecimals(SemanticStoredEventNames.Of(contract));
         var seedMustMatch = false;
         foreach (var (path, primitive) in contract.Properties.SelectMany(property => StoragePrimitives(property.Name, property.Type, application)))
         {
@@ -302,7 +307,7 @@ internal static class SemanticWorldRebuilder
             {
                 seedMustMatch = true;
             }
-            else if (lossyDecimal || (primitive == SemanticPrimitiveType.DateTime && !isSeed))
+            else if (lossyDecimal)
             {
                 throw new SemanticWorldRebuildRefused($"Event property '{path}' uses {primitive}, which Chronicle storage cannot round-trip exactly.");
             }

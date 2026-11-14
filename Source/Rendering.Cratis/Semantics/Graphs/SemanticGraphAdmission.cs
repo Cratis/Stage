@@ -186,7 +186,9 @@ internal static class SemanticGraphAdmission
         {
             foreach (var query in context.Application.GraphQueries.IsDefaultOrEmpty ? [] : context.Application.GraphQueries)
             {
-                Diagnostic(QueryNotRendered, $"Graph query '{query.Name}' reads graph '{query.Graph}'. Stage's sandbox runs it against Neo4j; the renderer does not render a graph query yet, so a rendered application would have no endpoint for it.");
+                Diagnostic(QueryNotRendered, query.Collects.IsDefaultOrEmpty
+                    ? $"Graph query '{query.Name}' reads graph '{query.Graph}'. Stage's sandbox runs it against Neo4j; the renderer does not render a graph query yet, so a rendered application would have no endpoint for it."
+                    : $"Graph query '{query.Name}' reads graph '{query.Graph}' and collects nested rows (ESM v54). Stage's sandbox reads it as a Chronicle graph view through Arc's graph session; the renderer does not render a graph query yet, so a rendered application would have no endpoint for it.");
             }
         }
 

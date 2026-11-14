@@ -21,12 +21,12 @@ Stage admits a model whose language and semantic versions are the same audited p
 | 39 | Refused |
 | 40, 41 | Audited |
 | 43 to 49 | Audited |
-| 53 | Audited |
+| 53, 54 | Audited |
 | 32.x minor versions (for example 32.1) | Admitted with a warning that Stage has not audited the pair |
-| Any other version, including 33.x, 34.x, 42, 50 to 52 and 54 or later | Refused |
+| Any other version, including 33.x, 34.x, 42, 50 to 52 and 55 or later | Refused |
 | Language and semantic versions that differ | Refused |
 
-ESM 37 is the command clock, 38 adds graphs, 40 adds graph queries, 43 adds set-once projection mappings and ordered children, 44 to 47 add policies that decide from recorded state and row narrowing, 48 and 49 add agents and the caller's identifier, and 53 adds provided values, audiences and availability gates. The models of 37, 38, 40, 41 and 43 to 49 are
+ESM 37 is the command clock, 38 adds graphs, 40 adds graph queries, 43 adds set-once projection mappings and ordered children, 44 to 47 add policies that decide from recorded state and row narrowing, 48 and 49 add agents and the caller's identifier, 53 adds provided values, audiences and availability gates, and 54 adds graph queries that collect nested rows. The models of 37, 38, 40, 41, 43 to 49, 53 and 54 are
 admitted, but Stage checks each member they populate against its audit ledger. A member that is not audited is
 handled as described in the next section.
 
@@ -42,6 +42,7 @@ the single command, trigger, reaction or specification that needs it, and the re
 | Specification that sets a time zone or uses the clock | Specifications in that slice are refused | The model is refused | `STAGE-ESM-016` |
 | Application time zone, context members and declared read model property order | Commands and queries run, with properties ordered canonically; specifications in the affected scope are refused | The model is refused | `STAGE-ESM-016` |
 | Graph queries (ESM 40) | Run against Neo4j | Refused | `STAGE-ESM-068` |
+| Graph queries that collect nested rows (ESM 54) | Read as Chronicle graph views through Arc's graph session | Refused | `STAGE-ESM-068` |
 | Form field `choose from query` | Kept as a plain input; the gap is reported as a warning | Kept as a plain input; the gap is reported as a warning | `STAGE-SCENE-FORM-004` |
 | Unaudited ESM pair or unknown version | The whole model is refused | The whole model is refused | `STAGE-ESM-016` |
 | Any other unaudited member, including security-relevant ones | The whole model is refused | The whole model is refused | `STAGE-ESM-016` |

@@ -18,6 +18,7 @@ namespace Cratis.Stage.Semantics;
 
 /// <summary>
 /// Serves a query that reads a graph: it lowers the declared pattern to Cypher, runs it over Arc's graph session and returns the rows as the declared read model.
+/// A query that collects nested rows (ESM v54) is read as a Chronicle graph view instead, through <see cref="SemanticGraphViewReader"/>.
 /// </summary>
 /// <remarks>
 /// The role check is the model's own policy evaluation, the same one the other queries use, so a graph query is no more open than the
@@ -144,6 +145,12 @@ internal sealed class SemanticGraphQueryPerformer : IQueryPerformer
         foreach (var argument in _query.Arguments)
         {
             if (context.Arguments?.TryGetValue(argument.Name, out var value) == true && value is not null) arguments[argument.Name] = value.ToString();
+        }
+
+        if (SemanticGraphViews.Collects(_query))
+        {
+            await using var viewSession = _sessions.Open(Neo4jAccessMode.Read);
+            return await new SemanticGraphViewReader(_runtime.Plan.Model.Application, _query, _model, ReadModelType).Read(viewSession, arguments, context.CancellationToken);
         }
 
         var cypher = SemanticGraphCypher.Lower(_query, _graph, arguments);

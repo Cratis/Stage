@@ -1,0 +1,280 @@
+diff --git a/Source/Conformance.Specs/for_CanonicalCorpusConformance/conformance-matrix.json b/Source/Conformance.Specs/for_CanonicalCorpusConformance/conformance-matrix.json
+index a4406daa..5461d31c 100644
+--- a/Source/Conformance.Specs/for_CanonicalCorpusConformance/conformance-matrix.json
++++ b/Source/Conformance.Specs/for_CanonicalCorpusConformance/conformance-matrix.json
+@@ -1,11 +1,6 @@
+ {
+-<<<<<<< HEAD
+-  "corpusVersion": "4.244.0",
+-  "minimumVectorCount": 77,
+-=======
+   "corpusVersion": "4.247.3",
+   "minimumVectorCount": 79,
+->>>>>>> origin/main
+   "excludedTypes": {
+     "ClockScheduleVectors": "Raw schedule bytes only; the package carries no model for it.",
+     "ScreenCompositionCorpus": "Scene and screen-composition vectors, not executable semantic models; for_ScreenCompositionCorpus covers them.",
+@@ -2167,7 +2162,6 @@
+     },
+     "EsmGoldenVectors.V33": {
+       "loader": { "outcome": "supported" },
+-<<<<<<< HEAD
+       "executor": { "outcome": "supported" },
+       "host": { "outcome": "refused", "refusals": [
+         { "code": "STAGE-ESM-024", "kind": "slice", "artifact": "sem1:31799d70400a3946e07678be557b1c6789bb1029e8426907fe31a26068dc3918", "issue": 213 },
+@@ -2175,14 +2169,6 @@
+         { "code": "STAGE-ESM-033", "kind": "event", "artifact": "sem1:1a074f48cbb6c4d75e1811aacbce10340f07ba2479a8f60fb0870596bac970ae", "issue": 213 } ] },
+       "renderer": { "outcome": "refused", "refusals": [
+         { "code": "STAGE-ESM-011", "artifact": "sem1:450a348c26380bd109150021f55c569605dbaef3cf4c29735bbc8d17391bc396", "issue": 14 } ] }
+-=======
+-      "executor": { "outcome": "refused", "refusals": [
+-        { "code": "STAGE-ESM-016", "artifact": "sem1:046d5ff6801752fba5b4750524f564034885a2a576809feb02fb911c9389aea9", "issue": 213 } ] },
+-      "host": { "outcome": "refused", "refusals": [
+-        { "code": "STAGE-ESM-016", "kind": "application", "artifact": "sem1:89c32139177e7bc4d1c1836972d7aba74c541864082f2e3c3895240f1bcbb649", "issue": 213 },
+-        { "code": "STAGE-ESM-016", "kind": "specification", "artifact": "sem1:450a348c26380bd109150021f55c569605dbaef3cf4c29735bbc8d17391bc396", "issue": 213 } ] },
+-      "renderer": { "outcome": "refused", "refusals": [
+-        { "code": "STAGE-ESM-016", "artifact": "sem1:89c32139177e7bc4d1c1836972d7aba74c541864082f2e3c3895240f1bcbb649", "issue": 213 } ] }
+     },
+     "EsmGoldenVectors.V34": {
+       "loader": { "outcome": "supported" },
+@@ -2191,7 +2177,6 @@
+         { "code": "STAGE-ESM-016", "kind": "application", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 15 } ] },
+       "renderer": { "outcome": "refused", "refusals": [
+         { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 15 } ] }
+->>>>>>> origin/main
+     },
+     "EsmGoldenVectors.V4": {
+       "loader": { "outcome": "supported" },
+diff --git a/Source/Conformance.Specs/for_ScreenCompositionCorpus/when_carrying_the_authored_screens_vector.cs b/Source/Conformance.Specs/for_ScreenCompositionCorpus/when_carrying_the_authored_screens_vector.cs
+index ab2702a6..900a8f56 100644
+--- a/Source/Conformance.Specs/for_ScreenCompositionCorpus/when_carrying_the_authored_screens_vector.cs
++++ b/Source/Conformance.Specs/for_ScreenCompositionCorpus/when_carrying_the_authored_screens_vector.cs
+@@ -71,11 +71,7 @@ void Because()
+ 
+     // Re-frozen when the license header became the caller's choice and specifications moved into the application project.
+     // Re-frozen for #424: generated C# uses short type names and using directives above the namespace.
+-<<<<<<< HEAD
+     [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan!).ShouldEqual("0ef3bf883011609544c990788c28ed6c381b46852eed892c5a5b291743eba128");
+-=======
+-    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan!).ShouldEqual("893048b30eebce79336bc521fac76eaefb1f1fc0c3bbd81866a1401317ac91a7");
+->>>>>>> origin/main
+     [Fact] void should_pin_the_screen_fragments() => string.Join('\n', _plan!.Artifacts.Where(artifact => artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal)).Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}")).ShouldEqual("""
+         Workspaces/Tracking/WorkItemComments/Screens.scene.json acd7f05ae339201f3867044a5a7ae3e7f3501e0ae90aac9b9742fa24cc0b98da 2270
+         Workspaces/Tracking/WorkItemDetails/Screens.scene.json 69068d395013f46e2d1b6a40a47ba8e3d0dec57ff968b213d7b85bddde3c02d3 9827
+diff --git a/Source/Conformance.Specs/for_ScreenCompositionCorpus/when_planning_the_screens_vector.cs b/Source/Conformance.Specs/for_ScreenCompositionCorpus/when_planning_the_screens_vector.cs
+index 9ce9682c..4f20ef71 100644
+--- a/Source/Conformance.Specs/for_ScreenCompositionCorpus/when_planning_the_screens_vector.cs
++++ b/Source/Conformance.Specs/for_ScreenCompositionCorpus/when_planning_the_screens_vector.cs
+@@ -27,12 +27,8 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
+ {
+     // Re-frozen when the license header became the caller's choice and specifications moved into the application project.
+     // Re-frozen for #424: generated C# uses short type names and using directives above the namespace.
+-<<<<<<< HEAD
+     // Re-frozen for #734/#741/#757: only .gitignore, .yarnrc.yml and package.json change; backend and Scene bytes are unchanged.
+     const string Digest = "85c1fdc2843025a1aff0eba7b11322af8abc44a20d2bc30ada6cd7aabe39a980";
+-=======
+-    const string Digest = "658447f3435f3a19589082236234431caf66b8cd58da5398c0eca3a290e7d73d";
+->>>>>>> origin/main
+ 
+     const string Manifest = """
+         .editorconfig 0071ecdc7a762e5966d5f6e6c72cc6b53d96c918c2e32dbe74059ffbc792859f 741
+diff --git a/Source/Contracts/Scene/for_UiSyntaxAdmission/when_auditing_the_ui_surface.cs b/Source/Contracts/Scene/for_UiSyntaxAdmission/when_auditing_the_ui_surface.cs
+index 30555ac3..d6d328b9 100644
+--- a/Source/Contracts/Scene/for_UiSyntaxAdmission/when_auditing_the_ui_surface.cs
++++ b/Source/Contracts/Scene/for_UiSyntaxAdmission/when_auditing_the_ui_surface.cs
+@@ -14,11 +14,7 @@ public class when_auditing_the_ui_surface : Specification
+     // member must make an explicit render/refuse decision rather than silently extending this list.
+     // ReactionProductionMode and CommandReadMode are refused before legacy rendering/execution with STAGE-ESM-043 and STAGE-ESM-044.
+     // StickyNotes are Studio canvas notes: authoring metadata outside the executable model, so Stage neither renders nor refuses them.
+-<<<<<<< HEAD
+-    // TimeZone (application time zones) is authoring syntax only: Screenplay's executable binding refuses it with PLAY0268 before Stage sees a bound model.
+-=======
+-    // TimeZone (Screenplay 4.247.0, decisions 0106/0107) never reaches Stage: the Screenplay binder refuses an application time zone (Cratis/Screenplay#824).
+->>>>>>> origin/main
++    // TimeZone (Screenplay 4.247.0, decisions 0106/0107) never reaches Stage: the Screenplay binder refuses an application time zone with PLAY0268 (Cratis/Screenplay#824).
+     [Theory]
+     [InlineData(typeof(ApplicationSyntax), "Authentication Behaviors CommandReadMode Concepts Domain EventSources Examples Exposures FileImports Identity Imports InstanceContributions Layouts Modules Personas Policies Purposes ReactionProductionMode SampleDataPacks Seeds SourceOptions StickyNotes Systems Templates Themes TimeZone Triggers Types UiProfiles")]
+     [InlineData(typeof(ModuleSyntax), "Authorize Behaviors Contributions DependsOn Description DialogTemplates Documentation Examples Features FileImports Forms IsPlacement Name Navigation Purposes ScreenTemplates Templates Toolbars UsedBehaviors")]
+diff --git a/Source/Rendering.Cratis/Naming/Imports/FrameworkNames.catalog b/Source/Rendering.Cratis/Naming/Imports/FrameworkNames.catalog
+index 70b4050b..10b7d79a 100644
+--- a/Source/Rendering.Cratis/Naming/Imports/FrameworkNames.catalog
++++ b/Source/Rendering.Cratis/Naming/Imports/FrameworkNames.catalog
+@@ -2,7 +2,6 @@
+ # Regenerate: STAGE_WRITE_FRAMEWORK_NAME_CATALOG=1 dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --filter "FullyQualifiedName~for_FrameworkNameCatalog"
+ format	1
+ scaffold	2
+-<<<<<<< HEAD
+ pin	Cratis	22.138.3
+ pin	Cratis.Arc.Chronicle.Testing	22.138.3
+ pin	Cratis.Arc.MongoDB	22.138.3
+@@ -10,15 +9,6 @@ pin	Cratis.Chronicle	19.110.1
+ pin	Cratis.Chronicle.AspNetCore	19.110.1
+ pin	Cratis.Chronicle.Testing	19.110.1
+ pin	Cratis.Screenplay.Matching	4.244.0
+-=======
+-pin	Cratis	22.131.0
+-pin	Cratis.Arc.Chronicle.Testing	22.131.0
+-pin	Cratis.Arc.MongoDB	22.131.0
+-pin	Cratis.Chronicle	19.99.1
+-pin	Cratis.Chronicle.AspNetCore	19.99.1
+-pin	Cratis.Chronicle.Testing	19.99.1
+-pin	Cratis.Screenplay.Matching	4.247.3
+->>>>>>> origin/main
+ pin	Cratis.Specifications	4.1.1
+ pin	Cratis.Specifications.XUnit	4.1.1
+ pin	Microsoft.NET.Test.Sdk	18.11.0
+@@ -52,11 +42,7 @@ package	AS	Cratis.Orleans.Storage	1.27.2
+ package	AS	Cratis.Orleans.Storage.MongoDB	1.27.2
+ package	AS	Cratis.Screenplay	4.208.0
+ package	AS	Cratis.Screenplay.Contexts	4.208.0
+-<<<<<<< HEAD
+ package	AS	Cratis.Screenplay.Matching	4.244.0
+-=======
+-package	AS	Cratis.Screenplay.Matching	4.247.3
+->>>>>>> origin/main
+ package	AS	Cratis.Specifications	4.1.1
+ package	AS	Cratis.Specifications.XUnit	4.1.1
+ package	AS	DnsClient	1.8.0
+diff --git a/Source/Rendering.Cratis/Semantics/SemanticSurfaceLedger.cs b/Source/Rendering.Cratis/Semantics/SemanticSurfaceLedger.cs
+index 31c4fb15..bac708f8 100644
+--- a/Source/Rendering.Cratis/Semantics/SemanticSurfaceLedger.cs
++++ b/Source/Rendering.Cratis/Semantics/SemanticSurfaceLedger.cs
+@@ -428,17 +428,13 @@ static Dictionary<string, SemanticSurfaceDisposition> Build()
+         Add(entries, "SemanticCapture", foreign, "EventsSource");
+         Add(entries, "SemanticCaptureEventsSource", foreign, "Events");
+ 
+-<<<<<<< HEAD
+         // ESM v33 `key <property> is event source`: the rendered capture checks the key against the delivered event source before reading
+         // the inbox and reads only that source's history (Stage#752).
+         Add(entries, "SemanticCaptureEventsSource", rendered, "KeyIsEventSource");
+-=======
+-        // Screenplay 4.247 added ESM v33 (a capture keyed by its event source, decision 0114) and ESM v34 ('then invokes', decision 0115).
+-        // Stage admits neither version pair yet, so a model that uses them is refused whole (STAGE-ESM-016) before any of them renders.
+-        Add(entries, "SemanticCaptureEventsSource", rejected("STAGE-ESM-016"), "KeyIsEventSource");
++
++        // ESM v34 ('then invokes', Screenplay decision 0115) is executable, but the renderer refuses its version pair before rendering.
+         Add(entries, "SemanticSpecification", rejected("STAGE-ESM-016"), "ThenInvocations");
+         Add(entries, "SemanticSpecificationInvocation", rejected("STAGE-ESM-016"), "Command Values");
+->>>>>>> origin/main
+ 
+         // Screenplay 4.125 added ESM v10: reaction execution identity, observer filters and production routes.
+         // Admit each construct only on the paths that can preserve it.
+diff --git a/Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/when_preserving_optional_lookup_plan_bytes.cs b/Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/when_preserving_optional_lookup_plan_bytes.cs
+index 0a1360a6..9937b3e2 100644
+--- a/Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/when_preserving_optional_lookup_plan_bytes.cs
++++ b/Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/when_preserving_optional_lookup_plan_bytes.cs
+@@ -40,15 +40,10 @@ void Because()
+ 
+     // Re-frozen when the license header became the caller's choice and specifications moved into the application project.
+     // Re-frozen for #424: generated C# uses short type names and using directives.
+-<<<<<<< HEAD
+     [Fact] void should_emit_the_frozen_plan_bytes() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("720183ffd679a2a072451f00cfe48b2e971cc29ff3ae534e880aca3099ec0ded");
+ 
+     // PreviousRealization restores the older Yarn configuration; #757's new fundamentals resolution remains intentional.
+     [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("bcc8a2d1d632a7b20e38a7275aba0ff03496dbf7943510e5fc87111abb89e721");
+-=======
+-    [Fact] void should_emit_the_frozen_plan_bytes() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("007fb82e2a6ee026667619d6cdba61eb7f63482d400aba40544e34a7b2c91f0e");
+-    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("7986946442a1dec6563cc885a43e2ea15e4ecc2a83066f476c263d2599c29bc4");
+->>>>>>> origin/main
+ 
+     string PreviousRealizationDigest() => ArtifactRenderPlan.ComputeDigest(
+         _plan.Target,
+diff --git a/Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/when_refusing_unprovable_projected_facts.cs b/Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/when_refusing_unprovable_projected_facts.cs
+index 1eca523a..a58cc7da 100644
+--- a/Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/when_refusing_unprovable_projected_facts.cs
++++ b/Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/when_refusing_unprovable_projected_facts.cs
+@@ -112,13 +112,8 @@ void should_admit_an_append_only_another_slice_reacts_to()
+     [Fact]
+     void should_refuse_an_append_a_reaction_reacts_to()
+     {
+-<<<<<<< HEAD
+-        var plan = Plan(Appended, reacts: true);
+-        rendering_refusals.Rejected(plan, "STAGE-ESM-011");
+-=======
+         var plan = Plan(Appended, reactingSlice: "LeadList");
+-        plan.Success.ShouldBeFalse();
+->>>>>>> origin/main
++        rendering_refusals.Rejected(plan, "STAGE-ESM-011");
+         plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains("Reaction append scenarios", StringComparison.Ordinal));
+     }
+ 
+diff --git a/Source/Specifications/for_SemanticSpecificationExecutor/when_refusing_an_unaudited_version.cs b/Source/Specifications/for_SemanticSpecificationExecutor/when_refusing_an_unaudited_version.cs
+index 9ebffcb1..c82276a1 100644
+--- a/Source/Specifications/for_SemanticSpecificationExecutor/when_refusing_an_unaudited_version.cs
++++ b/Source/Specifications/for_SemanticSpecificationExecutor/when_refusing_an_unaudited_version.cs
+@@ -15,11 +15,7 @@ public class when_refusing_an_unaudited_version : a_command_only_plan
+     async Task Because()
+     {
+         // Simulate dependency versions Stage has not audited.
+-<<<<<<< HEAD
+-        foreach (var version in new uint[] { 31, 34 })
+-=======
+         foreach (var version in new uint[] { 31, 35 })
+->>>>>>> origin/main
+         {
+             typeof(ExecutableSemanticModel).GetField("<LanguageVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(_plan.Model, new LanguageVersion(version, 0));
+             typeof(ExecutableSemanticModel).GetField("<SemanticVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(_plan.Model, new SemanticVersion(version, 0));
+diff --git a/Source/Stage/Semantics/SemanticRunAdmission.cs b/Source/Stage/Semantics/SemanticRunAdmission.cs
+index bbf4de70..a706e24b 100644
+--- a/Source/Stage/Semantics/SemanticRunAdmission.cs
++++ b/Source/Stage/Semantics/SemanticRunAdmission.cs
+@@ -29,14 +29,13 @@ public static IEnumerable<SemanticAdmissionFeature> ModelFeatures(ExecutableSema
+             : [new(model.Application.Id.ToString(), "application", nameof(StageExecutionCapability.PlanIssue), UnsupportedVersion)];
+ 
+     /// <summary>
+-    /// Checks the version pairs the specification executor runs: every pair Stage renders, plus ESM v33 and v34, whose only additions
+-    /// are captures keyed by event source (refused per capture) and <c language="text">then invokes</c> expectations (compared).
++    /// Checks the version pairs the specification executor runs: every pair Stage renders, plus ESM v34's
++    /// <c language="text">then invokes</c> expectations (compared).
+     /// </summary>
+     /// <param name="model">The executable model.</param>
+     /// <returns>Whether the executor runs the version pair.</returns>
+     public static bool SupportsRun(ExecutableSemanticModel model) =>
+         SemanticVersionFeatures.Supports(model) ||
+-        (model.LanguageVersion == LanguageVersion.V33 && model.SemanticVersion == SemanticVersion.V33) ||
+         (model.LanguageVersion == LanguageVersion.V34 && model.SemanticVersion == SemanticVersion.V34);
+ 
+     /// <summary>
+@@ -124,10 +123,6 @@ public static IEnumerable<SemanticAdmissionFeature> SpecificationFeatures(Semant
+ 
+         // A specification runs only its own slice (Screenplay decision 0115): admit what that slice runs, not other slices' reactions or captures.
+         if (plan.IsolatedSlice is null && plan.SliceOf(specification.Id) is { } owner) plan = plan.IsolatedTo(owner);
+-        if (plan.RunningCaptures.FirstOrDefault(capture => capture.EventsSource is { KeyIsEventSource: true }) is { } keyedBySource)
+-        {
+-            return Block(StageExecutionCapability.ExternalEffect, keyedBySource.Id, $"STAGE-ESM-016: Capture '{keyedBySource.Name}' keys its records by event source (ESM v33), which Stage does not run yet.");
+-        }
+         var slices = plan.Model.Application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices).ToArray();
+         if (LaterVersionConstruct(plan, slices, specification) is { } later) return later;
+         if (SemanticRunTranslationAdmission.Check(plan, specification) is { } translation) return translation;
+diff --git a/Source/Stage/Semantics/SemanticRunTranslationAdmission.cs b/Source/Stage/Semantics/SemanticRunTranslationAdmission.cs
+index ab6d83df..c2b5c20c 100644
+--- a/Source/Stage/Semantics/SemanticRunTranslationAdmission.cs
++++ b/Source/Stage/Semantics/SemanticRunTranslationAdmission.cs
+@@ -69,14 +69,7 @@ internal static class SemanticRunTranslationAdmission
+             var artifacts = projections.Concat(reducers).Concat(captures).ToHashSet();
+             feature = features.FirstOrDefault(candidate => candidate.Kind != "event" && (candidate.Kind != "capture" || candidate.Code == SemanticVersionFeatures.ForeignEvents) && artifacts.Contains(candidate.Artifact));
+             if (feature is not null) return new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");
+-<<<<<<< HEAD
+-            if (slice.Kind == SemanticSliceKind.Translate && Reached(slice, specification, reachable, commands))
+-=======
+-            if (slice.Kind == SemanticSliceKind.Translate &&
+-                (slice.Reactions.Any(reaction => (plan.Runs(reaction.Id) || specification.WhenRedelivered?.Reaction == reaction.Id) && Selected(reaction, specification, reachable)) ||
+-                    slice.Projections.Any(projection => projection.Target != SemanticProjectionTargetKind.Event && Observes(projection, reachable)) ||
+-                    slice.Reducers.Any(reducer => reducer.Transitions.Any(transition => reachable.Contains(transition.EventContract)))))
+->>>>>>> origin/main
++            if (slice.Kind == SemanticSliceKind.Translate && Reached(plan, slice, specification, reachable, commands))
+             {
+                 feature = features.First(candidate => candidate.Artifact == slice.Id && candidate.Kind == "slice");
+                 return new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");
+@@ -86,9 +79,9 @@ internal static class SemanticRunTranslationAdmission
+         return feature is null ? null : new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");
+     }
+ 
+-    static bool Reached(SemanticSlice slice, SemanticSpecification specification, HashSet<SemanticId> reachable, HashSet<SemanticId> commands) =>
++    static bool Reached(SemanticExecutionPlan plan, SemanticSlice slice, SemanticSpecification specification, HashSet<SemanticId> reachable, HashSet<SemanticId> commands) =>
+         slice.Commands.Any(command => commands.Contains(command.Id)) ||
+-        slice.Reactions.Any(reaction => Selected(reaction, specification, reachable)) ||
++        slice.Reactions.Any(reaction => (plan.Runs(reaction.Id) || specification.WhenRedelivered?.Reaction == reaction.Id) && Selected(reaction, specification, reachable)) ||
+         slice.Projections.Any(projection => projection.Target != SemanticProjectionTargetKind.Event && Observes(projection, reachable)) ||
+         slice.Reducers.Any(reducer => reducer.Transitions.Any(transition => reachable.Contains(transition.EventContract)));
+ 

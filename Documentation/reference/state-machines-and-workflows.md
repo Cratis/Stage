@@ -123,10 +123,16 @@ A model that uses something the renderer cannot emit fails the plan with the dia
 | `STAGE-LIFECYCLE-008` | A transition guard compares something other than a text, number or flag member of the followed read model. |
 | `STAGE-LIFECYCLE-010` | A decision, approval, foreach or join; an action that invokes an ability or computes a value (not run until [Cratis/Stage#1118](https://github.com/Cratis/Stage/issues/1118)); an action whose command has more than its identifier; or a command a state machine sends that has a property the followed read model does not carry with the same name and type. |
 
-The render plan reports one warning per state machine, `STAGE-LIFECYCLE-009`. An event-sourced machine resolves its state from
-the followed read model when its grain activates. The generated `ResolveState` returns `InitialState` unconditionally, so the
-generated machine starts there on reactivation, even if its read model records another state. Adding a read-model member alone
-does not change that generated method; retaining the state requires a resolver that reads it.
+An event-sourced machine resolves its state from the followed read model when its grain activates. Screenplay declares no
+binding between a machine's states and a read-model member, so the generated `ResolveState` finds the member by name: a single
+required text member called `State`, `Status`, `CurrentState`, `CurrentStatus`, or the machine's name (without a `Lifecycle` or
+`StateMachine` suffix) followed by `State` or `Status`. It maps the member's value to the state of the same name, ignoring case,
+and falls back to the initial state for a null model or a value no state matches. A state the projection never writes to the
+member, such as one that only sets a flag, cannot be recovered and resumes in the nearest state the member does represent.
+
+When no single member qualifies, or two do, the generated `ResolveState` returns `InitialState`, so the machine starts there on
+reactivation, and the render plan reports a `STAGE-LIFECYCLE-009` warning for that machine. Add one text `Status` member whose
+values are the state names to resume from the read model.
 
 Specifications inside a state machine or workflow are not emitted as generated specifications. Before generating an
 application, check [Cratis renderer compatibility](renderer-compatibility.md) as well as the lifecycle refusals above.

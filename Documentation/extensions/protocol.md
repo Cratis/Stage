@@ -1,6 +1,6 @@
 ---
 title: Extension protocol reference
-description: The Cratis Stage extension protocol, cratis.stage.extensions.v1 - the two gRPC services, every message, the rules for results, retries and deadlines, and how the protocol is versioned.
+description: "The Cratis Stage extension protocol, cratis.stage.extensions.v1: the two gRPC services, every message, rules for results, retries, deadlines and versioning."
 ---
 
 The extension protocol is defined in three `.proto` files under

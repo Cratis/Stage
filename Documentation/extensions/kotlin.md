@@ -1,6 +1,6 @@
 ---
 title: Write an extension backend in Kotlin
-description: Getting started with the Kotlin SDK for Cratis Stage extension backends - declare abilities, return the right result, use settings, secrets, triggers, answers and telemetry, run the backend and test it.
+description: "Get started with the Kotlin SDK for Cratis Stage extension backends: declare abilities, return results, use settings, secrets, triggers and telemetry, and test."
 ---
 
 The Kotlin SDK is `io.cratis.stage:stage-extensions` (JVM 17), at

@@ -1,6 +1,6 @@
 ---
 title: Extension backends
-description: How a Cratis Screenplay system reaches something outside the model - an extension backend in any language, called by Cratis Stage over a two-way gRPC protocol, with host services for settings, secrets, triggers, answers and telemetry.
+description: "How a Cratis Screenplay system reaches an outside extension backend in any language over a two-way gRPC protocol, with host services for settings and secrets."
 ---
 
 A Screenplay `system` declares what the business can ask an outside system to do: post to a chat channel, book a pickup, take a payment. The

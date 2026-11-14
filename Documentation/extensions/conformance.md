@@ -1,6 +1,6 @@
 ---
 title: Extension SDK conformance suite
-description: The shared conformance suite every Cratis Stage extension SDK passes - the reference extension each SDK builds, the cases it runs over the wire, and how to add an SDK for another language.
+description: "The shared conformance suite every Cratis Stage extension SDK passes: the reference extension each SDK builds, the wire cases it runs and adding an SDK."
 ---
 
 Four SDKs implement one protocol, so one suite holds them to the same behavior. It is

@@ -52,8 +52,7 @@ internal static class SemanticLifecycleStateResolution
 
     static string[] Names(string machine)
     {
-        var prefix = _suffixes.Where(suffix => machine.Length > suffix.Length && machine.EndsWith(suffix, StringComparison.Ordinal)).Select(suffix => machine[..^suffix.Length]).FirstOrDefault() ?? string.Empty;
-        string[] names = ["State", "Status", "CurrentState", "CurrentStatus"];
-        return prefix.Length == 0 ? names : [.. names, $"{prefix}State", $"{prefix}Status"];
+        var prefix = _suffixes.Where(suffix => machine.Length > suffix.Length && machine.EndsWith(suffix, StringComparison.Ordinal)).Select(suffix => machine[..^suffix.Length]).FirstOrDefault() ?? machine;
+        return ["State", "Status", "CurrentState", "CurrentStatus", $"{prefix}State", $"{prefix}Status"];
     }
 }

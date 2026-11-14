@@ -49,6 +49,7 @@ public class when_a_run_waits_for_the_process_gate : a_specification_endpoint
                 throw new InvalidOperationException("The holding request completed before reaching the runner.");
             }
             waiting = RequestStatus("{}", cancellation.Token);
+
             // The runner double is slow on purpose: queue time must exceed its execution budget.
             await Task.Delay(Timeout * 3);
             _release.TrySetResult();

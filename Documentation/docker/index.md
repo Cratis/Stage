@@ -467,6 +467,17 @@ Repeated tail movement also returns a conflict after eight attempts. An unknown 
 retried or reported as success: the session faults until it can be reconstructed. Unreadable or unsupported
 outside history also faults the session. Legacy custom appenders without fact-reading or guarded-write
 capabilities retain their conservative safety checks.
+
+Against Chronicle, semantic queries and compatibility read-model queries read the log tail first and
+incorporate outside facts through that observed tail before returning results. Appends after that tail
+is read are picked up by a later operation. If the outside suffix cannot be read completely or cannot
+extend the semantic world, the session faults instead of returning stale success; `/stage/status` reports
+`unsupported` with the fault reason. `ready` means the session is initialized and has no known runtime
+fault, not that it continuously follows the log: status checks do not refresh it. Live query subscriptions
+see outside appends when the next query or command refreshes the world; there is no background polling.
+Each query costs one tail read against the kernel while the session is held, so a slow kernel delays
+concurrent queries. A tail or read failure faults the session until it restarts.
+
 The Cratis renderer renders protected reads as Arc read protection (see [Protected reads rendering](../reference/protected-reads-rendering.md)),
 refusing only the shapes it cannot preserve with `STAGE-ESM-044`. The Contracts `EventModelLoader` admits the preamble and records it as `EventModel.ProtectedCommandReads`; the legacy syntax renderer, the `eventmodel` Host engine, the structural runner and `StageCommandHandlerProvider` refuse such a model with the same code. Without the preamble,
 command reads still fail binding with `PLAY0271` and the repair diagnostic `PLAY0786`.
@@ -525,14 +536,18 @@ the rebuild to finish, see [Wait for the session to settle](#wait-for-the-sessio
 Commands retain their slice-qualified `/api/…` route and legacy alias. The semantic engine also exposes one
 query by its modeled name. Compatibility `Get…ById` and `All…` queries are available only for read models with at least one keyed query and no authorization on any keyed query targeting that read model. Otherwise, the compatibility routes are not mapped, so callers cannot bypass a modeled query policy.
 Unknown or revised events, schema mismatches and unverified historical constraint claims cause
-`Unsupported(World)` with a specific issue rather than a partial world. A logged event contract with a DateTime or DecimalNumber property also refuses because Chronicle
-storage does not preserve these values exactly. Null optional event values, non-text destination IDs,
+`Unsupported(World)` with a specific issue rather than a partial world. A logged event contract with a DateTime property also refuses because Chronicle
+storage does not preserve these values exactly (this is a known limitation; the startup warning `STAGE-ESM-080` names the event). A decimal property restarts exactly when the
+event type's stored schema carries Chronicle's exact `decimal` format on every number: Stage registers a new event type that way, and reads the stored schema back
+after registration to decide. An event type that was first registered by an earlier Stage, or by another store, keeps its stored shape (the kernel refuses to change it), so a
+restart over such a log refuses the decimal with a clear message, and startup warns with `STAGE-ESM-079`; use a new event type to get exact decimals. Stored seed events whose
+schema is not exact are accepted only when the model's seed still equals them exactly. When two Stage instances register the same new event type at the same time, the
+first registration wins and decides the shape; the kernel offers no atomic registration. The read-model sink narrowing is unchanged. Null optional event values, non-text destination IDs,
 changed `causedBy.name` for the same subject, and duplicate tags can also fail the exact-history check.
 Origin verification compares modeled tags and mapped `$context` values; it does not independently
 verify literal mappings, production conditions, or that a destination matches a mapped event property.
 Do not treat a successful rebuild as proof that another client could not append a plausible event.
-After rebuild, an external append detected before a command faults the runtime instead of committing
-against stale state. The semantic engine does not register Chronicle projection mirrors: its read models
+The semantic engine does not register Chronicle projection mirrors: its read models
 are available through Stage's in-process queries, not as projection views in the Chronicle Workbench.
 For admitted, unrouted models, the legacy EventModel engine continues to register its own Chronicle projections. Commands that require
 allocation of a new event-source identity return `Unsupported(IdentityAllocation)`; explicitly name a

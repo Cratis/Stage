@@ -18,6 +18,12 @@
             <_Parameter1>Cratis.Stage.Host</_Parameter1>
         </AssemblyAttribute>
         <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+            <_Parameter1>Cratis.Stage</_Parameter1>
+        </AssemblyAttribute>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+            <_Parameter1>Cratis.Stage.SpecRunner</_Parameter1>
+        </AssemblyAttribute>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
             <_Parameter1>Cratis.Stage.Rendering.Templates</_Parameter1>
         </AssemblyAttribute>
     </ItemGroup>

@@ -33,6 +33,9 @@ When you want source to develop further, Stage can plan reviewable
 [Cratis Arc](https://github.com/Cratis/Arc) + [Chronicle](https://github.com/Cratis/Chronicle) application artifacts
 from the same model. Its separate specification runner checks the expectations declared in the model and writes
 structured results. Starting the sandbox does not run those specifications, and an unsupported outcome is not a pass.
+A broken specification does not prevent an otherwise valid model from running: status diagnostics retain its original
+errors, while requests to run that specification or a scope containing it are refused. Healthy specifications can still
+run individually. Whole-model errors still prevent hosting, and standalone compilation and verification remain strict.
 
 Stage is part of the Cratis model-first layer: [Screenplay](https://github.com/Cratis/Screenplay) is
 the modeling language, [Studio](https://github.com/Cratis/Studio) the paid collaborative modeling product,

@@ -104,12 +104,22 @@ public static partial class Program
         return SemanticBodyExecution.From(loaded, manifest, () => new BodyWorkerSupervisor(options, manifest));
     }
 
-    static async Task<int> RunSemantic(SpecRunnerArguments arguments, string[] args, TextWriter output, TextWriter error)
+    static async Task<bool> Refused(LoadedSemanticModel loaded, IReadOnlyCollection<SemanticId> scopes, TextWriter error)
+    {
+        var refused = loaded.RefusalsFor(scopes);
+        foreach (var diagnostic in refused.SelectMany(specification => specification.Diagnostics))
+        {
+            await error.WriteLineAsync($"{diagnostic.Code}: {diagnostic.Message}");
+        }
+        return !refused.IsEmpty;
+    }
+
+    static async Task<List<SemanticId>?> ReadSemanticScopes(SpecRunnerArguments arguments, TextWriter error)
     {
         if (arguments.HasStructuralFilter)
         {
             await error.WriteLineAsync("--slice and --spec are structural-only; use --scope or --specification with --engine semantic.");
-            return 2;
+            return null;
         }
 
         var scopes = new List<SemanticId>();
@@ -119,15 +129,23 @@ public static partial class Program
             if (!SemanticId.TryParse(scope, out var id))
             {
                 await error.WriteLineAsync($"Invalid semantic identity '{scope}'.");
-                return 2;
+                return null;
             }
 
             scopes.Add(id);
         }
+        return scopes;
+    }
+
+    static async Task<int> RunSemantic(SpecRunnerArguments arguments, string[] args, TextWriter output, TextWriter error)
+    {
+        var scopes = await ReadSemanticScopes(arguments, error);
+        if (scopes is null) return 2;
 
         try
         {
-            var loaded = await SemanticModelLoader.LoadFromPathAsync(arguments.ModelPath, arguments.CatalogPath, arguments.ApplicationName);
+            var loaded = await SemanticModelLoader.LoadFromPathAsync(arguments.ModelPath, arguments.CatalogPath, arguments.ApplicationName, arguments.AllowRefusedSpecifications);
+            if (await Refused(loaded, scopes, error)) return 1;
             await using var bodies = await CompileBodies(loaded, arguments, args);
             var result = await new SemanticSpecificationExecutor().Run(loaded.Plan, new SemanticSpecificationSelection([.. scopes]), new SemanticSpecificationRunOptions
             {

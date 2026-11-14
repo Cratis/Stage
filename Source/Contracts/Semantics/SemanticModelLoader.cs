@@ -70,6 +70,10 @@ public sealed record LoadedSemanticModel(ExecutableSemanticModel Model, Semantic
     /// Gets non-blocking compiler diagnostics, including information and warnings.
     /// </summary>
     public ImmutableArray<SemanticModelLoadDiagnostic> Notes => [.. Diagnostics.Where(diagnostic => diagnostic.Severity != DiagnosticSeverity.Error)];
+
+    internal ImmutableArray<RefusedSpecification> RefusedSpecifications { get; init; } = [];
+
+    internal ImmutableArray<RefusedSpecification> RefusalsFor(IReadOnlyCollection<SemanticId> scopes) => SpecificationRefusals.Selected(this, scopes);
 }
 
 /// <summary>
@@ -132,44 +136,8 @@ public static partial class SemanticModelLoader
     /// <param name="applicationName">The application name; defaults to the folder or file name.</param>
     /// <returns>The executable model and plan.</returns>
     /// <exception cref="InvalidSemanticModel">The source cannot compile into an executable plan.</exception>
-    public static async Task<LoadedSemanticModel> LoadFromPathAsync(string path, string? catalogPath, string? applicationName)
-    {
-        var isFolder = Directory.Exists(path);
-        if (!isFolder && (!File.Exists(path) || !string.Equals(Path.GetExtension(path), ".play", StringComparison.OrdinalIgnoreCase)))
-        {
-            throw new InvalidSemanticModel(["Supply an existing .play file or a directory containing .play files."]);
-        }
-        var files = isFolder ? Directory.GetFiles(path, "*.play", SearchOption.AllDirectories) : [path];
-        if (files.Length == 0) throw new InvalidSemanticModel(["No .play files were found."]);
-        var root = isFolder ? path : Path.GetDirectoryName(Path.GetFullPath(path))!;
-        var name = applicationName ?? (isFolder ? new DirectoryInfo(path).Name : Path.GetFileNameWithoutExtension(path));
-        PersistedIdentityState? state = null;
-        var catalog = catalogPath is null ? SemanticIdentityCatalog.Empty(ApplicationIdentity.Create(name)) :
-            DeserializeCatalog(await File.ReadAllBytesAsync(catalogPath), out state);
-        if (state is not null && IsRootIdentityPath(Path.GetFullPath(root), Path.GetFullPath(catalogPath!)))
-        {
-            var opened = LoadModelRoot(Path.GetFullPath(root), [.. files.Select(Path.GetFullPath)], isFolder ? [] : [Path.GetFullPath(path)], applicationName ?? state.ApplicationName, default);
-            if (!opened.Success) throw new InvalidSemanticModel([.. opened.Diagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).Select(diagnostic => diagnostic.Message)]) { Notes = opened.Notes };
-            return opened.Loaded!;
-        }
-        var documents = new List<SemanticSourceDocument>();
-        foreach (var file in files.Order(StringComparer.Ordinal))
-        {
-            var relative = Path.GetRelativePath(root, file).Replace('\\', '/');
-            var mapping = state?.Documents.SingleOrDefault(document => document.Path.Value == relative);
-            var key = mapping?.StableKey ?? Convert.ToHexString(Encoding.UTF8.GetBytes(relative));
-            documents.Add(SemanticSourceDocument.Create(mapping?.Id ?? catalog.ResolveDocument(key), key, relative, await File.ReadAllTextAsync(file)));
-        }
-        var result = Compile(root, name, catalog, [.. documents], default);
-        if (!result.Success)
-        {
-            throw new InvalidSemanticModel([.. result.Diagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error && diagnostic.Code != "STAGE-PLAN-003")
-                .Select(diagnostic => diagnostic.Source is null ? diagnostic.Message : $"{diagnostic.Source}: {diagnostic.Message}")])
-            { Notes = result.Notes };
-        }
-
-        return result.Loaded!;
-    }
+    public static Task<LoadedSemanticModel> LoadFromPathAsync(string path, string? catalogPath, string? applicationName) =>
+        LoadFromPathAsync(path, catalogPath, applicationName, false);
 
     /// <summary>
     /// Compiles a deduplicated union of files and folders under a stable root without throwing for expected failures.
@@ -347,7 +315,7 @@ public static partial class SemanticModelLoader
         }
     }
 
-    static SemanticModelLoadResult Compile(string root, string name, SemanticIdentityCatalog catalog, ImmutableArray<SemanticSourceDocument> documents, CancellationToken cancellationToken)
+    static SemanticModelLoadResult Compile(string root, string name, SemanticIdentityCatalog catalog, ImmutableArray<SemanticSourceDocument> documents, CancellationToken cancellationToken, bool allowRefusedSpecifications = false)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var attachments = AttachmentFiles.Load(root, documents);
@@ -356,9 +324,10 @@ public static partial class SemanticModelLoader
         return FinishCompilation(
             compiled,
             attachments.Diagnostics,
-            compiled.Success ? StageReleaseBaseline.Check(compiled.Value!, ReleaseBaselineStore.Read(root, catalog.Application)) : ReleaseBaselineAssessment.NotSupplied,
+            Executable(compiled, allowRefusedSpecifications) is { } executable ? StageReleaseBaseline.Check(executable, ReleaseBaselineStore.Read(root, catalog.Application)) : ReleaseBaselineAssessment.NotSupplied,
             cancellationToken,
-            root);
+            root,
+            allowRefusedSpecifications);
     }
 
     static IEnumerable<string> NamedFiles(string root, ImmutableArray<string> paths) =>

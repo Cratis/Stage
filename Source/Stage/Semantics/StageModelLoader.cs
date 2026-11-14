@@ -29,12 +29,18 @@ internal static class StageModelLoader
     /// <param name="notes">Receives the load diagnostics, when supplied.</param>
     /// <param name="applicationName">The application name, or <see langword="null"/> to take it from the path.</param>
     /// <returns>The model and scene, or <see langword="null"/> for both when the model cannot be served.</returns>
-    internal static async Task<(LoadedSemanticModel? Model, SceneApplication? Scene)> Load(string modelPath, List<StageLoadIssue> issues, List<SemanticModelLoadDiagnostic>? notes = null, string? applicationName = null)
+    internal static Task<(LoadedSemanticModel? Model, SceneApplication? Scene)> Load(string modelPath, List<StageLoadIssue> issues, List<SemanticModelLoadDiagnostic>? notes = null, string? applicationName = null) =>
+        LoadModel(modelPath, issues, notes, () => SemanticModelLoader.LoadFromPathAsync(modelPath, null, applicationName));
+
+    internal static Task<(LoadedSemanticModel? Model, SceneApplication? Scene)> LoadForRunningModel(string modelPath, List<StageLoadIssue> issues, List<SemanticModelLoadDiagnostic>? notes = null, string? applicationName = null) =>
+        LoadModel(modelPath, issues, notes, () => SemanticModelLoader.LoadFromPathAsync(modelPath, null, applicationName, allowRefusedSpecifications: true));
+
+    static async Task<(LoadedSemanticModel? Model, SceneApplication? Scene)> LoadModel(string modelPath, List<StageLoadIssue> issues, List<SemanticModelLoadDiagnostic>? notes, Func<Task<LoadedSemanticModel>> load)
     {
         try
         {
-            var loaded = await SemanticModelLoader.LoadFromPathAsync(modelPath, null, applicationName);
-            notes?.AddRange(loaded.Notes);
+            var loaded = await load();
+            notes?.AddRange(loaded.Diagnostics);
 
             var scene = SemanticHostScene.Load(modelPath, loaded.Model);
             if (scene.RuntimeIssues.All(SafeSceneApplication.CanServeWithoutUnsafeBehavior))

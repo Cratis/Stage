@@ -6,6 +6,8 @@ using System.Diagnostics;
 using System.Text.Json;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Contracts;
+using Cratis.Stage.Contracts.Semantics;
 using Cratis.Stage.Contracts.Specifications.Semantic;
 
 namespace Cratis.Stage.Host;
@@ -16,11 +18,11 @@ internal static class SemanticSpecificationRuns
     const string GraphKind = "Graph";
     static readonly SemaphoreSlim _processGate = new(1, 1);
 
-    internal static void Map(WebApplication app, SemanticExecutionPlan plan, string modelPath) =>
+    internal static void Map(WebApplication app, SemanticExecutionPlan plan, string modelPath, LoadedSemanticModel? loaded = null) =>
         app.MapPost(Route, (SemanticSpecificationRunRequest request, ISpecificationRunProcess process, SemanticSpecificationProcessOptions options, CancellationToken cancellationToken) =>
-            Run(plan, modelPath, request, process, options, app.Logger, cancellationToken));
+            Run(new(plan, modelPath, process, options, app.Logger, loaded), request, cancellationToken));
 
-    static async Task<IResult> Run(SemanticExecutionPlan plan, string modelPath, SemanticSpecificationRunRequest request, ISpecificationRunProcess process, SemanticSpecificationProcessOptions options, ILogger logger, CancellationToken cancellationToken)
+    static async Task<IResult> Run(RunContext run, SemanticSpecificationRunRequest request, CancellationToken cancellationToken)
     {
         if (request.Scopes is { Length: > 1000 })
         {
@@ -36,6 +38,21 @@ internal static class SemanticSpecificationRuns
             scopes.Add(id);
         }
 
+        if (run.Loaded is { } loaded)
+        {
+            var refused = loaded.RefusalsFor(scopes);
+            if (!refused.IsEmpty)
+            {
+                return Results.Json(new { engine = "semantic", issues = refused.SelectMany(specification => specification.Diagnostics).Select(diagnostic => diagnostic.Message), notes = loaded.Diagnostics }, StageJson.Options, statusCode: StatusCodes.Status501NotImplemented);
+            }
+        }
+
+        return await Execute(run, scopes, cancellationToken);
+    }
+
+    static async Task<IResult> Execute(RunContext run, HashSet<SemanticId> scopes, CancellationToken cancellationToken)
+    {
+        var (plan, modelPath, process, options, logger, _) = run;
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(options.Timeout);
         var directory = Path.Combine(Path.GetTempPath(), $"stage-specifications-{Guid.NewGuid():N}");
@@ -54,7 +71,7 @@ internal static class SemanticSpecificationRuns
                 WorkingDirectory = directory,
                 CreateNoWindow = true
             };
-            SemanticBodyWorkerHosting.AddRunnerArguments(start, [Path.GetFullPath(options.RunnerPath), "--engine", "semantic", "--model", Path.GetFullPath(modelPath), "--output", output, "--application", plan.Model.Application.Name], options.BodyWorker);
+            SemanticBodyWorkerHosting.AddRunnerArguments(start, [Path.GetFullPath(options.RunnerPath), "--engine", "semantic", "--model", Path.GetFullPath(modelPath), "--output", output, "--application", plan.Model.Application.Name, "--allow-refused-specifications", "true"], options.BodyWorker);
             foreach (var scope in scopes)
             {
                 start.ArgumentList.Add("--scope");
@@ -158,6 +175,8 @@ internal static class SemanticSpecificationRuns
 
     static IResult Failure(string details, int status = StatusCodes.Status502BadGateway) =>
         Results.Problem(detail: details, statusCode: status, title: "Specification execution failed", extensions: new Dictionary<string, object?> { ["capability"] = "Specification" });
+
+    sealed record RunContext(SemanticExecutionPlan Plan, string ModelPath, ISpecificationRunProcess Process, SemanticSpecificationProcessOptions Options, ILogger Logger, LoadedSemanticModel? Loaded);
 }
 
 internal sealed record SemanticSpecificationRunRequest(string[]? Scopes = null);

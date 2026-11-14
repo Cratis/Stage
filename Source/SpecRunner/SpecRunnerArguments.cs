@@ -47,6 +47,8 @@ public record SpecRunnerArguments(string ModelPath, string OutputPath, Guid? Sli
     /// </summary>
     public string? ProfileVersion { get; init; }
 
+    internal bool AllowRefusedSpecifications { get; init; }
+
     /// <summary>
     /// Parses the supplied command-line arguments.
     /// </summary>
@@ -72,7 +74,8 @@ public record SpecRunnerArguments(string ModelPath, string OutputPath, Guid? Sli
             Scope = values.GetValueOrDefault("scope"),
             CatalogPath = values.GetValueOrDefault("catalog"),
             ApplicationName = values.GetValueOrDefault("application"),
-            ProfileVersion = ReadProfileVersion(values.GetValueOrDefault("body-worker-profile-version"))
+            ProfileVersion = ReadProfileVersion(values.GetValueOrDefault("body-worker-profile-version")),
+            AllowRefusedSpecifications = values.GetValueOrDefault("allow-refused-specifications") == "true"
         };
     }
 

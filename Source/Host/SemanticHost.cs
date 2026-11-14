@@ -215,7 +215,7 @@ internal static class SemanticHost
         MapStatus(app, () => RegistrationStatus(world, issues, app.Services, modelName, modelPath), notes);
         if (mode == StageHostMode.Sandbox)
         {
-            SemanticSpecificationRuns.Map(app, loaded.Plan, modelPath);
+            SemanticSpecificationRuns.Map(app, loaded.Plan, modelPath, loaded);
             var journeyRoutes = scene is null ? null : new StageRoutesSource(new StageSceneRoutes(scene, app.Services, app.Logger), loaded.Model);
             StageJourneyReplay.Map(app, () => journeyRoutes?.Build(), () => RegistrationStatus(world, issues, app.Services, modelName, modelPath));
             StageLifecycleEndpoints.Map(app, loaded.Plan, () => lifecycles);
@@ -303,7 +303,7 @@ internal static class SemanticHost
     internal static async Task<(LoadedSemanticModel? Model, SceneApplication? Scene)> LoadModel(string modelPath, List<StageUnsupportedIssue> issues, List<SemanticModelLoadDiagnostic>? notes = null, string? applicationName = null)
     {
         var found = new List<StageLoadIssue>();
-        var result = await StageModelLoader.Load(modelPath, found, notes, applicationName);
+        var result = await StageModelLoader.LoadForRunningModel(modelPath, found, notes, applicationName);
         issues.AddRange(found.Select(issue => new StageUnsupportedIssue(issue.Capability, issue.Artifact, issue.Details)));
 
         return result;

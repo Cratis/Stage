@@ -1,6 +1,6 @@
 ---
 title: Write an extension backend in Go
-description: Getting started with the Go SDK for Cratis Stage extension backends - declare abilities, return the right result, use settings, secrets, triggers, answers and telemetry, run the backend and test it.
+description: "Get started with the Go SDK for Cratis Stage extension backends: declare abilities, return results, use settings, secrets, triggers and telemetry, then test it."
 ---
 
 The Go SDK is the module `github.com/Cratis/Stage/Source/Extensions/Go`, at

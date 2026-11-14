@@ -1,6 +1,6 @@
 ---
 title: Connect a backend to Stage
-description: Turn on the Cratis Stage extension protocol, point Stage at an extension backend, and understand what the handshake checks, what is logged and what is not yet available.
+description: "Turn on the Cratis Stage extension protocol, point Stage at an extension backend, and see what the handshake checks, what is logged and what is unavailable."
 ---
 
 The extension protocol is off by default. Nothing listens and no backend is called until you configure it, and without it abilities answer that

@@ -1,6 +1,6 @@
 ---
 title: Run extension components
-description: How Cratis Stage runs the extension components placed on a screen - loading React and mount components over the Scene contract, the context they receive, public settings only, invoking an ability from the browser through the contract allowlist and the screen authorization, and static placeholders.
+description: "How Cratis Stage serves extension components to the browser: the context they receive, public settings only, allowlisted ability calls and static placeholders."
 ---
 
 An extension can bring frontend components as well as a backend. A screen places one with `component <System>.<Component>`, and Stage serves it

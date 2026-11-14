@@ -1,6 +1,6 @@
 ---
 title: Host services reference
-description: What a Cratis Stage extension backend can ask of Stage - settings, secrets, raising a trigger, answering an invocation later, and logs and metrics tied to the invocation - and what each answer means.
+description: "What a Cratis Stage extension backend can ask of Stage: settings, secrets, raising triggers, late answers, and logs and metrics tied to the invocation."
 ---
 
 Stage offers extensions the services below through `service StageHost`, defined in

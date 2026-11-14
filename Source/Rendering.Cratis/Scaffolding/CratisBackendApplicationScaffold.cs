@@ -35,6 +35,9 @@ public sealed partial class CratisBackendApplicationScaffold
             ("README.md", Readme(request)),
             ($"{request.ProjectName}.slnx", Solution(request)),
             ("Program.cs", Program(request)),
+            ("GeneratedHostAuthentication.cs", Authentication(request)),
+            ("GeneratedHostAuthentication.Configuration.cs", AuthenticationConfiguration(request)),
+            ("GeneratedHostAuthentication.Perimeter.cs", AuthenticationPerimeter(request)),
             ("GeneratedPolicyRegistration.cs", PolicyRegistration(request)),
             ("GlobalUsings.cs", GlobalUsings()),
             ("appsettings.json", AppSettings(request)),
@@ -91,12 +94,14 @@ public sealed partial class CratisBackendApplicationScaffold
             configureChronicleBuilder: chronicle => chronicle.WithCamelCaseNamingPolicy());
         {{request.RootNamespace}}.GeneratedPolicies.Registration.Register(builder.Services);
         ConfigureServices(builder);
+        {{request.RootNamespace}}.GeneratedHostAuthentication.ConfigureServices(builder);
 
         var app = builder.Build();
+        {{request.RootNamespace}}.GeneratedHostAuthentication.ConfigureApplication(app);
         app.UseDefaultFiles();
         app.UseStaticFiles();
         app.UseCratis();
-        app.MapHealthChecks("/healthz");
+        app.MapHealthChecks("/healthz").AllowAnonymous();
         app.MapFallbackToFile("/index.html");
         ConfigureApplication(app);
 

@@ -154,9 +154,8 @@ public class CratisRenderer : IRenderer
 
     /// <summary>
     /// Reports the application-wide declarations nothing renders. A <c language="csharp">persona</c> is what binds a caller to the
-    /// policies they hold and <c language="csharp">authentication</c> is what establishes who the caller is — without them the
-    /// authorization the commands and read models now carry has nothing to evaluate against, so their absence is
-    /// as load-bearing as a missing slice.
+    /// policies they hold and <c language="csharp">authentication</c> declares how callers are identified. The scaffold's
+    /// opt-in host authentication does not compile either declaration or translate persona-to-policy mappings.
     /// </summary>
     /// <param name="applicationSet">The <see cref="ApplicationSet"/> that was rendered.</param>
     /// <param name="error">The <see cref="TextWriter"/> rendering problems are reported to.</param>
@@ -180,7 +179,7 @@ public class CratisRenderer : IRenderer
         if (providers > 0)
         {
             await error.WriteLineAsync(
-                $"{providers} authentication provider(s) are not rendered — the application authenticates nobody, so every authorization requirement rejects.");
+                $"{providers} authentication provider(s) are not rendered — configure host authentication explicitly; it does not compile these declarations or map personas to policies.");
         }
     }
 

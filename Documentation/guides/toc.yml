@@ -8,3 +8,5 @@
   href: target-repository-model.md
 - name: Customize a rendered application
   href: customize-rendered-application.md
+- name: Authenticate a rendered application with Microsoft Entra ID
+  href: authenticate-rendered-application.md

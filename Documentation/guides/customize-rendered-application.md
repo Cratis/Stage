@@ -33,7 +33,7 @@ Every file is optional. Without them, the application builds and runs as rendere
   that `.frontend/main.tsx` discovers `Customizations/styles.css` with `import.meta.glob` and awaits its loader
   before rendering React. An application rendered before these hooks existed has neither; render it again first.
 
-The rendered `Program.cs` provides the hooks:
+The rendered `Program.cs` provides the hooks (the authentication helper is in your application's root namespace):
 
 ```csharp title="Program.cs (managed)"
 using Cratis.Arc.MongoDB;
@@ -44,8 +44,10 @@ builder.AddCratis(
     configureArcBuilder: arc => arc.WithMongoDB(),
     configureChronicleBuilder: chronicle => chronicle.WithCamelCaseNamingPolicy());
 ConfigureServices(builder);
+GeneratedHostAuthentication.ConfigureServices(builder);
 
 var app = builder.Build();
+GeneratedHostAuthentication.ConfigureApplication(app);
 app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseCratis();
@@ -63,8 +65,14 @@ public partial class Program
 }
 ```
 
-`ConfigureServices` runs after `AddCratis` and before `Build`. `ConfigureApplication` runs after `UseCratis` and
-the generated endpoints, and before `RunAsync`. When you do not implement a hook, the compiler removes the call.
+`ConfigureServices` runs after `AddCratis` and before the generated authentication registration and `Build`.
+`ConfigureApplication` runs after `UseCratis` and the generated endpoints, and before `RunAsync`.
+When you do not implement a hook, the compiler removes the call.
+
+The generated host authentication helper is inactive by default. When explicitly enabled, it installs authentication
+and the host perimeter before static files and `UseCratis`, and protects customization endpoints too.
+Keep those calls in that order. See [Authenticate a rendered application with Microsoft Entra ID](authenticate-rendered-application.md)
+for configuration, browser sessions, API tokens, and the cookie Origin checks.
 
 The generated `/healthz` endpoint runs all health checks. With Chronicle **19.59.6 or later**, it reports healthy
 only after the client is connected and Chronicle has successfully registered the application's artifacts,

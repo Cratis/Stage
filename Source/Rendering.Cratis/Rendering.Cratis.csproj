@@ -43,6 +43,9 @@
         <PackageReference Include="Cratis.Chronicle" GeneratePathProperty="true" ExcludeAssets="analyzers" />
         <PackageReference Include="Cratis.Chronicle.Testing" ExcludeAssets="analyzers" />
         <PackageReference Include="MongoDB.Driver" />
+        <PackageReference Include="Microsoft.Identity.Web" PrivateAssets="All" />
+        <PackageReference Include="System.Security.Cryptography.Pkcs" PrivateAssets="All" />
+        <PackageReference Include="System.Security.Cryptography.Xml" PrivateAssets="All" />
         <!--
             The frozen RegisterProject conformance corpus - the planner fixture loads its source and identity
             catalog through the real serializers instead of copying strings or repository-relative files.
@@ -132,6 +135,9 @@
             <_ScaffoldPackage Include="Cratis.Specifications" Constant="Specifications" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Specifications')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Specifications.XUnit" Constant="SpecificationsXUnit" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Specifications.XUnit')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Microsoft.Extensions.Telemetry.Abstractions" Constant="TelemetryAbstractions" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Microsoft.Extensions.Telemetry.Abstractions')->Metadata('Version'))" />
+            <_ScaffoldPackage Include="Microsoft.Identity.Web" Constant="IdentityWeb" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Microsoft.Identity.Web')->Metadata('Version'))" />
+            <_ScaffoldPackage Include="System.Security.Cryptography.Pkcs" Constant="CryptographyPkcs" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'System.Security.Cryptography.Pkcs')->Metadata('Version'))" />
+            <_ScaffoldPackage Include="System.Security.Cryptography.Xml" Constant="CryptographyXml" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'System.Security.Cryptography.Xml')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Microsoft.NET.Test.Sdk" Constant="TestSdk" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Microsoft.NET.Test.Sdk')->Metadata('Version'))" />
             <_ScaffoldPackage Include="NSubstitute" Constant="NSubstitute" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'NSubstitute')->Metadata('Version'))" />
             <_ScaffoldPackage Include="xunit" Constant="Xunit" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'xunit')->Metadata('Version'))" />

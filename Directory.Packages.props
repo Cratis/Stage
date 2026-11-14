@@ -47,6 +47,10 @@
     <PackageVersion Include="Cratis.Templates" Version="1.8.1" />
     <PackageVersion Include="Scriban" Version="[7.5.3]" />
     <!-- Microsoft -->
+    <PackageVersion Include="Microsoft.Identity.Web" Version="4.10.0" />
+    <!-- Identity.Web resolves 10.0.7 transitively; 10.0.13 fixes the published Pkcs/Xml advisories. -->
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
+    <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.13" />
     <!-- Audited reducer-binding references, embedded in the renderer for runtime-only hosts. -->
     <PackageVersion Include="Microsoft.NETCore.App.Ref" Version="$(PureTransitionReferencePackVersion)" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />

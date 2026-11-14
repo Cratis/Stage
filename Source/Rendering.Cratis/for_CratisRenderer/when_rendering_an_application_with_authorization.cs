@@ -67,7 +67,7 @@ public class when_rendering_an_application_with_authorization : an_application_w
     [Fact] void should_report_the_personas_it_does_not_render() =>
         _error.ToString().ShouldContain("1 persona declaration(s) are not rendered");
     [Fact] void should_report_the_authentication_providers_it_does_not_render() =>
-        _error.ToString().ShouldContain("1 authentication provider(s) are not rendered");
+        _error.ToString().ShouldContain("1 authentication provider(s) are not rendered — configure host authentication explicitly; it does not compile these declarations or map personas to policies.");
 
     [Fact] void should_admit_an_administrator_to_the_generated_role_alternative() =>
         IsAuthorized(_register, Authenticated("Administrator")).ShouldBeTrue();

@@ -54,6 +54,9 @@ public sealed partial class CratisBackendApplicationScaffold
             <PackageVersion Include="Cratis.Specifications" Version="{{profile.CratisSpecificationsPackageVersion}}" />
             <PackageVersion Include="Cratis.Specifications.XUnit" Version="{{profile.CratisSpecificationsXUnitPackageVersion}}" />
             <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="{{ScaffoldPackageVersions.TelemetryAbstractions}}" />
+            <PackageVersion Include="Microsoft.Identity.Web" Version="{{ScaffoldPackageVersions.IdentityWeb}}" />
+            <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="{{ScaffoldPackageVersions.CryptographyPkcs}}" />
+            <PackageVersion Include="System.Security.Cryptography.Xml" Version="{{ScaffoldPackageVersions.CryptographyXml}}" />
             <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="{{profile.MicrosoftNetTestSdkPackageVersion}}" />
             <PackageVersion Include="NSubstitute" Version="{{profile.NSubstitutePackageVersion}}" />
             <PackageVersion Include="xunit" Version="{{profile.XunitPackageVersion}}" />
@@ -99,6 +102,9 @@ public sealed partial class CratisBackendApplicationScaffold
           </ItemGroup>
           <ItemGroup>
             <PackageReference Include="Cratis.Screenplay.Matching" />
+            <PackageReference Include="Microsoft.Identity.Web" />
+            <PackageReference Include="System.Security.Cryptography.Pkcs" />
+            <PackageReference Include="System.Security.Cryptography.Xml" />
             <PackageReference Include="Cratis" />
             <PackageReference Include="Cratis.Arc.MongoDB" />
             <PackageReference Include="Cratis.Chronicle" />

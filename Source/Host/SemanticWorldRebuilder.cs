@@ -289,7 +289,7 @@ internal static class SemanticWorldRebuilder
         }
     }
 
-    // A date and time is never read back exactly. A decimal is, when the event type's stored schema carries the exact decimal format on every number;
+    // A date and time is never read back exactly, but a stored seed is exempt from that, as it was before decimals were checked. A decimal is, when the event type's stored schema carries the exact decimal format on every number;
     // a stored seed in a type that does not is deferred to the seed match, because the model still holds the value it was seeded with.
     // Returns whether such a seed decimal must be matched against the model.
     static bool EnsureExactStorageTypes(SemanticEventContract contract, SemanticApplication application, bool decimalsExact, bool isSeed)
@@ -302,7 +302,7 @@ internal static class SemanticWorldRebuilder
             {
                 seedMustMatch = true;
             }
-            else if (lossyDecimal || primitive == SemanticPrimitiveType.DateTime)
+            else if (lossyDecimal || (primitive == SemanticPrimitiveType.DateTime && !isSeed))
             {
                 throw new SemanticWorldRebuildRefused($"Event property '{path}' uses {primitive}, which Chronicle storage cannot round-trip exactly.");
             }

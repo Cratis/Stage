@@ -1,0 +1,118 @@
+diff --git a/Source/Rendering.Cratis/Naming/GeneratedTypeNames.cs b/Source/Rendering.Cratis/Naming/GeneratedTypeNames.cs
+index a9b0db6e..bead002a 100644
+--- a/Source/Rendering.Cratis/Naming/GeneratedTypeNames.cs
++++ b/Source/Rendering.Cratis/Naming/GeneratedTypeNames.cs
+@@ -2,6 +2,7 @@
+ // Licensed under the MIT license. See LICENSE file in the project root for full license information.
+ 
+ using Cratis.Screenplay.Semantics;
++using Cratis.Stage.Rendering.Cratis.Semantics;
+ 
+ namespace Cratis.Stage.Rendering.Cratis.Naming;
+ 
+@@ -148,6 +149,10 @@ internal static IEnumerable<GeneratedTypeDeclaration> Declarations(
+             foreach (var readModel in slice.ReadModels)
+             {
+                 foreach (var name in Names(ns, readModel.Name, readModel.Id, "ReadModel")) yield return name;
++                if (SemanticVersionFeatures.HasCompositeKey(readModel))
++                {
++                    foreach (var name in Names(ns, $"{GeneratedPascalCase.From(readModel.Name)}Key", readModel.Id, "ReadModelKey", generated: true)) yield return name;
++                }
+             }
+             foreach (var projection in slice.Projections.Where(projection => projection.Scope is not null))
+             {
+diff --git a/Source/Rendering.Cratis/Renderers/CommandValidatorRenderer.cs b/Source/Rendering.Cratis/Renderers/CommandValidatorRenderer.cs
+index 340f5640..5762c406 100644
+--- a/Source/Rendering.Cratis/Renderers/CommandValidatorRenderer.cs
++++ b/Source/Rendering.Cratis/Renderers/CommandValidatorRenderer.cs
+@@ -36,7 +36,7 @@ public static void Render(
+         var validatorName = $"{typeName}Validator";
+         var ruleMethods = new List<(string Name, string ParameterType, string PropertyName, CodeBlockSyntax Code)>();
+ 
+-        builder.BlankLine().OpenBlock($"public class {validatorName} : CommandValidator<{typeName}>");
++        builder.BlankLine().OpenBlock($"public class {validatorName} : global::Cratis.Arc.Commands.CommandValidator<{typeName}>");
+         ValidationRuleRenderer.RenderMatchFields(builder, rules, typeName);
+         builder.OpenBlock($"public {validatorName}()");
+ 
+diff --git a/Source/Rendering.Cratis/Renderers/ConceptRenderer.cs b/Source/Rendering.Cratis/Renderers/ConceptRenderer.cs
+index 18adfeea..6c437783 100644
+--- a/Source/Rendering.Cratis/Renderers/ConceptRenderer.cs
++++ b/Source/Rendering.Cratis/Renderers/ConceptRenderer.cs
+@@ -86,7 +86,7 @@ static void RenderConceptType(CSharpCodeBuilder builder, ConceptSyntax concept,
+     {
+         var clrType = PrimitiveClrType(concept.Type);
+         var isIdentifier = applicationSet.IdentifierConceptNames.Contains(concept.Name);
+-        var baseType = isIdentifier ? $"EventSourceId<{clrType}>" : $"ConceptAs<{clrType}>";
++        var baseType = isIdentifier ? $"global::Cratis.Chronicle.Events.EventSourceId<{clrType}>" : $"global::Cratis.Concepts.ConceptAs<{clrType}>";
+ 
+         builder.Using("Cratis.Concepts").Using("Cratis.Arc.Validation");
+         if (isIdentifier)
+@@ -129,7 +129,7 @@ static void RenderValidator(CSharpCodeBuilder builder, ConceptSyntax concept, st
+ 
+         builder.BlankLine()
+             .Summary($"Validates {typeName}.")
+-            .OpenBlock($"public class {validatorName} : ConceptValidator<{typeName}>");
++            .OpenBlock($"public class {validatorName} : global::Cratis.Arc.Validation.ConceptValidator<{typeName}>");
+         ValidationRuleRenderer.RenderMatchFields(builder, rules.Where(rule => rule.Value is null or LiteralExpressionSyntax), typeName);
+         builder.OpenBlock($"public {validatorName}()");
+ 
+diff --git a/Source/Rendering.Cratis/Renderers/ReactionSliceRenderer.cs b/Source/Rendering.Cratis/Renderers/ReactionSliceRenderer.cs
+index d5581278..b8895adf 100644
+--- a/Source/Rendering.Cratis/Renderers/ReactionSliceRenderer.cs
++++ b/Source/Rendering.Cratis/Renderers/ReactionSliceRenderer.cs
+@@ -76,7 +76,7 @@ static void RenderReaction(CSharpCodeBuilder builder, ReactionSyntax reaction, S
+         var typeName = Identifiers.ToPascalCase(reaction.Name);
+         var summary = $"Reacts to events for {Identifiers.ToWords(reaction.Name)}.";
+ 
+-        builder.BlankLine().Documentation(reaction.Description, fallbackSummary: summary).OpenBlock($"public class {typeName} : IReactor");
++        builder.BlankLine().Documentation(reaction.Description, fallbackSummary: summary).OpenBlock($"public class {typeName} : global::Cratis.Chronicle.Reactors.IReactor");
+ 
+         var isFirst = true;
+         foreach (var trigger in reaction.Triggers)
+diff --git a/Source/Rendering.Cratis/Semantics/PureTransitionAdmission.cs b/Source/Rendering.Cratis/Semantics/PureTransitionAdmission.cs
+index 106e3422..3a30d80a 100644
+--- a/Source/Rendering.Cratis/Semantics/PureTransitionAdmission.cs
++++ b/Source/Rendering.Cratis/Semantics/PureTransitionAdmission.cs
+@@ -276,7 +276,7 @@ internal static Verdict Analyze(
+ 
+         var suffix = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
+             System.Text.Encoding.UTF8.GetBytes(descriptor.RequirementId)))[..8];
+-        builder.OpenBlock($"public class {reducerName} : IReducerFor<{modelType}>");
++        builder.OpenBlock($"public class {reducerName} : global::Cratis.Chronicle.Reducers.IReducerFor<{modelType}>");
+         foreach (var transitionEvent in reducerEvents)
+         {
+             var eventNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(transitionEvent.Id).Path);
+diff --git a/Source/Rendering.Cratis/Semantics/SemanticApplicationContext.cs b/Source/Rendering.Cratis/Semantics/SemanticApplicationContext.cs
+index ef79dbc1..9baf2e21 100644
+--- a/Source/Rendering.Cratis/Semantics/SemanticApplicationContext.cs
++++ b/Source/Rendering.Cratis/Semantics/SemanticApplicationContext.cs
+@@ -67,14 +67,14 @@ public SemanticApplicationContext(ArtifactRenderRequest request, CratisRendering
+         [
+             new(string.Empty, "Program"),
+             .. SemanticCratisAdmission.GeneratedDeclarations(this, [.. _slices.Values]).Select(type =>
+-                new GeneratedTypeName(CatalogNames.Qualify(RootNamespace, type.Namespace), type.Name))
++                new GeneratedTypeName(type.Namespace.Length == 0 ? RootNamespace : CatalogNames.Qualify(RootNamespace, type.Namespace), type.Name))
+         ]);
+         _responseTypes = new(ResolveResponseTypes);
+         _generatedTypes = new(() =>
+         [
+             .. _generatedTypeSeed.Value,
+             .. SemanticCratisAdmission.GeneratedResponseDeclarations(this, [.. _slices.Values]).Select(type =>
+-                new GeneratedTypeName(CatalogNames.Qualify(RootNamespace, type.Namespace), type.Name))
++                new GeneratedTypeName(type.Namespace.Length == 0 ? RootNamespace : CatalogNames.Qualify(RootNamespace, type.Namespace), type.Name))
+         ]);
+     }
+ 
+diff --git a/Source/Rendering.Cratis/Specifications/SpecificationRenderer.cs b/Source/Rendering.Cratis/Specifications/SpecificationRenderer.cs
+index 6e21e4f6..85349457 100644
+--- a/Source/Rendering.Cratis/Specifications/SpecificationRenderer.cs
++++ b/Source/Rendering.Cratis/Specifications/SpecificationRenderer.cs
+@@ -130,7 +130,7 @@ public static RenderedFile Render(
+         }
+ 
+         // The scenario owns and disposes a service provider, so the specification owning it disposes it too.
+-        builder.BlankLine().Documentation(specification.Description).OpenBlock($"public class {name} : Specification, IDisposable")
++        builder.BlankLine().Documentation(specification.Description).OpenBlock($"public class {name} : global::Cratis.Specifications.Specification, IDisposable")
+             .Line($"readonly CommandScenario<{commandType}> _scenario = new();")
+             .Line("CommandResult _result = null!;")
+             .BlankLine()

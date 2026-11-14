@@ -1,0 +1,1025 @@
+diff --git a/Directory.Packages.props b/Directory.Packages.props
+index 5456a9a6..a941da05 100644
+--- a/Directory.Packages.props
++++ b/Directory.Packages.props
+@@ -30,9 +30,9 @@
+     <PackageVersion Include="MongoDB.Driver" Version="3.12.0" />
+     <PackageVersion Include="Cratis.Scene.Engine" Version="4.70.1" />
+     <PackageVersion Include="Cratis.Scene.Model" Version="4.70.1" />
+-    <PackageVersion Include="Cratis.Screenplay" Version="4.226.0" />
++    <PackageVersion Include="Cratis.Screenplay" Version="4.234.0" />
+     <!-- Spec-only: freezes the released RegisterProject conformance corpus consumed by the Cratis renderer's planner fixtures. -->
+-    <PackageVersion Include="Cratis.Screenplay.CanonicalCorpus" Version="4.226.0" />
++    <PackageVersion Include="Cratis.Screenplay.CanonicalCorpus" Version="4.234.0" />
+     <PackageVersion Include="Cratis.Templates" Version="1.7.4" />
+     <!-- Microsoft -->
+     <!-- Audited reducer-binding references, embedded in the renderer for runtime-only hosts. -->
+diff --git a/Documentation/reference/corpus-conformance.md b/Documentation/reference/corpus-conformance.md
+index 0a2938b5..ea36dc93 100644
+--- a/Documentation/reference/corpus-conformance.md
++++ b/Documentation/reference/corpus-conformance.md
+@@ -66,6 +66,21 @@ Another artifact, vector, surface, code, or kind reports `unauthorized-by-design
+ 
+ When an exempt artifact no longer appears, its record becomes stale and must be removed.
+ 
++## Opaque query sidecars
++
++Performer-query rendering needs the compiler's `ImplementationRequirements`, including the
++`QueryShape` introduced in Screenplay 4.234.0. Portable ESM deliberately omits those opaque
++queries from `SemanticSlice.Queries`; a golden ESM alone cannot exercise the generated hook.
++Source-based renderer and Host specifications cover this boundary: projectionless
++performer-backed models render, while the Host describes the query as unsupported and the
++reference evaluator refuses to execute it. Missing or unresolved shapes retain a typed
++renderer refusal rather than an inferred query.
++
++The package upgrade also introduces v31 anonymous policies. Stage keeps those models
++explicitly refused with `STAGE-ESM-016`; accepting the new package does not widen schema
++admission. Regenerate and review the matrix against the resolved package before treating
++the version upgrade as conformant.
++
+ ## Update the table
+ 
+ 1. Run the Debug specs. Failure messages name the vector, surface, and affected fingerprint or outcome.
+diff --git a/Documentation/reference/stage-rendering.md b/Documentation/reference/stage-rendering.md
+index fdebeb8f..d510d8d3 100644
+--- a/Documentation/reference/stage-rendering.md
++++ b/Documentation/reference/stage-rendering.md
+@@ -148,7 +148,7 @@ explicitly null filters. An omitted optional filter remains distinct from a supp
+ ESM v18 adds query-only `then error` specifications. For empty fixtures, Stage generates an Arc
+ `QueryScenario` call that asserts validation failure and the expected message, when supplied.
+ These empty-world specifications also support `then no result`, but do not relax application
+-admission: every read model still needs a projection or reducer (`STAGE-ESM-007`). The
++admission: read models answered by executable queries still need a projection or reducer (`STAGE-ESM-007`). The
+ projection-less `QueryValidation/v18` corpus runs in the reference and Stage executors but is
+ refused as a rendered application; generated conformance specifications use a projected view.
+ Query rejection specifications with given events or read-model state are refused with
+@@ -164,6 +164,43 @@ Before writing, publishers must call `CratisRendering.CheckPublication` at every
+ A rename without a pin still orphans stored events: a renderer cannot distinguish it from deleting one type and adding another. Use the Screenplay workspace/MCP rename, which pins by default.
+ :::
+ 
++## Generated C# performer queries
++
++A state-view read model can have no projection or reducer when every query returning it is
++answered by a `performer`. Supply the compiler's `ImplementationRequirements` alongside the
++ESM to the semantic artifact planner: opaque queries are intentionally absent from the
++executable query plan. Stage uses `QueryShape` from Screenplay 4.234.0, not the attachment's
++source text. An unresolved return model, argument type, or missing descriptor is refused with
++`STAGE-ESM-066`. An unrelated unbacked read model, or an executable query without a backing
++projection or reducer, retains `STAGE-ESM-007`.
++
++For a query named `CurrentPurchasingFigures`, the generated slice declares
++`ICurrentPurchasingFiguresPerformer` and a replaceable `CurrentPurchasingFiguresPerformer`.
++The static Arc query delegates to the injected interface. Snapshot hooks return `Task<T>`;
++live hooks return `IObservable<T>`. The result is the read-model type for one result, its
++nullable form for zero-or-one, or `IReadOnlyList<T>` for many. Declared argument types and
++optionality are preserved, including concepts. Arc owns the route and generated proxy;
++Scene bindings import that proxy from the declaring slice. No MongoDB query or fabricated
++projection is emitted for an unbacked model.
++
++The generated default throws `NotImplementedException`, rather than silently presenting an
++empty dashboard as a real answer. Implement the interface in unmanaged `Customizations/`
++and register it in the existing `Program.ConfigureServices(IServiceCollection)` partial
++method, after generated defaults are registered:
++
++```csharp
++services.AddScoped<ICurrentPurchasingFiguresPerformer, PurchasingFiguresPerformer>();
++```
++
++The rendered entry point requires authentication. The opaque query shape does not encode
++query policy gates, so models declaring any policies conservatively retain a refusal
++(`STAGE-ESM-066`) for performer queries until that metadata is available. Stage does not
++substitute authentication alone for a modeled policy.
++Neither inline nor file-backed performer bodies are executed or copied into a query by this
++renderer. Stage's Host describes these queries as `unsupported` with `STAGE-IMPL-002`, without
++blocking the whole application. They are not registered as conventional Host query performers;
++the reference evaluator returns `Unsupported(Query)` rather than an invented empty answer.
++
+ ## Render around refused specifications
+ 
+ By default, any render error refuses the whole plan and emits no artifacts. To render the
+@@ -223,8 +260,8 @@ The semantic Cratis renderer maps whole-number primitives and concepts to `long`
+ and to `int` for ESM v1–v7. Older models with authored whole-number literals outside the `int` range
+ fail admission with `STAGE-ESM-031` rather than generating uncompilable C#.
+ 
+-Stage uses Screenplay 4.226.0 and admits exact ESM v1–v30 language/semantic pairs, including v11's corrected Double-mode literal lowering, v15's generation strategies with atomic freshness scopes, and v20's rules on generated concepts. V21's `generate pattern` and `generate random` render Fundamentals factories and execute with reference-compatible fixture shapes; dated patterns take their UTC date from the generation context, and random values preserve the full inclusive Int64 range. The specification executor runs pinned String `generate rule` values without invoking their bodies and still checks concept rules; missing pins remain `Unsupported(IdentityAllocation)`. The Host refuses commands that generate rule values with `STAGE-ESM-028`, naming the command, property, concept and rule, by design because the interpreter never runs implementation bodies; unused rule concepts do not block the Host or executor. The semantic renderer emits verified C# rule bodies through `IGeneratableInContext<T>.New(GenerationContext context)`, compile-checked against embedded BCL and pinned Fundamentals metadata references without the pure-body walk. Fundamentals is an embedded build-only reference, not a renderer runtime or package dependency. Missing attachments fail `STAGE-ESM-020`, body compile errors and warnings fail `STAGE-ESM-019` at the attachment, and shadowing fails `STAGE-ESM-022`. Any concept rule requires a pin for rule generation; concepts with no validation rules may generate unpinned in rendered specifications. The legacy syntax engine still refuses `generate rule` with `STAGE-ESM-028`. `validate checksum luhn`, `mod11` and `mod97` render and execute. The legacy syntax renderer still refuses checksum and unknown validation rule kinds with `STAGE-ESM-042`. Generated values with any unproven rule require pins in rendered specifications; fully proven rules permit unpinned generation. Failing pins retain `STAGE-ESM-011`, and unpinned specifications with unproven rules retain `STAGE-ESM-038`. The generated backend uses Stage's central Arc pin, which rejects generated values failing concept rules of any severity. Runtime generation defects produce exceptions rather than input validation failures. Applications using only implicit UUID generation remain unguarded even at later schema versions. See [Generated values](generated-values-rendering.md) for factory shapes, fixtures and timing limits.
+-Mixed version pairs and versions after v28 are refused with `STAGE-ESM-016`. The semantic Host and specification executor run protected command reads, read-backed requirements and produced-event mappings. The Cratis renderer renders `command reads protected`, command `reads`, read-backed requirements and read-path mappings as Arc read protection; see [Protected reads rendering](protected-reads-rendering.md). It still refuses the shapes it cannot preserve with `STAGE-ESM-044`, each naming its reason: a read path in a `produces when` condition or destination, a read-path mapping to an optional or differently typed event property, and reads combined with generated-value freshness scopes. Non-Error requirements on protected commands, including reaction-invoked commands, remain refused before execution with `STAGE-ESM-045` until Screenplay defines their severity semantics. See the [semantic Host](../docker/index.md#opt-in-to-semantic-execution) for how it commits decisions against outside appends. The legacy renderer, Host and structural specification runner also refuse the preamble with `STAGE-ESM-044`; without it, reads still fail binding with `PLAY0271` and the repair diagnostic `PLAY0786`. ESM v24's `contains`, `not contains`, `starts with` and `ends with` rules execute on the Host and specification executor and render as ordinal UTF-16 string comparisons, without regex or a Screenplay dependency in generated apps. Absence passes; an empty operand satisfies contains/starts-with/ends-with and fails not-contains for every present value. In admitted v22+ models, the semantic renderer supports `reaction batches atomic` when each generated event handler has at most one direct-production trigger: its returned event collection appends as one batch, and each selected invocation refusal branch returns its own event collection. Multiple same-event production triggers in one reaction retain `STAGE-ESM-043`, naming the unsupported shape. Screenplay rejects routes on direct and refusal-branch productions before Stage admission; Stage retains a defensive `STAGE-ESM-043` guard for routed direct productions. Atomic stream closing has no Screenplay ESM representation yet and is not rendered (Screenplay#770). Other reaction admission limits still apply, including `STAGE-ESM-037` for mixed events and invocations. The legacy syntax renderer still refuses the atomic declaration. The semantic Host and specification executor execute each batch all-or-none. See [Atomic batch rendering](reaction-rendering.md#atomic-batch-rendering) and the executor's [Atomic reaction batches](../docker/spec-runner.md#atomic-reaction-batches). The renderer refuses described command handlers with `STAGE-IMPL-002`, naming the command and RequirementId. No stubs are emitted yet, even in Stub mode.
++Stage uses Screenplay 4.234.0 and admits exact ESM v1–v30 language/semantic pairs, including v11's corrected Double-mode literal lowering, v15's generation strategies with atomic freshness scopes, and v20's rules on generated concepts. V21's `generate pattern` and `generate random` render Fundamentals factories and execute with reference-compatible fixture shapes; dated patterns take their UTC date from the generation context, and random values preserve the full inclusive Int64 range. The specification executor runs pinned String `generate rule` values without invoking their bodies and still checks concept rules; missing pins remain `Unsupported(IdentityAllocation)`. The Host refuses commands that generate rule values with `STAGE-ESM-028`, naming the command, property, concept and rule, by design because the interpreter never runs implementation bodies; unused rule concepts do not block the Host or executor. The semantic renderer emits verified C# rule bodies through `IGeneratableInContext<T>.New(GenerationContext context)`, compile-checked against embedded BCL and pinned Fundamentals metadata references without the pure-body walk. Fundamentals is an embedded build-only reference, not a renderer runtime or package dependency. Missing attachments fail `STAGE-ESM-020`, body compile errors and warnings fail `STAGE-ESM-019` at the attachment, and shadowing fails `STAGE-ESM-022`. Any concept rule requires a pin for rule generation; concepts with no validation rules may generate unpinned in rendered specifications. The legacy syntax engine still refuses `generate rule` with `STAGE-ESM-028`. `validate checksum luhn`, `mod11` and `mod97` render and execute. The legacy syntax renderer still refuses checksum and unknown validation rule kinds with `STAGE-ESM-042`. Generated values with any unproven rule require pins in rendered specifications; fully proven rules permit unpinned generation. Failing pins retain `STAGE-ESM-011`, and unpinned specifications with unproven rules retain `STAGE-ESM-038`. The generated backend uses Stage's central Arc pin, which rejects generated values failing concept rules of any severity. Runtime generation defects produce exceptions rather than input validation failures. Applications using only implicit UUID generation remain unguarded even at later schema versions. See [Generated values](generated-values-rendering.md) for factory shapes, fixtures and timing limits.
++Mixed version pairs and versions after v30 are refused with `STAGE-ESM-016`; v31 anonymous policies remain explicitly unaudited and refused. The semantic Host and specification executor run protected command reads, read-backed requirements and produced-event mappings. The Cratis renderer renders `command reads protected`, command `reads`, read-backed requirements and read-path mappings as Arc read protection; see [Protected reads rendering](protected-reads-rendering.md). It still refuses the shapes it cannot preserve with `STAGE-ESM-044`, each naming its reason: a read path in a `produces when` condition or destination, a read-path mapping to an optional or differently typed event property, and reads combined with generated-value freshness scopes. Non-Error requirements on protected commands, including reaction-invoked commands, remain refused before execution with `STAGE-ESM-045` until Screenplay defines their severity semantics. See the [semantic Host](../docker/index.md#opt-in-to-semantic-execution) for how it commits decisions against outside appends. The legacy renderer, Host and structural specification runner also refuse the preamble with `STAGE-ESM-044`; without it, reads still fail binding with `PLAY0271` and the repair diagnostic `PLAY0786`. ESM v24's `contains`, `not contains`, `starts with` and `ends with` rules execute on the Host and specification executor and render as ordinal UTF-16 string comparisons, without regex or a Screenplay dependency in generated apps. Absence passes; an empty operand satisfies contains/starts-with/ends-with and fails not-contains for every present value. In admitted v22+ models, the semantic renderer supports `reaction batches atomic` when each generated event handler has at most one direct-production trigger: its returned event collection appends as one batch, and each selected invocation refusal branch returns its own event collection. Multiple same-event production triggers in one reaction retain `STAGE-ESM-043`, naming the unsupported shape. Screenplay rejects routes on direct and refusal-branch productions before Stage admission; Stage retains a defensive `STAGE-ESM-043` guard for routed direct productions. Atomic stream closing has no Screenplay ESM representation yet and is not rendered (Screenplay#770). Other reaction admission limits still apply, including `STAGE-ESM-037` for mixed events and invocations. The legacy syntax renderer still refuses the atomic declaration. The semantic Host and specification executor execute each batch all-or-none. See [Atomic batch rendering](reaction-rendering.md#atomic-batch-rendering) and the executor's [Atomic reaction batches](../docker/spec-runner.md#atomic-reaction-batches). The renderer refuses described command handlers with `STAGE-IMPL-002`, naming the command and RequirementId. No stubs are emitted yet, even in Stub mode.
+ 
+ The semantic Host and specification executor admit models containing described command handlers. Authorization,
+ input validation, declarative reads and requirements run before the body; denied and invalid requests keep their
+diff --git a/Source/Host/SemanticHost.cs b/Source/Host/SemanticHost.cs
+index 998ba874..6411828f 100644
+--- a/Source/Host/SemanticHost.cs
++++ b/Source/Host/SemanticHost.cs
+@@ -25,7 +25,7 @@ internal static async Task Run(string[] args, string modelPath)
+         var notes = new List<SemanticModelLoadDiagnostic>();
+         var (loaded, scene) = await LoadModel(modelPath, issues, notes);
+ 
+-        var admission = loaded is null ? null : new SemanticRuntimeAdmission(loaded.Plan, id => loaded.ImplementationRequirements.FirstOrDefault(requirement => requirement.RequirementId == id)?.Member);
++        var admission = loaded is null ? null : new SemanticRuntimeAdmission(loaded.Plan, id => loaded.ImplementationRequirements.FirstOrDefault(requirement => requirement.RequirementId == id)?.Member, loaded.ImplementationRequirements);
+         if (admission is not null)
+         {
+             issues.AddRange(admission.Blocking.Select(entry => new StageUnsupportedIssue(entry.Capability!, entry.Artifact, entry.Details!)));
+diff --git a/Source/Host/SemanticRuntimeAdmission.cs b/Source/Host/SemanticRuntimeAdmission.cs
+index a044a975..de67571b 100644
+--- a/Source/Host/SemanticRuntimeAdmission.cs
++++ b/Source/Host/SemanticRuntimeAdmission.cs
+@@ -11,7 +11,7 @@ internal sealed record SemanticAdmissionEntry(string Artifact, string Kind, stri
+ 
+ internal sealed class SemanticRuntimeAdmission
+ {
+-    internal SemanticRuntimeAdmission(SemanticExecutionPlan plan, Func<string, string?>? ruleName = null)
++    internal SemanticRuntimeAdmission(SemanticExecutionPlan plan, Func<string, string?>? ruleName = null, IEnumerable<SemanticImplementationRequirement>? requirements = null)
+     {
+         var entries = new List<SemanticAdmissionEntry>();
+         var blocking = new List<SemanticAdmissionEntry>();
+@@ -63,6 +63,13 @@ internal SemanticRuntimeAdmission(SemanticExecutionPlan plan, Func<string, strin
+             entries.Add(new(query.Id.ToString(), "query", refusal is null ? "supported" : "unsupported", refusal?.Capability.ToString(), refusal?.Details));
+         }
+ 
++        foreach (var requirement in (requirements ?? []).Where(requirement => requirement.Role == SemanticImplementationRole.QueryPerformer))
++        {
++            var id = requirement.Source?.SemanticId ?? SemanticId.Create(requirement.Owner);
++            entries.Add(new(id.ToString(), "query", "unsupported", nameof(SemanticExecutionCapability.ImplementationBody),
++                $"STAGE-IMPL-002: Query '{requirement.Member}' is described but not executable by Stage (requirement {requirement.RequirementId}); its performer requires an application implementation."));
++        }
++
+         foreach (var specification in plan.Specifications.Values)
+         {
+             // A refused specification does not block the live model; runs report the same typed refusal.
+diff --git a/Source/Host/for_SemanticRuntime/when_admitting_a_performer_query.cs b/Source/Host/for_SemanticRuntime/when_admitting_a_performer_query.cs
+new file mode 100644
+index 00000000..ebd5a9c6
+--- /dev/null
++++ b/Source/Host/for_SemanticRuntime/when_admitting_a_performer_query.cs
+@@ -0,0 +1,53 @@
++// Copyright (c) Cratis. All rights reserved.
++// Licensed under the MIT license. See LICENSE file in the project root for full license information.
++
++using Cratis.Screenplay.Semantics;
++using Cratis.Screenplay.Semantics.Execution;
++using Cratis.Specifications;
++using Cratis.Stage.Api;
++using Cratis.Stage.Host.for_SemanticRuntime.given;
++using Cratis.Stage.Semantics;
++using Microsoft.AspNetCore.Http;
++using Xunit;
++
++namespace Cratis.Stage.Host.for_SemanticRuntime;
++
++public class when_admitting_a_performer_query : Specification
++{
++    SemanticRuntimeAdmission _admission = null!;
++    SemanticExecutionResult _result = null!;
++    SemanticRuntimeQueryPerformerProvider _provider = null!;
++    SemanticId _query;
++
++    void Because()
++    {
++        const string source = """
++            module Billing
++              feature Invoices
++                slice StateView Figures
++                  readmodel Figures
++                    total Int
++                  query CurrentFigures => Figures[]
++                    performer
++                      file Queries/CurrentFigures.cs
++            """;
++        var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Figures"));
++        var document = SemanticSourceDocument.Create(catalog.ResolveDocument("figures"), "figures", "Figures.play", source);
++        var compilation = new SemanticModelCompiler().Compile("Figures", SemanticDocumentSet.Create([document], catalog));
++        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
++        var requirement = Assert.Single(compilation.ImplementationRequirements);
++        _query = requirement.Source!.SemanticId;
++        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
++        _admission = new(plan, requirements: compilation.ImplementationRequirements);
++        _result = new SemanticEvaluator().Execute(plan, SemanticWorld.Empty,
++            SemanticExecutionRequest.ForQueries([new(_query, new SemanticNullValue())]));
++        var runtime = new a_semantic_fact_log().Runtime(plan, SemanticWorld.Empty);
++        _provider = new([runtime], [new DynamicTypeFactory()], [new HttpContextAccessor { HttpContext = new DefaultHttpContext() }]);
++    }
++
++    [Fact] void should_describe_the_query_as_unsupported() => _admission.Entries.ShouldContain(entry => entry.Artifact == _query.ToString() && entry.Kind == "query" && entry.Status == "unsupported" && entry.Details!.Contains("STAGE-IMPL-002", StringComparison.Ordinal));
++    [Fact] void should_not_refuse_loading_the_application() => _admission.BlockingIssues.ShouldBeEmpty();
++    [Fact] void should_not_register_a_conventional_or_opaque_query_performer() => _provider.Performers.ShouldBeEmpty();
++    [Fact] void should_preserve_the_reference_executors_explicit_refusal() => _result.ShouldBeOfExactType<SemanticUnsupported>();
++    [Fact] void should_not_fake_an_empty_answer() => ((SemanticUnsupported)_result).Capability.ShouldEqual(SemanticExecutionCapability.Query);
++}
+diff --git a/Source/Rendering.Cratis/CratisArtifactRenderPlanner.cs b/Source/Rendering.Cratis/CratisArtifactRenderPlanner.cs
+index 7fae4107..9b39f584 100644
+--- a/Source/Rendering.Cratis/CratisArtifactRenderPlanner.cs
++++ b/Source/Rendering.Cratis/CratisArtifactRenderPlanner.cs
+@@ -266,7 +266,11 @@ static void AddScaffold(
+             return;
+         }
+ 
+-        artifacts.AddRange(CratisScaffoldArtifacts.Render(request.Profile, context.RootNamespace, [context.Application.Id]));
++        artifacts.AddRange(CratisScaffoldArtifacts.Render(request.Profile, context.RootNamespace, [context.Application.Id], context.PerformedQueries.Count > 0));
++        if (context.PerformedQueries.Count > 0)
++        {
++            artifacts.Add(SemanticPerformedQueryRenderer.Registration(context));
++        }
+         if (sceneJson is not null)
+         {
+             artifacts.Add(PlannedArtifact.CreateText(SceneCompositionInput.RelativePath, sceneJson, [request.Model.Application.Id]));
+diff --git a/Source/Rendering.Cratis/Scaffolding/CratisScaffoldArtifacts.cs b/Source/Rendering.Cratis/Scaffolding/CratisScaffoldArtifacts.cs
+index 6f5977e5..8ff28630 100644
+--- a/Source/Rendering.Cratis/Scaffolding/CratisScaffoldArtifacts.cs
++++ b/Source/Rendering.Cratis/Scaffolding/CratisScaffoldArtifacts.cs
+@@ -12,7 +12,7 @@ namespace Cratis.Stage.Rendering.Cratis.Scaffolding;
+ 
+ internal static class CratisScaffoldArtifacts
+ {
+-    internal static IEnumerable<PlannedArtifact> Render(ArtifactRenderProfile profile, string rootNamespace, ImmutableArray<SemanticId> sources)
++    internal static IEnumerable<PlannedArtifact> Render(ArtifactRenderProfile profile, string rootNamespace, ImmutableArray<SemanticId> sources, bool performedQueries = false)
+     {
+         var strings = StringsCatalogInput.From(profile);
+         var sceneName = $"cratis-scaffold:text:{SceneCompositionInput.RelativePath}";
+@@ -23,9 +23,17 @@ internal static IEnumerable<PlannedArtifact> Render(ArtifactRenderProfile profil
+                 throw new InvalidArtifactRenderContract($"Package-owned scaffold input '{input.Name}' cannot be rendered.");
+             }
+ 
+-            yield return artifact!.RelativePath == "Program.cs" && strings is not null
+-                ? PlannedArtifact.CreateText(artifact.RelativePath, StringsCatalogInput.ConfigureProgram(Encoding.UTF8.GetString(artifact.Bytes.AsSpan()), strings))
+-                : artifact;
++            if (artifact!.RelativePath == "Program.cs" && (strings is not null || performedQueries))
++            {
++                var content = Encoding.UTF8.GetString(artifact.Bytes.AsSpan());
++                if (strings is not null) content = StringsCatalogInput.ConfigureProgram(content, strings);
++                if (performedQueries) content = content.Replace("ConfigureServices(builder.Services);", $"{rootNamespace}.GeneratedQueries.Registration.Register(builder.Services);\nConfigureServices(builder.Services);", StringComparison.Ordinal);
++                yield return PlannedArtifact.CreateText(artifact.RelativePath, content, performedQueries ? sources : []);
++            }
++            else
++            {
++                yield return artifact;
++            }
+         }
+ 
+         if (profile.Inputs.SingleOrDefault(input => input.Name == ReducerConventionInput.Name) is { } convention)
+diff --git a/Source/Rendering.Cratis/Scene/RenderedQueryBindings.cs b/Source/Rendering.Cratis/Scene/RenderedQueryBindings.cs
+new file mode 100644
+index 00000000..70898d69
+--- /dev/null
++++ b/Source/Rendering.Cratis/Scene/RenderedQueryBindings.cs
+@@ -0,0 +1,21 @@
++// Copyright (c) Cratis. All rights reserved.
++// Licensed under the MIT license. See LICENSE file in the project root for full license information.
++
++using Cratis.Screenplay.Semantics;
++using Cratis.Stage.Rendering.Cratis.Naming;
++using Cratis.Stage.Rendering.Cratis.Semantics;
++
++namespace Cratis.Stage.Rendering.Cratis.Scene;
++
++/// <summary>Indexes generated proxies without treating opaque queries as executable queries.</summary>
++internal static class RenderedQueryBindings
++{
++    internal static IEnumerable<Binding> All(SemanticApplicationContext context) =>
++        context.Queries.Values.Select(query => new Binding(query.Id, query.Name, context.MemberNames.Query(query), Module(context.DeclaringSlice(query.Id)), query.Delivery))
++            .Concat(context.PerformedQueries.Select(query => new Binding(query.Id, query.Name, query.Method(context.ReadModels[query.Shape!.ReadModel!.Value]), Module(query.Slice), query.Shape.Delivery)));
++
++    static string Module(LocatedSemanticSlice slice) =>
++        "../" + string.Join('/', SliceNaming.FolderPath(slice.Path));
++
++    internal sealed record Binding(SemanticId Id, string Name, string Export, string Module, SemanticQueryDelivery Delivery);
++}
+diff --git a/Source/Rendering.Cratis/Scene/SceneBindingsRenderer.cs b/Source/Rendering.Cratis/Scene/SceneBindingsRenderer.cs
+index ed9c4847..b3d568b6 100644
+--- a/Source/Rendering.Cratis/Scene/SceneBindingsRenderer.cs
++++ b/Source/Rendering.Cratis/Scene/SceneBindingsRenderer.cs
+@@ -52,11 +52,11 @@ public static string Render(SemanticApplicationContext context)
+             .DistinctBy(_ => _.Name, StringComparer.Ordinal)
+             .OrderBy(_ => _.Name, StringComparer.Ordinal)
+             .ToArray();
+-        var queries = context.Queries.Values
++        var queries = RenderedQueryBindings.All(context)
+             .OrderBy(_ => _.Name, StringComparer.Ordinal)
+             .ThenBy(_ => _.Id.ToString(), StringComparer.Ordinal)
+             .Select((query, index) => (query.Name, Identity: query.Id.ToString(),
+-                Export: context.MemberNames.Query(query), Module: Module(context, query.Id), Alias: $"__sceneQuery{index}"))
++                query.Export, query.Module, Alias: $"__sceneQuery{index}"))
+             .ToArray();
+ 
+         var builder = new StringBuilder()
+diff --git a/Source/Rendering.Cratis/Scene/StageModuleRenderer.cs b/Source/Rendering.Cratis/Scene/StageModuleRenderer.cs
+index 7a4deb0c..6adfe92f 100644
+--- a/Source/Rendering.Cratis/Scene/StageModuleRenderer.cs
++++ b/Source/Rendering.Cratis/Scene/StageModuleRenderer.cs
+@@ -37,14 +37,14 @@ public static string Render(SemanticApplicationContext context)
+             .OrderBy(command => command.Name, StringComparer.Ordinal)
+             .Select((command, index) => (command.Name, command.Export, command.Module, Alias: $"__stageCommand{index}"))
+             .ToArray();
+-        var queries = context.Queries.Values
++        var queries = RenderedQueryBindings.All(context)
+             .OrderBy(query => query.Name, StringComparer.Ordinal)
+             .ThenBy(query => query.Id.ToString(), StringComparer.Ordinal)
+             .DistinctBy(query => query.Name, StringComparer.Ordinal)
+-            .Select((query, index) => (query.Name, Export: context.MemberNames.Query(query), Module: Module(context, query.Id), Alias: $"__stageQuery{index}"))
++            .Select((query, index) => (query.Name, query.Export, query.Module, Alias: $"__stageQuery{index}"))
+             .ToArray();
+ 
+-        var liveQueries = context.Queries.Values
++        var liveQueries = RenderedQueryBindings.All(context)
+             .Where(query => query.Delivery == Screenplay.Semantics.SemanticQueryDelivery.Live)
+             .Select(query => query.Name).ToHashSet(StringComparer.Ordinal);
+         var builder = new StringBuilder()
+diff --git a/Source/Rendering.Cratis/Semantics/SemanticApplicationContext.cs b/Source/Rendering.Cratis/Semantics/SemanticApplicationContext.cs
+index 456f77a9..f80c1d27 100644
+--- a/Source/Rendering.Cratis/Semantics/SemanticApplicationContext.cs
++++ b/Source/Rendering.Cratis/Semantics/SemanticApplicationContext.cs
+@@ -53,6 +53,7 @@ public SemanticApplicationContext(ArtifactRenderRequest request, CratisRendering
+         Projections = _slices.Values.SelectMany(_ => _.Slice.Projections).ToDictionary(_ => _.Id);
+         Reducers = [.. _slices.Values.SelectMany(_ => _.Slice.Reducers)];
+         Queries = _slices.Values.SelectMany(_ => _.Slice.Queries).ToDictionary(_ => _.Id);
++        PerformedQueries = SemanticPerformedQuery.Locate(request.ImplementationRequirements, _slices.Values);
+         MemberNames = new(Commands.Values, ReadModels.Values, Queries.Values);
+         Specifications = _slices.Values.SelectMany(_ => _.Slice.Specifications).ToDictionary(_ => _.Id);
+         IdentifierConcepts = FindIdentifierConcepts();
+@@ -124,6 +125,9 @@ .. SemanticCratisAdmission.GeneratedDeclarations(this, [.. _slices.Values]).Sele
+     /// </summary>
+     public IReadOnlyDictionary<SemanticId, SemanticKeyedQuery> Queries { get; }
+ 
++    /// <summary>Gets query rendering contracts kept outside the executable plan.</summary>
++    internal IReadOnlyList<SemanticPerformedQuery> PerformedQueries { get; }
++
+     /// <summary>
+     /// Gets specifications by semantic identity.
+     /// </summary>
+diff --git a/Source/Rendering.Cratis/Semantics/SemanticCratisAdmission.PerformedQueries.cs b/Source/Rendering.Cratis/Semantics/SemanticCratisAdmission.PerformedQueries.cs
+new file mode 100644
+index 00000000..998111ff
+--- /dev/null
++++ b/Source/Rendering.Cratis/Semantics/SemanticCratisAdmission.PerformedQueries.cs
+@@ -0,0 +1,77 @@
++// Copyright (c) Cratis. All rights reserved.
++// Licensed under the MIT license. See LICENSE file in the project root for full license information.
++
++using Cratis.Screenplay.Semantics;
++using Cratis.Stage.Contracts.Rendering;
++using Cratis.Stage.Rendering.Cratis.Naming;
++
++namespace Cratis.Stage.Rendering.Cratis.Semantics;
++
++internal static partial class SemanticCratisAdmission
++{
++    static void ValidatePerformedQueries(SemanticApplicationContext context, SemanticSlice slice, List<ArtifactRenderDiagnostic> diagnostics)
++    {
++        foreach (var query in context.PerformedQueries.Where(query => query.Slice.Slice.Id == slice.Id))
++        {
++            if (PerformedQueryRejection(context, query) is { } reason)
++            {
++                diagnostics.Add(Error("STAGE-ESM-066", $"Performer query '{query.Name}' cannot render: {reason}.", query.Id));
++            }
++        }
++    }
++
++    static string? PerformedQueryRejection(SemanticApplicationContext context, SemanticPerformedQuery query)
++    {
++        if (query.Shape is not { } shape)
++        {
++            return "its compiler requirement has no query shape";
++        }
++        if (shape.ReadModel is not { } id || !context.ReadModels.TryGetValue(id, out var model))
++        {
++            return "its returned read model is unresolved";
++        }
++        if (!query.Slice.Slice.ReadModels.Any(model => model.Id == id))
++        {
++            return "its returned read model belongs to another slice";
++        }
++        if (context.Application.Policies.Length > 0)
++        {
++            return "the model declares policies but the opaque query descriptor does not carry authorization metadata";
++        }
++        if (shape.Cardinality is not (SemanticQueryCardinality.One or SemanticQueryCardinality.ZeroOrOne or SemanticQueryCardinality.Many) ||
++            shape.Delivery is not (SemanticQueryDelivery.Live or SemanticQueryDelivery.Snapshot))
++        {
++            return "its cardinality or delivery is unsupported";
++        }
++        foreach (var argument in shape.Arguments)
++        {
++            if (argument.Type is null || !TypeExists(context, argument.Type))
++            {
++                return $"argument '{argument.Name}' has an unresolved type";
++            }
++            if (!Enum.IsDefined(argument.Kind))
++            {
++                return $"argument '{argument.Name}' has an unsupported kind";
++            }
++        }
++        var names = shape.Arguments.Select(argument => Identifiers.ToCamelCase(argument.Name)).ToArray();
++        if (names.Contains("performer", StringComparer.Ordinal) || names.Distinct(StringComparer.Ordinal).Count() != names.Length)
++        {
++            return "its argument names collide in generated C#";
++        }
++        var methods = query.Slice.Slice.Queries.Where(other => other.ReadModel == id).Select(context.MemberNames.Query)
++            .Concat(context.PerformedQueries.Where(other => other.Shape?.ReadModel == id && other.Id != query.Id).Select(other => other.Method(model)));
++        return methods.Contains(query.Method(model), StringComparer.Ordinal) ? "its method name collides with another query" : null;
++    }
++
++    static IEnumerable<GeneratedTypeDeclaration> PerformedQueryTypes(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices) =>
++        context.PerformedQueries.Where(query => slices.Any(slice => slice.Slice.Id == query.Slice.Slice.Id))
++            .SelectMany(query => new[]
++            {
++                new GeneratedTypeDeclaration(query.Id, "QueryPerformer", string.Join('.', query.Slice.Path), query.Interface),
++                new GeneratedTypeDeclaration(query.Id, "QueryPerformer", string.Join('.', query.Slice.Path), query.Stub)
++            }).Concat(context.PerformedQueries.Count == 0 ? [] : new[]
++            {
++                new GeneratedTypeDeclaration(context.Application.Id, "Generated", "GeneratedQueries", "Registration")
++            });
++}
+diff --git a/Source/Rendering.Cratis/Semantics/SemanticCratisAdmission.StateView.cs b/Source/Rendering.Cratis/Semantics/SemanticCratisAdmission.StateView.cs
+index 7f78a2f1..3b43d5b5 100644
+--- a/Source/Rendering.Cratis/Semantics/SemanticCratisAdmission.StateView.cs
++++ b/Source/Rendering.Cratis/Semantics/SemanticCratisAdmission.StateView.cs
+@@ -18,11 +18,17 @@ static void ValidateStateView(
+         SemanticSlice slice,
+         List<ArtifactRenderDiagnostic> diagnostics)
+     {
++        ValidatePerformedQueries(context, slice, diagnostics);
++        var performedModels = context.PerformedQueries
++            .Where(query => query.Slice.Slice.Id == slice.Id && query.Shape?.ReadModel is not null)
++            .Select(query => query.Shape!.ReadModel!.Value).ToHashSet();
++        bool PerformerOnly(SemanticReadModel model) => performedModels.Contains(model.Id) && !slice.Queries.Any(query => query.ReadModel == model.Id);
+         if ((slice.ReadModels.Length == 0 && slice.Reducers.IsEmpty) ||
+             slice.Projections.Any(projection => !slice.ReadModels.Any(model => model.Id == projection.ReadModel)) ||
+             slice.Reducers.Any(reducer => !slice.ReadModels.Any(model => model.Id == reducer.ReadModel)) ||
+             slice.ReadModels.Any(model => slice.Projections.Count(_ => _.ReadModel == model.Id) +
+-                slice.Reducers.Count(_ => _.ReadModel == model.Id) != 1))
++                slice.Reducers.Count(_ => _.ReadModel == model.Id) != 1 &&
++                !(PerformerOnly(model) && !slice.Projections.Any(projection => projection.ReadModel == model.Id) && !slice.Reducers.Any(reducer => reducer.ReadModel == model.Id))))
+         {
+             diagnostics.Add(Error("STAGE-ESM-007", $"State-view slice '{slice.Name}' needs exactly one projection for each read model.", slice.Id));
+             return;
+@@ -32,7 +38,7 @@ static void ValidateStateView(
+         {
+             var projection = slice.Projections.SingleOrDefault(_ => _.ReadModel == readModel.Id);
+             var composite = SemanticVersionFeatures.HasCompositeKey(readModel);
+-            if (readModel.Properties.Any(_ => !TypeExists(context, _.Type)) || (!composite && readModel.Properties.Count(_ => _.IsIdentifier) != 1))
++            if (readModel.Properties.Any(_ => !TypeExists(context, _.Type)) || (!PerformerOnly(readModel) && !composite && readModel.Properties.Count(_ => _.IsIdentifier) != 1))
+             {
+                 diagnostics.Add(projection is null
+                     ? Error("STAGE-ESM-008", $"Read model '{readModel.Name}' needs resolvable properties and one identifier.", readModel.Id)
+@@ -57,7 +63,7 @@ static void ValidateStateView(
+                 continue;
+             }
+ 
+-            if (composite && SemanticCompositeKeyAdmission.Rejection(context, readModel, projection, slice) is { } compositeRejection)
++            if (composite && !PerformerOnly(readModel) && SemanticCompositeKeyAdmission.Rejection(context, readModel, projection, slice) is { } compositeRejection)
+             {
+                 diagnostics.Add(Error(SemanticVersionFeatures.CompositeReadModelKeys, $"Read model '{readModel.Name}' cannot render its composite key: {compositeRejection}", projection?.Id ?? readModel.Id));
+                 continue;
+diff --git a/Source/Rendering.Cratis/Semantics/SemanticCratisAdmission.cs b/Source/Rendering.Cratis/Semantics/SemanticCratisAdmission.cs
+index 794123f7..4e2e36d8 100644
+--- a/Source/Rendering.Cratis/Semantics/SemanticCratisAdmission.cs
++++ b/Source/Rendering.Cratis/Semantics/SemanticCratisAdmission.cs
+@@ -136,7 +136,7 @@ internal static IEnumerable<GeneratedTypeDeclaration> GeneratedDeclarations(Sema
+             eventSources: SemanticEventSourceArtifactRenderer.Selected(context, slices),
+             eventSourcesNamespace: string.Join('.', context.Domain.Append("EventSources")),
+             policiesNamespace: string.Join('.', context.Domain.Append("GeneratedPolicies")),
+-            selfReduces: context.SelfReduces);
++            selfReduces: context.SelfReduces).Concat(PerformedQueryTypes(context, slices));
+ 
+     static IEnumerable<(string Namespace, string Name)> ValidationTypes(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices)
+     {
+diff --git a/Source/Rendering.Cratis/Semantics/SemanticPerformedQuery.cs b/Source/Rendering.Cratis/Semantics/SemanticPerformedQuery.cs
+new file mode 100644
+index 00000000..89754826
+--- /dev/null
++++ b/Source/Rendering.Cratis/Semantics/SemanticPerformedQuery.cs
+@@ -0,0 +1,37 @@
++// Copyright (c) Cratis. All rights reserved.
++// Licensed under the MIT license. See LICENSE file in the project root for full license information.
++
++using Cratis.Screenplay.Semantics;
++using Cratis.Stage.Rendering.Cratis.Naming;
++
++namespace Cratis.Stage.Rendering.Cratis.Semantics;
++
++/// <summary>
++/// Locates an opaque query's rendering contract without adding it to the executable query plan.
++/// </summary>
++/// <param name="Requirement">The compiler's implementation requirement.</param>
++/// <param name="Slice">The declaring slice.</param>
++internal sealed record SemanticPerformedQuery(SemanticImplementationRequirement Requirement, LocatedSemanticSlice Slice)
++{
++    internal SemanticId Id => Requirement.Source?.SemanticId ?? SemanticId.Create(Requirement.Owner);
++
++    internal string Name => Requirement.Member;
++
++    internal SemanticPerformedQueryShape? Shape => Requirement.QueryShape;
++
++    internal string Method(SemanticReadModel model) => GeneratedPascalCase.QueryMethod(model.Name, model.Properties.Select(property => property.Name), Name);
++
++    internal string Interface => $"I{Identifiers.ToPascalCase(Name)}Performer";
++
++    internal string Stub => $"{Identifiers.ToPascalCase(Name)}Performer";
++
++    internal static IReadOnlyList<SemanticPerformedQuery> Locate(
++        IEnumerable<SemanticImplementationRequirement> requirements,
++        IEnumerable<LocatedSemanticSlice> slices) =>
++        [.. requirements.Where(requirement => requirement.Role == SemanticImplementationRole.QueryPerformer)
++            .Select(requirement => new SemanticPerformedQuery(requirement, slices.Single(slice => Owns(requirement, slice))))];
++
++    static bool Owns(SemanticImplementationRequirement requirement, LocatedSemanticSlice slice) =>
++        requirement.Owner.Parts.Where(part => part.Kind is SemanticAddressPartKind.Module or SemanticAddressPartKind.Feature or SemanticAddressPartKind.Slice)
++            .Select(part => part.Key).SequenceEqual(new[] { slice.Module.Name }.Concat(slice.FeaturePath.Select(feature => feature.Name)).Append(slice.Slice.Name));
++}
+diff --git a/Source/Rendering.Cratis/Semantics/SemanticPerformedQueryRenderer.cs b/Source/Rendering.Cratis/Semantics/SemanticPerformedQueryRenderer.cs
+new file mode 100644
+index 00000000..0d036b6a
+--- /dev/null
++++ b/Source/Rendering.Cratis/Semantics/SemanticPerformedQueryRenderer.cs
+@@ -0,0 +1,91 @@
++// Copyright (c) Cratis. All rights reserved.
++// Licensed under the MIT license. See LICENSE file in the project root for full license information.
++
++using Cratis.Screenplay.Semantics;
++using Cratis.Stage.Contracts.Rendering;
++using Cratis.Stage.Rendering.Cratis.CodeGeneration;
++using Cratis.Stage.Rendering.Cratis.Naming;
++
++namespace Cratis.Stage.Rendering.Cratis.Semantics;
++
++/// <summary>Renders typed application hooks for reads Stage cannot execute.</summary>
++internal static class SemanticPerformedQueryRenderer
++{
++    internal static void RenderQuery(CSharpCodeBuilder builder, SemanticPerformedQuery query, SemanticReadModel model, SemanticTypeSystem types)
++    {
++        var arguments = query.Shape!.Arguments;
++        var parameters = new[] { $"[global::Microsoft.AspNetCore.Mvc.FromServicesAttribute] {query.Interface} performer" }
++            .Concat(arguments.Select(argument => $"{ArgumentType(argument, types)} {Parameter(argument)}"));
++        builder.BlankLine().Summary($"Answers {query.Name} through the application's performer.")
++            .Line("/// <param name=\"performer\">The application query implementation.</param>");
++        foreach (var argument in arguments)
++        {
++            builder.Line($"/// <param name=\"{Parameter(argument).TrimStart('@')}\">The query argument.</param>");
++        }
++        builder.Line("/// <returns>The performer's result.</returns>")
++            .Attribute($"global::Cratis.Arc.Queries.ModelBound.QueryAttribute({CSharpCodeBuilder.StringLiteral(query.Name)})")
++            .Attribute("global::Cratis.Arc.Authorization.AuthorizeAttribute")
++            .Line($"public static {ReturnType(query, model)} {query.Method(model)}({string.Join(", ", parameters)}) =>")
++            .Line($"    performer.Perform({string.Join(", ", arguments.Select(Parameter))});");
++    }
++
++    internal static void RenderHooks(CSharpCodeBuilder builder, LocatedSemanticSlice located, SemanticApplicationContext context)
++    {
++        var types = new SemanticTypeSystem(context);
++        foreach (var query in context.PerformedQueries.Where(query => query.Slice.Slice.Id == located.Slice.Id))
++        {
++            var model = context.ReadModels[query.Shape!.ReadModel!.Value];
++            var signature = $"{ReturnType(query, model)} Perform({string.Join(", ", query.Shape.Arguments.Select(argument => $"{ArgumentType(argument, types)} {Parameter(argument)}"))})";
++            builder.BlankLine().Summary($"Answers the opaque {query.Name} query. Implement in Customizations/.")
++                .OpenBlock($"public interface {query.Interface}")
++                .Summary("Answers the caller's query.");
++            foreach (var argument in query.Shape.Arguments)
++            {
++                builder.Line($"/// <param name=\"{Parameter(argument).TrimStart('@')}\">The query argument.</param>");
++            }
++            builder.Line("/// <returns>The performer's result.</returns>").Line($"{signature};").EndBlock();
++            builder.BlankLine().Summary($"Unimplemented placeholder for {query.Name}; replace through ConfigureServices.")
++                .OpenBlock($"public sealed class {query.Stub} : {query.Interface}")
++                .Line("/// <inheritdoc/>")
++                .Line($"public {signature} => throw new global::System.NotImplementedException({CSharpCodeBuilder.StringLiteral($"Supply {query.Interface} in Customizations/Program.cs to answer '{query.Name}'.")});")
++                .EndBlock();
++        }
++    }
++
++    internal static PlannedArtifact Registration(SemanticApplicationContext context)
++    {
++        var builder = new CSharpCodeBuilder().Using("Microsoft.Extensions.DependencyInjection.Extensions")
++            .Namespace($"{context.RootNamespace}.GeneratedQueries")
++            .Summary("Registers generated query placeholders before application customizations.")
++            .OpenBlock("public static class Registration")
++            .Summary("Registers a replaceable placeholder for every opaque query.")
++            .Line("/// <param name=\"services\">The application's services.</param>")
++            .OpenBlock("public static void Register(global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)");
++        foreach (var query in context.PerformedQueries)
++        {
++            var ns = $"global::{SliceNaming.Namespace(context.RootNamespace, query.Slice.Path)}";
++            builder.Line($"services.TryAddScoped<{ns}.{query.Interface}, {ns}.{query.Stub}>();");
++        }
++        builder.EndBlock().EndBlock();
++        return PlannedArtifact.CreateText("GeneratedQueryRegistration.cs", builder.ToString(), [.. context.PerformedQueries.Select(query => query.Id)]);
++    }
++
++    static string ReturnType(SemanticPerformedQuery query, SemanticReadModel model)
++    {
++        var type = Identifiers.ToPascalCase(model.Name);
++        var result = query.Shape!.Cardinality switch
++        {
++            SemanticQueryCardinality.Many => $"global::System.Collections.Generic.IReadOnlyList<{type}>",
++            SemanticQueryCardinality.ZeroOrOne => $"{type}?",
++            _ => type
++        };
++        return query.Shape.Delivery == SemanticQueryDelivery.Live
++            ? $"global::System.IObservable<{result}>"
++            : $"global::System.Threading.Tasks.Task<{result}>";
++    }
++
++    static string ArgumentType(SemanticPerformedQueryArgument argument, SemanticTypeSystem types) =>
++        types.Type(argument.Type! with { IsOptional = argument.IsOptional || argument.Type!.IsOptional });
++
++    static string Parameter(SemanticPerformedQueryArgument argument) => Identifiers.EscapeKeyword(Identifiers.ToCamelCase(argument.Name));
++}
+diff --git a/Source/Rendering.Cratis/Semantics/SemanticSharedReferences.cs b/Source/Rendering.Cratis/Semantics/SemanticSharedReferences.cs
+index d1ab1133..762b3968 100644
+--- a/Source/Rendering.Cratis/Semantics/SemanticSharedReferences.cs
++++ b/Source/Rendering.Cratis/Semantics/SemanticSharedReferences.cs
+@@ -50,6 +50,10 @@ internal static (IReadOnlyList<SemanticConcept> Concepts, IReadOnlyList<Semantic
+             foreach (var command in slice.Commands) Command(command);
+             foreach (var readModel in slice.ReadModels) Properties(readModel.Properties);
+             foreach (var query in slice.Queries) Query(query);
++            foreach (var query in context.PerformedQueries.Where(query => query.Slice.Slice.Id == slice.Id))
++            {
++                foreach (var argument in query.Shape!.Arguments) Reference(argument.Type);
++            }
+             foreach (var projection in slice.Projections)
+             {
+                 ReadModel(projection.ReadModel);
+diff --git a/Source/Rendering.Cratis/Semantics/SemanticStateViewArtifactRenderer.cs b/Source/Rendering.Cratis/Semantics/SemanticStateViewArtifactRenderer.cs
+index e17e94d9..f56d56df 100644
+--- a/Source/Rendering.Cratis/Semantics/SemanticStateViewArtifactRenderer.cs
++++ b/Source/Rendering.Cratis/Semantics/SemanticStateViewArtifactRenderer.cs
+@@ -25,13 +25,15 @@ public static RenderedFile Render(LocatedSemanticSlice located, SemanticApplicat
+         var builder = new CSharpCodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
+         Configure(builder, located, context);
+         RenderMembers(builder, located, context);
++        SemanticPerformedQueryRenderer.RenderHooks(builder, located, context);
+         RenderDeclaredEvents(builder, located, context);
+         var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), SliceNaming.FileName(located.Slice.Name)]);
+         return new(path, builder.ToString())
+         {
+             Sources = [located.Slice.Id, .. located.Slice.ReadModels.Select(_ => _.Id),
+                 .. located.Slice.Projections.Select(_ => _.Id), .. located.Slice.Queries.Select(_ => _.Id),
+-                .. located.Slice.Events.Select(_ => _.Id), .. SelfReducerSources(located, context)]
++                .. located.Slice.Events.Select(_ => _.Id), .. SelfReducerSources(located, context),
++                .. context.PerformedQueries.Where(query => query.Slice.Slice.Id == located.Slice.Id).Select(query => query.Id)]
+         };
+     }
+ 
+@@ -127,6 +129,11 @@ internal static void RenderMembers(CSharpCodeBuilder builder, LocatedSemanticSli
+                 RenderQuery(builder, query, readModel, types, context);
+             }
+ 
++            foreach (var query in context.PerformedQueries.Where(query => query.Slice.Slice.Id == located.Slice.Id && query.Shape?.ReadModel == readModel.Id))
++            {
++                SemanticPerformedQueryRenderer.RenderQuery(builder, query, readModel, types);
++            }
++
+             if (self)
+             {
+                 builder.BlankLine();
+diff --git a/Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/given/performed_query_model.cs b/Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/given/performed_query_model.cs
+new file mode 100644
+index 00000000..d71c109f
+--- /dev/null
++++ b/Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/given/performed_query_model.cs
+@@ -0,0 +1,81 @@
++// Copyright (c) Cratis. All rights reserved.
++// Licensed under the MIT license. See LICENSE file in the project root for full license information.
++
++using System.Collections.Immutable;
++using System.Text;
++using Cratis.Screenplay.Diagnostics;
++using Cratis.Screenplay.Semantics;
++using Cratis.Screenplay.Semantics.Execution;
++using Cratis.Stage.Contracts.Rendering;
++using Cratis.Stage.Contracts.Scene;
++using Xunit;
++using SceneElements = Cratis.Scene.Model.Elements;
++using SceneScreens = Cratis.Scene.Model.Screens;
++
++namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
++
++public static class performed_query_model
++{
++    public const string Views = """
++            slice StateView Figures
++              readmodel Figures
++                total Int
++              query GetFigures => Figures[]
++                performer
++                  ```csharp
++                  throw new NotImplementedException();
++                  ```
++              query Figure => Figures
++                by key String
++                performer
++                  file Queries/Figure.cs
++              query MaybeFigure => Figures?
++                by key String
++                performer
++                  file Queries/MaybeFigure.cs
++              query LiveFigures => observable Figures[]
++                filter region Region optional
++                performer
++                  file Queries/LiveFigures.cs
++        """;
++
++    public static string Source => "concept Region : String\nmodule Billing\n  feature Invoicing\n" + Views;
++
++    public static string WithCommand => "concept Region : String\n" + invoice_model.Source("String", invoice_model.TextSource, invoice_model.OtherTextSource) + "\n" + Views;
++
++    public static CompilationResult<SemanticCompilation> Compile(string? source = null)
++    {
++        var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Figures"));
++        var document = SemanticSourceDocument.Create(catalog.ResolveDocument("figures"), "figures", "Figures.play", source ?? Source);
++        var result = new SemanticModelCompiler().Compile("Figures", SemanticDocumentSet.Create([document], catalog));
++        Assert.True(result.Success, string.Join(Environment.NewLine, result.Diagnostics));
++        return result;
++    }
++
++    public static ArtifactRenderPlan Plan(CompilationResult<SemanticCompilation> compilation, ImmutableArray<SemanticImplementationRequirement>? requirements = null, ExecutableSemanticModel? model = null)
++    {
++        model ??= compilation.Value!.Model;
++        var profile = CratisRendering.CreateProfile(model.Application.Name, new("FiguresApp", "FiguresApp"), Scene());
++        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan!, profile,
++            new(ArtifactRenderScopeKind.Application, model.Application.Id))
++        {
++            ImplementationRequirements = requirements ?? compilation.ImplementationRequirements,
++            ImplementationContents = ImmutableDictionary<string, string>.Empty
++        };
++        return new CratisArtifactRenderPlanner().Plan(request);
++    }
++
++    public static string Text(PlannedArtifact artifact) => Encoding.UTF8.GetString(artifact.Bytes.AsSpan());
++
++    static SceneApplication Scene()
++    {
++        var layout = DefaultLayout.Create();
++        return new([], [], [layout], [], [],
++            [new SceneScreens.Screen("figures", layout.Name,
++                new Dictionary<string, IReadOnlyList<SceneElements.SceneElement>>(StringComparer.Ordinal)
++                {
++                    ["MainContent"] = [new SceneElements.ExternalComponent("figures", "DataPage",
++                        new Dictionary<string, object?>(StringComparer.Ordinal) { [SceneElementProperties.Query] = "GetFigures" })]
++                }, [], [])]);
++    }
++}
+diff --git a/Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/when_compiling_performed_queries.cs b/Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/when_compiling_performed_queries.cs
+new file mode 100644
+index 00000000..c16ea33b
+--- /dev/null
++++ b/Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/when_compiling_performed_queries.cs
+@@ -0,0 +1,66 @@
++// Copyright (c) Cratis. All rights reserved.
++// Licensed under the MIT license. See LICENSE file in the project root for full license information.
++
++#if DEBUG
++using System.Reflection;
++using Cratis.Specifications;
++using Cratis.Stage.Rendering.Cratis.CodeGeneration;
++using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
++using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
++using Microsoft.Extensions.DependencyInjection;
++using Xunit;
++
++namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
++
++public class when_compiling_performed_queries : Specification
++{
++    Assembly _assembly = null!;
++    Type _hook = null!;
++    object _answer = null!;
++    ServiceProvider _services = null!;
++    string[] _warnings = [];
++
++    async Task Because()
++    {
++        var plan = performed_query_model.Plan(performed_query_model.Compile());
++        Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
++        var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
++            .Select(artifact => new RenderedFile(artifact.RelativePath, performed_query_model.Text(artifact)))
++            .Append(new("Customizations/FiguresAnswer.cs", """
++                namespace FiguresApp.Billing.Invoicing.Figures;
++                public sealed class FiguresAnswer : IGetFiguresPerformer
++                {
++                    public System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Figures>> Perform() =>
++                        System.Threading.Tasks.Task.FromResult<System.Collections.Generic.IReadOnlyList<Figures>>([new(17)]);
++                }
++                """)).ToArray();
++        _warnings = [.. RenderedOutput.Warnings(files)];
++        _assembly = RenderedOutput.Load(files);
++        _hook = _assembly.GetTypes().Single(type => type.Name == "IGetFiguresPerformer");
++        var services = new ServiceCollection();
++        _assembly.GetType("FiguresApp.GeneratedQueries.Registration")!.GetMethod("Register")!.Invoke(null, [services]);
++        services.AddScoped(_hook, _assembly.GetTypes().Single(type => type.Name == "FiguresAnswer"));
++        _services = services.BuildServiceProvider();
++        var method = _assembly.GetTypes().Single(type => type.Name == "Figures").GetMethod("GetFigures")!;
++        var pending = (Task)method.Invoke(null, [_services.GetRequiredService(_hook)])!;
++        await pending;
++        _answer = pending.GetType().GetProperty("Result")!.GetValue(pending)!;
++    }
++
++    void Destroy() => _services?.Dispose();
++
++    [Fact] void should_compile_without_warnings() => _warnings.ShouldBeEmpty();
++    [Fact] void should_forward_the_query_to_the_replacement_hook()
++    {
++        var row = Assert.Single(((System.Collections.IEnumerable)_answer).Cast<object>());
++        Convert.ToInt64(row.GetType().GetProperty("Total")!.GetValue(row)).ShouldEqual(17L);
++    }
++    [Fact] void should_keep_an_unimplemented_default_fail_loud()
++    {
++        var stub = Activator.CreateInstance(_assembly.GetTypes().Single(type => type.Name == "FigurePerformer"));
++        var method = stub!.GetType().GetMethod("Perform")!;
++        var error = Assert.Throws<TargetInvocationException>(() => method.Invoke(stub, ["one"]));
++        Assert.IsType<NotImplementedException>(error.InnerException);
++    }
++}
++#endif
+diff --git a/Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/when_preserving_projectionless_query_admission.cs b/Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/when_preserving_projectionless_query_admission.cs
+new file mode 100644
+index 00000000..68889cdf
+--- /dev/null
++++ b/Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/when_preserving_projectionless_query_admission.cs
+@@ -0,0 +1,34 @@
++// Copyright (c) Cratis. All rights reserved.
++// Licensed under the MIT license. See LICENSE file in the project root for full license information.
++
++using Cratis.Specifications;
++using Cratis.Stage.Contracts.Rendering;
++using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
++using Xunit;
++
++namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
++
++public class when_preserving_projectionless_query_admission : Specification
++{
++    ArtifactRenderPlan _noDescriptor = null!;
++    ArtifactRenderPlan _declarativeQuery = null!;
++    string _before = null!;
++    string _after = null!;
++
++    void Because()
++    {
++        var compilation = performed_query_model.Compile();
++        _noDescriptor = performed_query_model.Plan(compilation, []);
++        _declarativeQuery = performed_query_model.Plan(performed_query_model.Compile(performed_query_model.Source + "\n      query ByTotal => Figures?\n        by total Int\n"));
++        var baseline = performed_query_model.Plan(performed_query_model.Compile(invoice_model.Source("String", invoice_model.TextSource, invoice_model.OtherTextSource)));
++        var added = performed_query_model.Plan(performed_query_model.Compile(performed_query_model.WithCommand));
++        Assert.True(baseline.Success, string.Join(Environment.NewLine, baseline.Diagnostics));
++        Assert.True(added.Success, string.Join(Environment.NewLine, added.Diagnostics));
++        _before = performed_query_model.Text(baseline.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("/Issue.cs", StringComparison.Ordinal)));
++        _after = performed_query_model.Text(added.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("/Issue.cs", StringComparison.Ordinal)));
++    }
++
++    [Fact] void should_still_refuse_an_unbacked_model_without_a_performer_descriptor() => _noDescriptor.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-007");
++    [Fact] void should_not_let_an_opaque_query_cover_an_unbacked_executable_query() => _declarativeQuery.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-007");
++    [Fact] void should_preserve_unrelated_generated_command_bytes() => _after.ShouldEqual(_before);
++}
+diff --git a/Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/when_refusing_performer_queries_with_unrepresented_policy_gates.cs b/Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/when_refusing_performer_queries_with_unrepresented_policy_gates.cs
+new file mode 100644
+index 00000000..f7f381bf
+--- /dev/null
++++ b/Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/when_refusing_performer_queries_with_unrepresented_policy_gates.cs
+@@ -0,0 +1,25 @@
++// Copyright (c) Cratis. All rights reserved.
++// Licensed under the MIT license. See LICENSE file in the project root for full license information.
++
++using Cratis.Specifications;
++using Cratis.Stage.Contracts.Rendering;
++using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
++using Xunit;
++
++namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
++
++public class when_refusing_performer_queries_with_unrepresented_policy_gates : Specification
++{
++    ArtifactRenderPlan _plan = null!;
++
++    void Because()
++    {
++        var source = "policy Staff = role Staff\n" + performed_query_model.Source.Replace(
++            "query Figure => Figures\n", "query Figure => Figures\n        authorize using Staff\n", StringComparison.Ordinal);
++        _plan = performed_query_model.Plan(performed_query_model.Compile(source));
++    }
++
++    [Fact] void should_not_silently_drop_a_modeled_policy() => _plan.Success.ShouldBeFalse();
++    [Fact] void should_identify_the_missing_authorization_metadata() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-066" && diagnostic.Message.Contains("authorization metadata", StringComparison.Ordinal));
++    [Fact] void should_emit_no_underprotected_query() => _plan.Artifacts.ShouldBeEmpty();
++}
+diff --git a/Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/when_refusing_the_unaudited_v31_schema.cs b/Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/when_refusing_the_unaudited_v31_schema.cs
+new file mode 100644
+index 00000000..48ab03e8
+--- /dev/null
++++ b/Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/when_refusing_the_unaudited_v31_schema.cs
+@@ -0,0 +1,25 @@
++// Copyright (c) Cratis. All rights reserved.
++// Licensed under the MIT license. See LICENSE file in the project root for full license information.
++
++using Cratis.Screenplay.CanonicalCorpus;
++using Cratis.Screenplay.Semantics.Serialization;
++using Cratis.Specifications;
++using Cratis.Stage.Contracts.Rendering;
++using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
++using Xunit;
++
++namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
++
++public class when_refusing_the_unaudited_v31_schema : Specification
++{
++    ArtifactRenderPlan _plan = null!;
++
++    void Because()
++    {
++        var model = SemanticModelSerializer.Deserialize(AnonymousPoliciesCorpus.V31.EsmBytes.AsSpan());
++        _plan = performed_query_model.Plan(performed_query_model.Compile(), [], model);
++    }
++
++    [Fact] void should_explicitly_refuse_the_new_anonymous_schema() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-016");
++    [Fact] void should_not_render_anonymous_policy_gates_as_authenticated() => _plan.Artifacts.ShouldBeEmpty();
++}
+diff --git a/Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/when_refusing_unresolved_performer_shapes.cs b/Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/when_refusing_unresolved_performer_shapes.cs
+new file mode 100644
+index 00000000..8817edd4
+--- /dev/null
++++ b/Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/when_refusing_unresolved_performer_shapes.cs
+@@ -0,0 +1,34 @@
++// Copyright (c) Cratis. All rights reserved.
++// Licensed under the MIT license. See LICENSE file in the project root for full license information.
++
++using Cratis.Specifications;
++using Cratis.Stage.Contracts.Rendering;
++using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
++using Xunit;
++
++namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
++
++public class when_refusing_unresolved_performer_shapes : Specification
++{
++    ArtifactRenderPlan _missingShape = null!;
++    ArtifactRenderPlan _missingModel = null!;
++    ArtifactRenderPlan _missingType = null!;
++
++    void Because()
++    {
++        var compilation = performed_query_model.Compile();
++        var requirements = compilation.ImplementationRequirements;
++        _missingShape = performed_query_model.Plan(compilation, [.. requirements.Select(requirement => requirement with { QueryShape = null })]);
++        _missingModel = performed_query_model.Plan(compilation, [.. requirements.Select(requirement => requirement with { QueryShape = requirement.QueryShape! with { ReadModel = null } })]);
++        _missingType = performed_query_model.Plan(compilation, [.. requirements.Select(requirement => requirement with
++        {
++            QueryShape = requirement.QueryShape! with { Arguments = [.. requirement.QueryShape!.Arguments.Select(argument => argument with { Type = null })] }
++        })]);
++    }
++
++    [Fact] void should_refuse_an_absent_descriptor() => _missingShape.Success.ShouldBeFalse();
++    [Fact] void should_explain_an_absent_descriptor() => _missingShape.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-066" && diagnostic.Message.Contains("no query shape", StringComparison.Ordinal));
++    [Fact] void should_refuse_an_unresolved_return_model() => _missingModel.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-066" && diagnostic.Message.Contains("read model is unresolved", StringComparison.Ordinal));
++    [Fact] void should_refuse_an_unresolved_argument_type() => _missingType.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-066" && diagnostic.Message.Contains("unresolved type", StringComparison.Ordinal));
++    [Fact] void should_emit_no_partial_application() => _missingType.Artifacts.ShouldBeEmpty();
++}
+diff --git a/Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/when_rendering_performed_queries.cs b/Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/when_rendering_performed_queries.cs
+new file mode 100644
+index 00000000..c75deeb9
+--- /dev/null
++++ b/Source/Rendering.Cratis/for_CratisArtifactRenderPlanner/when_rendering_performed_queries.cs
+@@ -0,0 +1,44 @@
++// Copyright (c) Cratis. All rights reserved.
++// Licensed under the MIT license. See LICENSE file in the project root for full license information.
++
++using Cratis.Screenplay.Semantics;
++using Cratis.Specifications;
++using Cratis.Stage.Contracts.Rendering;
++using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
++using Xunit;
++
++namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
++
++public class when_rendering_performed_queries : Specification
++{
++    ArtifactRenderPlan _plan = null!;
++    string _source = null!;
++    string _bindings = null!;
++
++    void Because()
++    {
++        var compilation = performed_query_model.Compile();
++        _plan = performed_query_model.Plan(compilation);
++        Assert.True(_plan.Success, string.Join(Environment.NewLine, _plan.Diagnostics));
++        _source = performed_query_model.Text(_plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("/Figures.cs", StringComparison.Ordinal)));
++        _bindings = performed_query_model.Text(_plan.Artifacts.Single(artifact => artifact.RelativePath == "src/bindings.ts"));
++    }
++
++    [Fact] void should_render_without_inventing_a_projection() => _source.ShouldNotContain("FromEventAttribute");
++    [Fact] void should_keep_many_results_typed() => _source.ShouldContain("Task<global::System.Collections.Generic.IReadOnlyList<Figures>> GetFigures(");
++    [Fact] void should_keep_a_single_result_nonnullable() => _source.ShouldContain("Task<Figures> Figure(");
++    [Fact] void should_keep_an_optional_result_nullable() => _source.ShouldContain("Task<Figures?> MaybeFigure(");
++    [Fact] void should_keep_live_delivery_and_nullable_concept_arguments() => _source.ShouldContain("IObservable<global::System.Collections.Generic.IReadOnlyList<Figures>> LiveFigures(");
++    [Fact] void should_use_the_declared_concept_argument() => _source.ShouldContain("global::FiguresApp.Common.Region? region");
++    [Fact] void should_fail_loudly_until_an_application_implements_the_hook() => _source.ShouldContain("throw new global::System.NotImplementedException");
++    [Fact] void should_not_emit_mongo_queries_for_an_unprojected_model() => _source.ShouldNotContain("IMongoCollection");
++    [Fact] void should_import_the_generated_proxy_export() => _bindings.ShouldContain("import { GetFigures as");
++    [Fact] void should_register_the_authored_query_name() => _bindings.ShouldContain("\"GetFigures\"");
++    [Fact] void should_not_invent_an_http_route() => _bindings.ShouldNotContain("/api/");
++    [Fact] void should_register_defaults_before_the_unmanaged_service_seam()
++    {
++        var program = performed_query_model.Text(_plan.Artifacts.Single(artifact => artifact.RelativePath == "Program.cs"));
++        Assert.True(program.IndexOf("GeneratedQueries.Registration.Register", StringComparison.Ordinal) < program.IndexOf("ConfigureServices(builder.Services)", StringComparison.Ordinal));
++    }
++    [Fact] void should_keep_the_opaque_reads_outside_the_executor() => performed_query_model.Compile().Value!.Model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.Kind == SemanticSliceKind.StateView).Queries.ShouldBeEmpty();
++}

@@ -1,0 +1,31 @@
+diff --git a/Source/Editor/Preview/previewApplication.ts b/Source/Editor/Preview/previewApplication.ts
+index 2dcec0176..855ffda17 100644
+--- a/Source/Editor/Preview/previewApplication.ts
++++ b/Source/Editor/Preview/previewApplication.ts
+@@ -106,13 +106,14 @@ const identifierPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9
+  * @param scene The scene the model compiled to.
+  * @returns The profile, with the compiled root in place of a stored root that names nothing in the document.
+  */
+-export function withRootNamedInScene(profile: UiProfile, scene: Pick<PreviewScene, 'layouts' | 'screenTemplates' | 'uiProfiles'>): UiProfile {
++export function withRootNamedInScene(profile: UiProfile, scene: Pick<PreviewScene, 'layouts' | 'screenTemplates' | 'uiProfiles'>, activeProfileName = profile.name): UiProfile {
+     const stored = profile.root?.template;
+     if (stored === undefined || stored.source !== TemplateReferenceSource.Own || !identifierPattern.test(stored.id)) return profile;
+ 
+     const names = new Set([...scene.layouts.map(layout => layout.name), ...scene.screenTemplates.map(template => template.name)]);
+-    const compiled = scene.uiProfiles?.map(candidate => candidate.root).find(root => root?.template.source === TemplateReferenceSource.Own && names.has(root.template.id));
+-    return compiled === undefined ? profile : { ...profile, root: { ...compiled, options: { ...compiled.options, ...profile.root?.options } } };
++    const compiled = scene.uiProfiles?.find(candidate => candidate.name === activeProfileName)?.root;
++    if (compiled?.template.source !== TemplateReferenceSource.Own || !names.has(compiled.template.id)) return profile;
++    return { ...profile, root: { ...compiled, options: { ...compiled.options, ...profile.root?.options } } };
+ }
+ 
+ /**
+@@ -127,7 +128,7 @@ export function previewApplicationOf(scene: PreviewScene, runtime: ScreenEditorR
+     const placed = previewScreensOf(scene.screens, runtime.profile.layout);
+     const dialogTemplates = dialogTemplatesUsedBy(scene, runtime, placed);
+     const screens = withoutSeededSlots(placed, [...scene.screenTemplates, ...dialogTemplates, ...runtime.bundles.flatMap(bundle => bundle.screenTemplates ?? [])]);
+-    const profile = profileWithQueryMappings(withRootNamedInScene(runtime.compositionProfile, scene), [screens, scene.screenTemplates, scene.dialogTemplates ?? []]);
++    const profile = profileWithQueryMappings(withRootNamedInScene(runtime.compositionProfile, scene, runtime.profile.name), [screens, scene.screenTemplates, scene.dialogTemplates ?? []]);
+     return {
+         document: {
+             layouts: scene.layouts,

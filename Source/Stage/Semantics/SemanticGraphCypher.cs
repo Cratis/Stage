@@ -85,6 +85,20 @@ public static class SemanticGraphCypher
         return new(text.ToString(), parameters, columns);
     }
 
+    /// <summary>
+    /// Converts a condition literal to the engine value it is compared with.
+    /// </summary>
+    /// <param name="value">The literal.</param>
+    /// <returns>The text, number or boolean.</returns>
+    /// <exception cref="UnsupportedSemanticGraph">The literal is not a text, a number or a boolean.</exception>
+    internal static object? Literal(SemanticValue? value) => value switch
+    {
+        SemanticTextValue text => text.Value,
+        SemanticNumberValue number => number.Value,
+        SemanticBooleanValue boolean => boolean.Value,
+        _ => throw new UnsupportedSemanticGraph("A graph query condition literal must be text, a number or a boolean.")
+    };
+
     static string Node(SemanticGraphPatternNode node, HashSet<string> bound)
     {
         if (node.Alias is null) return $"(:{Name(node.Label)})";
@@ -100,12 +114,4 @@ public static class SemanticGraphCypher
     static string Alias(string alias) => IsIdentifier(alias) ? $"`{alias}`" : throw new UnsupportedSemanticGraph($"'{alias}' is not an alias the graph query can lower.");
 
     static bool IsIdentifier(string name) => name.Length > 0 && !char.IsDigit(name[0]) && name.All(character => char.IsAsciiLetterOrDigit(character) || character == '_');
-
-    static object? Literal(SemanticValue? value) => value switch
-    {
-        SemanticTextValue text => text.Value,
-        SemanticNumberValue number => number.Value,
-        SemanticBooleanValue boolean => boolean.Value,
-        _ => throw new UnsupportedSemanticGraph("A graph query condition literal must be text, a number or a boolean.")
-    };
 }

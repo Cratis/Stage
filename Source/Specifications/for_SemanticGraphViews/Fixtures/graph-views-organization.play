@@ -1,0 +1,164 @@
+// The views of the shared graph views fixture (graph-views-organization.json), declared
+// with 'collect', and one query per clause shape the shared query vectors use
+// (graph-views-query-vectors.json). The reference runner must return exactly the
+// vectors' results for them.
+
+command reads protected
+
+concept PersonId     : Uuid
+concept GroupId      : Uuid
+concept AssignmentId : Uuid
+
+type GroupMembership
+  id    GroupId
+  name  String optional
+  since DateTime optional
+
+type GroupSummary
+  id   GroupId
+  name String optional
+
+type MemberSummary
+  id    PersonId
+  name  String optional
+  since DateTime optional
+
+type RoleAssignment
+  id           GroupId
+  assignmentId AssignmentId
+  role         String optional
+
+module Organization
+  feature Chart
+    slice StateView GraphViews
+      graph Organization
+        node Person
+          personId PersonId key
+          name     String
+        node Group
+          groupId GroupId key
+          name    String
+        edge MEMBER_OF source Person target Group
+          since DateTime
+        edge PART_OF source Group target Group
+        edge HAS_ROLE source Person target Group identified by assignmentId
+          assignmentId AssignmentId
+          role         String
+          since        DateTime
+
+      readmodel PersonWithGroups
+        id     PersonId key
+        name   String optional
+        groups GroupMembership[]
+
+      readmodel GroupWithMembers
+        id      GroupId key
+        name    String optional
+        members MemberSummary[]
+
+      readmodel GroupWithParent
+        id     GroupId key
+        name   String optional
+        parent GroupSummary optional
+
+      readmodel PersonRoles
+        id    PersonId key
+        roles RoleAssignment[]
+
+      query PeopleWithGroups => PersonWithGroups[] graph Organization
+        match person:Person
+        return
+          id     = person.personId
+          name   = person.name
+          groups = collect person -membership:MEMBER_OF-> group:Group
+            id    = group.groupId
+            name  = group.name
+            since = membership.since
+
+      query PeopleInGroup => PersonWithGroups[] graph Organization
+        filter groupId GroupId
+        match person:Person
+        where group.groupId = $groupId
+        return
+          id     = person.personId
+          name   = person.name
+          groups = collect person -membership:MEMBER_OF-> group:Group
+            id    = group.groupId
+            name  = group.name
+            since = membership.since
+
+      query PeopleNamed => PersonWithGroups[] graph Organization
+        filter name String
+        match person:Person
+        where person.name = $name
+        return
+          id     = person.personId
+          name   = person.name
+          groups = collect person -membership:MEMBER_OF-> group:Group
+            id    = group.groupId
+            name  = group.name
+            since = membership.since
+
+      query PersonById => PersonWithGroups optional graph Organization
+        by personId PersonId
+        match person:Person
+        where person.personId = $personId
+        return
+          id     = person.personId
+          name   = person.name
+          groups = collect person -membership:MEMBER_OF-> group:Group
+            id    = group.groupId
+            name  = group.name
+            since = membership.since
+
+      query PersonNamed => PersonWithGroups optional graph Organization
+        filter name String
+        match person:Person
+        where person.name = $name
+        return
+          id     = person.personId
+          name   = person.name
+          groups = collect person -membership:MEMBER_OF-> group:Group
+            id    = group.groupId
+            name  = group.name
+            since = membership.since
+
+      query GroupsWithMembers => GroupWithMembers[] graph Organization
+        match group:Group
+        return
+          id      = group.groupId
+          name    = group.name
+          members = collect group <-membership:MEMBER_OF- member:Person
+            id    = member.personId
+            name  = member.name
+            since = membership.since
+
+      query GroupsWithMemberNamed => GroupWithMembers[] graph Organization
+        filter name String
+        match group:Group
+        where member.name = $name
+        return
+          id      = group.groupId
+          name    = group.name
+          members = collect group <-membership:MEMBER_OF- member:Person
+            id    = member.personId
+            name  = member.name
+            since = membership.since
+
+      query GroupsWithParent => GroupWithParent[] graph Organization
+        match group:Group
+        return
+          id     = group.groupId
+          name   = group.name
+          parent = collect group -PART_OF-> parent:Group
+            id   = parent.groupId
+            name = parent.name
+
+      query PeopleWithRoles => PersonRoles[] graph Organization
+        match person:Person
+        return
+          id    = person.personId
+          roles = collect person -assignment:HAS_ROLE-> group:Group
+            id           = group.groupId
+            assignmentId = assignment.assignmentId
+            role         = assignment.role

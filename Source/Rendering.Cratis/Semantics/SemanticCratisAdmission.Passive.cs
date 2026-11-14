@@ -26,8 +26,10 @@ internal static partial class SemanticCratisAdmission
 
     static string? PassiveReplayRejection(SemanticProjectionScope? root)
     {
-        if (root?.From.Any(from => !IsEventSourceKey(from.Key)) != false || root.Removals.Any(removal => !IsEventSourceKey(removal.Key)))
-            return "the root key must be the event-source id, not a payload, constant, composite or context key (CHR0046).";
+        const string rootKeyRejection = "the root key must be the event-source id, not a payload, constant, composite or context key (CHR0046).";
+        if (root is null) return rootKeyRejection;
+        if (root.From.Any(from => !IsEventSourceKey(from.Key)) || root.Removals.Any(removal => !IsEventSourceKey(removal.Key)))
+            return rootKeyRejection;
         if (!root.Joins.IsEmpty || !root.JoinRemovals.IsEmpty)
             return "joins can require events from other event-source streams.";
         if (!root.Children.IsEmpty || !root.Nested.IsEmpty)

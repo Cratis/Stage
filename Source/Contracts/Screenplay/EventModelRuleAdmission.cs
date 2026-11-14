@@ -11,7 +11,7 @@ namespace Cratis.Stage.Contracts.Screenplay;
 public sealed class EventModelRuleAdmission : ScreenplaySyntaxWalker
 {
     readonly List<string> _diagnostics = [];
-    readonly HashSet<string> _enumConcepts = new(StringComparer.Ordinal);
+    readonly HashSet<string> _enumConcepts = [];
 
     /// <summary>
     /// Finds rule declarations that would lose their semantics in legacy execution.
@@ -51,6 +51,10 @@ public sealed class EventModelRuleAdmission : ScreenplaySyntaxWalker
         }
     }
 
+    static bool DropsRules(ValidateSyntax validation) =>
+        validation is not DeclarativeValidateSyntax declarative ||
+        ValidationRuleConverter.Convert([validation]).Sum(group => group.Rules.Count) != declarative.Rules.Count();
+
     string? UnsupportedDeclaration(SyntaxNode node) => node switch
     {
         ConceptSyntax concept when concept.Validations?.Any() == true => $"concept '{concept.Name}' validation",
@@ -70,8 +74,4 @@ public sealed class EventModelRuleAdmission : ScreenplaySyntaxWalker
 
         return command.Validations.Any(DropsRules) ? $"command '{command.Name}' validation" : null;
     }
-
-    static bool DropsRules(ValidateSyntax validation) =>
-        validation is not DeclarativeValidateSyntax declarative ||
-        ValidationRuleConverter.Convert([validation]).Sum(group => group.Rules.Count) != declarative.Rules.Count();
 }

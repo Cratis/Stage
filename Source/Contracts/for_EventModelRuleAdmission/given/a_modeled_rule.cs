@@ -39,7 +39,7 @@ public class a_modeled_rule : Specification
 
     protected InvalidEventModel Refusal => Assert.IsType<InvalidEventModel>(_refusal);
 
-    void Because()
+    protected void Admit()
     {
         _model = EventModelLoader.LoadFromSource(_source);
         _refusal = Catch.Exception(() => EventModelRuleAdmission.EnsureExecutable(_model, "registry.play"));

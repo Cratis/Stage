@@ -10,6 +10,8 @@ public class when_refusing_concept_validation : given.a_modeled_rule
 {
     void Establish() => _source = Source.Replace("concept Name : String", "concept Name : String\n  validate\n    not empty", StringComparison.Ordinal);
 
+    void Because() => Admit();
+
     [Fact] void should_name_the_concept_rule() => Refusal.Message.ShouldContain("concept 'Name' validation");
     [Fact] void should_report_unsupported() => Refusal.Message.ShouldContain("STAGE-ESM-081: Unsupported");
     [Fact] void should_identify_the_source() => Refusal.Message.ShouldContain("registry.play");

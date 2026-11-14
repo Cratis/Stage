@@ -10,5 +10,7 @@ public class when_admitting_an_unused_enum : given.a_modeled_rule
 {
     void Establish() => _source = "concept Unused : Enum\n  allowed\n" + Source;
 
+    void Because() => Admit();
+
     [Fact] void should_not_refuse_a_declaration_without_command_inputs() => _refusal.ShouldBeNull();
 }

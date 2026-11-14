@@ -15,6 +15,7 @@ public class when_admitting_modeled_rules : given.a_modeled_rule
 
     void Because()
     {
+        Admit();
         var slices = _model.Collections.Single().Modules.Single().Features.Single().Slices;
         _command = slices.Single(slice => slice.Name == "Register").Command!;
         _readModel = slices.Single(slice => slice.Name == "List").ReadModel!;

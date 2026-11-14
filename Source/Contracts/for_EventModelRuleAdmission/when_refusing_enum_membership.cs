@@ -10,6 +10,8 @@ public class when_refusing_enum_membership : given.a_modeled_rule
 {
     void Establish() => _source = Source.Replace("concept Name : String", "concept Name : Enum\n  allowed", StringComparison.Ordinal);
 
+    void Because() => Admit();
+
     [Fact] void should_name_the_enum_rule() => Refusal.Message.ShouldContain("enum concept 'Name' membership");
     [Fact] void should_report_unsupported() => Refusal.Message.ShouldContain("STAGE-ESM-081: Unsupported");
 }

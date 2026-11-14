@@ -10,6 +10,8 @@ public class when_refusing_unique_properties : given.a_modeled_rule
 {
     void Establish() => _source = Source.Replace("    slice StateView List", "      constraint UniqueName\n        unique name on RecordRegistered\n    slice StateView List", StringComparison.Ordinal);
 
+    void Because() => Admit();
+
     [Fact] void should_name_the_uniqueness_rule() => Refusal.Message.ShouldContain("constraint 'UniqueName'");
     [Fact] void should_report_unsupported() => Refusal.Message.ShouldContain("STAGE-ESM-081: Unsupported");
 }

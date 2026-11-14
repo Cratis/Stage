@@ -10,6 +10,8 @@ public class when_refusing_omitted_command_validation : given.a_modeled_rule
 {
     void Establish() => _source = Source.Replace("          name not empty", "          name == \"allowed\"", StringComparison.Ordinal);
 
+    void Because() => Admit();
+
     [Fact] void should_name_the_command_rule() => Refusal.Message.ShouldContain("command 'RegisterRecord' validation");
     [Fact] void should_report_unsupported() => Refusal.Message.ShouldContain("STAGE-ESM-081: Unsupported");
 }

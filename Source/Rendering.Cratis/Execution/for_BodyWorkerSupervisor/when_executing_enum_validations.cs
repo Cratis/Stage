@@ -22,7 +22,7 @@ public class when_executing_enum_validations : Specification
     [InlineData("Closed", false)]
     async Task should_materialize_enum_members_in_command_validation(string member, bool valid)
     {
-        var source = an_enum_validation_model.Command("if (context.Artifact.Status != Status.Open) yield return \"Closed\";", iterator: true);
+        var source = an_enum_validation_model.Command("if (context.Artifact.Status != global::InvoiceModel.Common.Status.Open) yield return \"Closed\";", iterator: true);
         var result = await Evaluate(source, member, SemanticImplementationRole.CommandValidation);
 
         Assert.Equal(valid ? "satisfied" : "unsatisfied", result.Outcome);
@@ -38,7 +38,7 @@ public class when_executing_enum_validations : Specification
     [InlineData("Closed", false)]
     async Task should_materialize_enum_members_in_rule_predicates(string member, bool valid)
     {
-        var source = an_enum_validation_model.Command("return context.Value == Status.Open && context.Artifact.Status == context.Value;");
+        var source = an_enum_validation_model.Command("return context.Value == global::InvoiceModel.Common.Status.Open && context.Artifact.Status == context.Value;");
         var result = await Evaluate(source, member, SemanticImplementationRole.RulePredicate);
 
         Assert.Equal(valid ? "satisfied" : "unsatisfied", result.Outcome);
@@ -50,7 +50,7 @@ public class when_executing_enum_validations : Specification
     async Task<BodyEvaluation> Evaluate(string source, string member, SemanticImplementationRole role)
     {
         using var fixture = new a_real_worker();
-        var path = Path.Combine(fixture.CacheDirectory, "Model.play");
+        var path = Path.Combine(fixture.CacheDirectory, "InvoiceModel.play");
         await File.WriteAllTextAsync(path, source);
         await using var worker = fixture.Create();
         var unit = Assert.Single((await worker.CompileAsync(path)).Entries);

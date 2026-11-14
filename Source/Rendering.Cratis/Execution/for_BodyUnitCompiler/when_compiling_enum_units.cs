@@ -30,9 +30,9 @@ public class when_compiling_enum_units : Specification
     {
         var source = role switch
         {
-            SemanticImplementationRole.RulePredicate => an_enum_validation_model.Command("return context.Value == Status.Open;"),
-            SemanticImplementationRole.CommandValidation => an_enum_validation_model.Command("if (context.Artifact.Status != Status.Open) yield return \"Closed\";", iterator: true),
-            _ => an_enum_validation_model.Enumeration + validation_body_model.IteratorConcept("yield break;")
+            SemanticImplementationRole.RulePredicate => an_enum_validation_model.Command("return context.Value == global::InvoiceModel.Common.Status.Open;"),
+            SemanticImplementationRole.CommandValidation => an_enum_validation_model.Command("if (context.Artifact.Status != global::InvoiceModel.Common.Status.Open) yield return \"Closed\";", iterator: true),
+            _ => an_enum_validation_model.Enumeration + validation_body_model.IteratorConcept("if (context.Value <= 0) yield return \"Positive amount required\";")
         };
         var loaded = validation_body_model.Load(source);
         var unit = Assert.Single(BodyUnitCompiler.Compile(loaded, _cache).Entries);

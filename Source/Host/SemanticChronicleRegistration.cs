@@ -9,6 +9,7 @@ using Cratis.Chronicle.Contracts.Queries;
 using Cratis.Chronicle.EventSequences;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Contracts.Semantics;
 using Cratis.Stage.Runtime;
 using Cratis.Stage.Semantics;
 using ChronicleEvents = Cratis.Chronicle.Contracts.Events;
@@ -51,15 +52,20 @@ internal static class SemanticChronicleRegistration
     /// <param name="seeds">The events the model's seed blocks start the application with.</param>
     /// <param name="graphSinks">The named sink each graph that chooses one stores to, by graph name; omitted, every graph stores to the kernel's default graph sink.</param>
     /// <returns>The world the log holds, seeds included.</returns>
-    internal static async Task<SemanticWorld> Register(IChronicleClient client, string name, SemanticReplayPlan replay, SemanticSeedPlan seeds, IReadOnlyDictionary<string, string>? graphSinks = null)
+    /// <param name="notes">Where the warnings about event types a restart will refuse are added; omitted, they are dropped.</param>
+    internal static async Task<SemanticWorld> Register(IChronicleClient client, string name, SemanticReplayPlan replay, SemanticSeedPlan seeds, IReadOnlyDictionary<string, string>? graphSinks = null, List<SemanticModelLoadDiagnostic>? notes = null)
     {
         var plan = replay.Plan;
         var store = await client.GetEventStore(name);
         await store.Connection.Connect();
         var accessor = (IChronicleServicesAccessor)store.Connection;
+
+        // The shape each event type is registered with follows what the kernel already holds for it, decided once so a reconnect re-registers the same shapes.
+        var known = await SemanticStoredSchemas.Read(accessor, name, plan);
+        notes?.AddRange(SemanticStoredSchemas.Warnings(plan, known));
         var registrations = plan.Events.Values.Select(@event =>
         {
-            var schema = SemanticSchemas.Schema(@event.Properties, plan.Model.Application);
+            var schema = SemanticStoredSchemas.Schema(@event, plan.Model.Application, known[SemanticStoredEventNames.Of(@event)]);
             return new ChronicleEvents.EventTypeRegistration
             {
                 Type = new ChronicleEvents.EventType { Id = SemanticStoredEventNames.Of(@event), Generation = 1 },
@@ -93,6 +99,9 @@ internal static class SemanticChronicleRegistration
         // Only register contracts on reconnect: the published semantic world must not be rebuilt or replaced.
         store.Connection.Lifecycle.OnConnected += RegisterContracts;
         await RegisterContracts();
+
+        // Never trust what was sent: a restart reads decimals back exactly only from what the kernel now holds.
+        var exactDecimals = SemanticStoredSchemas.ExactDecimals(await SemanticStoredSchemas.Read(accessor, name, plan));
         var tail = await Tail();
         if (!seeds.IsEmpty)
         {
@@ -109,7 +118,7 @@ internal static class SemanticChronicleRegistration
             }
         }
 
-        return IsEmpty(tail) ? SemanticWorld.Empty : await Rebuild(accessor, store.Name, replay, tail);
+        return IsEmpty(tail) ? SemanticWorld.Empty : await Rebuild(accessor, store.Name, replay, tail, new SemanticStorageEvidence(exactDecimals, seeds));
 
         async Task<ulong> Tail() => (await accessor.Services.Sequences.TailSequenceNumber(new ChronicleSequences.TailSequenceNumberRequest
         {
@@ -160,7 +169,7 @@ internal static class SemanticChronicleRegistration
     internal static Task<SemanticWorld> Rebuild(IChronicleServicesAccessor accessor, string name, SemanticExecutionPlan plan, ulong tail) =>
         Rebuild(accessor, name, new SemanticReplayPlan(plan), tail);
 
-    internal static async Task<SemanticWorld> Rebuild(IChronicleServicesAccessor accessor, string name, SemanticReplayPlan replay, ulong tail)
+    internal static async Task<SemanticWorld> Rebuild(IChronicleServicesAccessor accessor, string name, SemanticReplayPlan replay, ulong tail, SemanticStorageEvidence? evidence = null)
     {
         var events = (await accessor.Services.Sequences.FromSequenceNumber(new ChronicleSequences.FromSequenceNumberRequest
         {
@@ -180,7 +189,7 @@ internal static class SemanticChronicleRegistration
             throw new SemanticWorldRebuildRefused("The Chronicle event-log tail changed during world reconstruction.");
         }
 
-        return SemanticWorldRebuilder.Create(replay, events, tail);
+        return SemanticWorldRebuilder.Create(replay, events, tail, evidence: evidence);
     }
 
     // Each event source is seeded once: a source that already has events keeps them, so a restart (or a second Play over the same store) never doubles the starting data.

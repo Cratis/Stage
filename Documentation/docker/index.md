@@ -536,8 +536,13 @@ the rebuild to finish, see [Wait for the session to settle](#wait-for-the-sessio
 Commands retain their slice-qualified `/api/…` route and legacy alias. The semantic engine also exposes one
 query by its modeled name. Compatibility `Get…ById` and `All…` queries are available only for read models with at least one keyed query and no authorization on any keyed query targeting that read model. Otherwise, the compatibility routes are not mapped, so callers cannot bypass a modeled query policy.
 Unknown or revised events, schema mismatches and unverified historical constraint claims cause
-`Unsupported(World)` with a specific issue rather than a partial world. A logged event contract with a DateTime or DecimalNumber property also refuses because Chronicle
-storage does not preserve these values exactly. Null optional event values, non-text destination IDs,
+`Unsupported(World)` with a specific issue rather than a partial world. A logged event contract with a DateTime property also refuses because Chronicle
+storage does not preserve these values exactly (this is a known limitation; the startup warning `STAGE-ESM-080` names the event). A decimal property restarts exactly when the
+event type's stored schema carries Chronicle's exact `decimal` format on every number: Stage registers a new event type that way, and reads the stored schema back
+after registration to decide. An event type that was first registered by an earlier Stage, or by another store, keeps its stored shape (the kernel refuses to change it), so a
+restart over such a log refuses the decimal with a clear message, and startup warns with `STAGE-ESM-079`; use a new event type to get exact decimals. Stored seed events whose
+schema is not exact are accepted only when the model's seed still equals them exactly. When two Stage instances register the same new event type at the same time, the
+first registration wins and decides the shape; the kernel offers no atomic registration. The read-model sink narrowing is unchanged. Null optional event values, non-text destination IDs,
 changed `causedBy.name` for the same subject, and duplicate tags can also fail the exact-history check.
 Origin verification compares modeled tags and mapped `$context` values; it does not independently
 verify literal mappings, production conditions, or that a destination matches a mapped event property.

@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Cratis.Stage.Host.for_SemanticWorldRebuilder.when_rebuilding;
 
-public class with_a_stored_decimal : a_stored_typed_event
+public class with_a_decimal_stored_without_decimal_format : a_stored_typed_event
 {
     Exception? _error;
 
@@ -17,7 +17,7 @@ public class with_a_stored_decimal : a_stored_typed_event
         _stored.Context.CausedBy = new() { Subject = "caller", Name = SemanticChronicleRegistration.SeedSubject, UserName = SemanticChronicleRegistration.SeedSubject };
     }
 
-    void Because() => _error = Catch.Exception(() => SemanticWorldRebuilder.Create(_typedPlan, [_stored], 0));
+    void Because() => _error = Catch.Exception(() => SemanticWorldRebuilder.Create(_typedPlan, [_stored], 0, evidence: Evidence));
 
     [Fact] void should_convert_through_chronicles_number_schema() => _converted.ShouldBeOfExactType<double>();
     [Fact] void should_refuse_the_non_exact_event_property() => _error.ShouldBeOfExactType<SemanticWorldRebuildRefused>();

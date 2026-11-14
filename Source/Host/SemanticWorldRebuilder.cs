@@ -15,10 +15,20 @@ namespace Cratis.Stage.Host;
 
 internal static class SemanticWorldRebuilder
 {
-    internal static SemanticWorld Create(SemanticExecutionPlan plan, IEnumerable<AppendedEventResponse> events, ulong tail, bool exact = true) =>
-        Create(new SemanticReplayPlan(plan), events, tail, exact);
+    internal static SemanticWorld Create(SemanticExecutionPlan plan, IEnumerable<AppendedEventResponse> events, ulong tail, bool exact = true, SemanticStorageEvidence? evidence = null) =>
+        Create(new SemanticReplayPlan(plan), events, tail, exact, evidence);
 
-    internal static SemanticWorld Create(SemanticReplayPlan replay, IEnumerable<AppendedEventResponse> events, ulong tail, bool exact = true)
+    /// <summary>
+    /// Rebuilds the world a stored history holds.
+    /// </summary>
+    /// <param name="replay">The execution plan and the body execution reducer transitions replay through, if any.</param>
+    /// <param name="events">The stored events.</param>
+    /// <param name="tail">The tail sequence number the history must end at.</param>
+    /// <param name="exact">Whether the events were read back through storage; events the host holds in memory skip the storage checks.</param>
+    /// <param name="evidence">What is known about how exactly storage kept decimals; omitted, none is.</param>
+    /// <returns>The world.</returns>
+    /// <exception cref="SemanticWorldRebuildRefused">The history cannot be read completely or is not a valid semantic world.</exception>
+    internal static SemanticWorld Create(SemanticReplayPlan replay, IEnumerable<AppendedEventResponse> events, ulong tail, bool exact = true, SemanticStorageEvidence? evidence = null)
     {
         var (plan, bodies) = replay;
         var history = events.OrderBy(@event => @event.Context.SequenceNumber).ToArray();
@@ -29,7 +39,9 @@ internal static class SemanticWorldRebuilder
             throw new SemanticWorldRebuildRefused($"The event log cannot be read completely through tail {tail}.");
         }
 
-        var facts = history.Select(@event => Fact(plan, @event, exact)).ToImmutableArray();
+        var ordinals = SeedOrdinals(history);
+        evidence ??= SemanticStorageEvidence.None;
+        var facts = history.Select(@event => Fact(plan, @event, exact, evidence with { Ordinal = ordinals.GetValueOrDefault(@event.Context.SequenceNumber) })).ToImmutableArray();
         SemanticRebuildConstraints.Check(plan, facts);
         try
         {
@@ -57,14 +69,17 @@ internal static class SemanticWorldRebuilder
     /// <param name="exact">
     /// Whether the event must be the exact storage form of a modeled production - what a restart verifies. Events the host has just appended
     /// itself, from memory, are not read back through storage, so they need not round-trip it (a decimal or a date time) nor name a producer.
-    /// Stored seed events use the same non-exact checks as seed admission, identified by their causation subject.
+    /// Stored seed events skip the production checks, identified by their causation subject, but are read back through storage like any other event.
     /// </param>
+    /// <param name="evidence">What is known about how exactly storage kept decimals, and which model seed this event stands for; omitted, nothing is.</param>
     /// <returns>The fact.</returns>
     /// <exception cref="SemanticWorldRebuildRefused">The stored event is not one the model can have produced.</exception>
-    internal static SemanticFact Fact(SemanticExecutionPlan plan, AppendedEventResponse stored, bool exact = true)
+    internal static SemanticFact Fact(SemanticExecutionPlan plan, AppendedEventResponse stored, bool exact = true, SemanticStorageEvidence? evidence = null)
     {
         var context = stored.Context;
-        exact = exact && context.CausedBy?.Subject != SemanticChronicleRegistration.SeedSubject;
+        var storageExact = exact;
+        var isSeed = context.CausedBy?.Subject == SemanticChronicleRegistration.SeedSubject;
+        exact = exact && !isSeed;
         if (context.EventType.Generation != 1 || stored.Revisions.Any() ||
             stored.GenerationalContent.Any(entry => entry.Key != 1))
         {
@@ -79,13 +94,8 @@ internal static class SemanticWorldRebuilder
 
         var contract = contracts[0];
         var route = Route(plan, context);
-        if (exact)
-        {
-            foreach (var property in contract.Properties)
-            {
-                EnsureExactStorageType(property.Name, property.Type, plan.Model.Application);
-            }
-        }
+        evidence ??= SemanticStorageEvidence.None;
+        var seedMustMatch = storageExact && EnsureExactStorageTypes(contract, plan.Model.Application, evidence.HasExactDecimals(context.EventType.Id), isSeed);
 
         var producers = Productions(plan, contract.Id).ToArray();
         if (exact && producers.Length == 0 && plan.Projections.Values.Any(projection => projection.Target == SemanticProjectionTargetKind.Event && projection.ReadModel == contract.Id))
@@ -122,6 +132,8 @@ internal static class SemanticWorldRebuilder
 
         using var content = JsonDocument.Parse(stored.Content);
         var values = Values(content.RootElement, contract.Properties, plan.Model.Application);
+        EnsureSeedMatches(seedMustMatch, evidence, contract, context, values);
+
         if (exact && !producers.Any(producer => RouteMatches(plan, producer.Route, route)))
         {
             throw new SemanticWorldRebuildRefused($"Event {context.SequenceNumber} has a route inconsistent with every modeled production of '{contract.Name}'.");
@@ -269,26 +281,56 @@ internal static class SemanticWorldRebuilder
         };
     }
 
-    static void EnsureExactStorageType(string path, SemanticTypeReference type, SemanticApplication application)
+    static void EnsureSeedMatches(bool seedMustMatch, SemanticStorageEvidence evidence, SemanticEventContract contract, Chronicle.Contracts.Sequences.EventContext context, ImmutableArray<SemanticPropertyValue> values)
+    {
+        if (seedMustMatch && !evidence.Matches(contract.Id, context.EventSourceId, values))
+        {
+            throw new SemanticWorldRebuildRefused($"Event {context.SequenceNumber} is a seed whose decimal values Chronicle storage did not keep exactly (its stored schema has no decimal format) and that does not equal the model's seed.");
+        }
+    }
+
+    // A date and time is never read back exactly. A decimal is, when the event type's stored schema carries the exact decimal format on every number;
+    // a stored seed in a type that does not is deferred to the seed match, because the model still holds the value it was seeded with.
+    // Returns whether such a seed decimal must be matched against the model.
+    static bool EnsureExactStorageTypes(SemanticEventContract contract, SemanticApplication application, bool decimalsExact, bool isSeed)
+    {
+        var seedMustMatch = false;
+        foreach (var (path, primitive) in contract.Properties.SelectMany(property => StoragePrimitives(property.Name, property.Type, application)))
+        {
+            var lossyDecimal = primitive == SemanticPrimitiveType.DecimalNumber && !decimalsExact;
+            if (lossyDecimal && isSeed)
+            {
+                seedMustMatch = true;
+            }
+            else if (lossyDecimal || primitive == SemanticPrimitiveType.DateTime)
+            {
+                throw new SemanticWorldRebuildRefused($"Event property '{path}' uses {primitive}, which Chronicle storage cannot round-trip exactly.");
+            }
+        }
+
+        return seedMustMatch;
+    }
+
+    static IEnumerable<(string Path, SemanticPrimitiveType Primitive)> StoragePrimitives(string path, SemanticTypeReference type, SemanticApplication application)
     {
         if (type.Kind == SemanticTypeReferenceKind.CompositeType)
         {
-            foreach (var property in application.Types.Single(candidate => candidate.Id == type.Target).Properties)
-            {
-                EnsureExactStorageType($"{path}.{property.Name}", property.Type, application);
-            }
-
-            return;
+            return application.Types.Single(candidate => candidate.Id == type.Target).Properties
+                .SelectMany(property => StoragePrimitives($"{path}.{property.Name}", property.Type, application));
         }
 
         var primitive = type.Kind == SemanticTypeReferenceKind.Concept
             ? application.Concepts.Single(candidate => candidate.Id == type.Target).Primitive
             : type.Primitive;
-        if (primitive is SemanticPrimitiveType.DateTime or SemanticPrimitiveType.DecimalNumber)
-        {
-            throw new SemanticWorldRebuildRefused($"Event property '{path}' uses {primitive}, which Chronicle storage cannot round-trip exactly.");
-        }
+        return primitive is SemanticPrimitiveType.DateTime or SemanticPrimitiveType.DecimalNumber ? [(path, primitive)] : [];
     }
+
+    // The position of each stored seed event among the seed events stored for the same event source and event type.
+    static Dictionary<ulong, int> SeedOrdinals(AppendedEventResponse[] history) =>
+        history.Where(@event => @event.Context.CausedBy?.Subject == SemanticChronicleRegistration.SeedSubject)
+            .GroupBy(@event => (@event.Context.EventSourceId, @event.Context.EventType.Id))
+            .SelectMany(group => group.Select((@event, ordinal) => (@event.Context.SequenceNumber, ordinal)))
+            .ToDictionary(entry => entry.SequenceNumber, entry => entry.ordinal);
 
     static bool ProductionMatches(
         SemanticProducedEvent produced,

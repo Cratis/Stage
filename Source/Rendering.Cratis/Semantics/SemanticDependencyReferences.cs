@@ -124,10 +124,12 @@ internal static class SemanticDependencyReferences
         """,
         [SemanticDependencyKind.Query] = """
         SemanticKeyedQuery:Argument ReadModel KeyProperty Authorization Filters KeyParts
-        SemanticGraphQuery:ReadModel Arguments Conditions Returns Authorization
+        SemanticGraphQuery:ReadModel Arguments Conditions Returns Authorization Collects
         SemanticGraphQueryArgument:Type
         SemanticGraphCondition:Literal
         SemanticGraphReturn:Property
+        SemanticGraphCollect:Property Row Members
+        SemanticGraphCollectMember:Property
         SemanticQueryKeyPart:Type KeyProperty
         SemanticQueryFilter:Type Property
         SemanticQueryFilterValue:Filter Value

@@ -92,7 +92,7 @@ internal static partial class SemanticCratisAdmission
 
             if (HasUnsupportedNamedValueRule(rule, property.Type, concept))
             {
-                diagnostics.Add(CommandCapability(command, $"validation '{label}' on property '{property.Name}' uses concept '{concept.Name}' with named values; only scalar equality and inequality against a declared member are supported. Collection rules, 'not empty', ordering, and other predicates remain unsupported (Cratis/Stage#420)."));
+                diagnostics.Add(CommandCapability(command, $"validation '{label}' on property '{property.Name}' uses concept '{concept.Name}' with named values; only scalar equality and inequality against a declared member are supported. Collection rules, 'not empty', ordering, and other predicates remain unsupported (Cratis/Stage#962)."));
             }
         }
     }
@@ -209,7 +209,7 @@ internal static partial class SemanticCratisAdmission
         var referenced = RequirementProperties(condition, command, context);
         var hasNamedValues = command.Properties.Any(property => IsNamedValueRequirementProperty(property, referenced, context));
         return hasNamedValues
-            ? "named-value conditions support only equality and inequality over required scalar properties, against a declared member or a property of the same concept. Optional operands, collections, different concepts, and ordering remain unsupported (Cratis/Stage#420)."
+            ? "named-value conditions support only equality and inequality over required scalar properties, against a declared member or a property of the same concept. Optional operands, collections, different concepts, and ordering remain unsupported (Cratis/Stage#962)."
             : "the condition has no faithful generated guard. Use supported comparisons over non-optional scalar command properties without named concept values, or keep this shape unsupported (Cratis/Stage#409).";
     }
 

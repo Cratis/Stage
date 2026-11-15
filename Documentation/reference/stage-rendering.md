@@ -107,7 +107,7 @@ carries only the first projection. Existing converter overloads keep their throw
 `InvalidEventModel` from `SliceConverter`, preserving its message.
 Other legacy engine admission checks still apply to both visitor entry points.
 
-`ScreenplaySceneVisitor.Convert` records arrangement conversion diagnostics in
+`StageSceneConversion.Convert` (the bridge's `ScreenplaySceneVisitor.Convert`, with the design system added) records arrangement conversion diagnostics in
 `SceneApplication.ConversionDiagnostics`. The existing `Visit` entry point uses the original throwing path,
 stopping at the first invalid arrangement with `UnknownArrangementNode`, `UnknownArrangementContainerKind`,
 `UnknownSizeClassName` or `FormatException` as appropriate. Unsupported nodes and containers lose
@@ -1018,12 +1018,45 @@ ui profile Web
   then the bare shell. Nothing in the Stage re-implements the order.
 * `option navigationMode` (`static`, `overlay`, `slim`, `slim-plus`, `compact`, `horizontal`, `reveal`, `drawer`), `option menuTheme`, `option showFooter` and `option showThemeSwitcher` (both flags, default `true`) are applied to the shell. The theme switcher is also left out when `color scheme` is `light` or `dark`, because the scheme is then pinned and there is nothing to switch, and when the blueprint offers only one theme. `option showFooter false` leaves out the footer, whose default text is the application's name; an option or
   value the shell does not understand is reported, never silently dropped.
-* `color scheme` (`light`, `dark`, `system`) selects the dark or light theme (a `system` scheme follows the operating system), and `accent`
-  becomes the theme's primary colour.
+* `color scheme` (`light`, `dark`, `system`) selects the dark or light mode of the design (a `system` scheme follows the operating system), and `accent`
+  replaces the theme's primary colour (see [Design system](#design-system)).
 * A root template the application cannot start with - unknown, blueprint not installed, version pin not satisfied, no `content` outlet - is
   a **build-time finding** when planning (`cratis render`, the render plan) and, in a running Stage, an explicit start-up message that names
   the cause. The Stage never falls back to a different shell, and never shows a blank page.
 * The runtime scene carries `root`, `appearance` and `defaults` and, as always, no sample data (see below).
+
+### Design system
+
+A model that declares a `design system` and the `theme` that implements it reaches the rendered application, live and generated, through one path.
+
+- **Where it is resolved.** Scene's Screenplay bridge (`Cratis.Scene.Screenplay`, `DesignSystemConverter`) resolves the design system: its tokens, the parts of
+  each component and, per theme and mode, the value of every token and component part. Stage's `StageSceneConversion` puts the result on
+  `UiProfile.DesignSystem` of every ui profile that draws from it - a profile that selects no theme, or selects one the design system declares. Every
+  conversion entry point (the live Stage, `cratis render` and the generated application's Scene) goes through `StageSceneConversion`, so none of them can
+  disagree about what the model says.
+- **How it is drawn.** The runtime resolves the design with Scene's `resolveDesign`, the function Studio's preview shares, for the theme the profile selects in the
+  mode the colour scheme selects, and writes it onto the application's root as the `--ds-*` custom properties the components read their look from
+  (`SceneThemeProvider`). Switching between the light and dark mode re-resolves in place. A profile with no design system is drawn from the default one
+  that the default blueprint ships, so an application that declares none looks as it always did.
+- **Accent, corners and font.** The profile's `appearance` replaces the token roles the design system binds them to (`appearance` of the design system;
+  the default design system binds the accent to `color.primary`). The accent is no longer carried as a hand-set `--scene-primary-color`: a model can drop
+  the deprecated `accent` and set `color.primary` in its theme without changing how the application looks (Cratis/Stage#1081).
+- **A theme that cannot give a value.** A token role a theme leaves out in a mode, or a component part that refers to such a token, is reported by the plan
+  as `DesignSystemUnresolved` (naming the design system, theme and mode) rather than drawn from nothing.
+
+### Free screens
+
+A screen declared outside a slice (at the application, in a module or in a feature, `screen InvoiceList` with `data Invoice[]` needs) and adopted by a slice
+(`uses screen InvoiceList` with `data Invoice via query ListInvoices`) is admitted from ESM v56 and rendered as one Scene screen:
+
+- The need becomes a `core:data` element bound to the query the adopting slice provides, with the field mapping it states. A screen several slices adopt is
+  owned by the first, and lists every adoption.
+- A partial render of the adopting slice carries the screen in that slice's `Screens.scene.json`; a render of slices that do not adopt it leaves it out.
+- An adopted screen with a need nobody provides is refused by Screenplay's executable screen admission with a reason naming the screen and the shape; Stage renders
+  nothing for it. A free screen no slice adopts is design-only: it never reaches the model Stage renders and is not part of the Scene.
+- The backend target renders no part of a free screen, and an adoption changes no command, query or event, so the audit ledger classifies the new members as
+  ignored. A specification that states event tags (`ExpectedTags`, ESM v55) is still refused with `STAGE-ESM-016` until direct and generated specifications enforce
+  them ([Cratis/Stage#944](https://github.com/Cratis/Stage/issues/944)).
 
 ### Default labels and values
 

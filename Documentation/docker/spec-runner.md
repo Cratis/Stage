@@ -101,8 +101,8 @@ unsupported capability. Rendered Chronicle reactors run eventually and retry fai
 Structural refusals exit `1` without writing results; semantic runs record `Unsupported`, never a passing
 specification.
 
-The semantic executor uses Screenplay 5.7.0. That package version is separate from the compiled model's ESM version. The executor accepts the renderer's audited language/semantic version pairs,
-including v31–v34, v36 and v38, plus matching newer pairs within the declared range (`>=32.0 <33`). Mixed or
+The semantic executor uses the Screenplay package Stage pins. That package version is separate from the compiled model's ESM version. The executor accepts the audited language/semantic version pairs
+and the matching newer pairs within the declared range listed in [ESM versions and features](../reference/esm-feature-matrix.md#audited-esm-pairs). Mixed or
 noncanonical pairs are not admitted. A pair that is neither audited nor within the accepted range is refused
 with `STAGE-ESM-016`, naming the range.
 
@@ -145,7 +145,7 @@ exactly `*`, containing `#`, and leading- or trailing-whitespace keys reject bef
 instance is stored at that key. These refused keys and absent views reject validation before all requirements and
 generation, with `<View> '<key>' does not exist.`, preserving the supplied key text. This refused-key check is specific
 to protected reads; command identifiers keep their existing behavior. The Host delegates to the pinned
-Screenplay 5.7.0 evaluator with the same refused-key checks. Read-backed requirements and
+Screenplay evaluator with the same refused-key checks. Read-backed requirements and
 produced-event mappings use that projected state. Non-Error requirements on protected commands remain
 `Unsupported` with `STAGE-ESM-045` until Screenplay defines their severity semantics. This admission check includes
 commands reachable through reaction invocations, even in specifications expecting rejection, and runs before any facts are appended.
@@ -204,8 +204,8 @@ Ran 3 specification(s) for event model 'Invoicing'. Results written to /output/r
 
 ## A specification runs its own slice only
 
-A specification states what its own slice does, so the executor isolates the run to that slice, as Screenplay 4.246.0
-and later do:
+A specification states what its own slice does, so the executor isolates the run to that slice, as Screenplay
+does:
 
 - Other slices' reactions do not run, whether an event, clock advance or trigger would select them. Only an explicit
   `when redelivered ... to <Reaction>` still delivers to the named reaction.
@@ -321,6 +321,7 @@ selecting an engine or overriding a path. The other arguments are optional:
 | `--scope <semantic-id>[,<semantic-id>...]` | — | Select application, module, feature, slice or specification identities; repeatable (semantic engine only). |
 | `--catalog <file>` | — | Use an authoritative semantic identity catalog (semantic engine only). |
 | `--application <name>` | Input folder/file name | Preserve the application name across input layouts (semantic engine only). |
+| `--body-worker-path <file>` and the other `--body-worker-*` arguments | — | Run implementation bodies in an isolated worker (semantic engine only). `--body-worker-profile-version` is `3` or `4` and defaults to `3`. The arguments are listed under [run specifications in a semantic session](index.md#run-specifications-in-a-semantic-session). |
 
 Override either default by passing arguments after the image name. To compile just one file, mount only that
 file read-only; no host parent-folder mount is needed:
@@ -342,8 +343,8 @@ requires both `--model` and `--output`; the defaults above are supplied by the c
 | Code | Meaning |
 |---|---|
 | `0` | The run completed and `results.json` was written. **A failing specification is still a completed run** — read the outcomes from the file. Semantic runs execute event-source routes; structural runs refuse them. |
-| `1` | The input path is missing, the file extension is unsupported, the folder is empty, model compilation fails, or a structural run refuses event-source routes (`STAGE-ESM-030`), public events (`STAGE-ESM-032`), foreign events or source-events captures (`STAGE-ESM-033`), directed Translate slices (`STAGE-ESM-024`), any reaction execution identity (`STAGE-ESM-034`, unchanged by renderer admission), or observer filters (`STAGE-ESM-035`, unchanged by semantic renderer support). Semantic runs refuse a production route override on an unkeyed stream under a keyed command route, or with the literal stream id `Default`, with `STAGE-ESM-036` in their report; neither shape is admitted yet. An actionable error is written to standard error; no results file is written. |
-| `2` | A required argument (`--model` or `--output`) was missing. A usage line is written to standard error. |
+| `1` | The input path is missing, the file extension is unsupported, the folder is empty, model compilation fails, or a structural run refuses event-source routes (`STAGE-ESM-030`), public events (`STAGE-ESM-032`), foreign events or source-events captures (`STAGE-ESM-033`), directed Translate slices (`STAGE-ESM-024`), any reaction execution identity (`STAGE-ESM-034`, unchanged by renderer admission), or observer filters (`STAGE-ESM-035`, unchanged by semantic renderer support). Semantic runs refuse a production route override on an unkeyed stream under a keyed command route, or with the literal stream id `Default`, with `STAGE-ESM-036` in their report; neither shape is admitted yet. Other structural refusals, such as an unsupported generation strategy or validation rule, also exit `1`. A semantic run exits `1` when the model or its contract is invalid, when reading the input or writing the report fails (an I/O, access or JSON error), or when a `--body-worker-*` value is invalid. An actionable error is written to standard error; no results file is written. |
+| `2` | The arguments were rejected before anything ran: a required argument (`--model` or `--output`) was missing (a usage line is written to standard error), `--engine` names an unknown engine, `--slice` or `--spec` was combined with `--engine semantic`, a `--specification` or `--scope` value is not a valid semantic identity, or `--body-worker-profile-version` is not `3` or `4`. |
 
 Input failures do not write results or delete or overwrite an existing output file. Compiler errors identify the
 source path and position, ordered by path, line and column. Folder diagnostics use relative source paths.

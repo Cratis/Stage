@@ -112,14 +112,165 @@ def published(package, version=None):
     return resolved
 
 
-def candidate(manifest, arc, lookup=published):
+def releases(package, floor):
+    # Every stable release from the current pin upward, newest first, with its declared peer ranges.
+    result = run(["npm", "view", f"{package}@>={floor}", "version", "peerDependencies", "--json",
+                  "--fetch-retries=0", "--fetch-timeout=15000"], capture_output=True)
+    value = json.loads(result.stdout or "[]")
+    found = dict(filter(None, map(release, value if isinstance(value, list) else [value])))
+    return sorted(found.items(), key=lambda item: semver(item[0]), reverse=True)
+
+
+def release(entry):
+    # npm lists bare version strings when no matching release declares peers.
+    entry = {"version": entry} if isinstance(entry, str) else entry
+    version = entry.get("version") if isinstance(entry, dict) else None
+    if not isinstance(version, str) or not STABLE.fullmatch(version):
+        return None
+    return version, dict(entry.get("peerDependencies") or {})
+
+
+def semver(version):
+    return tuple(int(part) for part in stable(version).split("."))
+
+
+PARTIAL = re.compile(r"v?((?:0|[1-9][0-9]*|[xX*])(?:\.(?:0|[1-9][0-9]*|[xX*])){0,2})\Z")
+COMPARATOR = re.compile(r"(<=|>=|<|>|=|\^|~)?\s*([^\s<>=^~]+)")
+
+
+def partial(text):
+    match = PARTIAL.fullmatch(text)
+    if not match:
+        raise ValueError(f"Unsupported version in peer range: {text!r}")
+    parts = []
+    for part in match[1].split("."):
+        if part in "xX*":
+            break
+        parts.append(int(part))
+    return parts
+
+
+def bump(parts, index):
+    return tuple(parts[:index]) + (parts[index] + 1,) + (0,) * (2 - index)
+
+
+def comparators(operator, text):
+    # Translate one npm comparator into (operator, exact version) bounds; partial versions are x-ranges.
+    parts = partial(text)
+    if not parts:
+        return [] if operator in (None, "=", ">=", "^", "~") else [("<", (0, 0, 0))]
+    low = tuple(parts + [0] * (3 - len(parts)))
+    last = len(parts) - 1
+    if operator in (None, "="):
+        return [("=", low)] if len(parts) == 3 else [(">=", low), ("<", bump(parts, last))]
+    if operator == "^":
+        return [(">=", low), ("<", bump(parts, next((index for index, part in enumerate(parts) if part), last)))]
+    if operator == "~":
+        return [(">=", low), ("<", bump(parts, min(1, last)))]
+    return comparison(operator, parts, low)
+
+
+def comparison(operator, parts, low):
+    # A partial version widens > and <= to the next release of its last given part.
+    if len(parts) == 3 or operator in (">=", "<"):
+        return [(operator, low)]
+    return [(">=" if operator == ">" else "<", bump(parts, len(parts) - 1))]
+
+
+CHECKS = {"=": lambda a, b: a == b, ">=": lambda a, b: a >= b, ">": lambda a, b: a > b,
+          "<=": lambda a, b: a <= b, "<": lambda a, b: a < b}
+
+
+def satisfies(version, peer_range):
+    """Evaluate an npm peer range for an exact stable version; unsupported syntax fails closed."""
+    target = semver(version)
+    return any(all(CHECKS[operator](target, bound) for operator, bound in range_bounds(alternative))
+               for alternative in peer_range.split("||"))
+
+
+def range_bounds(alternative):
+    hyphen = re.fullmatch(r"\s*(\S+)\s+-\s+(\S+)\s*", alternative)
+    if hyphen:
+        return comparators(">=", hyphen[1]) + ceiling(partial(hyphen[2]))
+    tokens = COMPARATOR.findall(alternative.strip())
+    return [bound for operator, text in tokens for bound in comparators(operator or None, text)]
+
+
+def ceiling(upper):
+    # The upper end of a hyphen range is inclusive when exact and an x-range when partial.
+    if not upper:
+        return []
+    return [("<=", tuple(upper))] if len(upper) == 3 else [("<", bump(upper, len(upper) - 1))]
+
+
+def family(name):
+    # Scene packages ship as one version family; every other non-Arc package is selected on its own.
+    return "@cratis/scene.*" if name.startswith("@cratis/scene.") else name
+
+
+def family_releases(names, pins, lookup, history):
+    # Releases every member publishes, between the current pin and the registry's latest, newest first.
+    shared = None
+    for name in names:
+        latest = semver(lookup(name))
+        offered = {version: list(peers.items()) for version, peers in history(name, pins[name]) if semver(version) <= latest}
+        shared = offered if shared is None else {version: shared[version] + offered[version]
+                                                   for version in shared.keys() & offered.keys()}
+    if not shared:
+        raise ValueError(f"{', '.join(names)}: no shared release between the current pin and the latest")
+    return sorted(shared.items(), key=lambda item: semver(item[0]), reverse=True)
+
+
+def unmet(peers, selection):
+    return next(((peer, peer_range) for peer, peer_range in peers
+                 if peer in selection and not satisfies(selection[peer], peer_range)), None)
+
+
+def hold_back(families, selection):
+    """Choose the newest release of every family whose Cratis peer ranges accept the whole selection.
+
+    The Arc family is fixed by the central NuGet pin and is never held back. A family whose peers reject
+    the selection moves to its next older release, down to the current pin; if none fits, there is no
+    supported update and the run stops before npm instead of failing in lockfile generation.
+    """
+    choice = dict.fromkeys(families, 0)
+    while True:
+        chosen = {**selection, **{name: families[key][1][choice[key]][0] for key in families for name in families[key][0]}}
+        conflict = next(((key, problem) for key in families if (problem := unmet(families[key][1][choice[key]][1], chosen))), None)
+        if conflict is None:
+            return chosen
+        key, problem = conflict
+        choice[key] += 1
+        if choice[key] == len(families[key][1]):
+            raise no_compatible_update(*families[key], problem, chosen)
+
+
+def no_compatible_update(names, options, problem, chosen):
+    peer, peer_range = problem
+    return ValueError(f"No compatible update for {', '.join(names)}: every release from {options[-1][0]} to "
+                      f"{options[0][0]} rejects the selected {peer} {chosen[peer]} (oldest needs {peer} {peer_range}); "
+                      "a compatible upstream release is required before this update can land")
+
+
+def is_arc(name):
+    return name == "@cratis/arc" or name.startswith("@cratis/arc.")
+
+
+def selectable(pins, fixed, lookup, history):
+    members = {}
+    for name in sorted(pins.keys() - fixed.keys()):
+        members.setdefault(family(name), []).append(name)
+    return {key: (names, family_releases(names, pins, lookup, history)) for key, names in members.items()}
+
+
+def candidate(manifest, arc, lookup=published, history=releases):
     # Work on an independent document; resolve every candidate before writing anything.
     updated = json.loads(json.dumps(manifest))
-    for name in cratis_pins(manifest):
-        version = lookup(name, arc) if name == "@cratis/arc" or name.startswith("@cratis/arc.") else lookup(name)
-        for section in ("dependencies", "devDependencies"):
-            if name in updated.get(section, {}):
-                updated[section][name] = stable(version)
+    pins = cratis_pins(manifest)
+    selection = {name: lookup(name, arc) for name in pins if is_arc(name)}
+    for name, version in hold_back(selectable(pins, selection, lookup, history), selection).items():
+        for section in (section for section in ("dependencies", "devDependencies") if name in updated.get(section, {})):
+            updated[section][name] = stable(version)
     validate(updated, arc)
     if "@cratis/arc.vite" not in cratis_pins(updated) and lookup("@cratis/arc.vite", arc) != arc:
         raise ValueError(f"@cratis/arc.vite: emitted version {arc} is not published")
@@ -249,10 +400,55 @@ class RenderedPinSynchronization(unittest.TestCase):
     def test_repairs_drift_using_exact_arc_release(self):
         self.manifest["dependencies"]["@cratis/arc"] = "0.0.1"
         lookup = Mock(side_effect=lambda name, version=None: version or cratis_pins(self.manifest)[name])
-        result = candidate(self.manifest, self.arc, lookup)
+        result = candidate(self.manifest, self.arc, lookup, self.history())
         self.assertEqual(validate(result, self.arc)["@cratis/arc"], self.arc)
         self.assertEqual(self.manifest["dependencies"]["@cratis/arc"], "0.0.1")
         self.assertIn(unittest.mock.call("@cratis/arc.react", self.arc), lookup.call_args_list)
+
+    def history(self, extra=None):
+        # Offline registry: planted releases, plus the current pin without peers unless a planted release replaces it.
+        def offered(name, floor):
+            planted = (extra or {}).get(name, [])
+            return planted if floor in dict(planted) else [*planted, (floor, {})]
+        return offered
+
+    def plant_notes(self, releases):
+        # A newly published package release that still declares an Arc peer range the selected Arc rejects.
+        names = ("@cratis/showrunner.notes", "@cratis/showrunner.notes.react")
+        for name in names:
+            self.manifest["dependencies"][name] = "1.0.0"
+        latest = releases[0][0]
+        lookup = lambda name, version=None: version or (latest if name in names else cratis_pins(self.manifest)[name])
+        return lookup, self.history(dict.fromkeys(names, releases))
+
+    def test_holds_back_a_release_whose_arc_peer_rejects_the_selected_arc(self):
+        major = semver(self.arc)[0]
+        lookup, history = self.plant_notes([("2.13.0", {"@cratis/arc": f"^{major - 1}.185.1"}),
+                                            ("2.0.0", {"@cratis/arc": f">={major - 1}.0.0 <{major + 1}"})])
+        result = validate(candidate(self.manifest, self.arc, lookup, history), self.arc)
+        self.assertEqual(result["@cratis/showrunner.notes"], "2.0.0")
+        self.assertEqual(result["@cratis/arc"], self.arc)
+
+    def test_reports_no_compatible_update_before_npm(self):
+        major = semver(self.arc)[0]
+        old = {"@cratis/arc": f"^{major - 1}.155.0"}
+        lookup, history = self.plant_notes([("2.13.0", {"@cratis/arc": f"^{major - 1}.185.1"}), ("1.0.0", old)])
+        with self.assertRaisesRegex(ValueError, r"No compatible update for @cratis/showrunner\.notes.*@cratis/arc " + re.escape(self.arc)):
+            candidate(self.manifest, self.arc, lookup, history)
+
+    def test_peer_ranges_follow_npm_semantics(self):
+        accepted = {"22.185.1": ["^22.185.1", ">=20.3.1 <24", "22.x", "~22.185.0", "21 - 22", "^21 || ^22", "*", ""],
+                    "23.8.0": [">=20.3.1 <24", ">22", "^23.0", "<=23", "23.8.0", "=23.8.0", "22.0.0 - 23.8.0"],
+                    "0.2.5": ["^0.2.1", "~0.2", "^0"]}
+        rejected = {"23.8.0": ["^22.185.1", "^22.155.0", "~23.7.0", "<23.8.0", ">23.8.0", "22.x", "21 - 22"],
+                    "0.3.0": ["^0.2.1", "~0.2"], "0.0.4": ["^0.0.3"]}
+        for expected, cases in ((True, accepted), (False, rejected)):
+            for version, ranges in cases.items():
+                for peer_range in ranges:
+                    with self.subTest(version=version, peer_range=peer_range):
+                        self.assertEqual(satisfies(version, peer_range), expected)
+        with self.assertRaises(ValueError):
+            satisfies("23.8.0", ">=23.0.0-beta")
 
     def test_rejects_empty_population_prereleases_and_scene_drift(self):
         for broken in ({}, {"dependencies": {"@cratis/arc": "1.0.0-beta"}}):
@@ -323,7 +519,7 @@ class RenderedPinSynchronization(unittest.TestCase):
     def test_unavailable_registry_does_not_mutate_manifest(self):
         original = json.dumps(self.manifest)
         with self.assertRaises(RuntimeError):
-            candidate(self.manifest, self.arc, Mock(side_effect=RuntimeError("npm unavailable")))
+            candidate(self.manifest, self.arc, Mock(side_effect=RuntimeError("npm unavailable")), self.history())
         self.assertEqual(json.dumps(self.manifest), original)
 
     def test_npm_failure_restores_every_output(self):

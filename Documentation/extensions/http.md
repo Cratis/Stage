@@ -100,8 +100,8 @@ was registered, such as [a connected extension backend](connect-a-backend.md).
 
 ## What is available today
 
-- The built-in is an in-process extension. Packaged extensions, loaded as OCI artifacts, are tracked in
-  [Cratis/Stage#1064](https://github.com/Cratis/Stage/issues/1064); the `http` extension moves to that mechanism without changing the block.
+- The `http` extension is built in and runs in process. Packaged extensions load through the OCI and npm channels described in
+  [extension packages](packages.md); the `http` extension is not shipped as one of those packages.
 - Stage reads the block itself. The Screenplay compiler, Monaco and the VS Code extension validating, highlighting and completing the block through the
   extension's contract is tracked in [Cratis/Screenplay#1253](https://github.com/Cratis/Screenplay/issues/1253), so until then the host
   passes the block text to `HttpBlockParser`.

@@ -7,14 +7,22 @@ Cratis Stage treats a project folder as one application. Use a folder root when 
 files; declarations in those files resolve together. Give separate applications separate roots, because every
 `.play` file beneath a root participates in its application.
 
+To run a project locally, [install the Cratis CLI](/cli/getting-started/#install-it) and meet the
+[`cratis run` prerequisites](/cli/reference/run/#prerequisites): Docker installed and the `docker` command on your
+`PATH`. Then point `cratis run` at the folder or at a single file:
+
 ```bash
-stage ./eventmodel          # the folder, as one application
-stage ./eventmodel/app.play # one file, on its own
+cratis run ./eventmodel          # the folder, as one application
+cratis run ./eventmodel/app.play # one file, on its own
 ```
+
+Without a path, `cratis run` uses the current folder. The CLI mounts only the selected folder or file into the
+Stage container, read-only, and publishes the Stage API on `http://localhost:9090`.
 
 The Host uses the semantic engine by default. Pass `--engine=eventmodel` to the Host executable or set
 `Stage__Runtime__Engine=eventmodel` to keep the deprecated legacy engine. It logs one warning at startup and
-will be removed in Stage v6. The SpecRunner retains `structural` as its default.
+will be removed in Stage v6. With the CLI, pass `--engine eventmodel` to `cratis run`. The SpecRunner retains
+`structural` as its default.
 
 ## What Stage does with the folder
 
@@ -30,7 +38,7 @@ declared once at the root is available to every slice. A policy an `authorize` n
 
 ## File layout carries no meaning
 
-Choose folders to help people find the model: one module per folder, a feature tree or a split by slice all
+Choose folders to help people find the model: one module per folder, a feature tree or a file per slice all
 work. Names resolve through the declared module and feature tree, never through the directory tree. A contribution
 attaches to the nearest enclosing structure declaring a matching contribution point. A behavior attached to a
 module applies to every screen beneath it, regardless of which file declares it.
@@ -40,19 +48,43 @@ over another: an earlier file does not win. If changing a file name changes the 
 
 ## Declared once, wherever it lives
 
-Some declarations are singular for the whole application. The compiler enforces that across files and names both
-ends when it fails — the file that already claimed the name, and the location that tried to claim it again:
+The merge sorts declarations into three groups.
+
+**Singular for the whole folder.** A folder compiles to one application, so it has at most one `domain`, one
+`authentication`, `identity`, `onboarding` and `context` block, and one design system. A second file that declares
+one of these is an error that names the file that already claimed it:
 
 ```text
-second.play(1,1): error PLAY0172: The folder already declares a domain in 'first.play' —
-                  a folder compiles to one application, which can have at most one
+second.play(1,1): error PLAY0172: The folder already declares a domain in 'first.play' - a folder compiles to one application, which can have at most one
 ```
 
-Singular across the whole folder: `domain`, `layout`, `theme` and `ui profile`. Within a `ui profile`,
-`blueprint` and `start screen` are each at most one.
+**Combined by name.** `module` and `feature` declarations with the same name are the same container, wherever
+they are written. Every file that names `module Invoicing` adds to one module, and every file that names
+`feature Invoices` inside it adds to one feature. That is what lets a slice live in its own file and still belong to
+its feature. Unquoted contract imports are merged and de-duplicated, seeds accumulate, and contributions from
+anywhere in the tree aggregate into the point they target.
 
-Everything else merges: modules combine, features and slices join their module, imports are merged and
-de-duplicated, and contributions from anywhere in the tree aggregate into the point they target.
+**Distinct names accumulate; a repeated name is rejected.** Named declarations such as `concept`, `type`,
+`policy`, `persona`, `layout`, `theme` and `ui profile` can sit in different files as long as their names differ.
+Inside a feature, the same holds for slices, screen templates, dialog templates and forms. Declaring a name that
+another file already claimed is an error, and the second declaration is dropped:
+
+```text
+second.play(1,1): error PLAY0173: Duplicate declaration of 'InvoiceId' - already declared in 'first.play'
+second.play(3,5): error PLAY0173: Duplicate slice 'Register' in feature 'Invoices' - already declared in 'first.play'
+```
+
+### A slice lives in one file
+
+Splitting one slice across files is not supported. Repeating a `slice` with the same name in the same feature from
+another file does not extend the first one; it is the `PLAY0173` duplicate above. Keep every part of a slice in one
+file, and use several files for several slices of the same feature.
+
+A `ui profile` is also complete in one place: it names at most one `theme`, one `layout` and one `root template`.
+
+Duplicates within a single file are reported by the single-document compiler under its own rules. The
+[Screenplay folder reference](/screenplay/folders/#how-the-files-become-one-application) lists the merge rule for
+every declaration.
 
 ## The one hazard
 
@@ -62,6 +94,38 @@ to its own folder so discovery cannot combine them.
 
 The same applies to a stray `.play` file left beneath the root: a scratch file, a half-finished experiment, a
 copy saved "just in case". If it is beneath the folder, it is part of the application.
+
+## When a project is refused
+
+A Stage that answers HTTP is not necessarily running your project. Stage reports the project's state at
+`/stage/status`:
+
+| `state` | Meaning |
+|---|---|
+| `warm` | The host is listening and waiting to be handed a model; no project runs yet. |
+| `loading` | The project is loading and is not accepted yet. Add `?wait=<seconds>` (at most 300) to hold the request until loading ends or the time runs out. |
+| `ready` | The project compiled and the session accepts commands and queries. |
+| `unsupported` | The project was refused. `issues` says why; nothing from the model runs. |
+
+Each entry in `issues` carries a `capability`, an `artifact` and `details`. A model that does not compile, such as
+a folder with a duplicate slice, is reported under the `Plan` capability with one entry per compiler error in
+`details`. A path with no `.play` files is reported the same way. A sandbox host stays up after a refusal, so check
+`state`, not whether the port answers:
+
+```bash
+curl http://localhost:9090/stage/status
+```
+
+`cratis run` reads the same endpoint for you. It waits through `warm` and `loading`, and when Stage reports
+`unsupported` it prints the refusal grouped by kind, stops the container and exits with code `5`. Pass `--verbose`
+to list every issue and stream the container's output.
+
+To recover:
+
+1. Read the issues from the `cratis run` output, or from `/stage/status` on a host you started yourself.
+2. Correct the reported source, or remove the capability the engine does not support yet.
+3. Start the project again. Stage reads the model when it starts and does not watch the folder, so a fix takes
+   effect only after a restart.
 
 ## Body worker process
 
@@ -98,3 +162,4 @@ its worker implementation.
 
 - [URLs of a running Stage](urls.md) shows what the session exposes once the folder has compiled.
 - [Screenplay folders](/screenplay/folders/) specifies the merge rules declaration by declaration.
+- [`cratis run`](/cli/reference/run/) covers every option, the refusal output and running in the background.

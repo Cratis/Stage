@@ -87,8 +87,8 @@ await call.Host.Histogram("post.duration", 0.25, "s");
 ```
 
 `Setting` and `Secret` throw `HostServiceException` for a name the extension did not declare or the wrong kind. `Trigger` returns a
-`TriggerResult` whose `Status` is `Raised`, `UnknownTrigger`, `NotRouted` or `Refused`. To answer from somewhere else, such as an HTTP handler,
-pass the identity: `Answer(outlet, payload, invocationId)`. Details are in the [host services reference](host-services.md).
+`TriggerResult` whose `Status` is `Raised`, `UnknownTrigger`, `NotRouted` or `Refused`. To answer from somewhere else, keep the ability's `call.Host`
+and pass the identity: `Answer(outlet, payload, invocationId)`. Details are in the [host services reference](host-services.md).
 
 ## Handle inbound HTTP
 
@@ -96,18 +96,24 @@ Stage stores a `POST`, `PUT`, `PATCH` or `DELETE`, acknowledges the sender and t
 retrying when it fails. Read the full contract in [inbound traffic and webhooks](inbound-traffic.md). The call carries the raw body, so a signature verifies,
 and a `DeliveryId` that is the same for every attempt, so you can deduplicate on it.
 
+:::caution[An HTTP handler has no host services yet]
+`HttpCall` carries the request only: its method, path, query, headers, body, `DeliveryId` and `Attempt`. Unlike an ability's call it has no `Host`,
+so an HTTP handler cannot read a setting or a secret through Stage, raise a trigger or answer an invocation. This holds for every SDK (C#, TypeScript,
+Kotlin and Go). Until it changes, give the backend its signing secret through its own configuration, and do the work the request asks for in the backend.
+:::
+
 ```csharp
-.Http("/webhook", async (call, cancellationToken) =>
+.Http("/webhook", (call, cancellationToken) =>
 {
-    var secret = await host.Secret("SigningSecret", cancellationToken);
+    // The backend's own configuration, not a Stage setting: an HTTP handler cannot reach the host services.
+    var secret = Environment.GetEnvironmentVariable("PAYMENTS_SIGNING_SECRET") ?? string.Empty;
     var signature = call.Headers.TryGetValue("X-Signature", out var values) ? values.FirstOrDefault() : null;
 
     // The endpoint is anonymous: verify first. A 401 makes Stage reject the request for good instead of retrying it.
-    if (!WebhookSignature.Verify(secret ?? string.Empty, call.Body.Span, signature)) return new HttpReply(401);
+    if (!WebhookSignature.Verify(secret, call.Body.Span, signature)) return Task.FromResult(new HttpReply(401));
 
-    var evt = JsonSerializer.Deserialize<PaymentEvent>(call.Body.Span)!;
-    await host.Trigger("PaymentSucceeded", payloadJson, deduplicationKey: evt.Id, correlationKey: evt.PaymentId, cancellationToken: cancellationToken);
-    return new HttpReply(200);
+    // Handle the verified request here, deduplicating on call.DeliveryId: every attempt carries the same one.
+    return Task.FromResult(new HttpReply(200));
 })
 ```
 
@@ -122,8 +128,9 @@ header or a signature of the wrong length verifies nothing.
 | `WebhookSignature.Verify(secret, body, timestamp, signature, now, tolerance)` | A signature over `<timestamp>.<body>`, as Stripe sends it, and refuses a timestamp more than `tolerance` from `now`. Use it to refuse a captured request replayed later. |
 | `WebhookSignature.Compute(secret, payload)` | The signature, for a test that sends a signed request. |
 
-Read the secret with `host.Secret(...)` from a setting the contract declares as secret; never put it in the model or the code. See [security in inbound
-traffic](inbound-traffic.md#security) for what Stage does about replays and which identity a reaction runs as.
+Keep the secret out of the model and the code. An ability reads it with `call.Host.Secret(...)` from a setting the contract declares as secret; an HTTP
+handler cannot yet, so it reads the secret from the backend's own configuration. See [security in inbound traffic](inbound-traffic.md#security) for what
+Stage does about replays and which identity a reaction runs as.
 
 ## Run and test
 

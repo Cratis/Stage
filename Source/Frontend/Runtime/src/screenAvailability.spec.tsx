@@ -3,6 +3,8 @@
 
 import { renderHook, act } from '@testing-library/react';
 import { useEffect, useState } from 'react';
+import { ArcContext, type ArcConfiguration } from '@cratis/arc.react';
+import { Globals } from '@cratis/arc';
 import { cleanup, fireEvent, render, screen, waitFor } from './testing/render';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PrimeReactProvider } from '@primereact/core/config';
@@ -42,7 +44,7 @@ function renderStage(availability: Promise<Response> | (() => Promise<Response>)
         const url = String(input);
         if (url === 'stage/scene') return respond(options.model ?? scene);
         if (url === 'stage/routes') return options.routes?.() ?? respond(routes);
-        if (url.startsWith('/.cratis/availability')) return typeof availability === 'function' ? availability() : availability;
+        if (new URL(url, document.baseURI).pathname.endsWith('/.cratis/availability')) return typeof availability === 'function' ? availability() : availability;
         return respond([]);
     }));
     return render(<PrimeReactProvider theme={stageTheme}><App components={options.components} /></PrimeReactProvider>);
@@ -71,7 +73,49 @@ function contributedScene(regions: boolean) {
 }
 
 describe('screen availability', () => {
-    afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); globalThis.history.replaceState(null, '', '#'); });
+    afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); globalThis.history.replaceState(null, '', '#'); });
+
+    async function requestWith(arc: ArcConfiguration) {
+        const fetch = vi.fn<typeof globalThis.fetch>(() => respond(answer(true)));
+        vi.stubGlobal('fetch', fetch);
+        const { result } = renderHook(() => useScreenAvailability(routes), {
+            wrapper: ({ children }) => <ArcContext.Provider value={arc}>{children}</ArcContext.Provider>,
+        });
+        await waitFor(() => expect(result.current('Restricted')).toBe(true));
+        const [input, init] = fetch.mock.calls[0];
+        return { url: new URL(String(input), document.baseURI), headers: new Headers(init?.headers) };
+    }
+
+    it('uses the configured Arc origin for screen availability', async () => {
+        const { url } = await requestWith({ microservice: '', origin: 'https://stage.example.test' });
+        expect(url.origin).toBe('https://stage.example.test');
+    });
+
+    it.each(['/tenant-api', '/tenant-api/'])('uses the configured Arc API base path %s instead of the hosted prefix', async apiBasePath => {
+        vi.spyOn(document, 'baseURI', 'get').mockReturnValue('http://localhost/api/play/session/');
+        const { url } = await requestWith({ microservice: '', apiBasePath });
+        expect(url.pathname).toBe('/tenant-api/.cratis/availability');
+    });
+
+    it.each([undefined, ''])('falls back to the hosted prefix with API base path %s', async apiBasePath => {
+        vi.spyOn(document, 'baseURI', 'get').mockReturnValue('http://localhost/api/play/session/');
+        const { url } = await requestWith({ microservice: '', apiBasePath });
+        expect(url.pathname).toBe('/api/play/session/.cratis/availability');
+    });
+
+    it('sends the configured Arc microservice header', async () => {
+        const { headers } = await requestWith({ microservice: 'catalog' });
+        expect(headers.get(Globals.microserviceHttpHeader)).toBe('catalog');
+    });
+
+    it('sends identity and extra headers from the Arc callback', async () => {
+        const { headers } = await requestWith({
+            microservice: '',
+            httpHeadersCallback: () => ({ 'x-stage-identity': 'reader', 'x-stage-extra': 'context' }),
+        });
+        expect(headers.get('x-stage-identity')).toBe('reader');
+        expect(headers.get('x-stage-extra')).toBe('context');
+    });
 
     it('hides gated navigation while pending without hiding an ungated screen', async () => {
         renderStage(new Promise(() => {}));

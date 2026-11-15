@@ -1,7 +1,11 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { Globals } from '@cratis/arc';
+import { buildQueryHttpRequest, Paging, QueryHttpMethod, Sorting } from '@cratis/arc/queries';
+import { ArcContext, type ArcConfiguration } from '@cratis/arc.react';
+import { apiBasePathFor } from './hostedBasePath';
 import type { StageRoutes } from './stageRoutes';
 
 /** The exact Arc part key of each gated screen. Screens absent from the map are ungated. */
@@ -10,10 +14,26 @@ export type ScreenParts = Record<string, string>;
 /**
  * Reads Arc 23.5's request-specific unavailable-part snapshot. A failed request never opens a gated screen.
  * @param signal Cancels an abandoned request.
+ * @param arc The host's Arc transport configuration.
  * @returns The exact names of unavailable parts.
  */
-export async function fetchUnavailableScreens(signal: AbortSignal): Promise<Set<string>> {
-    const response = await fetch('/.cratis/availability?waitForFirstResult=true', { signal, credentials: 'same-origin' });
+export async function fetchUnavailableScreens(signal: AbortSignal, arc: ArcConfiguration = { microservice: '' }): Promise<Set<string>> {
+    const headers = new Headers(arc.httpHeadersCallback?.());
+    headers.set('Accept', 'application/json');
+    headers.set('Content-Type', 'application/json');
+    if (arc.microservice) headers.set(Globals.microserviceHttpHeader, arc.microservice);
+    const { url, init } = buildQueryHttpRequest(QueryHttpMethod.Get, {
+        route: '/.cratis/availability',
+        origin: arc.origin ?? '',
+        apiBasePath: apiBasePathFor(arc.apiBasePath),
+        args: { waitForFirstResult: true },
+        parameterValues: {},
+        paging: Paging.noPaging,
+        sorting: Sorting.none,
+        headers,
+        signal,
+    });
+    const response = await fetch(url, { ...init, credentials: 'same-origin' });
     if (!response.ok) throw new Error('Unable to read screen availability.');
     const result: unknown = await response.json();
     if (!validSnapshot(result)) throw new Error('Invalid screen availability.');
@@ -49,6 +69,7 @@ function screenIsAvailable(screen: string | undefined, parts: ScreenParts | unde
  * @returns Whether a screen may be rendered or linked to.
  */
 export function useScreenAvailability(routes: StageRoutes | undefined, lookupFailed = false): (screen: string | undefined) => boolean {
+    const arc = useContext(ArcContext);
     const parts = routes?.screens;
     const key = JSON.stringify(parts ?? {});
     const [snapshot, setSnapshot] = useState<{ key: string; unavailable: Set<string> }>();
@@ -61,7 +82,7 @@ export function useScreenAvailability(routes: StageRoutes | undefined, lookupFai
             abort.abort();
             const request = new AbortController();
             abort = request;
-            void fetchUnavailableScreens(request.signal)
+            void fetchUnavailableScreens(request.signal, arc)
                 .then(unavailable => { if (!request.signal.aborted) setSnapshot({ key, unavailable }); })
                 .catch(() => { if (!request.signal.aborted) setSnapshot(undefined); });
         };
@@ -73,7 +94,7 @@ export function useScreenAvailability(routes: StageRoutes | undefined, lookupFai
             globalThis.clearInterval(interval);
             globalThis.removeEventListener('focus', refresh);
         };
-    }, [key]);
+    }, [key, arc]);
     return useCallback(screen => {
         if (lookupFailed) return !screen;
         return screenIsAvailable(screen, parts, snapshot?.key === key ? snapshot.unavailable : undefined);

@@ -113,15 +113,17 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticValueProvideSource", rendered, "Value");
         Add(entries, "SemanticContextOperand", rendered, "Path Value");
 
+        var gated = rejected("STAGE-ESM-016");
+
         // ESM v53 audiences, availability blocks and available gates render as Choreography gates evaluated by Arc before authorize (Cratis/Stage#1117).
-        // Screens publish exact-name marker parts for client navigation and route admission.
+        // A screen's gate has no backend part to gate, so STAGE-ESM-016 still refuses it.
         Add(entries, "SemanticApplication", rendered, "Audiences Availabilities");
         Add(entries, "SemanticModule", rendered, "Available");
         Add(entries, "SemanticFeature", rendered, "Available");
         Add(entries, "SemanticSlice", rendered, "Available");
         Add(entries, "SemanticCommand", rendered, "Available");
         Add(entries, "SemanticKeyedQuery", rendered, "Available");
-        Add(entries, "SemanticScreen", rendered, "Available");
+        Add(entries, "SemanticScreen", gated, "Available");
         Add(entries, "SemanticAudience", rendered, "Name");
         Add(entries, "SemanticAvailability", rendered, "Name Requirements");
         Add(entries, "SemanticAvailabilityRequirement", rendered, "$type");

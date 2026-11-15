@@ -58,10 +58,8 @@ internal static class StageModuleRenderer
             builder.Append("            ").Append(JsonSerializer.Serialize(name)).Append(": new ").Append(alias).Append("().route,\n");
         }
 
-        builder.Append("        },\n");
-        var screens = SemanticScreenAvailability.Map(context);
-        if (screens.Count != 0) builder.Append("        screens: ").Append(JsonSerializer.Serialize(screens)).Append(",\n");
-        builder.Append("    },\n")
+        builder.Append("        },\n")
+            .Append("    },\n")
             .Append("    strings: ").Append(Strings(context)).Append(",\n")
             .Append("};\n");
 

@@ -75,17 +75,7 @@ internal static partial class SemanticAvailabilityRendering
     internal static IReadOnlyList<RenderedFile> Render(SemanticApplicationContext context)
     {
         if (!Uses(context)) return [];
-        var files = new List<RenderedFile>
-        {
-            new(Path.Combine("GeneratedAvailability", "Availability.cs"), RenderRegistration(context)),
-            new(Path.Combine("GeneratedAvailability", "Availability.props"), Props())
-        };
-        if (SemanticScreenAvailability.Parts(context).Count != 0)
-        {
-            files.Add(new(Path.Combine("GeneratedAvailability", "ScreenParts.cs"), SemanticScreenAvailability.Render(context)));
-        }
-
-        return files;
+        return [new(Path.Combine("GeneratedAvailability", "Availability.cs"), RenderRegistration(context)), new(Path.Combine("GeneratedAvailability", "Availability.props"), Props())];
     }
 
     static string Props() =>
@@ -114,8 +104,6 @@ internal static partial class SemanticAvailabilityRendering
         {
             builder.Line($"    [{CSharpCodeBuilder.StringLiteral(scope.Namespace)}] = {Engine}.Context.ContextScope.Of({string.Join(", ", scope.Names.Select(CSharpCodeBuilder.StringLiteral))}),");
         }
-
-        SemanticScreenAvailability.AppendScopes(builder, context, Engine);
 
         builder.Line("};").BlankLine()
             .OpenBlock("static partial void RegisterGenerated(global::Microsoft.Extensions.Hosting.IHostApplicationBuilder builder)")
@@ -148,7 +136,7 @@ internal static partial class SemanticAvailabilityRendering
             .Line("global::Microsoft.Extensions.DependencyInjection.GuestListAvailabilityServiceCollectionExtensions.AddGuestListAvailability(services, engine);")
             .Line("global::Microsoft.Extensions.DependencyInjection.ArcAvailabilityServiceCollectionExtensions.AddArcAvailability(services, options =>")
             .Line("{")
-            .Line(SemanticScreenAvailability.ScopeResolver(context, Engine));
+            .Line($"    options.ScopeFor = type => Scopes.TryGetValue(type.Namespace ?? string.Empty, out var scope) ? scope : {Engine}.Context.ContextScope.Application;");
         foreach (var gate in Gates(context).OrderBy(gate => gate.Key, StringComparer.Ordinal))
         {
             var expression = GateExpression(gate);

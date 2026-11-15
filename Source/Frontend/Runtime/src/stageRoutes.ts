@@ -10,8 +10,6 @@ import { stageEndpoints, useStageSource } from './stageSource';
 export interface StageRoutes {
     commands: Record<string, string>;
     queries?: Record<string, string>;
-    /** Exact Arc part keys of gated screens; absent for applications without screen gates. */
-    screens?: Record<string, string>;
     /** Live-host metadata for route-synthesized proxies. Generated apps register their real proxies instead. */
     commandSchemas?: Record<string, string>;
 }
@@ -19,8 +17,6 @@ export interface StageRoutes {
 export interface StageRouteState {
     routes: StageRoutes | undefined;
     ready: boolean;
-    /** A failed lookup cannot establish that screens are ungated. */
-    failed?: boolean;
 }
 
 export const stageRoutes = stageEndpoints.routes;
@@ -31,7 +27,6 @@ export const stageRoutes = stageEndpoints.routes;
  * An element carries the route it is backed by, but an interaction only names a command - so running one needs
  * this lookup. Readiness is separate from the routes object because an empty or failed route lookup is a real
  * loaded state; guessing a URL while it is still pending would turn a valid command into a transient 404.
- * A failed lookup is distinguished from a successful legacy response without screen metadata.
  */
 export function useStageRouteState(): StageRouteState {
     const source = useStageSource();
@@ -41,10 +36,10 @@ export function useStageRouteState(): StageRouteState {
         const abort = new AbortController();
         source.routes(abort.signal)
             .then(routes => {
-                if (!abort.signal.aborted) setState({ routes, ready: true, failed: !routes });
+                if (!abort.signal.aborted) setState({ routes, ready: true });
             })
             .catch(() => {
-                if (!abort.signal.aborted) setState({ routes: undefined, ready: true, failed: true });
+                if (!abort.signal.aborted) setState({ routes: undefined, ready: true });
             });
         return () => abort.abort();
     }, [source]);

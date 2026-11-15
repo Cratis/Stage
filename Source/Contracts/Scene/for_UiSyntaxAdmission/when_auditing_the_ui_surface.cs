@@ -19,7 +19,7 @@ public class when_auditing_the_ui_surface : Specification
     // TimeZone (Screenplay 4.247.0, decisions 0106/0107) never reaches Stage: the Screenplay binder refuses an application time zone (Cratis/Screenplay#824).
     // Context (Screenplay 5.3.1) is refused by the binder with PLAY0268 before Stage consumes it.
     // Graphs, GraphProjections and GraphQueries (Screenplay 5.7.0 and 5.8.0) render from the executable semantic model; the legacy syntax path refuses them with STAGE-ESM-067 (GraphSyntaxAdmission).
-    // Nested sample-data rows (SampleDataFieldSyntax.Rows, SampleDataValueKind.Rows) are sample data for the Scene preview, which Stage does not render.
+    // Nested sample-data rows (SampleDataFieldSyntax.Rows, SampleDataValueKind.Rows) are recursively converted to JSON arrays by SampleDataConverter for Scene previews.
     // Screenplay 6: slots, outlets, fits and hooks are translated (SlotConverter, OutletConverter, OutletLevelConverter, ScreenConverter).
     // RetiredForms is source-span metadata of the Screenplay 5 forms the compiler refuses; it never reaches Stage.
     // Sinks (Screenplay 6.4.0, decision 0146) are realization metadata: Stage reads them from SemanticCompilation.Sinks, ReadModelSinks and GraphSinks, never from this syntax.

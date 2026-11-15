@@ -28,7 +28,7 @@ sender ──POST /extensions/Payments/webhook──▶ Stage ──▶ stored �
                                                                     │ verify the signature with the secret setting
                                                                     │ RaiseTrigger("PaymentSucceeded", key, correlation)
                                                                     ▼
-                                                reactions · captures · workflow starts and waits · screens · components
+                                                workflow runs that wait for the trigger (reactions need trigger routes)
 ```
 
 1. **Receive.** A request to `/extensions/<System>/<path>` with a method that may change something (`POST`, `PUT`, `PATCH`, `DELETE`) is stored with its
@@ -69,7 +69,9 @@ An extension that finds the signature invalid **answers `401`**. That makes Stag
 
 Delivery is **at least once**. If Stage stops between the extension taking a request and Stage recording it, the request is delivered again after the restart.
 Every attempt carries the same delivery identity, as `invocation_id` and `idempotency_key` in the request context and as `DeliveryId` on the C# SDK's call, so the
-extension deduplicates on it. The TypeScript, Kotlin and Go SDKs do not pass the delivery identity to an HTTP handler. A trigger raised with a deduplication key is deduplicated by Stage too: raising it again finds the runs the first raise started.
+extension deduplicates on it. The TypeScript, Kotlin and Go SDKs do not pass the delivery identity to an HTTP handler. Stage requires a deduplication key on every trigger. Once trigger routes exist, raising the same trigger with the same key again will find the runs the
+first raise started. Today Stage does not deduplicate a resume: a wait the first raise resolved cannot be resolved again, but a repeated raise resumes any
+wait about the same correlation that is open by then, so the extension deduplicates on the delivery identity before it raises.
 
 ## Security
 
@@ -86,8 +88,8 @@ part of the comparison, because a sender's retry carries a fresh timestamp and s
 that retries after every attempt failed is asking for the delivery to be made. A captured request replayed after the window is delivered, so the extension must
 also refuse a stale one: sign and check a timestamp with `WebhookSignature.Verify(..., timestamp, ..., now, tolerance)`.
 
-**The trusted actor is the extension, not the sender.** The reactions a trigger starts run as the actor `extension:<System>`, recorded on the run, and the
-trigger's causation names the delivery. Only an extension that presented the credential from its handshake can raise a trigger, and only one its own contract
+**The trusted actor is the extension, not the sender.** Once trigger routes exist, the reactions a trigger starts will run as the actor `extension:<System>`,
+recorded on the run, with the trigger's causation naming the delivery. Only an extension that presented the credential from its handshake can raise a trigger, and only one its own contract
 declares. The anonymous sender never becomes the identity a reaction runs as.
 
 **Secrets stay out of storage and out of the Workbench.** `Cookie`, `Authorization`, `Host` and connection headers are never stored or forwarded. The Workbench
@@ -95,7 +97,8 @@ lists a request's status, size and header names, never its body or header values
 
 ## Resume a workflow that waits
 
-A trigger starts the reactions that react to it. To also resume workflow runs that wait for it, the extension names what the trigger is about:
+A raised trigger starts no reactions yet: that needs trigger routes, which no language support registers. What it does today is resume workflow runs
+that wait for it, and for that the extension names what the trigger is about:
 
 ```csharp
 await host.Trigger("PaymentSucceeded", payloadJson, deduplicationKey: evt.Id, correlationKey: evt.PaymentId);
@@ -104,8 +107,8 @@ await host.Trigger("PaymentSucceeded", payloadJson, deduplicationKey: evt.Id, co
 Here `host` is a C# `HostServices`, such as an ability's `call.Host`: an HTTP handler has none yet. Only the C# SDK accepts a correlation key; the
 TypeScript, Kotlin and Go SDKs raise a trigger without one, so from them a trigger resumes no waiting run.
 
-Runs that wait for `Payments.PaymentSucceeded` about the same correlation resume, with the payload as the data of the wait. Without a correlation key only the
-reactions run. A trigger that starts nothing and resumes nothing is reported as `NOT_ROUTED`, never silently accepted. A trigger raised before the wait it
+Runs that wait for `Payments.PaymentSucceeded` about the same correlation resume, with the payload as the data of the wait. Without a correlation key nothing
+resumes, so until trigger routes exist the raise is answered `NOT_ROUTED`: a trigger that starts nothing and resumes nothing is reported, never silently accepted. A trigger raised before the wait it
 is meant for is open resumes nothing and is not remembered: the workflow reads the state it needs when it reaches the wait.
 
 ## Watch and retry in the Workbench

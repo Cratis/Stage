@@ -69,7 +69,8 @@ An extension that finds the signature invalid **answers `401`**. That makes Stag
 
 Delivery is **at least once**. If Stage stops between the extension taking a request and Stage recording it, the request is delivered again after the restart.
 Every attempt carries the same delivery identity, as `invocation_id` and `idempotency_key` in the request context and as `DeliveryId` on the C# SDK's call, so the
-extension deduplicates on it. The TypeScript, Kotlin and Go SDKs do not pass the delivery identity to an HTTP handler. A trigger raised with a deduplication key is deduplicated by Stage too: raising it again finds the runs the first raise started.
+extension deduplicates on it. The TypeScript, Kotlin and Go SDKs do not pass the delivery identity to an HTTP handler. Stage requires a deduplication key on every trigger. Once trigger routes exist, raising the same trigger with the same key again will find the runs the
+first raise started; today a repeated raise only resumes runs that are still waiting, so a run the first raise resumed is not resumed twice.
 
 ## Security
 

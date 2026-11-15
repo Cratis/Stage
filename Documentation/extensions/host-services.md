@@ -55,8 +55,9 @@ resumes. Starting the reactions to a trigger needs trigger routes, which no lang
 | `NOT_ROUTED` | Nothing in the model reacts to the trigger and no run waiting for it resumed. It is reported, never silently accepted, because a raise that does nothing is a bug worth seeing. |
 | `REFUSED` | The deduplication key is missing, or the runtime did not admit a reaction. `detail` says which. |
 
-The **deduplication key is required**. Raising the same trigger with the same key again finds the runs the first raise started instead of
-starting more, so a retry, or a webhook the provider delivers twice, is harmless. Inside an invocation use its idempotency key; for a webhook use the
+The **deduplication key is required**. Once trigger routes exist, raising the same trigger with the same key again will find the runs the first raise
+started instead of starting more. Today a repeated raise only resumes runs that are still waiting, so a run the first raise resumed is not resumed
+twice, and a retry, or a webhook the provider delivers twice, is harmless. Inside an invocation use its idempotency key; for a webhook use the
 external message's own identity.
 
 The optional **correlation key** says what the trigger is about, such as the payment a webhook reports on. Runs that wait for `<System>.<Trigger>` about the same

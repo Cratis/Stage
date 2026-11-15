@@ -348,6 +348,9 @@ The host separates **hosting** defaults from **deployment** configuration:
 | `cratis-stage.json` | Deployment configuration, loaded from the content root if present. Optional, and reloaded on change. |
 | `STAGE_CONFIG` | Overrides the path `cratis-stage.json` is read from — point it at a mounted file to configure a session without rebuilding the image. |
 | `CRATIS_CHRONICLE_CONNECTION_STRING_FILE` | The path of a mounted file holding the connection string of a Chronicle kernel that is already running. When it names a readable, non-empty file the session uses that kernel and starts none of its own, so the event log can live in a database and outlive the container. An unreadable or empty file exits with code 78. See [Use an external Chronicle kernel](#use-an-external-chronicle-kernel). |
+| `STAGE_EVENT_STORE` | Pins the session's event store name. Unset, the first process in the container generates a name and remembers it. |
+| `STAGE_STATE_DIR` | The directory the container remembers its resolved event store name in, as the file `event-store`. Defaults to the system temporary directory. Every process in the container reads the same file, so the warm handoff restart keeps one event store instead of registering a second. Ignored when `STAGE_EVENT_STORE` is set. |
+| `STAGE_ROUTE_DIAGNOSTICS` | Set to `1` to log every endpoint the scene route resolver considered while resolving a route. Any other value, or unset, logs nothing. |
 
 Anything Chronicle-related can also be set with the kernel's own environment variables
 (`Cratis__Chronicle__…`), which is how the entrypoint pins in-memory storage and the Workbench.
@@ -820,10 +823,14 @@ These checks are not memoized: permissions or ancestors can change after startup
 reusing an earlier verdict would weaken the execution-time check.
 
 These keys also work as colon-separated deployment configuration, for example `Stage:BodyWorker:Enabled`.
+
+`Stage:BodyWorker:ProfileVersion` (`Stage__BodyWorker__ProfileVersion`) selects the scaffold profile version the worker
+compiles bodies against: `3` or `4`. Unset or blank means version `3`; any other value is refused with an error.
+
 For a standalone semantic SpecRunner, supply `--body-worker-path` and optionally `--body-worker-cache`,
 `--body-worker-dotnet`, `--body-worker-timeout-ms`, `--body-worker-compile-timeout-ms`,
-`--body-worker-heap-limit-mb`, `--body-worker-working-set-limit-mb`, `--body-worker-max-response-bytes`
-and `--body-worker-max-stderr-bytes`. `BodyWorkerOptions.FromArguments` parses this same argument contract;
+`--body-worker-heap-limit-mb`, `--body-worker-working-set-limit-mb`, `--body-worker-max-response-bytes`,
+`--body-worker-max-stderr-bytes` and `--body-worker-profile-version` (`3` or `4`; omitted means `3`). `BodyWorkerOptions.FromArguments` parses this same argument contract;
 without worker arguments it returns no configuration and body rules remain unsupported.
 A wall-time breach reports `STAGE-IMPL-007`, a memory breach `STAGE-IMPL-008`, and an unavailable or failed
 worker `STAGE-IMPL-009`. Each kills the worker; a later run can start a fresh one and the Host keeps serving.
@@ -991,8 +998,8 @@ Stage defaults to Sandbox mode. Opt in to Published mode with `Stage:Mode=Publis
 `STAGE_MODE=Published` in the environment, or the `--published` host argument. Mode names are case-insensitive;
 unknown names and `--published` combined with explicitly configured Sandbox mode refuse startup.
 
-Published mode requires the semantic engine and `Stage:Sandbox:ForwardedIdentity=true`. Run behind AuthProxy
-so only its forwarded principal reaches Stage. Test personas are disabled even when `Stage:Sandbox:Identity`
+Published mode requires the semantic engine and sign-in: either behind a sign-in proxy such as AuthProxy, so only its
+forwarded principal reaches Stage (`TrustedProxy`), or with Stage signing users in itself (`Oidc`). Test personas are disabled even when `Stage:Sandbox:Identity`
 is enabled. Warm hosting (`--warm` or `STAGE_WARM`) and the EventModel engine are refused.
 
 OpenAPI, Scalar, the Workbench proxy, the read-model browser, model loading, semantic admission and specification
@@ -1002,11 +1009,12 @@ endpoints, static files and the application SPA fallback remain available.
 The entrypoint still requires complete `PublishedOptions`: under `Stage:Published`, a persistent
 `Storage:ConnectionString` (or `Storage:ConnectionStringFile`) for the `Storage:Type` engine (`MongoDB` by default,
 `PostgreSql` or `MsSql`) unless `CRATIS_CHRONICLE_CONNECTION_STRING_FILE` mounts an
-[external Chronicle kernel](../reference/published-applications.md#external-chronicle-kernel), `Authentication:Mode=TrustedProxy`, and explicit
-`TrustedProxies` addresses or CIDR networks; plus non-wildcard, top-level `AllowedHosts`. It also requires a valid
+[external Chronicle kernel](../reference/published-applications.md#external-chronicle-kernel), and an `Authentication:Mode` of `TrustedProxy` or `Oidc`.
+`TrustedProxy` also needs explicit `TrustedProxies` addresses or CIDR networks; `Oidc` needs its sign-in settings instead, as described in
+[authentication](../reference/published-applications.md#authentication). Both need non-wildcard, top-level `AllowedHosts`. It also requires a valid
 exported application package at `Stage:Published:PackagePath` (default `/stage/package`); the mode flag alone
 is not sufficient. If Chronicle credentials are supplied under `Stage:Published`, both `Chronicle:ClientId`
 and `Chronicle:ClientSecret` (or `Chronicle:ClientSecretFile`) are required.
 
-Published mode restricts forwarded-header and principal trust to the configured proxies, but does not restrict
+With `TrustedProxy`, published mode restricts forwarded-header and principal trust to the configured proxies. It does not restrict
 kernel network access. It is not a complete production deployment configuration.

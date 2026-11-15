@@ -95,7 +95,8 @@ lists a request's status, size and header names, never its body or header values
 
 ## Resume a workflow that waits
 
-A trigger starts the reactions that react to it. To also resume workflow runs that wait for it, the extension names what the trigger is about:
+A raised trigger starts no reactions yet: that needs trigger routes, which no language support registers. What it does today is resume workflow runs
+that wait for it, and for that the extension names what the trigger is about:
 
 ```csharp
 await host.Trigger("PaymentSucceeded", payloadJson, deduplicationKey: evt.Id, correlationKey: evt.PaymentId);
@@ -104,8 +105,8 @@ await host.Trigger("PaymentSucceeded", payloadJson, deduplicationKey: evt.Id, co
 Here `host` is a C# `HostServices`, such as an ability's `call.Host`: an HTTP handler has none yet. Only the C# SDK accepts a correlation key; the
 TypeScript, Kotlin and Go SDKs raise a trigger without one, so from them a trigger resumes no waiting run.
 
-Runs that wait for `Payments.PaymentSucceeded` about the same correlation resume, with the payload as the data of the wait. Without a correlation key only the
-reactions run. A trigger that starts nothing and resumes nothing is reported as `NOT_ROUTED`, never silently accepted. A trigger raised before the wait it
+Runs that wait for `Payments.PaymentSucceeded` about the same correlation resume, with the payload as the data of the wait. Without a correlation key nothing
+resumes, so until trigger routes exist the raise is answered `NOT_ROUTED`: a trigger that starts nothing and resumes nothing is reported, never silently accepted. A trigger raised before the wait it
 is meant for is open resumes nothing and is not remembered: the workflow reads the state it needs when it reaches the wait.
 
 ## Watch and retry in the Workbench

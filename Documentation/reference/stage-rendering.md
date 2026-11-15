@@ -1093,7 +1093,7 @@ The Stage does not keep a navigation state of its own. Where the user is - the s
 in nested outlets, the dialog on top - belong to the Scene navigation host (`ApplicationHost`), the same way a generated or
 embedded host runs them. The address that reaches it belongs to the Stage's own scene router (`createStageSceneRouting`),
 which gives the navigation host its history and keeps routed slots, chosen tabs and filter values in the same address.
-Only routed slot changes and chosen tabs are history entries; a filter replaces the current entry, and a dialog or drawer
+Moving to another screen adds a history entry. Within a screen, only routed slot changes and chosen tabs are history entries; a filter replaces the current entry, and a dialog or drawer
 opened over the page leaves the address unchanged.
 
 The `App` component's `routing` option decides how screens are addressed:

@@ -115,7 +115,7 @@ what the last attempt ended with. The tooling endpoints behind it exist in the s
 
 | Request | Meaning |
 | --- | --- |
-| `GET /stage/extensions/deliveries?status=failed` | At most the newest 200 requests, newest first, as `{ "deliveries": [...], "failed": n }`, where `failed` counts the failed requests in that list. `status` is optional and is `pending`, `retrying`, `delivered`, `rejected` or `failed`; another value answers `400`. |
+| `GET /stage/extensions/deliveries?status=failed` | At most the newest 200 requests, newest first, as `{ "deliveries": [...], "failed": n }`, where `failed` counts the failed requests in that list. `status` is optional and is `pending`, `retrying`, `delivered`, `rejected` or `failed`; another name answers `400`. |
 | `POST /stage/extensions/deliveries/retry` with `{ "id": "..." }` | Puts a failed or rejected request back for another round of attempts and answers `202`. An unknown request answers `404`; one that is neither failed nor rejected answers `409`. |
 
 Each listed request carries its `id`, `system`, `method`, `path`, `query`, `status`, `attempts`, `nextAttempt`, `responseStatus`, `reason`, `received`,

@@ -301,7 +301,7 @@ multi-trigger refusal groups fail rendering with `STAGE-ESM-039`, because Arc st
 list rather than one Screenplay trigger subgroup. Generated refusal scenarios also refuse coded or
 multiple error expectations with `STAGE-ESM-011`. Mapping `$refusal.message` from a command with
 localized validation or constraint messages, or `$refusal.constraint` with several potentially violated
-constraints, fails rendering with `STAGE-ESM-039`: Arc 22.88.0 cannot preserve unresolved keys or
+constraints, fails rendering with `STAGE-ESM-039`: Arc cannot preserve unresolved keys or
 Screenplay's first-violation ordering. These rendering limits do not narrow the independent executor.
 
 ## Mount points and arguments

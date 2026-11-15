@@ -28,7 +28,7 @@ sender ──POST /extensions/Payments/webhook──▶ Stage ──▶ stored �
                                                                     │ verify the signature with the secret setting
                                                                     │ RaiseTrigger("PaymentSucceeded", key, correlation)
                                                                     ▼
-                                                reactions · captures · workflow starts and waits · screens · components
+                                                workflow runs that wait for the trigger (reactions need trigger routes)
 ```
 
 1. **Receive.** A request to `/extensions/<System>/<path>` with a method that may change something (`POST`, `PUT`, `PATCH`, `DELETE`) is stored with its
@@ -86,8 +86,8 @@ part of the comparison, because a sender's retry carries a fresh timestamp and s
 that retries after every attempt failed is asking for the delivery to be made. A captured request replayed after the window is delivered, so the extension must
 also refuse a stale one: sign and check a timestamp with `WebhookSignature.Verify(..., timestamp, ..., now, tolerance)`.
 
-**The trusted actor is the extension, not the sender.** The reactions a trigger starts run as the actor `extension:<System>`, recorded on the run, and the
-trigger's causation names the delivery. Only an extension that presented the credential from its handshake can raise a trigger, and only one its own contract
+**The trusted actor is the extension, not the sender.** Once trigger routes exist, the reactions a trigger starts will run as the actor `extension:<System>`,
+recorded on the run, with the trigger's causation naming the delivery. Only an extension that presented the credential from its handshake can raise a trigger, and only one its own contract
 declares. The anonymous sender never becomes the identity a reaction runs as.
 
 **Secrets stay out of storage and out of the Workbench.** `Cookie`, `Authorization`, `Host` and connection headers are never stored or forwarded. The Workbench

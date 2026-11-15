@@ -4,8 +4,15 @@ Outside systems send traffic to an extension: a payment provider's webhook, a bu
 few seconds and often retries when it does not get one. Stage therefore owns the endpoint, keeps what arrived, answers the sender at once and then
 delivers the request to the extension. The extension verifies the request and raises the
 [triggers its contract declares](https://github.com/Cratis/Screenplay/blob/main/Documentation/screenplay/triggers.md#how-a-name-resolves), such as
-`Payments.PaymentSucceeded`. From there the trigger behaves like any other: it starts reactions, captures and workflows, resumes workflows that wait for
-it, and reaches screens (`on <System>.<Trigger>`) and components (`context.on`).
+`Payments.PaymentSucceeded`. Today a raised trigger resumes the workflow runs that wait for it about the same correlation key. Starting reactions and
+workflows from a trigger needs trigger routes (`IContractTriggerRoutes`), which no language support registers yet, so a trigger that resumes nothing is
+answered `NOT_ROUTED`; see [raise a trigger](https://github.com/Cratis/Stage/blob/main/Documentation/extensions/host-services.md#raise-a-trigger).
+
+:::caution[The SDKs cannot raise a trigger from an HTTP handler yet]
+The host protocol accepts a trigger raised while the extension handles a delivery, but no SDK (C#, TypeScript, Kotlin or Go) gives an HTTP handler the host
+services: the call carries the request only. An HTTP handler built on an SDK can verify a request and answer it, but cannot read a secret setting through
+Stage, raise a trigger or answer an invocation. See [handle inbound HTTP](https://github.com/Cratis/Stage/blob/main/Documentation/extensions/csharp.md#handle-inbound-http).
+:::
 
 This page is the reference for what Stage does with the traffic. The protocol messages are in the [protocol reference](https://github.com/Cratis/Stage/blob/main/Documentation/extensions/protocol.md#inbound-http-handlehttp),
 the services an extension calls to raise a trigger are in the [host services reference](https://github.com/Cratis/Stage/blob/main/Documentation/extensions/host-services.md#raise-a-trigger),
@@ -61,8 +68,8 @@ The extension's answer to `HandleHttp` decides what becomes of the stored reques
 An extension that finds the signature invalid **answers `401`**. That makes Stage reject the request for good and keep it visible, rather than retry it.
 
 Delivery is **at least once**. If Stage stops between the extension taking a request and Stage recording it, the request is delivered again after the restart.
-Every attempt carries the same delivery identity, as `invocation_id` and `idempotency_key` in the request context and as `DeliveryId` on the SDK's call, so the
-extension deduplicates on it. A trigger raised with a deduplication key is deduplicated by Stage too: raising it again finds the runs the first raise started.
+Every attempt carries the same delivery identity, as `invocation_id` and `idempotency_key` in the request context and as `DeliveryId` on the C# SDK's call, so the
+extension deduplicates on it. The TypeScript, Kotlin and Go SDKs do not pass the delivery identity to an HTTP handler. A trigger raised with a deduplication key is deduplicated by Stage too: raising it again finds the runs the first raise started.
 
 ## Security
 
@@ -91,8 +98,11 @@ lists a request's status, size and header names, never its body or header values
 A trigger starts the reactions that react to it. To also resume workflow runs that wait for it, the extension names what the trigger is about:
 
 ```csharp
-await call.Host.Trigger("PaymentSucceeded", payloadJson, deduplicationKey: evt.Id, correlationKey: evt.PaymentId);
+await host.Trigger("PaymentSucceeded", payloadJson, deduplicationKey: evt.Id, correlationKey: evt.PaymentId);
 ```
+
+Here `host` is a C# `HostServices`, such as an ability's `call.Host`: an HTTP handler has none yet. Only the C# SDK accepts a correlation key; the
+TypeScript, Kotlin and Go SDKs raise a trigger without one, so from them a trigger resumes no waiting run.
 
 Runs that wait for `Payments.PaymentSucceeded` about the same correlation resume, with the payload as the data of the wait. Without a correlation key only the
 reactions run. A trigger that starts nothing and resumes nothing is reported as `NOT_ROUTED`, never silently accepted. A trigger raised before the wait it
@@ -100,13 +110,16 @@ is meant for is open resumes nothing and is not remembered: the workflow reads t
 
 ## Watch and retry in the Workbench
 
-The Workbench shows every stored request (the newest 5000), with its status, attempts, when the next attempt is due, and what the last attempt ended with.
-The tooling endpoints behind it exist in the sandbox and are not mapped by a published runtime:
+Stage keeps the newest 5000 requests. The Workbench lists the newest 200 of them, with each request's status, attempts, when the next attempt is due, and
+what the last attempt ended with. The tooling endpoints behind it exist in the sandbox and are not mapped by a published runtime:
 
 | Request | Meaning |
 | --- | --- |
-| `GET /stage/extensions/deliveries?status=failed` | The requests, newest first. `status` is `pending`, `retrying`, `delivered`, `rejected` or `failed`. |
-| `POST /stage/extensions/deliveries/retry` with `{ "id": "..." }` | Puts a failed or rejected request back for another round of attempts. |
+| `GET /stage/extensions/deliveries?status=failed` | At most the newest 200 requests, newest first, as `{ "deliveries": [...], "failed": n }`, where `failed` counts the failed requests in that list. `status` is optional and is `pending`, `retrying`, `delivered`, `rejected` or `failed`; another value answers `400`. |
+| `POST /stage/extensions/deliveries/retry` with `{ "id": "..." }` | Puts a failed or rejected request back for another round of attempts and answers `202`. An unknown request answers `404`; one that is neither failed nor rejected answers `409`. |
+
+Each listed request carries its `id`, `system`, `method`, `path`, `query`, `status`, `attempts`, `nextAttempt`, `responseStatus`, `reason`, `received`,
+`completed`, `replays`, `bodyBytes` and `headers` (the header names only).
 
 ## Settings
 
@@ -126,4 +139,5 @@ Under `Stage:Extensions:Inbound`:
 
 - A route is declared by the backend, and Stage learns it at the handshake. A path the extension does not declare is rejected at delivery, not answered with `404` by Stage, until the extension has run once.
 - A `POST` is always acknowledged with `202` and an empty body. A provider that requires a synchronous answer to a `POST`, such as a challenge handshake, is not served yet.
-- Only the C# SDK has `WebhookSignature` and the correlation key; the other SDKs read the secret and compare the signature themselves.
+- No SDK gives an HTTP handler the host services yet, so an SDK-built handler cannot read a secret setting through Stage, raise a trigger or answer an invocation.
+- Only the C# SDK has `WebhookSignature`, the correlation key and the delivery identity on the call; the other SDKs compare the signature themselves.

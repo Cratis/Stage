@@ -61,6 +61,8 @@ external message's own identity.
 
 The optional **correlation key** says what the trigger is about, such as the payment a webhook reports on. Runs that wait for `<System>.<Trigger>` about the same
 correlation resume, with the payload as the wait's data. The reactions run as the actor `extension:<System>`, never as the anonymous sender of a webhook.
+Only the C# SDK's `Trigger` accepts a correlation key; the TypeScript, Kotlin and Go SDKs raise a trigger without one, so from them a trigger resumes no
+waiting run.
 
 Stage starts each reacting workflow as a Choreography `Signal` trigger, deduplicated on the trigger, the key and the workflow. Which workflows
 react to which trigger is supplied by the language support for reactions (`IContractTriggerRoutes`); until a model declares one, the answer is

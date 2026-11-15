@@ -46,7 +46,9 @@ public class when_rendering_the_lifecycles_of_a_model : Specification
     [Fact] void should_render_one_performer_per_command() => Text("Lifecycles/WorkflowActions.cs").ShouldContain("class SendChargeFeeAction");
     [Fact] void should_signal_the_waits_for_an_event() => Text("Lifecycles/WorkflowSignals.cs").ShouldContain("class InvoicePaidWorkflowSignal");
     [Fact] void should_register_the_event_triggers() => Text("Lifecycles/GeneratedWorkflows.cs").ShouldContain("options.OnEvent<");
-    [Fact] void should_report_the_state_after_a_restart() => _plan.Diagnostics.Any(diagnostic => diagnostic.Code == LifecycleCodes.RestartState).ShouldBeTrue();
+    [Fact] void should_resolve_the_state_from_the_read_model() => Text("Lifecycles/InvoiceLifecycle.cs").ShouldContain("\"PAID\" => typeof(Paid)");
+    [Fact] void should_resume_in_the_initial_state_for_an_unknown_value() => Text("Lifecycles/InvoiceLifecycle.cs").ShouldContain("_ => InitialState }");
+    [Fact] void should_not_report_the_restart_state_when_the_model_carries_it() => _plan.Diagnostics.Any(diagnostic => diagnostic.Code == LifecycleCodes.RestartState).ShouldBeFalse();
     [Fact] void should_refuse_what_it_cannot_render() => _refused.Success.ShouldBeFalse();
     [Fact] void should_name_the_refused_constructs() => _refused.Diagnostics.Where(diagnostic => diagnostic.Code == "STAGE-LIFECYCLE-010").Select(diagnostic => diagnostic.Message).ShouldNotBeEmpty();
 }

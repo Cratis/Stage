@@ -78,7 +78,7 @@ internal static class SemanticLifecycleArtifactRenderer
         if (transitions.Length > 0) builder.Line($"transitions{string.Concat(transitions)};");
         builder.EndBlock().BlankLine()
             .Line("/// <inheritdoc/>")
-            .Line($"protected override global::System.Type ResolveState({modelType}? model) => InitialState;")
+            .Line($"protected override global::System.Type ResolveState({modelType}? model) => {ResolvedState(machine, model)};")
             .BlankLine();
 
         foreach (var state in machine.States)
@@ -88,6 +88,14 @@ internal static class SemanticLifecycleArtifactRenderer
 
         builder.EndBlock();
         return new(Path.Combine(Folder(context), $"{name}.cs"), builder.ToString()) { Sources = [context.Application.Id] };
+    }
+
+    static string ResolvedState(SemanticStateMachine machine, SemanticReadModel model)
+    {
+        if (SemanticLifecycleStateResolution.Member(machine, model) is not { } member) return "InitialState";
+        var arms = SemanticLifecycleStateResolution.Values(machine)
+            .Select(entry => $"{string.Join(" or ", entry.Values.Select(CSharpCodeBuilder.StringLiteral))} => typeof({Identifiers.ToPascalCase(entry.State)})");
+        return $"model?.{Identifiers.ToPascalCase(member.Name)}?.ToUpperInvariant() switch {{ {string.Join(", ", arms)}, _ => InitialState }}";
     }
 
     static void RenderState(SemanticApplicationContext context, SemanticStateMachine machine, SemanticState state, SemanticReadModel model, string modelType, string self, SemanticTypeSystem types, CSharpCodeBuilder builder)

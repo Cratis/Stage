@@ -50,6 +50,7 @@ describe('resolving a $strings. reference at runtime', () => {
         vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
             const url = String(input);
             if (url === 'stage/scene') return { ok: true, json: async () => sceneWith('$strings.invoice.listTitle') };
+            if (url === 'stage/routes') return { ok: true, json: async () => ({ commands: {} }) };
             if (url === 'stage/locales') return { ok: true, json: async () => ['en'] };
             if (url === 'stage/strings/en') return { ok: true, json: async () => ({ 'invoice.listTitle': 'Invoices' }) };
             return { ok: false, json: async () => ({}) };
@@ -67,6 +68,7 @@ describe('resolving a $strings. reference at runtime', () => {
         (globalThis.fetch as ReturnType<typeof vi.fn>).mockImplementation(async (input: RequestInfo | URL) => {
             const url = String(input);
             if (url === 'stage/scene') return { ok: true, json: async () => sceneWith('$strings.invoice.listTitle') };
+            if (url === 'stage/routes') return { ok: true, json: async () => ({ commands: {} }) };
             if (url === 'stage/locales') return { ok: true, json: async () => ['en', 'no'] };
             if (url === 'stage/strings/en') return { ok: true, json: async () => ({ 'invoice.listTitle': 'Invoices' }) };
             return { ok: false, json: async () => ({}) };

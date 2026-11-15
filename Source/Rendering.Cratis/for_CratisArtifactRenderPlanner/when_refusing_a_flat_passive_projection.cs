@@ -24,6 +24,7 @@ public class when_refusing_a_flat_passive_projection : Specification
         var original = compilation.Model;
         var module = original.Application.Modules.Single();
         var feature = module.Features.Single();
+
         // The compiler emits scoped projections; other portable-model producers can supply a flat one.
         var slices = feature.Slices.Select(slice => slice with
         {

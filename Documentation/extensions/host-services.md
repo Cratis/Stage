@@ -56,8 +56,9 @@ resumes. Starting the reactions to a trigger needs trigger routes, which no lang
 | `REFUSED` | The deduplication key is missing, or the runtime did not admit a reaction. `detail` says which. |
 
 The **deduplication key is required**. Once trigger routes exist, raising the same trigger with the same key again will find the runs the first raise
-started instead of starting more. Today a repeated raise only resumes runs that are still waiting, so a run the first raise resumed is not resumed
-twice, and a retry, or a webhook the provider delivers twice, is harmless. Inside an invocation use its idempotency key; for a webhook use the
+started instead of starting more. Today Stage does not deduplicate a resume: the same wait cannot be resolved twice, but a repeated raise resumes any
+wait about the same correlation that is open by then, including a later wait in a run the first raise resumed. Deduplicate a retry, or a webhook
+the provider delivers twice, before raising. Inside an invocation use its idempotency key; for a webhook use the
 external message's own identity.
 
 The optional **correlation key** says what the trigger is about, such as the payment a webhook reports on. Runs that wait for `<System>.<Trigger>` about the same

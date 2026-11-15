@@ -51,3 +51,15 @@ describe('when PrimeReact is listed', () => {
         expect(resolveComponentName('shared', declared, { 'Cratis.Components': ['shared'], PrimeReact: ['shared'], [blueprint]: ['shared'] })?.package).toBe(blueprint);
     });
 });
+
+describe('when the profile carries a design system', () => {
+    const designSystem = { name: 'Brand', modes: ['light'], tokens: [], components: [], themes: [] } as unknown as UiProfile['designSystem'];
+
+    it('should keep it, which the preview profile it is built from leaves out', () => {
+        expect(stageProfile([{ ...profile([]), designSystem }]).designSystem?.name).toBe('Brand');
+    });
+
+    it('should have none when the profile declares none', () => {
+        expect(stageProfile([profile([])]).designSystem).toBeUndefined();
+    });
+});

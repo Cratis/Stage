@@ -237,7 +237,7 @@ public sealed class CratisFrontendPackageSet
         "19.3.0",
         "19.3.0",
         "4.40.1",
-        "5.4.0",
+        "6.99.0-scenedesign.1",
         "11.2.2",
         "8.0.2",
         "1.68.0",

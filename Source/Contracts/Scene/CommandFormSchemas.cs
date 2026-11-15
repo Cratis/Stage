@@ -41,7 +41,7 @@ public static class CommandFormSchemas
     /// <param name="path">The owning command path.</param>
     /// <param name="location">The source location supplied by the caller.</param>
     /// <returns>The complete schema, or null if any type cannot be translated.</returns>
-    public static string? For(SemanticApplication application, IEnumerable<SemanticProperty> properties, ConversionDiagnostics? diagnostics, string path, SourceLocation location)
+    public static string? For(SemanticApplication application, IEnumerable<SemanticProperty> properties, global::Cratis.Scene.Screenplay.ConversionDiagnostics? diagnostics, string path, SourceLocation location)
     {
         if (diagnostics is null) return For(application, properties);
         var all = properties.ToArray();

@@ -1,9 +1,9 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Scene.Screenplay.Forward;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Scene;
-using Cratis.Stage.Contracts.Scene.for_SceneRuntimeAdmission.given;
 using Cratis.Stage.Rendering.Cratis.Scene;
 using Xunit;
 
@@ -16,7 +16,7 @@ public class when_refusing_contains_field_types : given.a_screen_composition_ren
     {
         foreach (var action in new[] { false, true })
         {
-            var scene = new ScreenplaySceneVisitor().Visit(contains_guard_application.Create("String", action, "open"));
+            var scene = new ScreenplaySceneVisitor().Visit(given.contains_guard_application.Create("String", action, "open"));
             var plan = Plan(CanonicalSceneJson.Serialize(scene));
             plan.Success.ShouldBeTrue();
             plan.Diagnostics.ShouldBeEmpty();
@@ -38,7 +38,7 @@ public class when_refusing_contains_field_types : given.a_screen_composition_ren
     {
         foreach (var action in new[] { false, true })
         {
-            var scene = new ScreenplaySceneVisitor().Visit(contains_guard_application.Create(fieldType, action, literal));
+            var scene = new ScreenplaySceneVisitor().Visit(given.contains_guard_application.Create(fieldType, action, literal));
             var code = action ? UnsupportedGuardedScreenAction.DiagnosticCode : UnsupportedGuardedInteraction.DiagnosticCode;
             scene.RuntimeIssues.Select(issue => issue.Code).ShouldContainOnly(code);
             var plan = Plan(CanonicalSceneJson.Serialize(scene));

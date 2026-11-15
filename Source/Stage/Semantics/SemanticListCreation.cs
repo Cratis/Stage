@@ -36,7 +36,7 @@ internal sealed class SemanticListCreation
         _candidateEvents = [.. _projections.SelectMany(projection => CandidateEvents(projection, _models.Single(readModel => readModel.Id == projection.ReadModel)))];
     }
 
-    internal bool Creates(SemanticCommand command, ConversionDiagnostics diagnostics, string path)
+    internal bool Creates(SemanticCommand command, global::Cratis.Scene.Screenplay.ConversionDiagnostics diagnostics, string path)
     {
         if (command.Properties.All(property => !property.IsIdentifier || property.IsGenerated)) return true;
 

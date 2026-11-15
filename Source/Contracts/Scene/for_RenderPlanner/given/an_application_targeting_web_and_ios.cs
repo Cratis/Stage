@@ -7,6 +7,7 @@ using Cratis.Scene.Model.Packages;
 using Cratis.Scene.Model.Profiles;
 using Cratis.Scene.Model.Screens;
 using Cratis.Scene.Model.SizeClasses;
+using Cratis.Scene.Screenplay.Forward;
 using Cratis.Specifications;
 
 namespace Cratis.Stage.Contracts.Scene.for_RenderPlanner.given;

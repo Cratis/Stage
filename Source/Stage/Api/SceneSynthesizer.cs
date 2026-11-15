@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Text.Json;
+using Cratis.Scene.Screenplay.Forward;
 using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts;
@@ -82,7 +83,7 @@ public static class SceneSynthesizer
     {
         var slices = SemanticModelWalker.Slices(model).ToArray();
         var readModels = slices.SelectMany(located => located.Slice.ReadModels).ToDictionary(readModel => readModel.Id);
-        var diagnostics = new ConversionDiagnostics();
+        var diagnostics = new global::Cratis.Scene.Screenplay.ConversionDiagnostics();
         var commands = slices
             .SelectMany(located => located.Slice.Commands)
             .GroupBy(command => command.Name, StringComparer.Ordinal)

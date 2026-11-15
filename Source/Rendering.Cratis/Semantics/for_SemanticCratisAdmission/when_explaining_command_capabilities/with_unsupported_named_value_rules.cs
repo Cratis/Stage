@@ -32,6 +32,6 @@ public class with_unsupported_named_value_rules : given.a_command_model
         SetModel(("concept Status : Enum\n  draft\n  issued\n" + Source).Replace("        produces InvoiceIssued", "        status Status[] optional\n        validate\n          status not empty\n        produces InvoiceIssued", StringComparison.Ordinal));
         Evaluate();
         _diagnostics.Single().Code.ShouldEqual("STAGE-ESM-005");
-        Messages.Single().ShouldContain("Collection rules, 'not empty', ordering, and other predicates remain unsupported");
+        Messages.Single().ShouldContain("Collection rules, 'not empty', ordering, and other predicates remain unsupported (Cratis/Stage#962).");
     }
 }

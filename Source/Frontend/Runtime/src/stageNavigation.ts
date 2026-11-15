@@ -71,6 +71,11 @@ export function screenPathWith(screen: string, parameters: Record<string, string
     return serialized ? `/${encodeURIComponent(screen)}?${serialized}` : `/${encodeURIComponent(screen)}`;
 }
 
+/** The link addressing a screen in the application's configured routing mode. */
+export function screenHref(screen: string): string {
+    return routing === 'path' ? screenPathWith(screen) : screenHashWith(screen);
+}
+
 /**
  * Turns an interaction's navigation arguments into screen parameters: every argument with a value, as text, the way
  * it appears in the address. An argument without a value is left out rather than written as `undefined`.

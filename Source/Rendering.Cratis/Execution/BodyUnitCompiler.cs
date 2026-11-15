@@ -65,7 +65,8 @@ public static partial class BodyUnitCompiler
             {
                 BodySha256 = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(body!))),
                 PropertyNames = PropertyNames(context),
-                PropertyPaths = PropertyPaths(context, descriptor!)
+                PropertyPaths = PropertyPaths(context, descriptor!),
+                EnumValues = EnumValues(context)
             });
             return Build(new(context, requirement, descriptor!, cacheDirectory, emitting), build);
         }

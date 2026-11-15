@@ -66,7 +66,7 @@ internal static class SemanticStoredSchemas
     }
 
     /// <summary>
-    /// Gets the schema to register for an event type: exact decimals for a type the kernel does not hold, the stored shape for one it does, and
+    /// Gets the schema to register for an event type: exact decimals and DateTime text for a new type, the stored formats for one the kernel holds, and
     /// the default shape when the stored one is not known or the event type belongs to another store.
     /// </summary>
     /// <param name="event">The event contract.</param>
@@ -80,8 +80,8 @@ internal static class SemanticStoredSchemas
 
         return stored.State switch
         {
-            SemanticStoredSchemaState.NotRegistered => SemanticSchemas.WithDecimalFormats(JsonNode.Parse(built)!.AsObject(), null).ToJsonString(),
-            SemanticStoredSchemaState.Stored => SemanticSchemas.WithDecimalFormats(JsonNode.Parse(built)!.AsObject(), stored.Schema).ToJsonString(),
+            SemanticStoredSchemaState.NotRegistered => SemanticDateTimeSchemas.ForStorage(SemanticSchemas.WithDecimalFormats(JsonNode.Parse(built)!.AsObject(), null), null).ToJsonString(),
+            SemanticStoredSchemaState.Stored => SemanticDateTimeSchemas.ForStorage(SemanticSchemas.WithDecimalFormats(JsonNode.Parse(built)!.AsObject(), stored.Schema), stored.Schema).ToJsonString(),
             _ => built
         };
     }
@@ -105,18 +105,29 @@ internal static class SemanticStoredSchemas
         foreach (var @event in plan.Events.Values)
         {
             var state = stored[SemanticStoredEventNames.Of(@event)];
-            if (Uses(@event, plan.Model.Application, SemanticPrimitiveType.DecimalNumber) &&
-                (state.State != SemanticStoredSchemaState.NotRegistered || SemanticPublicEvents.IsForeign(@event)) &&
-                !state.IsExactDecimal)
+            if (NeedsDecimalWarning(@event, plan.Model.Application, state))
             {
                 yield return Warning(LegacyDecimal, $"Event '{@event.Name}' has a decimal property, but its stored schema does not keep decimals exactly. The application starts, and a restart will refuse this event log. Use a new event type to get exact decimals.");
             }
 
-            if (Uses(@event, plan.Model.Application, SemanticPrimitiveType.DateTime))
-            {
-                yield return Warning(DateTimeProperty, $"Event '{@event.Name}' has a date and time property, which Chronicle storage cannot read back exactly. The application starts, and a restart will refuse this event log once an event of this type is stored.");
-            }
+            foreach (var warning in DateTimeWarnings(@event, plan.Model.Application, state)) yield return warning;
         }
+    }
+
+    internal static string DateTimeRefusal(string eventName, string path) =>
+        $"Event '{eventName}' property '{path}' has a DateTime whose offset was not stored exactly. Start a new history with a new event type to preserve the offset and precision.";
+
+    static bool HasRegistration(SemanticEventContract @event, SemanticStoredSchema state) =>
+        state.State != SemanticStoredSchemaState.NotRegistered || SemanticPublicEvents.IsForeign(@event);
+
+    static bool NeedsDecimalWarning(SemanticEventContract @event, SemanticApplication application, SemanticStoredSchema state) =>
+        HasRegistration(@event, state) && !state.IsExactDecimal && Uses(@event, application, SemanticPrimitiveType.DecimalNumber);
+
+    static IEnumerable<SemanticModelLoadDiagnostic> DateTimeWarnings(SemanticEventContract @event, SemanticApplication application, SemanticStoredSchema state)
+    {
+        if (!HasRegistration(@event, state)) return [];
+        var built = JsonNode.Parse(SemanticSchemas.Schema(@event.Properties, application))!.AsObject();
+        return SemanticDateTimeSchemas.LossyProperties(built, state.Schema).Select(path => Warning(DateTimeProperty, DateTimeRefusal(@event.Name, path)));
     }
 
     static async Task<SemanticStoredSchema> Read(IChronicleServicesAccessor accessor, string store, string name)

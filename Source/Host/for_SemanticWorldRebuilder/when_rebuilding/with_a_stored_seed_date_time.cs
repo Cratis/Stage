@@ -17,7 +17,10 @@ public class with_a_stored_seed_date_time : a_stored_typed_event
         _stored.Context.CausedBy = new() { Subject = SemanticChronicleRegistration.SeedSubject };
     }
 
-    void Because() => _error = Catch.Exception(() => SemanticWorldRebuilder.Fact(_typedPlan, _stored));
+    void Because() => _error = Catch.Exception(() => SemanticWorldRebuilder.Fact(_typedPlan, _stored, evidence: Evidence));
 
-    [Fact] void should_accept_the_stored_seed_event() => _error.ShouldBeNull();
+    [Fact] void should_refuse_the_lossy_stored_seed() => _error.ShouldBeOfExactType<SemanticWorldRebuildRefused>();
+    [Fact] void should_name_the_event_type() => _error.Message.ShouldContain("ProjectRegistered");
+    [Fact] void should_name_the_refused_property() => _error.Message.ShouldContain("value");
+    [Fact] void should_require_a_new_history() => _error.Message.ShouldContain("Start a new history");
 }

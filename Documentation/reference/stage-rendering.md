@@ -1090,9 +1090,22 @@ has no place to be under and goes under "Other screens".
 ### Navigation host, outlets, dialogs and toolbars
 
 The Stage does not keep a navigation state of its own. Where the user is - the screen in the primary region, the screens
-in nested outlets, the dialog on top - and the address (`#/Screen?parameter=value`) that reaches it belong to the Scene
-navigation host (`useSceneHistoryNavigation` over `createHashSceneHistory`), the same way a generated or embedded host
-runs them. Destinations resolve through Scene: a `core:outlet` renders the screen placed in it inside the Stage's data
+in nested outlets, the dialog on top - belong to the Scene navigation host (`ApplicationHost`), the same way a generated or
+embedded host runs them. The address that reaches it belongs to the Stage's own scene router (`createStageSceneRouting`),
+which gives the navigation host its history and keeps routed slots, chosen tabs and filter values in the same address.
+Only routed slot changes and chosen tabs are history entries; a filter replaces the current entry, and a dialog or drawer
+opened over the page leaves the address unchanged.
+
+The `App` component's `routing` option decides how screens are addressed:
+
+| `routing` | Address | Requirement |
+| --- | --- | --- |
+| `hash` (default) | `#/Screen?parameter=value` | None: the page is served from one path. |
+| `path` | `/Screen?parameter=value` | The host answers every path with the page. |
+
+The Stage's own frontend uses `path` when it is served from the root and `hash` when it is hosted under a base path
+(behind a reverse-proxy prefix). Under `path`, an address written the earlier way (`/#/Screen`) is rewritten to the
+route it stands for. Destinations resolve through Scene: a `core:outlet` renders the screen placed in it inside the Stage's data
 scope, a dialog destination opens the authored dialog template and closing it goes back, and an address that stands for an
 outlet destination restores the whole composition (the list with its details beside it), not just the details.
 

@@ -158,14 +158,13 @@ describe('when a modeled interaction is clicked', () => {
         vi.stubGlobal('fetch', fetched);
 
         render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
-        await screen.findByRole('button', { name: 'Cancel invoice' });
+        await screen.findByRole('heading', { name: 'Preparing the Stage' });
 
-        // The scene can render before the independent routes lookup finishes. A click then reports
-        // "waiting for Stage routes", not an unknown command. Finish that lookup before exercising it.
+        // Screen admission waits for the routes lookup, which also carries the screen gate map.
         await act(async () => {
             completeRoutes({ ok: true, json: () => Promise.resolve({ commands: {}, queries: {} }) } as Response);
         });
-        fireEvent.click(screen.getByRole('button', { name: 'Cancel invoice' }));
+        fireEvent.click(await screen.findByRole('button', { name: 'Cancel invoice' }));
 
         await screen.findByText(/not registered by this Stage/);
     });
@@ -246,7 +245,8 @@ describe('when a modeled interaction is clicked', () => {
         }));
 
         render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
-        expect(await screen.findByText(/waiting for Stage routes/)).toBeDefined();
+        // Wait for the screen gate map before mounting any screen, not just before enabling its forms.
+        expect(await screen.findByRole('heading', { name: 'Preparing the Stage' })).toBeDefined();
         registerTestCommand('RegisterOrder', '/api/orders/register', { orderNumber: { type: 'string' } });
         loadRoutes?.({ ok: true, json: () => Promise.resolve({ commands: { RegisterOrder: '/api/orders/register' }, queries: {} }) } as Response);
 

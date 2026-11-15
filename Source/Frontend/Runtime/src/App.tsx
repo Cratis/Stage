@@ -74,6 +74,8 @@ import { asDialogScreens } from './stageDialogScreens';
 import { StageRouteShapeContext, createStageSceneRouting, stageRouteShapeOf, useStageSceneRouter } from './stageSceneRouting';
 import { StageOutletsScope } from './stageOutlets';
 import { stageIconAdapters } from './stageIcons';
+import { ScreenAvailabilityGuard, ScreenRoutesReady, useScreenAvailability } from './screenAvailability';
+import { availableNavigationScene } from './availableNavigationScene';
 import './app.css';
 
 export interface StageSceneApplication {
@@ -276,7 +278,7 @@ export function App({ components, packageCatalog, screenTemplates, dialogTemplat
 
     if (error) return <main className='stage-message'><h1>Unable to render this Stage</h1><p>{error}</p></main>;
     if (!scene) return <main className='stage-message'><h1>Preparing the Stage</h1></main>;
-    return <StageApplication scene={scene} registry={registry} routing={routing} routeState={routeState} strings={strings} packageCatalog={packageCatalog} screenTemplates={screenTemplates} isVisible={isVisible} />;
+    return <ScreenRoutesReady ready={routeState.ready}><StageApplication scene={scene} registry={registry} routing={routing} routeState={routeState} strings={strings} packageCatalog={packageCatalog} screenTemplates={screenTemplates} isVisible={isVisible} /></ScreenRoutesReady>;
 }
 
 interface StageApplicationProps {
@@ -297,7 +299,29 @@ interface StageApplicationProps {
  * topbar and sidebar are the effective navigation regions. The Stage supplies what is its own: the shell chrome, the data and
  * the commands the screens run against.
  */
+function refusedScreenRoutes(scene: StageSceneApplication, navigable: StageSceneApplication): Screen[] {
+    const available = new Set(navigable.screens.map(screen => screen.name));
+    return scene.screens.filter(screen => !available.has(screen.name))
+        .map(screen => ({ ...screen, screenTemplate: undefined, contributions: [], slotContent: {}, outletContributions: [], forms: [], behaviors: [] }));
+}
+
+function EmptyScene({ scene, isAvailable }: { scene: StageSceneApplication; isAvailable: (screen: string | undefined) => boolean }) {
+    if (scene.screens.length > 0) {
+        return <ScreenAvailabilityGuard screens={scene.screens.map(screen => screen.name)} isAvailable={isAvailable}>{null}</ScreenAvailabilityGuard>;
+    }
+    return (
+        <main className='stage-message'>
+            <h1>Nothing to show yet</h1>
+            <p>This model has no slice carrying a command or a read model, so there is no screen to render.</p>
+        </main>
+    );
+}
+
 function StageApplication({ scene, registry, routing, routeState, strings, packageCatalog, screenTemplates, isVisible }: StageApplicationProps) {
+    const isScreenAvailable = useScreenAvailability(routeState.routes, routeState.failed);
+    const navigableScene = useMemo(() => availableNavigationScene({ ...scene, navigationTemplates: [...galleryScreenTemplates, ...(screenTemplates ?? [])] }, isScreenAvailable), [scene, screenTemplates, isScreenAvailable]);
+    const refusedRoutes = useMemo(() => refusedScreenRoutes(scene, navigableScene), [scene, navigableScene]);
+    const safeScene = useMemo(() => ({ ...navigableScene, screens: [...navigableScene.screens, ...refusedRoutes] }), [navigableScene, refusedRoutes]);
     const routeShape = useMemo(() => stageRouteShapeOf(scene), [scene]);
     const sceneRouting = useMemo(() => {
         useStageRouting(routing);
@@ -315,9 +339,9 @@ function StageApplication({ scene, registry, routing, routeState, strings, packa
     const history = sceneRouting.history;
     const [prefersDark, setPrefersDark] = useState(systemPrefersDark);
     const notes = useStageNotes();
-    const initial = scene.screens[0]?.name ?? '';
-    const profile = useMemo(() => stageProfile(scene.uiProfiles), [scene]);
-    const shell = useMemo(() => initial ? stageShellOf(scene, screenTemplates) : undefined, [scene, screenTemplates, initial]);
+    const initial = navigableScene.screens[0]?.name ?? '';
+    const profile = useMemo(() => stageProfile(navigableScene.uiProfiles), [navigableScene]);
+    const shell = useMemo(() => initial ? stageShellOf(navigableScene, navigableScene.navigationTemplates) : undefined, [navigableScene, initial]);
     const shellProblems = useMemo(() => shell ? shellStartupProblems(profile, shell) : [], [profile, shell]);
     const shellSettings = useMemo(() => shell ? stageShellSettings(profile, shell, prefersDark) : undefined, [profile, shell, prefersDark]);
     const themes = useMemo(() => themesWithAccent(defaultBlueprintThemes, shellSettings?.accent), [shellSettings?.accent]);
@@ -325,24 +349,17 @@ function StageApplication({ scene, registry, routing, routeState, strings, packa
     const source = useStageSource();
     const showActingUser = !!source.actingUser && !!source.selectActingUser;
     const composition = useMemo(
-        () => stageComposition(scene, strings.locales, strings.locale, packageCatalog, strings.dictionary, screenTemplates, showFooter, showThemeSwitcher, showActingUser),
-        [scene, strings.locales, strings.locale, strings.dictionary, packageCatalog, screenTemplates, showFooter, showThemeSwitcher, showActingUser]);
+        () => ({ ...stageComposition(navigableScene, strings.locales, strings.locale, packageCatalog, strings.dictionary, navigableScene.navigationTemplates, showFooter, showThemeSwitcher, showActingUser), blueprintTemplates: navigableScene.navigationTemplates }),
+        [navigableScene, strings.locales, strings.locale, strings.dictionary, packageCatalog, showFooter, showThemeSwitcher, showActingUser]);
     const onSystemSchemeChange = useCallback((dark: boolean) => setPrefersDark(dark), []);
-    const navigationModel = useMemo(() => stageNavigationModel(scene, isVisible, strings.dictionary), [scene, isVisible, strings.dictionary]);
+    const navigationModel = useMemo(() => stageNavigationModel(navigableScene, isVisible, strings.dictionary), [navigableScene, isVisible, strings.dictionary]);
     // Own templates come first: a template of the application wins over a blueprint's of the same name, as in composition.
     const document = useMemo(() => ({
-        ...scene,
-        screens: asDialogScreens(withoutSeededSlots(scene.screens, [...scene.screenTemplates, ...(scene.dialogTemplates ?? []), ...galleryScreenTemplates, ...(screenTemplates ?? [])]), ownTemplatesOf(scene)),
-    }) as ApplicationDocument, [scene, screenTemplates]);
+        ...safeScene,
+        screens: [...asDialogScreens(withoutSeededSlots(navigableScene.screens, [...navigableScene.screenTemplates, ...(navigableScene.dialogTemplates ?? []), ...navigableScene.navigationTemplates]), ownTemplatesOf(navigableScene)), ...refusedRoutes],
+    }) as ApplicationDocument, [navigableScene, safeScene, refusedRoutes]);
 
-    if (!initial) {
-        return (
-            <main className='stage-message'>
-                <h1>Nothing to show yet</h1>
-                <p>This model has no slice carrying a command or a read model, so there is no screen to render.</p>
-            </main>
-        );
-    }
+    if (!initial) return <EmptyScene scene={scene} isAvailable={isScreenAvailable} />;
 
     // A root template that cannot be the shell stops the application with the reason, rather than drawing it in some other shell.
     if (shellProblems.length > 0) {
@@ -364,7 +381,11 @@ function StageApplication({ scene, registry, routing, routeState, strings, packa
             initialScreen={initial}
             history={history}
             layoutConfigStorage={browserStorage()}
-            scope={(navigation, children) => <StageScope scene={scene} notes={notes} routeState={routeState} strings={strings} navigation={navigation} themes={themes} shellSettings={shellSettings} onSystemSchemeChange={onSystemSchemeChange}>{children}</StageScope>}
+            scope={(navigation, children) => <ScreenAvailabilityGuard
+                screens={[navigation.primaryScreen, navigation.currentScreen, navigation.currentDialog, ...Object.values(navigation.slots), ...Object.values(router.state.slots).map(slot => slot.screen)]}
+                isAvailable={isScreenAvailable}>
+                <StageScope scene={safeScene} notes={notes} routeState={routeState} strings={strings} navigation={navigation} themes={themes} shellSettings={shellSettings} onSystemSchemeChange={onSystemSchemeChange}>{children}</StageScope>
+            </ScreenAvailabilityGuard>}
             renderScreen={(element, configuration) => <StageScreen element={element} configuration={configuration} registry={registry} />}
             renderDialog={() => <StageSliceDialog />}
             renderDialogTemplate={(template, content, navigation) => <StageDialog template={template} content={content} registry={registry} strings={strings} close={() => navigation.closeDialog()} />}

@@ -37,7 +37,8 @@ internal sealed class StageLifecycleEffects(SemanticExecutionPlan plan, ISemanti
     public async Task Send(SemanticCommand command, SemanticValue key, ImmutableArray<SemanticPropertyValue> subject)
     {
         var text = LifecycleSubjects.KeyText(key);
-        var payload = LifecycleSubjects.CommandPayload(plan, command, text);
+        var source = LifecycleSubjects.CommandSource(plan, command, subject);
+        var payload = LifecycleSubjects.CommandPayload(plan, command, text, source);
         var occurrence = new SemanticCommandOccurrence(DateTimeOffset.UtcNow, "state-machine", "state-machine", "state-machine");
         var result = await runtime.Execute(command, payload, new ClaimsPrincipal(), occurrence, false);
         if (result is not SemanticAccepted)

@@ -94,6 +94,43 @@ public class when_running_a_lifecycle_on_the_silo
         Assert.Contains("Pause", await lifecycle.WaitingAt("Collect"));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task should_send_the_typed_subject_status_on_state_entry(bool optionalNull)
+    {
+        await using var lifecycle = await Start(StampSource(optionalNull));
+        await lifecycle.Execute("RegisterInvoice", Register);
+        await lifecycle.Execute("SendInvoice");
+
+        await lifecycle.Eventually(() => lifecycle.Count("InvoiceStamped") == 1);
+        var expected = optionalNull ? SemanticValue.Null : SemanticValue.Text("sent");
+        Assert.Equal(expected, lifecycle.StampedStatus());
+        Assert.Equal(["sent"], [.. await lifecycle.States()]);
+    }
+
+    static string StampSource(bool optionalNull)
+    {
+        const string stamp = """
+            slice StateChange StampInvoiceSlice
+              command StampInvoice
+                invoiceId InvoiceId identifier
+                status String
+                produces InvoiceStamped
+                  for invoiceId
+                  status = status
+              event InvoiceStamped
+                status String
+        """;
+        var source = _fast
+            .Replace("    slice StateView InvoiceView", stamp + "\n    slice StateView InvoiceView", StringComparison.Ordinal)
+            .Replace("entering invokes ChargeFee", "entering invokes StampInvoice", StringComparison.Ordinal);
+        return optionalNull ? source
+            .Replace("status String", "status String?", StringComparison.Ordinal)
+            .Replace("status    String", "status    String?", StringComparison.Ordinal)
+            .Replace("status = \"sent\"", "status = null", StringComparison.Ordinal) : source;
+    }
+
     static void Register(Dictionary<string, JsonElement> payload) =>
         payload["lines"] = JsonSerializer.SerializeToElement(new[] { new { sku = "A" }, new { sku = "B" } });
 
@@ -136,6 +173,8 @@ public class when_running_a_lifecycle_on_the_silo
         const string Invoice = a_lifecycle_source.InvoiceId;
 
         public int Count(string @event) => log.Facts.Count(fact => plan.Events[fact.EventContract].Name == @event);
+
+        public SemanticValue StampedStatus() => log.Facts.Single(fact => plan.Events[fact.EventContract].Name == "InvoiceStamped").Values.Single().Value;
 
         public async Task Execute(string command, Action<Dictionary<string, JsonElement>>? configure = null)
         {

@@ -185,9 +185,14 @@ CHECKS = {"=": lambda a, b: a == b, ">=": lambda a, b: a >= b, ">": lambda a, b:
 
 def satisfies(version, peer_range):
     """Evaluate an npm peer range for an exact stable version; unsupported syntax fails closed."""
+    alternatives = parse_range(peer_range)
     target = semver(version)
-    return any(all(CHECKS[operator](target, bound) for operator, bound in range_bounds(alternative))
-               for alternative in peer_range.split("||"))
+    return any(all(CHECKS[operator](target, bound) for operator, bound in bounds) for bounds in alternatives)
+
+
+def parse_range(peer_range):
+    # Parse every OR alternative and every AND comparator before evaluation can short-circuit.
+    return [range_bounds(alternative) for alternative in peer_range.split("||")]
 
 
 def range_bounds(alternative):
@@ -501,6 +506,11 @@ class RenderedPinSynchronization(unittest.TestCase):
             with self.subTest(peer_range=peer_range), self.assertRaises(ValueError):
                 satisfies("1.2.3", peer_range)
         self.assertTrue(satisfies("1.2.3", ">= 1.0.0  < 2"))
+
+    def test_validates_the_complete_range_before_evaluating_matches(self):
+        for peer_range in ("* || ~>1.2.3", "1.x || <", ">2.0.0 <", "* || >2.0.0 ~>1.2.3"):
+            with self.subTest(peer_range=peer_range), self.assertRaises(ValueError):
+                satisfies("1.2.3", peer_range)
 
     def test_wildcard_upper_bounds_are_unrestricted(self):
         for peer_range in ("<=*", "<=x", ">=*", "*", "x"):

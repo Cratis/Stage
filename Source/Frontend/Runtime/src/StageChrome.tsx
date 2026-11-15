@@ -2,15 +2,16 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { writeThemeChoice } from './stageThemeChoice';
-import { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext, type MouseEvent, type ReactNode } from 'react';
 import type { ComponentRegistry, RegisteredComponentProps } from '@cratis/scene.react';
 import { SceneNavigationContextInternal, useSceneTheme } from '@cratis/scene.react';
 import { useEffect } from 'react';
 import { ColorScheme, useLayoutConfig, defaultBlueprintThemes } from '@cratis/scene.blueprint.default';
 import { NotesButton } from '@cratis/showrunner.notes.react';
-import { screenHash, stageLocaleComponent, stageNotesComponent, stageActingUserComponent, stageNavigationTreeComponent, stageThemeToggleComponent } from './blueprint';
+import { stageLocaleComponent, stageNotesComponent, stageActingUserComponent, stageNavigationTreeComponent, stageThemeToggleComponent } from './blueprint';
 import { opensElsewhere, type NavigationNode } from './navigationTree';
 import { externalRouteHref } from './externalRouteHref';
+import { navigateToScreen, screenHref } from './stageNavigation';
 import { StageSlot } from './stageSlot';
 import { SandboxActingUser } from './SandboxActingUser';
 
@@ -124,33 +125,56 @@ function NavigationLevel({ nodes, activeScreen }: { nodes: NavigationNode[]; act
  * executed through the Scene navigation host, the same as a toolbar item; an external route is an ordinary link.
  */
 function NavigationEntryLink({ node, screen, activeScreen }: { node: NavigationNode; screen: string; activeScreen?: string }) {
-    const navigation = useContext(SceneNavigationContextInternal);
     const mode = node.presentation === 'icon' || node.presentation === 'text' ? node.presentation : 'both';
-    const destination = node.destination;
-    const external = destination?.kind === 'external';
-    const execute = destination && navigation && !external && opensElsewhere(destination)
-        ? (event: { preventDefault: () => void }) => {
-            event.preventDefault();
-            navigation.navigate(destination);
-        }
-        : undefined;
-    const href = external ? externalRouteHref(destination.route) : screenHash(screen);
-    const refused = external && href === undefined;
+    const execute = useNavigationEntryAction(node.destination, screen);
 
     return (
         <a
-            href={href}
-            rel={external && !refused ? 'noreferrer' : undefined}
-            aria-disabled={refused ? 'true' : undefined}
+            {...navigationLinkAddress(node.destination, screen)}
             aria-current={screen === activeScreen ? 'page' : undefined}
             aria-label={mode === 'icon' ? node.label : undefined}
             data-presentation={node.presentation}
             data-icon={node.icon}
             onClick={execute}>
-            {mode !== 'text' && node.icon && <span className='stage-navigation-icon' aria-hidden='true' data-icon-name={node.icon} />}
-            {mode !== 'icon' && node.label}
+            <NavigationEntryLabel node={node} mode={mode} />
         </a>
     );
+}
+
+function NavigationEntryLabel({ node, mode }: { node: NavigationNode; mode: 'icon' | 'text' | 'both' }) {
+    return <>
+        {mode !== 'text' && node.icon && <span className='stage-navigation-icon' aria-hidden='true' data-icon-name={node.icon} />}
+        {mode !== 'icon' && node.label}
+    </>;
+}
+
+function navigationLinkAddress(destination: NavigationNode['destination'], screen: string) {
+    if (destination?.kind !== 'external') return { href: screenHref(screen) };
+    const href = externalRouteHref(destination.route);
+    return {
+        href,
+        rel: href === undefined ? undefined : 'noreferrer',
+        'aria-disabled': href === undefined ? 'true' as const : undefined,
+    };
+}
+
+function useNavigationEntryAction(destination: NavigationNode['destination'], screen: string) {
+    const navigation = useContext(SceneNavigationContextInternal);
+    if (destination?.kind === 'external') return undefined;
+    if (destination && navigation && opensElsewhere(destination)) {
+        return (event: MouseEvent<HTMLAnchorElement>) => {
+            event.preventDefault();
+            navigation.navigate(destination);
+        };
+    }
+
+    return (event: MouseEvent<HTMLAnchorElement>) => followScreenLink(event, screen);
+}
+
+function followScreenLink(event: MouseEvent<HTMLAnchorElement>, screen: string) {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    navigateToScreen(screen);
 }
 
 export { StageSlot };

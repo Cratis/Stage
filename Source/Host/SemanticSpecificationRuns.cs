@@ -37,13 +37,14 @@ internal static class SemanticSpecificationRuns
         }
 
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(options.Timeout);
         var directory = Path.Combine(Path.GetTempPath(), $"stage-specifications-{Guid.NewGuid():N}");
         var acquired = false;
         try
         {
-            await _processGate.WaitAsync(deadline.Token);
+            // The execution budget starts once the gate is held; only the client can cancel queueing.
+            await _processGate.WaitAsync(cancellationToken);
             acquired = true;
+            deadline.CancelAfter(options.Timeout);
             Directory.CreateDirectory(directory);
             var output = Path.Combine(directory, "results.json");
             var start = new ProcessStartInfo("dotnet")

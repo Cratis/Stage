@@ -135,7 +135,9 @@ def semver(version):
 
 
 PARTIAL = re.compile(r"v?((?:0|[1-9][0-9]*|[xX*])(?:\.(?:0|[1-9][0-9]*|[xX*])){0,2})\Z")
-COMPARATOR = re.compile(r"(<=|>=|<|>|=|\^|~)?\s*([^\s<>=^~]+)")
+OPERATOR = r"(<=|>=|<|>|=|\^|~)"
+COMPARATOR = re.compile(OPERATOR + r"?(.+)")
+SEARCH_LIMIT = 10000
 
 
 def partial(text):
@@ -158,7 +160,7 @@ def comparators(operator, text):
     # Translate one npm comparator into (operator, exact version) bounds; partial versions are x-ranges.
     parts = partial(text)
     if not parts:
-        return [] if operator in (None, "=", ">=", "^", "~") else [("<", (0, 0, 0))]
+        return [] if operator in (None, "=", ">=", "<=", "^", "~") else [("<", (0, 0, 0))]
     low = tuple(parts + [0] * (3 - len(parts)))
     last = len(parts) - 1
     if operator in (None, "="):
@@ -192,8 +194,16 @@ def range_bounds(alternative):
     hyphen = re.fullmatch(r"\s*(\S+)\s+-\s+(\S+)\s*", alternative)
     if hyphen:
         return comparators(">=", hyphen[1]) + ceiling(partial(hyphen[2]))
-    tokens = COMPARATOR.findall(alternative.strip())
-    return [bound for operator, text in tokens for bound in comparators(operator or None, text)]
+    # Every whitespace-separated token must be one whole comparator; anything else fails closed.
+    tokens = re.sub(OPERATOR + r"\s+", r"\1", alternative.strip()).split()
+    return [bound for token in tokens for bound in comparators(*comparator(token))]
+
+
+def comparator(token):
+    match = COMPARATOR.fullmatch(token)
+    if not match:
+        raise ValueError(f"Unsupported comparator in peer range: {token!r}")
+    return match[1], match[2]
 
 
 def ceiling(upper):
@@ -227,22 +237,58 @@ def unmet(peers, selection):
 
 
 def hold_back(families, selection):
-    """Choose the newest release of every family whose Cratis peer ranges accept the whole selection.
+    """Choose the newest releases whose Cratis peer ranges accept one another and the fixed selection.
 
-    The Arc family is fixed by the central NuGet pin and is never held back. A family whose peers reject
-    the selection moves to its next older release, down to the current pin; if none fits, there is no
-    supported update and the run stops before npm instead of failing in lockfile generation.
+    The Arc family is fixed by the central NuGet pin and is never held back. Every other family is tried
+    newest first, down to its current pin, with backtracking across families so an older release of one
+    family can make another family's release fit. If no combination fits, there is no supported update
+    and the run stops before npm instead of failing in lockfile generation.
     """
-    choice = dict.fromkeys(families, 0)
-    while True:
-        chosen = {**selection, **{name: families[key][1][choice[key]][0] for key in families for name in families[key][0]}}
-        conflict = next(((key, problem) for key in families if (problem := unmet(families[key][1][choice[key]][1], chosen))), None)
-        if conflict is None:
+    viable = {key: viable_releases(*families[key], selection) for key in sorted(families)}
+    search = ReleaseSearch(families, viable)
+    chosen = search.first(list(viable), selection, [])
+    if chosen is None:
+        family_key, version, (peer, peer_range) = search.conflicts[0]
+        raise ValueError(f"No compatible update: no combination of {', '.join(viable)} releases satisfies their peer "
+                         f"ranges (for example {family_key} {version} breaks {peer} {peer_range})")
+    return chosen
+
+
+def viable_releases(names, options, selection):
+    # Releases whose peers already reject the fixed Arc selection can never be part of a compatible set.
+    kept = [(version, peers) for version, peers in options if unmet(peers, selection) is None]
+    if not kept:
+        raise no_compatible_update(names, options, unmet(options[-1][1], selection), selection)
+    return kept
+
+
+class ReleaseSearch:
+    """Depth-first search over families, newest release first, bounded by SEARCH_LIMIT candidates."""
+
+    def __init__(self, families, viable):
+        self.families, self.viable = families, viable
+        self.budget, self.conflicts = SEARCH_LIMIT, []
+
+    def first(self, keys, chosen, constraints):
+        if not keys:
             return chosen
-        key, problem = conflict
-        choice[key] += 1
-        if choice[key] == len(families[key][1]):
-            raise no_compatible_update(*families[key], problem, chosen)
+        for version, peers in self.viable[keys[0]]:
+            attempt = self.attempt(keys[0], version, chosen)
+            problem = unmet([*constraints, *peers], attempt)
+            if problem:
+                self.conflicts.append((keys[0], version, problem))
+                continue
+            found = self.first(keys[1:], attempt, [*constraints, *peers])
+            if found is not None:
+                return found
+        return None
+
+    def attempt(self, key, version, chosen):
+        self.budget -= 1
+        if self.budget < 0:
+            raise ValueError(f"No compatible update found within {SEARCH_LIMIT} candidate combinations; "
+                             "narrow the update or raise SEARCH_LIMIT")
+        return {**chosen, **dict.fromkeys(self.families[key][0], version)}
 
 
 def no_compatible_update(names, options, problem, chosen):
@@ -449,6 +495,57 @@ class RenderedPinSynchronization(unittest.TestCase):
                         self.assertEqual(satisfies(version, peer_range), expected)
         with self.assertRaises(ValueError):
             satisfies("23.8.0", ">=23.0.0-beta")
+
+    def test_unsupported_comparators_fail_closed(self):
+        for peer_range in ("~>1.2.3", "<", ">=", "^", "1.2.3 garbage", ">=1.0.0 <", "1 - 2 - 3", "1.2.3>=1.0.0"):
+            with self.subTest(peer_range=peer_range), self.assertRaises(ValueError):
+                satisfies("1.2.3", peer_range)
+        self.assertTrue(satisfies("1.2.3", ">= 1.0.0  < 2"))
+
+    def test_wildcard_upper_bounds_are_unrestricted(self):
+        for peer_range in ("<=*", "<=x", ">=*", "*", "x"):
+            with self.subTest(peer_range=peer_range):
+                self.assertTrue(satisfies("23.8.0", peer_range))
+        self.assertFalse(satisfies("23.8.0", "<*"))
+
+    def test_backtracks_to_an_older_release_of_a_later_family(self):
+        # Greedy selection exhausts A (its only release needs B ^1) before ever trying B 1.0.0.
+        major = semver(self.arc)[0]
+        families = {"@cratis/a": (["@cratis/a"], [("1.0.0", [("@cratis/b", "^1.0.0")])]),
+                    "@cratis/b": (["@cratis/b"], [("2.0.0", []), ("1.0.0", [("@cratis/arc", f"^{major}.0.0")])])}
+        chosen = hold_back(families, {"@cratis/arc": self.arc})
+        self.assertEqual((chosen["@cratis/a"], chosen["@cratis/b"]), ("1.0.0", "1.0.0"))
+        families["@cratis/b"][1][0] = ("2.0.0", [("@cratis/arc", f"^{major - 1}.0.0")])
+        self.assertEqual(hold_back(families, {"@cratis/arc": self.arc})["@cratis/b"], "1.0.0")
+
+    def test_backtracks_across_interacting_families(self):
+        # A 2.0.0 needs B ^2, B 2.0.0 needs C ^2, C only offers 1.0.0: the newest compatible set is A1, B1, C1.
+        families = {"@cratis/a": (["@cratis/a"], [("2.0.0", [("@cratis/b", "^2")]), ("1.0.0", [("@cratis/b", "^1")])]),
+                    "@cratis/b": (["@cratis/b"], [("2.0.0", [("@cratis/c", "^2")]), ("1.0.0", [])]),
+                    "@cratis/c": (["@cratis/c"], [("1.0.0", [("@cratis/a", ">=1")])])}
+        chosen = hold_back(families, {"@cratis/arc": self.arc})
+        self.assertEqual([chosen["@cratis/" + key] for key in "abc"], ["1.0.0", "1.0.0", "1.0.0"])
+        families["@cratis/c"][1][0] = ("1.0.0", [("@cratis/a", "^2")])
+        with self.assertRaisesRegex(ValueError, "No compatible update: no combination"):
+            hold_back(families, {"@cratis/arc": self.arc})
+
+    def test_search_limit_fails_clearly(self):
+        releases_of = [(f"{index}.0.0", [("@cratis/b", "^99")]) for index in range(5, 0, -1)]
+        families = {"@cratis/a": (["@cratis/a"], releases_of), "@cratis/b": (["@cratis/b"], [("1.0.0", [])])}
+        with patch.dict(hold_back.__globals__, SEARCH_LIMIT=3), self.assertRaisesRegex(ValueError, "within 3 candidate"):
+            hold_back(families, {"@cratis/arc": self.arc})
+
+    def test_scene_family_moves_together_on_shared_releases(self):
+        # 5.5.0: scene.model rejects Arc; 5.4.9: scene.engine never published it; 5.4.8 fits every member.
+        major = semver(self.arc)[0]
+        scenes = ["@cratis/scene." + name for name in (*SCENE, "extensions")]
+        planted = {}
+        for name in scenes:
+            rejecting = {"@cratis/arc": f"^{major - 1}.0.0"} if name == "@cratis/scene.model" else {}
+            planted[name] = [("5.5.0", rejecting), *([] if name == "@cratis/scene.engine" else [("5.4.9", {})]), ("5.4.8", {})]
+        lookup = lambda name, version=None: version or ("5.5.0" if name in scenes else cratis_pins(self.manifest)[name])
+        result = validate(candidate(self.manifest, self.arc, lookup, self.history(planted)), self.arc)
+        self.assertEqual({result[name] for name in scenes if name in result}, {"5.4.8"})
 
     def test_rejects_empty_population_prereleases_and_scene_drift(self):
         for broken in ({}, {"dependencies": {"@cratis/arc": "1.0.0-beta"}}):

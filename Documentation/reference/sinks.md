@@ -74,7 +74,7 @@ The Chronicle client finds a read model's or graph's sink from its `[Sink]` attr
 
 ### A query over a read model in a named sink
 
-A rendered query reads its read model through Arc's MongoDB support (`WithMongoDB`). From Arc 22.182.0, which Stage pins, Arc reads a read model marked `[Sink("<Name>")]` from the server configured for that sink, `Cratis:MongoDB:Sinks:<Name>:Server` (or `ServerFile`, a file holding the connection string, such as a mounted secret). Sink names are case-insensitive. The database name is the one the default connection uses, on the sink's server. Observable queries read the same way. So a query over a read model in a named sink renders like any other query.
+A rendered query reads its read model through Arc's MongoDB support (`WithMongoDB`). The Arc release Stage pins reads a read model marked `[Sink("<Name>")]` from the server configured for that sink, `Cratis:MongoDB:Sinks:<Name>:Server` (or `ServerFile`, a file holding the connection string, such as a mounted secret). Sink names are case-insensitive. The database name is the one the default connection uses, on the sink's server. Observable queries read the same way. So a query over a read model in a named sink renders like any other query.
 
 A deployment that stores a sink on another server sets that server for the application too, for instance with the environment variable `Cratis__MongoDB__Sinks__Reporting__ServerFile`, next to the kernel's `Cratis__Chronicle__Sinks__Configurations__Reporting__*`.
 
@@ -82,4 +82,4 @@ Graph queries are not rendered at all yet (`STAGE-ESM-068`, see [Graph rendering
 
 | Code | Meaning |
 | --- | --- |
-| `STAGE-ESM-069` | Retired for named sinks. Stage refused a query over a read model in a named sink while its pinned Arc read every rendered query from the application's own database. It is no longer emitted for that from the Stage release that pins Arc 22.182.0, and the number is not reused for it. The same number also names the [secret read model property](compliance-rendering.md) warning, which is still emitted. |
+| `STAGE-ESM-069` | Retired for named sinks. Stage refused a query over a read model in a named sink while its pinned Arc read every rendered query from the application's own database. It is no longer emitted for that since Stage pinned an Arc that reads named sinks, and the number is not reused for it. The same number also names the [secret read model property](compliance-rendering.md) warning, which is still emitted. |

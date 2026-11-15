@@ -19,8 +19,10 @@ Nothing needs to be discovered by hand — start at the Scalar reference and cli
 
 > **Two modes.** Everything on this page describes the **sandbox** (the default). A host started in
 > [published mode](published-applications.md) serves only the frontend, the model's `/api` operations, Arc's
-> `/.cratis/*` operations and a handful of `/stage/*` documents; every route in the table below answers `404`
-> there, and the tooling routes are not mapped at all.
+> `/.cratis/*` operations and a handful of `/stage/*` documents, marked **yes** in the Published column below. The
+> tooling routes, marked **not mapped**, are never mapped there, and a request under `/scalar`, `/openapi`,
+> `/workbench`, `/read-models`, `/stage/read-models`, `/stage/load`, `/stage/semantic`, `/stage/lifecycles`,
+> `/stage/invocations` or `/stage/extensions` answers `404`.
 
 | Route                                                         | Sandbox | Published                                         |
 | ------------------------------------------------------------- | ------- | ------------------------------------------------- |
@@ -35,6 +37,11 @@ Nothing needs to be discovered by hand — start at the Scalar reference and cli
 | `/stage/load`, `/stage/semantic/*` (admission, specification runs) | yes | not mapped                                      |
 | `/stage/semantic/journeys/replay` (replay recorded journeys, `POST`) | yes | not mapped                                    |
 | `/stage/packages`                                             | yes     | yes (runtime metadata)                            |
+| `/stage/packages/files/**` (files of the approved [custom packages](custom-packages.md)) | yes, when a package set is configured | yes, when a package set is configured |
+| `/stage/lifecycles` (see [State machines and workflows](state-machines-and-workflows.md)) | yes | not mapped |
+| `/stage/invocations` (see [Durable ability invocations](ability-invocations.md)) | yes | not mapped |
+| `/stage/extensions`, `/stage/extensions/*` (see [extension packages](../extensions/packages.md), [execution tiers](../extensions/execution-tiers.md) and [inbound traffic](../extensions/inbound-traffic.md)) | yes, when extensions are loaded | not mapped |
+| `/stage/sandbox/acting-user` (see [Sandbox acting-user selection](#sandbox-acting-user-selection)) | yes, with development users enabled | not mapped |
 
 ## Start here
 

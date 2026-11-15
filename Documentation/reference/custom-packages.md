@@ -88,7 +88,7 @@ package imports must be bundled into its module. A Stage handed no set renders t
 
 ## Domain blueprints
 
-The shipped package declarations come from the real package manifests. `Source/Frontend/src/shippedPackages.spec.ts`
+The shipped package declarations come from the real package manifests. `Source/Frontend/shippedPackages.spec.ts`
 checks them against `Rendering.Cratis/Shipped/ShippedPackages.json`, so the catalog used to resolve a `ui profile`
 matches the frontend's packages.
 A domain blueprint - `@cratis/scene.blueprint.crm`, `.ticketing`, `.approvals`, `.inventory`, `.hr`, `.project-tracker`, `.administration`, `.orders`, `.catalog`, `.vendors`, `.invoicing`, `.customer-portal`, `.contracts`, `.work-orders`, `.bookings` - therefore

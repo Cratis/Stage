@@ -270,6 +270,12 @@ static class CratisArtifactRenderProfileAdmission
             return false;
         }
 
+        if (!Realization.ModelAssetsInput.TryRead(profile, out _))
+        {
+            mismatch = "The Cratis profile carries invalid or duplicate model assets.";
+            return false;
+        }
+
         if (!SignedForwardedIdentityInput.TryRead(profile, out _))
         {
             mismatch = "The Cratis profile carries an invalid or duplicate signed forwarded identity input.";

@@ -57,6 +57,11 @@ public sealed record LoadedSemanticModel(ExecutableSemanticModel Model, Semantic
     public ApplicationRealization Realization { get; init; } = ApplicationRealization.None;
 
     /// <summary>
+    /// Gets binary assets attached independently of the semantic model and its revision.
+    /// </summary>
+    public ModelAssets ModelAssets { get; init; } = ModelAssets.None;
+
+    /// <summary>
     /// Gets the explicitly passive read models retained from the same compilation, outside portable ESM bytes.
     /// </summary>
     public ImmutableHashSet<SemanticId> PassiveReadModels { get; init; } = [];

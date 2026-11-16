@@ -121,14 +121,6 @@ internal static class SemanticPolicyArtifactRenderer
         _ => throw UnsupportedSemanticRendering.For(nameof(SemanticAuthorization), authorization.GetType().Name)
     };
 
-    static SemanticPolicyCondition ConditionOf(SemanticApplicationContext context, SemanticPolicyReference reference) =>
-        context.Application.Policies.Single(policy => policy.Name == reference.Name).Condition;
-
-    static string ReferenceTerm(SemanticPolicyCondition condition, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, bool command, string argument, string subject) =>
-        Negates(condition)
-            ? $"({Truth(condition, context, properties, command, argument, subject)} == true)"
-            : Condition(condition, context, properties, command, argument, subject);
-
     internal static bool AllowsGuest(SemanticAuthorization authorization, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, string subject) => authorization switch
     {
         // An opaque body is unknown until it runs, so it never makes an operation guest-satisfiable.
@@ -191,14 +183,6 @@ internal static class SemanticPolicyArtifactRenderer
         SemanticLogicalPolicyCondition { Operator: SemanticLogicalOperator.Or } logical => Or(GuestTruth(logical.Left, context, properties, subject), GuestTruth(logical.Right, context, properties, subject)),
         _ => throw UnsupportedSemanticRendering.For(nameof(SemanticPolicyCondition), condition.GetType().Name)
     };
-
-    static bool? GuestClaimTruth(SemanticClaimCondition claim, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, string subject) =>
-        claim.TargetKind == SemanticClaimTargetKind.Literal || IsTextual(SemanticClaimTargets.Primitive(context, SemanticClaimTargets.Property(context, properties, claim.TargetKind == SemanticClaimTargetKind.Subject ? subject : claim.Value!)))
-            ? false
-            : null;
-
-    static bool IsTextual(SemanticPrimitiveType primitive) =>
-        primitive is SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid or SemanticPrimitiveType.Date or SemanticPrimitiveType.DateTime;
 
     internal static bool? And(bool? left, bool? right) => (left, right) switch
     {
@@ -469,6 +453,22 @@ internal static class SemanticPolicyArtifactRenderer
             .Line("    context.Resource is not global::Cratis.Arc.Queries.QueryContext { Arguments: { } arguments } || !arguments.TryGetValue(argument, out var key)) return null;")
             .Line("return path == argument ? Value(key, uuidTarget, dateTarget, dateTimeTarget) : Path(key, path[(argument.Length + 1)..], uuidTarget, dateTarget, dateTimeTarget);")
             .EndBlock();
+
+    static SemanticPolicyCondition ConditionOf(SemanticApplicationContext context, SemanticPolicyReference reference) =>
+        context.Application.Policies.Single(policy => policy.Name == reference.Name).Condition;
+
+    static string ReferenceTerm(SemanticPolicyCondition condition, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, bool command, string argument, string subject) =>
+        Negates(condition)
+            ? $"({Truth(condition, context, properties, command, argument, subject)} == true)"
+            : Condition(condition, context, properties, command, argument, subject);
+
+    static bool? GuestClaimTruth(SemanticClaimCondition claim, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, string subject) =>
+        claim.TargetKind == SemanticClaimTargetKind.Literal || IsTextual(SemanticClaimTargets.Primitive(context, SemanticClaimTargets.Property(context, properties, claim.TargetKind == SemanticClaimTargetKind.Subject ? subject : claim.Value!)))
+            ? false
+            : null;
+
+    static bool IsTextual(SemanticPrimitiveType primitive) =>
+        primitive is SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid or SemanticPrimitiveType.Date or SemanticPrimitiveType.DateTime;
 
     static string Claim(SemanticClaimCondition claim, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, bool command, string argument, string subject, bool truth = false)
     {

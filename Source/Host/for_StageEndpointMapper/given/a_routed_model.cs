@@ -191,7 +191,7 @@ public class a_routed_model : Specification
             return semanticFilter is null ? CommandResult.Success(context.CorrelationId) : await semanticFilter.OnExecution(context);
         });
         var values = Substitute.For<ICommandContextValuesBuilder>();
-        values.Build(Arg.Any<object>()).Returns(_ => new CommandContextValues());
+        values.Build(Arg.Any<object>()).Returns(CommandContextValues (_) => []);
         var resolver = Substitute.For<ICommandHandlerArgumentResolver>();
         resolver.Resolve(Arg.Any<ICommandHandler>(), Arg.Any<CommandContext>(), Arg.Any<IServiceProvider>(), Arg.Any<ValidationResultSeverity?>())
             .Returns(call => new CommandHandlerArgumentResolution([], CommandResult.Success(call.Arg<CommandContext>().CorrelationId)));

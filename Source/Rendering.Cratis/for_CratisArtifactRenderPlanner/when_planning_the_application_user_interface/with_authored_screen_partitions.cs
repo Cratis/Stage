@@ -53,7 +53,8 @@ public class with_authored_screen_partitions : a_partitioned_screen_plan
     // Recomputed for Screenplay 6.29.0: only the Screenplay pins in Directory.Packages.props and the scaffold catalog change.
     // Re-frozen for Cratis/Stage#970: only Program.cs gains the Diagnostics import and defaults event-source id tracing to Omitted.
     // Recomputed for Cratis/Stage#1147: the Scene 6.0.1 pins of the Stage runtime and the scaffold, and the Screenplay 6.32.0 pins.
-    const string Before = "2e47dddceeab2b9a1f098ebec44f25e498e4c397fa487385b13c3d9c832ebdbd";
+    // Recomputed after merging main into the #970 train: the #970 Program.cs change on top of the #1147 pins.
+    const string Before = "5985d71545cd0f8b0764b8442523cd82225a1355a39aef4e8b1b150ded110735";
 
     void Because() => _application = AppPlan(_profile);
 

@@ -4,6 +4,7 @@
 using System.Collections.Immutable;
 using Cratis.Scene.Engine.Packages;
 using Cratis.Scene.Model.Packages;
+using Cratis.Scene.Screenplay.Forward;
 using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
@@ -331,7 +332,7 @@ public static partial class CratisRendering
     /// <param name="options">The explicit project and root namespace choices.</param>
     /// <returns>The complete deterministic artifact plan.</returns>
     /// <remarks>
-    /// A caller that authored screens passes its own composition to <see cref="CreateProfile(string, CratisRenderingOptions, Contracts.Scene.SceneApplication?)"/>.
+    /// A caller that authored screens passes its own composition to <see cref="CreateProfile(string, CratisRenderingOptions, SceneApplication?)"/>.
     /// A caller that did not gets a default screen composed from the model itself, so a generated application
     /// is usable without hand-writing one first.
     /// </remarks>

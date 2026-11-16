@@ -6,6 +6,7 @@ using System.Text.Json.Nodes;
 using Cratis.Scene.Model.Profiles;
 using Cratis.Scene.Model.SampleData;
 using Cratis.Scene.Model.Structure;
+using Cratis.Scene.Screenplay.Forward;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Scene;
 using Cratis.Stage.Rendering.Cratis.Scene;

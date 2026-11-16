@@ -5,6 +5,7 @@ using Cratis.Scene.Model.ContributionPoints;
 using Cratis.Scene.Model.Elements;
 using Cratis.Scene.Model.Layouts;
 using Cratis.Scene.Model.Screens;
+using Cratis.Scene.Screenplay.Forward;
 using Cratis.Specifications;
 using Xunit;
 

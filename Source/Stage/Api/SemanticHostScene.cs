@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Scene.Screenplay.Forward;
 using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Files;
 using Cratis.Screenplay.Semantics;
@@ -27,10 +28,10 @@ internal static class SemanticHostScene
         }
 
         var syntax = result.Value!;
-        var scene = SceneSynthesizer.Synthesize(new ScreenplaySceneVisitor().Visit(syntax), model);
+        var scene = SceneSynthesizer.Synthesize(StageSceneConversion.Visit(syntax), model);
 
         // The converters run without a collector here, so report the members that are admitted but not translated yet (a form field's picker).
-        var admitted = new ConversionDiagnostics();
+        var admitted = new global::Cratis.Scene.Screenplay.ConversionDiagnostics();
         new UiSyntaxAdmission(admitted).VisitApplication(syntax);
 
         return scene with { ConversionDiagnostics = [.. scene.ConversionDiagnostics, .. admitted.All] };

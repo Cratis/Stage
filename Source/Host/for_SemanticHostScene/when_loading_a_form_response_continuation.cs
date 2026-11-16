@@ -4,6 +4,7 @@
 using Cratis.Scene.Model.Common;
 using Cratis.Scene.Model.Elements;
 using Cratis.Scene.Model.Interactions;
+using Cratis.Scene.Screenplay.Forward;
 using Cratis.Specifications;
 using Cratis.Stage.Api;
 using Cratis.Stage.Contracts.Scene;

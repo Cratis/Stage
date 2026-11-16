@@ -5,6 +5,7 @@ using Cratis.Scene.Model.Common;
 using Cratis.Scene.Model.Elements;
 using Cratis.Scene.Model.Outlets;
 using Cratis.Scene.Model.Packages;
+using Cratis.Scene.Screenplay.Forward;
 using Cratis.Screenplay.CanonicalCorpus;
 using Cratis.Screenplay.Files;
 using Cratis.Specifications;

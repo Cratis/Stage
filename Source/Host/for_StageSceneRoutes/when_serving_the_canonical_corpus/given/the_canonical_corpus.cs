@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using Cratis.Scene.Model.Elements;
+using Cratis.Scene.Screenplay.Forward;
 using Cratis.Screenplay.CanonicalCorpus;
 using Cratis.Stage.Api;
 using Cratis.Stage.Contracts;

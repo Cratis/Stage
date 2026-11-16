@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Scene.Model.Forms;
+using Cratis.Scene.Screenplay.Forward;
 using Cratis.Stage.Contracts.Scene;
 using SceneContribution = Cratis.Scene.Model.ContributionPoints.Contribution;
 using SceneElements = Cratis.Scene.Model.Elements;

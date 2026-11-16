@@ -37,5 +37,7 @@
             unmodified rather than Stage reimplementing any of it (Cratis/Stage#39).
         -->
         <PackageReference Include="Cratis.Scene.Engine" />
+        <!-- The two-way Screenplay and Scene bridge: converts what the compiler produced into Scene, including the resolved design system and adopted free screens. -->
+        <PackageReference Include="Cratis.Scene.Screenplay" />
     </ItemGroup>
 </Project>

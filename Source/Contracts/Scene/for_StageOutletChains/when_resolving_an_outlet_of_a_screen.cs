@@ -10,7 +10,7 @@ namespace Cratis.Stage.Contracts.Scene.for_StageOutletChains;
 
 // Stage translates; Scene's engine resolves. What a screen's outlet shows comes from Scene's chain builder and EffectiveOutlets over the
 // translated document and the translated levels.
-public class when_resolving_an_outlet_of_a_screen : for_OutletConverter.given.a_translated_catalog
+public class when_resolving_an_outlet_of_a_screen : given.a_translated_catalog
 {
     EffectiveOutlet _toolbar = null!;
     EffectiveOutlet _rowActions = null!;

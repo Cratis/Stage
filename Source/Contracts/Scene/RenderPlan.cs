@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Scene.Screenplay.Forward;
+
 using SceneLayouts = Cratis.Scene.Model.Layouts;
 using SceneModelProfiles = Cratis.Scene.Model.Profiles;
 using ScenePackages = Cratis.Scene.Engine.Packages;

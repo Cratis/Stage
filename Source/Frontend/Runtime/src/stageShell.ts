@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { ColorScheme as ProfileColorScheme, type Theme, type UiProfile } from '@cratis/scene.model';
+import { ColorScheme as ProfileColorScheme, type UiProfile } from '@cratis/scene.model';
 import { ShellDiagnosticCode, ShellOrigin, type EffectiveShell } from '@cratis/scene.engine';
 import { ColorScheme, LayoutMode, MenuTheme, defaultBlueprintThemes, layoutModes, menuThemes } from '@cratis/scene.blueprint.default';
 
@@ -129,34 +129,4 @@ export function shellStartupProblems(profile: UiProfile | undefined, shell: Effe
     const found = shell.diagnostics.filter(diagnostic => blocking.has(diagnostic.code)).map(diagnostic => diagnostic.message);
     if (found.length === 0 && shell.origin !== ShellOrigin.Root) found.push(`The root template '${profile.root.template.id}' did not resolve, so the application would not start in the shell it names.`);
     return found;
-}
-
-/** The black or white that reads on a colour. */
-function contrastOn(hex: string): string {
-    const digits = hex.length === 4 ? [...hex.slice(1)].map(digit => digit + digit).join('') : hex.slice(1);
-    const [red, green, blue] = [0, 2, 4].map(start => parseInt(digits.slice(start, start + 2), 16));
-    return (red * 299 + green * 587 + blue * 114) / 1000 >= 150 ? '#111827' : '#ffffff';
-}
-
-/**
- * The themes with the profile's accent set as their primary colour. Without an accent the themes are returned as they are, so
- * the theme keeps its own.
- *
- * @param themes The themes the shell offers.
- * @param accent The accent colour, `#rgb` or `#rrggbb`.
- * @returns The themes to give the shell.
- */
-export function themesWithAccent(themes: Theme[], accent: string | undefined): Theme[] {
-    if (accent === undefined) return themes;
-    const digits = accent.length === 4 ? [...accent.slice(1)].map(digit => digit + digit).join('') : accent.slice(1);
-    const [red, green, blue] = [0, 2, 4].map(start => parseInt(digits.slice(start, start + 2), 16));
-    return themes.map(theme => ({
-        ...theme,
-        tokens: {
-            ...theme.tokens,
-            'primary.color': accent,
-            'primary.contrastColor': contrastOn(accent),
-            'focus.ring': `0 0 0 2px rgb(${red} ${green} ${blue} / 0.4)`,
-        },
-    }));
 }

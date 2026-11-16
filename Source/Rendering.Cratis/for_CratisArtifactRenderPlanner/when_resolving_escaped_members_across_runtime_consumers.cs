@@ -9,6 +9,7 @@ using System.Text.Json.Nodes;
 using Cratis.Arc.Authorization;
 using Cratis.Arc.Commands;
 using Cratis.Execution;
+using Cratis.Scene.Screenplay.Forward;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;

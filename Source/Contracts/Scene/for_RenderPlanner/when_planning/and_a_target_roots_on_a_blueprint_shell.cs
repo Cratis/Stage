@@ -4,6 +4,7 @@
 using Cratis.Scene.Model.Packages;
 using Cratis.Scene.Model.Profiles;
 using Cratis.Scene.Model.Screens;
+using Cratis.Scene.Screenplay.Forward;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Scene.for_RenderPlanner.given;
 using Xunit;

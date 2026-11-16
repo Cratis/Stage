@@ -19,11 +19,11 @@ internal sealed class CommandReferences
     readonly SemanticReadModel[] _models;
     readonly SemanticKeyedQuery[] _queries;
     readonly HashSet<SemanticId> _identifiers;
-    readonly ConversionDiagnostics? _diagnostics;
+    readonly global::Cratis.Scene.Screenplay.ConversionDiagnostics? _diagnostics;
     readonly string _path;
     readonly SourceLocation _location;
 
-    internal CommandReferences(SemanticApplication application, ConversionDiagnostics? diagnostics, string path, SourceLocation location)
+    internal CommandReferences(SemanticApplication application, global::Cratis.Scene.Screenplay.ConversionDiagnostics? diagnostics, string path, SourceLocation location)
     {
         _application = application;
         _diagnostics = diagnostics;

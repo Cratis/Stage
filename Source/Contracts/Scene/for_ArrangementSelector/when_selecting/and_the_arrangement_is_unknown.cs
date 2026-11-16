@@ -3,6 +3,7 @@
 
 using Cratis.Scene.Model.Layouts;
 using Cratis.Scene.Model.SizeClasses;
+using Cratis.Scene.Screenplay.Forward;
 using Cratis.Specifications;
 using Xunit;
 

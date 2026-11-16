@@ -14,9 +14,7 @@ public class an_asset_directory : Specification
 
     void Establish()
     {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (!File.Exists(Path.Combine(directory.FullName, "Stage.slnx"))) directory = directory.Parent;
-        _root = Path.Combine(directory.FullName, ".ai-work", "stage-1041", "specs", Guid.NewGuid().ToString("N"));
+        _root = Path.Combine(Path.GetTempPath(), "stage-model-assets", Guid.NewGuid().ToString("N"));
         _assets = Path.Combine(_root, "assets");
         Directory.CreateDirectory(_assets);
     }

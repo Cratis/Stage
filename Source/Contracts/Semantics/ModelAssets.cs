@@ -22,7 +22,8 @@ public sealed partial record ModelAssets(ImmutableSortedDictionary<string, Immut
     {
         ByteLimit,
         BundleCollision,
-        CaseCollision
+        CaseCollision,
+        Unreadable
     }
 
     /// <summary>
@@ -64,18 +65,34 @@ public sealed partial record ModelAssets(ImmutableSortedDictionary<string, Immut
         {
             foreach (var file in Walk(root).OrderBy(file => file.FullName, StringComparer.Ordinal))
             {
-                var relative = Path.GetRelativePath(root.FullName, file.FullName).Replace(Path.DirectorySeparatorChar, '/');
-                Add(new(file, new(relative)));
+                Add(new(file, RelativeTo(file)));
             }
             return new(_files.ToImmutable(), _diagnostics.ToImmutable());
         }
 
-        static IEnumerable<FileInfo> Walk(DirectoryInfo directory) => directory.EnumerateFileSystemInfos()
-            .Where(IsVisibleEntry).OrderBy(entry => entry.FullName, StringComparer.Ordinal).SelectMany(Descendants);
+        static bool IsUnreadable(Exception exception) => exception is IOException or UnauthorizedAccessException;
 
         static bool IsVisibleEntry(FileSystemInfo entry) => !entry.Name.StartsWith('.') && !entry.Attributes.HasFlag(FileAttributes.ReparsePoint);
 
-        static IEnumerable<FileInfo> Descendants(FileSystemInfo entry) => entry switch
+        IEnumerable<FileInfo> Walk(DirectoryInfo directory) => Entries(directory)
+            .Where(IsVisibleEntry).OrderBy(entry => entry.FullName, StringComparer.Ordinal).SelectMany(Descendants);
+
+        FileSystemInfo[] Entries(DirectoryInfo directory)
+        {
+            try
+            {
+                return [.. directory.EnumerateFileSystemInfos()];
+            }
+            catch (Exception exception) when (IsUnreadable(exception))
+            {
+                Warn(RelativeTo(directory), Omission.Unreadable);
+                return [];
+            }
+        }
+
+        RelativePath RelativeTo(FileSystemInfo entry) => new(Path.GetRelativePath(root.FullName, entry.FullName).Replace(Path.DirectorySeparatorChar, '/'));
+
+        IEnumerable<FileInfo> Descendants(FileSystemInfo entry) => entry switch
         {
             DirectoryInfo directory => Walk(directory),
             FileInfo file => [file],
@@ -106,6 +123,19 @@ public sealed partial record ModelAssets(ImmutableSortedDictionary<string, Immut
 
         ImmutableArray<byte> ReadFile(AssetFile asset)
         {
+            try
+            {
+                return ReadBytes(asset);
+            }
+            catch (Exception exception) when (IsUnreadable(exception))
+            {
+                Warn(asset.Path, Omission.Unreadable);
+                return default;
+            }
+        }
+
+        ImmutableArray<byte> ReadBytes(AssetFile asset)
+        {
             asset.File.Refresh();
             if (!Fits(asset.File.Length)) return TooLarge(asset);
             using var stream = asset.File.OpenRead();
@@ -130,9 +160,15 @@ public sealed partial record ModelAssets(ImmutableSortedDictionary<string, Immut
 
         void Warn(RelativePath path, Omission omission)
         {
-            var code = omission is Omission.BundleCollision ? "STAGE-ASSET-002" : "STAGE-ASSET-001";
+            var code = omission switch
+            {
+                Omission.BundleCollision => "STAGE-ASSET-002",
+                Omission.Unreadable => "STAGE-ASSET-003",
+                _ => "STAGE-ASSET-001"
+            };
             var message = omission switch
             {
+                Omission.Unreadable => "The asset could not be read and was omitted.",
                 Omission.BundleCollision => "The asset collides with the Vite bundle and was omitted.",
                 Omission.CaseCollision => "A case-insensitive asset path collision was omitted.",
                 _ => "The asset exceeds the 5 MiB per-file or 25 MiB total byte limit and was omitted."

@@ -55,7 +55,8 @@ model-folder file server to published hosts.
 Rendering does not follow links or include hidden entries, `.play` sources or unsafe
 file names. Files over 5 MiB, exceeding the 25 MiB total, or colliding by case are
 omitted with warning `STAGE-ASSET-001`. Root-level `index-<hash>.js`, `index-<hash>.css` and hashed-bundle
-source-map names are reserved for Vite and omitted with `STAGE-ASSET-002`.
+source-map names are reserved for Vite and omitted with `STAGE-ASSET-002`. A file or folder
+that cannot be read is omitted with `STAGE-ASSET-003`; rendering continues.
 
 ## Start here
 

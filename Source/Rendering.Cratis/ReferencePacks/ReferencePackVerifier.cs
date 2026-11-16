@@ -39,23 +39,7 @@ public class ReferencePackVerifier : Microsoft.Build.Utilities.Task
     public static IEnumerable<string> Verify(string packDirectory, string manifestPath)
     {
         var expected = ReadManifest(manifestPath);
-        foreach (var entry in expected)
-        {
-            var error = VerifyFile(Path.Combine(packDirectory, entry.Key), entry.Value);
-            if (error.Length > 0)
-            {
-                yield return error;
-            }
-        }
-
-        // A missing directory is already reported for each expected file above.
-        if (Directory.Exists(packDirectory))
-        {
-            foreach (var file in Directory.EnumerateFiles(packDirectory, "*.dll").Where(file => !expected.ContainsKey(Path.GetFileName(file))))
-            {
-                yield return $"Unexpected reference assembly '{file}'.";
-            }
-        }
+        return MismatchedFiles(packDirectory, expected).Concat(UnexpectedFiles(packDirectory, expected));
     }
 
     /// <inheritdoc/>
@@ -68,6 +52,19 @@ public class ReferencePackVerifier : Microsoft.Build.Utilities.Task
 
         return !Log.HasLoggedErrors;
     }
+
+    static IEnumerable<string> MismatchedFiles(string packDirectory, Dictionary<string, string> expected) =>
+        expected
+            .Select(entry => VerifyFile(Path.Combine(packDirectory, entry.Key), entry.Value))
+            .Where(error => error.Length > 0);
+
+    // A missing directory is already reported for each expected file by MismatchedFiles.
+    static IEnumerable<string> UnexpectedFiles(string packDirectory, Dictionary<string, string> expected) =>
+        Directory.Exists(packDirectory)
+            ? Directory.EnumerateFiles(packDirectory, "*.dll")
+                .Where(file => !expected.ContainsKey(Path.GetFileName(file)))
+                .Select(file => $"Unexpected reference assembly '{file}'.")
+            : [];
 
     static Dictionary<string, string> ReadManifest(string manifestPath)
     {

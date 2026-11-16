@@ -66,6 +66,11 @@ internal static partial class SemanticWorldRebuilder
             return SemanticValue.Null;
         }
 
+        return StructuredValue(json, type, application) ?? ScalarValue(json, type, application);
+    }
+
+    static SemanticValue? StructuredValue(JsonElement json, SemanticTypeReference type, SemanticApplication application)
+    {
         if (type.IsCollection && json.ValueKind == JsonValueKind.Array)
         {
             return SemanticValue.Array([.. json.EnumerateArray().Select(item => Value(item, type with { IsCollection = false, IsOptional = false }, application))]);
@@ -77,6 +82,11 @@ internal static partial class SemanticWorldRebuilder
             return SemanticValue.Composite(CompositeValues(json, composite.Properties, application));
         }
 
+        return null;
+    }
+
+    static SemanticValue ScalarValue(JsonElement json, SemanticTypeReference type, SemanticApplication application)
+    {
         var concept = type.Kind == SemanticTypeReferenceKind.Concept
             ? application.Concepts.Single(candidate => candidate.Id == type.Target)
             : null;

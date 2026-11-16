@@ -25,6 +25,11 @@ public sealed class FakeBackend : ExtensionBackend.ExtensionBackendBase
 
     public Func<InboundHttpRequest, InboundHttpResponse> OnHttp { get; set; } = _ => new InboundHttpResponse { Status = 200 };
 
+    /// <summary>
+    /// Gets or sets whether the next invocation is cut off on the wire instead of answered, the way a backend that goes away mid-call is.
+    /// </summary>
+    public bool CutOffNextInvoke { get; set; }
+
     public override Task<DescribeResponse> Describe(DescribeRequest request, ServerCallContext context)
     {
         Described = request;
@@ -35,6 +40,13 @@ public sealed class FakeBackend : ExtensionBackend.ExtensionBackendBase
     public override Task<InvokeResponse> Invoke(InvokeRequest request, ServerCallContext context)
     {
         Invoked.Add(request);
+        if (CutOffNextInvoke)
+        {
+            CutOffNextInvoke = false;
+            context.GetHttpContext().Abort();
+            return Task.FromResult(new InvokeResponse());
+        }
+
         return Task.FromResult(OnInvoke(request));
     }
 

@@ -123,10 +123,37 @@ public sealed class ExtensionConnections(IExtensionEndpoints endpoints, IAbility
         if (_connected.TryRemove(system, out var removed)) removed.Channel.Dispose();
     }
 
+    /// <summary>
+    /// Drops a connection a call failed on when the failure says the connection itself was lost, so the next attempt does the handshake again.
+    /// </summary>
+    /// <remarks>
+    /// A backend that stops can close the connection while a call is on it. The client then reports the HTTP/2 error code, which gRPC maps to
+    /// <see cref="StatusCode.Internal"/> rather than <see cref="StatusCode.Unavailable"/>, so the transport failure is what tells the two apart
+    /// from an answer the backend gave. Only the connection the call used is dropped: one a concurrent attempt already replaced it with stays.
+    /// A reset can end one call without ending the connection, so its channel is only disposed when the backend could not be reached at all;
+    /// otherwise calls still in flight on it finish, and the channel closes its connections once they are idle.
+    /// </remarks>
+    /// <param name="connection">The connection the call was made on.</param>
+    /// <param name="exception">The <see cref="RpcException"/> the call failed with.</param>
+    public void ForgetWhenLost(ExtensionConnection connection, RpcException exception)
+    {
+        if (!Lost(exception)) return;
+        if (_connected.TryGetValue(connection.System, out var current) &&
+            ReferenceEquals(current.Connection, connection) &&
+            _connected.TryRemove(new KeyValuePair<string, (ExtensionConnection Connection, GrpcChannel Channel)>(connection.System, current)) &&
+            exception.StatusCode == StatusCode.Unavailable)
+        {
+            current.Channel.Dispose();
+        }
+    }
+
     /// <inheritdoc/>
     public void Dispose()
     {
         foreach (var (_, channel) in _connected.Values) channel.Dispose();
         _connected.Clear();
     }
+
+    static bool Lost(RpcException exception) =>
+        exception.StatusCode == StatusCode.Unavailable || exception.Status.DebugException is HttpRequestException or IOException;
 }

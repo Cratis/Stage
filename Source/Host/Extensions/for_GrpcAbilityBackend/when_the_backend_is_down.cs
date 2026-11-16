@@ -31,5 +31,6 @@ public class when_the_backend_is_down : an_extension_protocol
     }
 
     [Fact] void should_fail_an_attempt_that_may_have_been_sent() => ((AbilityFailed)_inFlight).MayHaveReachedTheSystem.ShouldBeTrue();
+    [Fact] void should_answer_the_next_attempt_as_not_sent() => _beforeTheHandshake.ShouldBeOfExactType<AbilityNotSent>();
     [Fact] void should_not_have_sent_the_next_attempt_when_the_handshake_fails() => ((AbilityNotSent)_beforeTheHandshake).Reason.ShouldContain("handshake");
 }

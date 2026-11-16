@@ -6,6 +6,7 @@
 // template diagnostic, and neither the packages the Stage serves nor the page carry the blueprint's design-time sample data (SD6).
 const { readFileSync, writeFileSync } = require('node:fs');
 const { join } = require('node:path');
+const { trackFailedRequests } = require('./failed-requests.cjs');
 const { chromium } = require(join(__dirname, '..', 'generated-react-browser', 'node_modules', 'playwright'));
 
 const baseUrl = process.env.STAGE_LIVE_URL ?? 'http://127.0.0.1:9090';
@@ -24,13 +25,21 @@ const screens = [...readFileSync(playPath, 'utf8').matchAll(/^\s*screen\s+(\w+)\
     const block = (path, reason) => { record(path, 'blocked', reason); result.remainingBlockers.push(`${path}: ${reason}`); };
     let exitCode = 2;
     let browser;
+    let requestFailures = [];
     try {
         if (screens.length === 0) throw new Error(`${playPath} has no screen built from a blueprint template`);
-        const { show, schemes, contrast } = require('../blueprint-templates/contrast.cjs');
+        const { show, applyScheme, schemes, contrast } = require('../blueprint-templates/contrast.cjs');
         browser = await chromium.launch();
         const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
         const errors = [];
+        requestFailures = trackFailedRequests(page);
         page.on('pageerror', error => errors.push(error.message));
+        // The requests the page is still waiting for, so a screen that never mounts says what its boot was stuck on.
+        const pending = new Set();
+        page.on('request', request => pending.add(request));
+        page.on('requestfinished', request => pending.delete(request));
+        page.on('requestfailed', request => pending.delete(request));
+        const stuckOn = () => [...pending].map(request => new URL(request.url()).pathname).slice(0, 10).join(', ') || 'none';
 
         // Only a screen template fills a route. A dialog template opens from a toolbar button. A reference to a template the package does
         // not ship is a defect, never a note: the sample names a template the package does not provide, and rendering it would show a
@@ -58,21 +67,24 @@ const screens = [...readFileSync(playPath, 'utf8').matchAll(/^\s*screen\s+(\w+)\
                     : block(path, `${template} mounted but the Stage reported: ${await page.locator('#root').innerText()}`);
                 if (alert === 0) contrastScreen ??= { screen, template };
             } catch {
-                block(path, `${template} did not mount with content; page errors: ${errors.join(' | ') || 'none'}; page: ${(await page.locator('#root').innerText()).slice(0, 300)}`);
+                block(path, `${template} did not mount with content; page errors: ${errors.join(' | ') || 'none'}; requests still pending: ${stuckOn()}; page: ${(await page.locator('#root').innerText()).slice(0, 300)}`);
             }
         }
 
         if (contrastScreen) {
+            let shown = false;
             for (const scheme of schemes) {
                 const path = `live.blueprint.${name}.${contrastScreen.screen}.${scheme}.contrast`;
                 try {
-                    await show(page, baseUrl, contrastScreen, scheme);
+                    if (shown) await applyScheme(page, scheme);
+                    else await show(page, baseUrl, contrastScreen, scheme);
+                    shown = true;
                     const { violations, checked } = await contrast(page);
                     if (checked === 0) block(path, 'color-contrast judged no element');
                     else if (violations.length === 0) record(path, 'passed', `color-contrast (WCAG AA), ${checked} elements`);
                     else block(path, violations.join(' | '));
                 } catch (error) {
-                    block(path, `the ${scheme} color-contrast check could not run: ${error.message}`);
+                    block(path, `the ${scheme} color-contrast check could not run: ${error.message.split('\n')[0]}; page ${page.url()}; requests still pending: ${stuckOn()}; page errors: ${errors.join(' | ') || 'none'}`);
                 }
             }
         } else {
@@ -102,5 +114,8 @@ const screens = [...readFileSync(playPath, 'utf8').matchAll(/^\s*screen\s+(\w+)\
 
     console.log(result.summary ?? result.message);
     for (const blocker of result.remainingBlockers) console.log(`BLOCKED ${blocker}`);
+    if (result.status !== 'passed') {
+        for (const failure of requestFailures) console.log(failure);
+    }
     process.exit(exitCode);
 })();

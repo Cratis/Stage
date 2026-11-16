@@ -49,5 +49,38 @@ public class when_registering_unenforced_rules : Specification
     [Fact] void should_not_resolve_a_client() => _services.DidNotReceive().GetService(Arg.Any<Type>());
     [Fact] void should_report_the_runtime_rule() => _registrationException!.Message.ShouldContain("STAGE-ESM-081:");
     [Fact] void should_report_the_handler_rule() => _handlerException!.Message.ShouldContain("STAGE-ESM-081:");
+
+    [Theory]
+    [InlineData("type Detail\n  name Name", "Detail[]", "details.name not empty")]
+    [InlineData("concept Status : Enum\n  allowed\ntype Detail\n  status Status", "Detail", "name not empty")]
+    public async Task should_refuse_nested_rules_before_resolving_dependencies(string declarations, string type, string rule)
+    {
+        var model = EventModelLoader.LoadFromSource($$"""
+            concept Name : String
+            {{declarations}}
+            module Registry
+              feature Records
+                slice StateChange Register
+                  command RegisterRecord
+                    name Name
+                    details {{type}}
+                    validate
+                      {{rule}}
+                    produces RecordRegistered
+                      name = name
+                  event RecordRegistered
+                    name Name
+            """);
+
+        var registrationException = await Catch.Exception(() =>
+            StageRuntimeRegistrar.RegisterAsync(_services, "registry", model, NullLogger.Instance));
+        var handlerException = Catch.Exception(() => _ = new StageCommandHandlerProvider([model], [], [], []));
+
+        registrationException.ShouldBeOfExactType<InvalidEventModel>();
+        registrationException!.Message.ShouldContain("STAGE-ESM-081:");
+        handlerException.ShouldBeOfExactType<InvalidEventModel>();
+        handlerException!.Message.ShouldContain("STAGE-ESM-081:");
+        _services.DidNotReceive().GetService(Arg.Any<Type>());
+    }
 }
 #endif

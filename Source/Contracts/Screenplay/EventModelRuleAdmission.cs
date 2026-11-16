@@ -12,6 +12,7 @@ public sealed class EventModelRuleAdmission : ScreenplaySyntaxWalker
 {
     readonly List<string> _diagnostics = [];
     readonly HashSet<string> _enumConcepts = [];
+    readonly Dictionary<string, IEnumerable<PropertySyntax>> _types = [];
 
     /// <summary>
     /// Finds rule declarations that would lose their semantics in legacy execution.
@@ -22,6 +23,10 @@ public sealed class EventModelRuleAdmission : ScreenplaySyntaxWalker
     {
         var admission = new EventModelRuleAdmission();
         admission._enumConcepts.UnionWith(syntax.Concepts.Where(concept => concept.IsEnum).Select(concept => concept.Name));
+        foreach (var type in syntax.Types ?? [])
+        {
+            admission._types.TryAdd(type.Name, type.Properties);
+        }
         admission.VisitApplication(syntax);
 
         return admission._diagnostics;
@@ -64,14 +69,56 @@ public sealed class EventModelRuleAdmission : ScreenplaySyntaxWalker
         _ => null
     };
 
-    string? UnsupportedCommandRule(CommandSyntax command)
+    string? UnsupportedCommandRule(CommandSyntax command) =>
+        UnsupportedEnum(command.Properties, command.Name, []) ??
+        (command.Validations.Any(validation => DropsRules(validation) || CrossesCollection(validation, command.Properties))
+            ? $"command '{command.Name}' validation"
+            : null);
+
+    string? UnsupportedEnum(IEnumerable<PropertySyntax> properties, string path, HashSet<string> visited)
     {
-        var enumProperty = command.Properties.FirstOrDefault(property => _enumConcepts.Contains(property.Type.Name));
-        if (enumProperty is not null)
+        foreach (var property in properties)
         {
-            return $"enum concept '{enumProperty.Type.Name}' membership on command '{command.Name}.{enumProperty.Name}'";
+            var memberPath = $"{path}.{property.Name}";
+            if (_enumConcepts.Contains(property.Type.Name))
+            {
+                return $"enum concept '{property.Type.Name}' membership on command '{memberPath}'";
+            }
+            if (!visited.Add(property.Type.Name))
+            {
+                continue;
+            }
+            var unsupported = UnsupportedEnum(_types.GetValueOrDefault(property.Type.Name) ?? [], memberPath, visited);
+            if (unsupported is not null)
+            {
+                return unsupported;
+            }
         }
 
-        return command.Validations.Any(DropsRules) ? $"command '{command.Name}' validation" : null;
+        return null;
+    }
+
+    bool CrossesCollection(ValidateSyntax validation, IEnumerable<PropertySyntax> properties) =>
+        validation is DeclarativeValidateSyntax declarative &&
+        declarative.Rules.Any(rule => CrossesCollection(rule.Property, properties));
+
+    bool CrossesCollection(string path, IEnumerable<PropertySyntax> properties)
+    {
+        var segments = path.Split('.');
+        foreach (var segment in segments.SkipLast(1))
+        {
+            var property = properties.FirstOrDefault(candidate => candidate.Name == segment);
+            if (property is null)
+            {
+                return false;
+            }
+            if (property.Type.IsCollection)
+            {
+                return true;
+            }
+            properties = _types.GetValueOrDefault(property.Type.Name) ?? [];
+        }
+
+        return false;
     }
 }

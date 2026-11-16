@@ -7,9 +7,6 @@
             <Code Type="Class" Language="cs" Source="$(MSBuildThisFileDirectory)ReferencePackVerifier.cs" />
         </Task>
     </UsingTask>
-    <PropertyGroup>
-        <ReferencePackManifestDirectory>$(MSBuildThisFileDirectory)</ReferencePackManifestDirectory>
-    </PropertyGroup>
     <ItemGroup>
         <!-- This is build tooling, not renderer runtime code. Specs compile this same source. -->
         <Compile Remove="ReferencePacks/ReferencePackVerifier.cs" />
@@ -17,8 +14,8 @@
     <!-- No Inputs/Outputs: recheck even on incremental builds, before any resources are assigned. -->
     <Target Name="VerifyEmbeddedReferencePacks" BeforeTargets="AssignTargetPaths" DependsOnTargets="ResolvePackageAssets">
         <ReferencePackVerifier PackDirectory="$(PkgMicrosoft_NETCore_App_Ref)/ref/net10.0"
-                               ManifestPath="$(ReferencePackManifestDirectory)$(PureTransitionReferencePackVersion)-net10.0.sha256" />
+                               ManifestPath="$(MSBuildThisFileDirectory)$(PureTransitionReferencePackVersion)-net10.0.sha256" />
         <ReferencePackVerifier PackDirectory="$(NuGetPackageRoot)microsoft.netcore.app.ref/$(PureTransitionReferencePackVersion11)/ref/net11.0"
-                               ManifestPath="$(ReferencePackManifestDirectory)$(PureTransitionReferencePackVersion11)-net11.0.sha256" />
+                               ManifestPath="$(MSBuildThisFileDirectory)$(PureTransitionReferencePackVersion11)-net11.0.sha256" />
     </Target>
 </Project>

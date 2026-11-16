@@ -20,7 +20,7 @@ export function declaresRegions(navigation: NavigationModel | undefined): boolea
  * application structure names a feature's screen. Only a screen that fits a page is a place to go: one that fits only a dialog, drawer,
  * pane or panel is opened by an action, never navigated to.
  */
-export function stageScreenFor(allScreens: Screen[]): (item: EffectiveNavItem) => string | undefined {
+export function stageScreenFor(allScreens: Screen[]): (item: Pick<EffectiveNavItem, 'target'>) => string | undefined {
     const screens = allScreens.filter(fitsPage);
     const byPath = new Map<string, string>();
     for (const screen of screens) {

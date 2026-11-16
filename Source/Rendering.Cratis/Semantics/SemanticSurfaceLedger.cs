@@ -113,17 +113,15 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticValueProvideSource", rendered, "Value");
         Add(entries, "SemanticContextOperand", rendered, "Path Value");
 
-        var gated = rejected("STAGE-ESM-016");
-
         // ESM v53 audiences, availability blocks and available gates render as Choreography gates evaluated by Arc before authorize (Cratis/Stage#1117).
-        // A screen's gate has no backend part to gate, so STAGE-ESM-016 still refuses it.
+        // Screens publish exact-name marker parts for client navigation and route admission.
         Add(entries, "SemanticApplication", rendered, "Audiences Availabilities");
         Add(entries, "SemanticModule", rendered, "Available");
         Add(entries, "SemanticFeature", rendered, "Available");
         Add(entries, "SemanticSlice", rendered, "Available");
         Add(entries, "SemanticCommand", rendered, "Available");
         Add(entries, "SemanticKeyedQuery", rendered, "Available");
-        Add(entries, "SemanticScreen", gated, "Available");
+        Add(entries, "SemanticScreen", rendered, "Available");
         Add(entries, "SemanticAudience", rendered, "Name");
         Add(entries, "SemanticAvailability", rendered, "Name Requirements");
         Add(entries, "SemanticAvailabilityRequirement", rendered, "$type");
@@ -384,7 +382,7 @@ internal static class SemanticSurfaceLedger
 
         // ESM v55 lets a specification state the tags an event carries. A specification that states them is refused (STAGE-ESM-016) until direct and
         // generated specifications enforce them (Cratis/Stage#944), rather than passing without checking what it says.
-        Add(entries, "SemanticSpecificationEvent", gated, "ExpectedTags");
+        Add(entries, "SemanticSpecificationEvent", rejected("STAGE-ESM-016"), "ExpectedTags");
         Add(entries, "SemanticFixtureRoute", rendered, "Source Stream StreamId StreamIdParts");
         Add(entries, "SemanticFixtureRoutePart", rendered, "Part Value");
         Add(entries, "SemanticSpecificationReadModel", rendered, "Key ReadModel Values");

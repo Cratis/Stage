@@ -74,6 +74,13 @@ internal static partial class SemanticAvailabilityRendering
         _ => string.Empty
     };
 
+    static int SliceCount(SemanticAvailabilityGate gate, string target, IEnumerable<string> sliceNamespaces)
+    {
+        // A screen marker is not a backend slice and must never hide the slice's command/query proxies.
+        if (target.StartsWith("screen:", StringComparison.Ordinal)) return 0;
+        return gate.IsType ? 1 : sliceNamespaces.Count(slice => slice == gate.Key || slice.StartsWith(gate.Key + ".", StringComparison.Ordinal));
+    }
+
     static IEnumerable<(string Target, SemanticAvailabilityGate Gate)> GateTargets(SemanticApplicationContext context)
     {
         var sliceNamespaces = context.AllSlices.Select(located => SliceNaming.Namespace(context.RootNamespace, located.Path)).Distinct(StringComparer.Ordinal).ToArray();
@@ -102,9 +109,11 @@ internal static partial class SemanticAvailabilityRendering
             }
         }
 
+        SemanticScreenAvailability.AppendTargets(paths, context);
+
         foreach (var gate in Gates(context))
         {
-            var beneath = gate.IsType ? 1 : sliceNamespaces.Count(slice => slice == gate.Key || slice.StartsWith(gate.Key + ".", StringComparison.Ordinal));
+            var beneath = SliceCount(gate, paths[gate.Key], sliceNamespaces);
             yield return ($"{paths[gate.Key]};slices={beneath}", gate);
         }
     }

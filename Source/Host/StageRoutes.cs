@@ -7,6 +7,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Api;
 using Cratis.Stage.Contracts;
 using Cratis.Stage.Contracts.Scene;
+using Cratis.Stage.Contracts.Semantics;
 using Cratis.Stage.Semantics;
 
 namespace Cratis.Stage.Host;
@@ -37,6 +38,11 @@ public record StageRoutes(
     /// Gets each command's JSON response kind, derived from its modeled response; commands without one echo an object.
     /// </summary>
     public IReadOnlyDictionary<string, string> CommandResponseKinds { get; init; } = new Dictionary<string, string>();
+
+    /// <summary>
+    /// Gets the exact Arc availability part key of every gated screen, by Scene screen name.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> Screens { get; init; } = new Dictionary<string, string>();
 
     internal static StageRoutes For(StageSceneRoutes routes, EventModel model) => Create(
         routes,
@@ -69,7 +75,11 @@ public record StageRoutes(
             .Where(query => query.Delivery == SemanticQueryDelivery.Live)
             .Select(query => query.Name).ToHashSet(StringComparer.Ordinal);
         var result = Create(routes, live, metadata);
-        return result with { Diagnostics = [.. result.Diagnostics, .. diagnostics.All.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")] };
+        return result with
+        {
+            Diagnostics = [.. result.Diagnostics, .. diagnostics.All.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")],
+            Screens = ScreenAvailabilityParts.For(model.Application)
+        };
     }
 
     // Identity stays marked even when allocation or explicit list projection evidence proves creation.

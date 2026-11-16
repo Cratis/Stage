@@ -3,7 +3,6 @@
 
 using System.Collections.Immutable;
 using System.Text;
-using System.Text.RegularExpressions;
 using Cratis.Screenplay.Diagnostics;
 
 namespace Cratis.Stage.Contracts.Semantics;
@@ -184,7 +183,7 @@ public sealed partial record ModelAssets(ImmutableSortedDictionary<string, Immut
         static readonly UTF8Encoding _utf8 = new(false, true);
 
         internal bool IsSafe => !string.IsNullOrEmpty(Value) && HasSafeCharacters && IsNotSource && IsLossless() && HasSafeSegments;
-        internal bool CollidesWithBundle => BundleNames.Pattern.IsMatch(Value);
+        internal bool CollidesWithBundle => BundleNames.Matches(Value);
         bool HasSafeCharacters => !Value.Any(IsUnsafeCharacter);
         bool IsNotSource => !Value.EndsWith(".play", StringComparison.OrdinalIgnoreCase);
         bool HasSafeSegments => Value.Split('/').All(segment => segment.Length > 0 && !segment.StartsWith('.'));
@@ -202,11 +201,5 @@ public sealed partial record ModelAssets(ImmutableSortedDictionary<string, Immut
                 return false;
             }
         }
-    }
-
-    private static partial class BundleNames
-    {
-        [GeneratedRegex(@"^(index-[A-Za-z0-9_-]+\.(js|css)|[^/]+-[A-Za-z0-9_-]+(\.[^/]+)?\.map)$", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 100)]
-        internal static partial Regex Pattern { get; }
     }
 }

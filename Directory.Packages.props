@@ -55,9 +55,9 @@
     <PackageVersion Include="Cratis.Showrunner.GuestList" Version="2.6.0" />
     <PackageVersion Include="Cratis.Showrunner.GuestList.Availability" Version="2.6.0" />
     <PackageVersion Include="Cratis.Showrunner.Herald" Version="1.14.0" />
-    <PackageVersion Include="Cratis.Scene.Engine" Version="6.99.0-scenedesign.4" />
-    <PackageVersion Include="Cratis.Scene.Model" Version="6.99.0-scenedesign.4" />
-    <PackageVersion Include="Cratis.Scene.Screenplay" Version="6.99.0-scenedesign.4" />
+    <PackageVersion Include="Cratis.Scene.Engine" Version="6.0.1" />
+    <PackageVersion Include="Cratis.Scene.Model" Version="6.0.1" />
+    <PackageVersion Include="Cratis.Scene.Screenplay" Version="6.0.1" />
     <PackageVersion Include="Cratis.Screenplay" Version="$(CratisScreenplayVersion)" />
     <PackageVersion Include="Cratis.Screenplay.Matching" Version="$(CratisScreenplayVersion)" />
     <!-- Spec-only: the released conformance corpus consumed by the Cratis renderer's planner fixtures, at the Screenplay version the renderer compiles with. -->

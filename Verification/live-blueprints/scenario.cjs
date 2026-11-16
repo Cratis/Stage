@@ -6,6 +6,7 @@
 // template diagnostic, and neither the packages the Stage serves nor the page carry the blueprint's design-time sample data (SD6).
 const { readFileSync, writeFileSync } = require('node:fs');
 const { join } = require('node:path');
+const { trackFailedRequests } = require('./failed-requests.cjs');
 const { chromium } = require(join(__dirname, '..', 'generated-react-browser', 'node_modules', 'playwright'));
 
 const baseUrl = process.env.STAGE_LIVE_URL ?? 'http://127.0.0.1:9090';
@@ -24,12 +25,14 @@ const screens = [...readFileSync(playPath, 'utf8').matchAll(/^\s*screen\s+(\w+)\
     const block = (path, reason) => { record(path, 'blocked', reason); result.remainingBlockers.push(`${path}: ${reason}`); };
     let exitCode = 2;
     let browser;
+    let requestFailures = [];
     try {
         if (screens.length === 0) throw new Error(`${playPath} has no screen built from a blueprint template`);
         const { show, applyScheme, schemes, contrast } = require('../blueprint-templates/contrast.cjs');
         browser = await chromium.launch();
         const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
         const errors = [];
+        requestFailures = trackFailedRequests(page);
         page.on('pageerror', error => errors.push(error.message));
         // The requests the page is still waiting for, so a screen that never mounts says what its boot was stuck on.
         const pending = new Set();
@@ -111,5 +114,8 @@ const screens = [...readFileSync(playPath, 'utf8').matchAll(/^\s*screen\s+(\w+)\
 
     console.log(result.summary ?? result.message);
     for (const blocker of result.remainingBlockers) console.log(`BLOCKED ${blocker}`);
+    if (result.status !== 'passed') {
+        for (const failure of requestFailures) console.log(failure);
+    }
     process.exit(exitCode);
 })();

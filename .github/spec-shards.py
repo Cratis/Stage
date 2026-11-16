@@ -86,6 +86,7 @@ PROJECT_SHARDS = {
         "Source/Stage/Stage.csproj",
         "Source/SpecRunner/SpecRunner.csproj",
         "Source/Rendering.Cratis.Scaffolding/Rendering.Cratis.Scaffolding.csproj",
+        "Source/ReferencePacks.Specs/ReferencePacks.Specs.csproj",
     ],
 }
 

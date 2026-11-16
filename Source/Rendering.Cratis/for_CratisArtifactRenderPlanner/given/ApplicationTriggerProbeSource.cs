@@ -8,6 +8,7 @@ internal static class ApplicationTriggerProbeSource
 {
     internal const string Host = """
         using Cratis.Chronicle;
+        using Cratis.Chronicle.Diagnostics;
         using Microsoft.AspNetCore.Builder;
         using Microsoft.AspNetCore.Hosting;
         using Microsoft.Extensions.Configuration;
@@ -28,8 +29,9 @@ internal static class ApplicationTriggerProbeSource
                     ["Cratis:Chronicle:EventStore"] = storeName,
                     ["Cratis:Chronicle:ConnectionString"] = connection
                 });
-                builder.Services.AddSingleton<Action<ChronicleTelemetryOptions>>(_ => { });
-                builder.AddCratis(configureChronicleBuilder: chronicle => chronicle.WithCamelCaseNamingPolicy());
+                builder.Services.AddSingleton<Action<ChronicleTelemetryOptions>>(telemetry => telemetry.EventSourceIdTracing = EventSourceIdTracing.Omitted);
+                builder.AddCratis(configureChronicleBuilder: chronicle => chronicle.WithCamelCaseNamingPolicy()
+                    .WithTelemetry(telemetry => telemetry.EventSourceIdTracing = EventSourceIdTracing.Omitted));
                 Reactions.GeneratedPolicies.Registration.Register(builder.Services);
                 var app = builder.Build();
                 app.UseCratis();

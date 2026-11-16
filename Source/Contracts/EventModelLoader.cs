@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Scene.Model.Packages;
+using Cratis.Scene.Screenplay.Forward;
 using Cratis.Screenplay;
 using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Files;
@@ -82,7 +83,7 @@ public static class EventModelLoader
     public static async Task<SceneApplication> LoadSceneApplicationFromDirectoryAsync(string directory)
     {
         var merged = await CompileDirectory(directory);
-        return new ScreenplaySceneVisitor().Visit(merged);
+        return StageSceneConversion.Visit(merged);
     }
 
     /// <summary>
@@ -105,7 +106,7 @@ public static class EventModelLoader
     public static async Task<ApplicationRenderPlan> LoadRenderPlanFromDirectoryAsync(string directory, IReadOnlyList<ScenePackage> catalog)
     {
         var merged = await CompileDirectory(directory);
-        return RenderPlanner.Plan(new ScreenplaySceneVisitor().Visit(merged), catalog);
+        return RenderPlanner.Plan(StageSceneConversion.Visit(merged), catalog);
     }
 
     /// <summary>
@@ -128,8 +129,8 @@ public static class EventModelLoader
     // The converters run without a collector, so report the members that are admitted but not translated yet (a form field's picker).
     static SceneApplication VisitScene(ApplicationSyntax application)
     {
-        var scene = new ScreenplaySceneVisitor().Visit(application);
-        var admitted = new ConversionDiagnostics();
+        var scene = StageSceneConversion.Visit(application);
+        var admitted = new Cratis.Scene.Screenplay.ConversionDiagnostics();
         new UiSyntaxAdmission(admitted).VisitApplication(application);
         return scene with { ConversionDiagnostics = [.. scene.ConversionDiagnostics, .. admitted.All] };
     }

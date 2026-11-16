@@ -3,6 +3,7 @@
 
 using Cratis.Scene.Engine.Shell;
 using Cratis.Scene.Engine.Templates;
+using Cratis.Scene.Screenplay.Forward;
 using SceneLayouts = Cratis.Scene.Model.Layouts;
 using ScenePackagesModel = Cratis.Scene.Model.Packages;
 using SceneProfilesModel = Cratis.Scene.Model.Profiles;

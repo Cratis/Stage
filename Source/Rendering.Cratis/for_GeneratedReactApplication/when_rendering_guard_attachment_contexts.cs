@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Scene.Screenplay.Forward;
 using Cratis.Screenplay.Syntax;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Scene;
@@ -14,7 +15,7 @@ public class when_rendering_guard_attachment_contexts : given.a_screen_compositi
     [Fact]
     public void should_render_a_table_with_a_guard_on_a_uuid_row_field()
     {
-        var syntax = Contracts.Scene.for_ScreenplaySceneVisitor.given.guard_context_application.Create("row", ComparisonOperator.Equal);
+        var syntax = given.guard_context_application.Create("row", ComparisonOperator.Equal);
         var module = syntax.Modules.Single();
         var feature = module.Features.Single();
         var slice = feature.Slices.Single();
@@ -59,7 +60,7 @@ public class when_rendering_guard_attachment_contexts : given.a_screen_compositi
     [InlineData("ambiguous", "Equal", false)]
     public void should_only_produce_artifacts_for_resolved_guard_subjects(string site, string operation, bool supported)
     {
-        var syntax = Contracts.Scene.for_ScreenplaySceneVisitor.given.guard_context_application.Create(site, Enum.Parse<ComparisonOperator>(operation));
+        var syntax = given.guard_context_application.Create(site, Enum.Parse<ComparisonOperator>(operation));
         var scene = new ScreenplaySceneVisitor().Visit(syntax);
         var plan = Plan(CanonicalSceneJson.Serialize(scene));
 

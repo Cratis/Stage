@@ -5,6 +5,7 @@ using Cratis.Scene.Engine.Layouts;
 using Cratis.Scene.Engine.Packages;
 using Cratis.Scene.Engine.Profiles;
 using Cratis.Scene.Engine.Screens;
+using Cratis.Scene.Screenplay.Forward;
 using SceneLayouts = Cratis.Scene.Model.Layouts;
 using ScenePackagesModel = Cratis.Scene.Model.Packages;
 using SceneProfilesModel = Cratis.Scene.Model.Profiles;
@@ -116,6 +117,7 @@ public static class RenderPlanner
                 .. RenderFindings.ForPackages(profile, selection, catalog, target),
                 .. shell is null ? RenderFindings.ForLayout(profile, application, layoutName, target) : RenderFindings.ForShell(profile, shell, target),
                 .. RenderFindings.ForTheme(profile, theme, target),
+                .. RenderFindings.ForDesignSystem(profile, target),
                 .. RenderFindings.ForComponents(components.Where(component => component.Resolution is null).Select(component => component.Name), target),
                 .. RenderFindings.ForScreenTemplates(screenTemplates, target),
                 .. RenderFindings.ForSizeClass(arrangements.Where(arrangement => arrangement.Supported && arrangement.Selection is null).Select(arrangement => arrangement.Name), sizeClass, target),

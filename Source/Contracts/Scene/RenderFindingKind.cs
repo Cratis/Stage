@@ -134,5 +134,11 @@ public enum RenderFindingKind
     /// <summary>
     /// An arrangement type is not supported by the pinned Scene evaluators.
     /// </summary>
-    ArrangementUnsupported = 20
+    ArrangementUnsupported = 20,
+
+    /// <summary>
+    /// The design system the target draws from cannot give a value to a token role or a component part in one of its modes - a theme that
+    /// leaves a role out, a part that refers to a token with no value. Rendering it would draw that part from nothing.
+    /// </summary>
+    DesignSystemUnresolved = 21
 }

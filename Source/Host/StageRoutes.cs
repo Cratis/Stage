@@ -49,7 +49,7 @@ public record StageRoutes(
 
     internal static StageRoutes For(StageSceneRoutes routes, ExecutableSemanticModel model, SemanticListCreation creation)
     {
-        var diagnostics = new ConversionDiagnostics();
+        var diagnostics = new global::Cratis.Scene.Screenplay.ConversionDiagnostics();
         var metadata = new List<(string Identity, string Schema, string ResponseKind)>();
         foreach (var located in SemanticModelWalker.Slices(model))
         {
@@ -78,7 +78,7 @@ public record StageRoutes(
             Contracts.Screenplay.SchemaSynthesizer.WithIdentity(schema, identifier),
             identifier is null || creates);
 
-    static string? ResponseKind(SemanticApplication application, SemanticCommand command, ConversionDiagnostics diagnostics, string path)
+    static string? ResponseKind(SemanticApplication application, SemanticCommand command, global::Cratis.Scene.Screenplay.ConversionDiagnostics diagnostics, string path)
     {
         if (command.Response is not SemanticScalarCommandResponse response) return "object";
         var property = command.Properties.Single(property => property.Id == response.Source);

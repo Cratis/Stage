@@ -50,6 +50,7 @@ public class with_an_authored_scene : a_screen_composition_render
     // Recomputed for Arc 23.8.0, Chronicle 19.162.0 and Choreography 2.9.0: only the pins in Directory.Packages.props and the scaffold catalog change.
     // Recomputed for Screenplay 6.29.0: only the Screenplay pins in Directory.Packages.props and the scaffold catalog change.
     // Re-frozen for Cratis/Stage#970: only Program.cs gains the Diagnostics import and defaults event-source id tracing to Omitted.
+    // Recomputed for Cratis/Stage#1147: the Scene 6.0.1 pins of the Stage runtime and the scaffold, and the Screenplay 6.32.0 pins.
     const string Before = "309e8eed93bf98daa76667b71156c9654f5e7f72dc02d202bc0d4e69c62f995a";
 
     ArtifactRenderPlan _plan = null!;

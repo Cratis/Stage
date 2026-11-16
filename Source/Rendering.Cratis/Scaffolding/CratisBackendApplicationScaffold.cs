@@ -97,17 +97,14 @@ public sealed partial class CratisBackendApplicationScaffold
         using Cratis.Choreography.Chronicle.Hosting;
         using Cratis.Choreography.Hosting;
         using Cratis.Chronicle;
-        using Cratis.Chronicle.Diagnostics;
 
         var builder = WebApplication.CreateBuilder(args);
         builder.Services.AddHealthChecks();
-        builder.Services.AddSingleton<Action<ChronicleTelemetryOptions>>(telemetry => telemetry.EventSourceIdTracing = EventSourceIdTracing.Omitted);
+        builder.Services.AddSingleton<Action<ChronicleTelemetryOptions>>(_ => { });
 
-        // Opt in with Raw, or Hashed with an EventSourceIdHashKey of at least 32 characters from a secret store.
         builder.AddCratis(
             configureArcBuilder: arc => arc.WithMongoDB(),
-            configureChronicleBuilder: chronicle => chronicle.WithCamelCaseNamingPolicy()
-                .WithTelemetry(telemetry => telemetry.EventSourceIdTracing = EventSourceIdTracing.Omitted));
+            configureChronicleBuilder: chronicle => chronicle.WithCamelCaseNamingPolicy());
 
         // The Orleans silo that runs jobs, event-sourced state machines and workflows. The local configuration is localhost
         // clustering with in-memory grain storage: it starts with the application and needs no extra service, but jobs and

@@ -256,7 +256,7 @@ The host's own sign-in settings use the same mechanism. See
 
 Stage Host and newly rendered applications omit event source ids from Chronicle spans by default because ids can identify people. To opt in for a rendered application, change the `WithTelemetry` callback in its `Program.cs` to set `EventSourceIdTracing.Raw`, or set `EventSourceIdTracing.Hashed` and supply an `EventSourceIdHashKey` of at least 32 characters from a secret store. The tracing modes are in `Cratis.Chronicle.Diagnostics`. Raw mode exposes the original ids to your tracing backend.
 
-For Stage Host, configure `Cratis:Chronicle:Telemetry:EventSourceIdTracing` as `Raw` or `Hashed`; hashed mode also needs `Cratis:Chronicle:Telemetry:EventSourceIdHashKey` supplied through your secret store. Explicit `ChronicleTelemetryConfiguration` registrations also take precedence over the Host default. These settings affect trace spans, not stored event source ids.
+For Stage Host, configure `Cratis:Chronicle:Telemetry:EventSourceIdTracing` as `Raw` or `Hashed`; hashed mode also needs `Cratis:Chronicle:Telemetry:EventSourceIdHashKey` supplied through your secret store. These settings affect trace spans, not stored event source ids.
 
 ## Behind an authenticating proxy
 

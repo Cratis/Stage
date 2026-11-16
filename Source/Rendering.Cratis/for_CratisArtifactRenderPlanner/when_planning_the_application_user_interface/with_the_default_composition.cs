@@ -53,8 +53,7 @@ public class with_the_default_composition : a_register_project_render_request
     // Recomputed for Arc 23.8.0, Chronicle 19.162.0 and Choreography 2.9.0: only the pins in Directory.Packages.props and the scaffold catalog change.
     // Recomputed for Screenplay 6.29.0: only the Screenplay pins in Directory.Packages.props and the scaffold catalog change.
     // Re-frozen for Cratis/Stage#970: only Program.cs gains the Diagnostics import and defaults event-source id tracing to Omitted.
-    // Re-frozen for the combined #970 and #1073 train against its merged scaffold and reference packs.
-    const string Before = "26f8e2a09e0df750ed24289441be358beefef8ac7757b3d6186bc79469a5f060";
+    const string Before = "227daf7e1537ef9ecff4bf85689839fb5c89fb27ac6ba0149641d53258cf360d";
 
     ArtifactRenderPlan _plan = null!;
 

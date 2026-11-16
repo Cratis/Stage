@@ -27,7 +27,7 @@ public class when_publishing_screen_marker_parts : Specification
 
     async Task Because()
     {
-        var plan = a_fleet_model.Plan(an_available_screen_model.Source);
+        var plan = a_fleet_model.Plan(an_available_screen_model.Compile());
         var source = a_fleet_model.Text(plan, "ScreenParts.cs");
         var compilation = CSharpCompilation.Create("ScreenParts", [CSharpSyntaxTree.ParseText(source)], PureTransitionAdmission.AnalysisReferences(), new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
         await using var output = new MemoryStream();

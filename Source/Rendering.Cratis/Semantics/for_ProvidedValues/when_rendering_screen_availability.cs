@@ -19,7 +19,7 @@ public class when_rendering_screen_availability : Specification
 
     void Because()
     {
-        var compilation = a_fleet_model.Compile(an_available_screen_model.Source);
+        var compilation = an_available_screen_model.Compile();
         _plan = a_fleet_model.Plan(compilation);
         _map = ScreenAvailabilityParts.For(compilation.Model.Application);
         if (!_plan.Success) return;

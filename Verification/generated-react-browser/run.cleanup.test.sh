@@ -7,10 +7,8 @@
 set -euo pipefail
 
 harness=$(cd "$(dirname "$0")" && pwd)
-repo=$(cd "$harness/../.." && pwd)
 script=${1:-$harness/run.sh}
-mkdir -p "$repo/.ai-work/stage-1153"
-work=$(mktemp -d "$repo/.ai-work/stage-1153/cleanup-test.XXXXXX")
+work=$(mktemp -d "${TMPDIR:-/tmp}/stage-generated-react-cleanup-test.XXXXXX")
 trap 'rm -rf "$work"' EXIT
 mkdir -p "$work/bin" "$work/harness/node_modules/playwright" "$work/application/wwwroot"
 cp "$script" "$work/harness/run.sh"

@@ -337,7 +337,7 @@ internal static partial class PureTransitionAdmission
             .Select(name => semanticModel.GetSymbolInfo(name).Symbol).OfType<INamedTypeSymbol>().ToArray();
         var shadow = peers.FirstOrDefault(name => ShadowsAuditedName(name) ||
             (referencedTypes.Any(reference => reference.Name == name) &&
-                !IsUnambiguousCommonType(name, context, compilation, allDeclarations, boundTypes)));
+                !CommonTypeExemption.IsUnambiguous(name, new CommonTypeScope(context, compilation, allDeclarations, boundTypes))));
         if (shadow is not null)
             return Reject("STAGE-ESM-022", $"Generated type '{shadow}' shadows a type referenced by the reducer body.");
         var namespaceShadow = namespacePaths.FirstOrDefault(entry => ShadowsAuditedName(entry.Key) ||
@@ -394,20 +394,8 @@ internal static partial class PureTransitionAdmission
 
         if (!enforcePurity) return (block, null);
 
-        var forbidden = block.DescendantNodesAndSelf().FirstOrDefault(node => IsForbiddenNode(node) &&
-            !(validationIterator && (node.IsKind(SyntaxKind.YieldReturnStatement) || node is InterpolatedStringExpressionSyntax)));
-        if (forbidden is not null)
-        {
-            return (null, Reject("STAGE-ESM-022", $"Forbidden pure construct '{forbidden.Kind()}' on '{ForbiddenSymbol(forbidden, body)}'."));
-        }
-
-        var disallowedTest = DisallowedTypeTest(block, generatedNames, role);
-        if (disallowedTest is not null)
-        {
-            return (null, Reject("STAGE-ESM-022", $"Type test '{disallowedTest}' is outside the pure allowlist; only generated types are admitted."));
-        }
-
-        return (block, null);
+        var purityRejection = PurityRejection(block, body, generatedNames, role, validationIterator);
+        return (purityRejection is null ? block : null, purityRejection);
     }
 
     internal static Verdict AnalyzeRendered(CSharpCompilation compilation, string reducerPath, SemanticTypedContextDescriptor descriptor, SemanticApplicationContext context)
@@ -494,50 +482,6 @@ internal static partial class PureTransitionAdmission
     /// <returns>The pack version.</returns>
     internal static string ReferencePackVersionFor(string targetFramework) => targetFramework == "net11.0" ? ReferencePackVersion11 : ReferencePackVersion;
 
-    // Only authored Common concepts/composites can opt out of the conservative name guard.
-    // Referenced types (including primitive CLR names) and slice-local peers never opt out.
-    static bool IsUnambiguousCommonType(
-        string name,
-        SemanticApplicationContext context,
-        CSharpCompilation compilation,
-        IEnumerable<(SemanticId? Id, string Namespace, string Name)> declarations,
-        IEnumerable<INamedTypeSymbol> boundTypes)
-    {
-        if (ShadowsAuditedName(name)) return false;
-        var commonIds = context.Application.Concepts.Where(concept => Identifiers.ToPascalCase(concept.Name) == name).Select(concept => concept.Id)
-            .Concat(context.Application.Types.Where(type => Identifiers.ToPascalCase(type.Name) == name).Select(type => type.Id)).ToHashSet();
-        if (commonIds.Count == 0 || declarations.Any(declaration => declaration.Name == name &&
-            (declaration.Namespace != context.CommonNamespace || declaration.Id is not { } id || !commonIds.Contains(id))))
-        {
-            return false;
-        }
-
-        var commonType = compilation.GetTypeByMetadataName($"{context.CommonNamespace}.{name}");
-        var references = boundTypes.Where(type => type.Name == name).ToArray();
-        if (commonType is null || references.Length == 0 || references.Any(type => !SymbolEqualityComparer.Default.Equals(type, commonType))) return false;
-
-        var imports = compilation.SyntaxTrees.SelectMany(tree => tree.GetRoot().DescendantNodes().OfType<UsingDirectiveSyntax>()).ToArray();
-
-        // Alias/static import lookup is not modeled by this narrow exemption.
-        if (imports.Any(import => import.Alias is not null || import.StaticKeyword.IsKind(SyntaxKind.StaticKeyword))) return false;
-        var namespaces = imports.Select(import => import.Name?.ToString().Replace("global::", string.Empty, StringComparison.Ordinal))
-            .OfType<string>().Append("System").Append(string.Empty).Distinct(StringComparer.Ordinal);
-        foreach (var path in namespaces)
-        {
-            var imported = compilation.GlobalNamespace;
-            foreach (var segment in path.Split('.', StringSplitOptions.RemoveEmptyEntries))
-            {
-                imported = imported?.GetNamespaceMembers().FirstOrDefault(candidate => candidate.Name == segment);
-            }
-
-            // The merged namespace includes referenced assemblies and signature stand-ins.
-            // Ignore only the exact Common declaration being considered, not other source types.
-            if (imported?.GetTypeMembers(name).Any(type => !SymbolEqualityComparer.Default.Equals(type, commonType)) == true) return false;
-        }
-
-        return true;
-    }
-
     static bool IsTransitionMethod(MethodDeclarationSyntax method, string name) =>
         method.Identifier.Text == name ||
         (method.Identifier.Text == SemanticReducerArtifactRenderer.SelfTransitionMethod &&
@@ -551,6 +495,19 @@ internal static partial class PureTransitionAdmission
         RecursivePatternSyntax when body.Contains("context", StringComparison.Ordinal) => "TypedContext_",
         _ => forbidden.Kind().ToString()
     };
+
+    static Verdict? PurityRejection(BlockSyntax block, string body, IReadOnlySet<string> generatedNames, string role, bool validationIterator)
+    {
+        var forbidden = block.DescendantNodesAndSelf().FirstOrDefault(node => IsForbiddenNode(node) &&
+            !(validationIterator && (node.IsKind(SyntaxKind.YieldReturnStatement) || node is InterpolatedStringExpressionSyntax)));
+        if (forbidden is not null)
+        {
+            return Reject("STAGE-ESM-022", $"Forbidden pure construct '{forbidden.Kind()}' on '{ForbiddenSymbol(forbidden, body)}'.");
+        }
+
+        var disallowedTest = DisallowedTypeTest(block, generatedNames, role);
+        return disallowedTest is null ? null : Reject("STAGE-ESM-022", $"Type test '{disallowedTest}' is outside the pure allowlist; only generated types are admitted.");
+    }
 
     static bool IsForbiddenNode(SyntaxNode node) =>
         IsForbiddenSyntax(node) || IsForbiddenDecoration(node) || node.IsKind(SyntaxKind.CoalesceAssignmentExpression);

@@ -49,8 +49,8 @@ public class with_an_authored_scene : a_screen_composition_render
     // Recomputed for the availability manifest: Choreography 2.8.0 moves the scaffold pin.
     // Recomputed for Arc 23.8.0, Chronicle 19.162.0 and Choreography 2.9.0: only the pins in Directory.Packages.props and the scaffold catalog change.
     // Recomputed for Screenplay 6.29.0: only the Screenplay pins in Directory.Packages.props and the scaffold catalog change.
-    // Recomputed for Cratis/Stage#1147: the Scene 6.99.0-scenedesign.1 pins of the Stage runtime and the scaffold, and the Screenplay 6.99.0-scenedesign.2 pins.
-    const string Before = "920e90d2c247df93454d95b7c2922d9ff50708c9b5dfa59926a54347eb77855f";
+    // Recomputed for Cratis/Stage#1147: the Scene 6.99.0-scenedesign.4 pins of the Stage runtime and the scaffold, and the Screenplay 6.32.0 pins.
+    const string Before = "0a1016eedf87f5a979ab62c98ef5db632de933a15e77687c30f5248f515bf9a2";
 
     ArtifactRenderPlan _plan = null!;
 

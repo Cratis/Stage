@@ -29,7 +29,8 @@ public static partial class SemanticModelLoader
             return new(null, [.. diagnostics, .. plan.Issues.Select(issue => new SemanticModelLoadDiagnostic("STAGE-PLAN-004", $"{issue.Artifact}: {issue.Details}"))]);
         }
 
-        diagnostics = [.. diagnostics, .. LocalPlanDiagnostics(plan)];
+        var modelAssets = root is null ? ModelAssets.None : ModelAssets.Read(root);
+        diagnostics = [.. diagnostics, .. LocalPlanDiagnostics(plan), .. modelAssets.Diagnostics];
         var loaded = new LoadedSemanticModel(model, plan.Plan!)
         {
             SpecificationOrigins = compiled.Value!.SpecificationOrigins,
@@ -39,6 +40,7 @@ public static partial class SemanticModelLoader
             TypedContextDescriptors = compiled.TypedContextDescriptors,
             ImplementationContents = SemanticImplementationBodies.Resolve(compiled.Value!.Documents, compiled.ImplementationRequirements),
             AttachmentDiagnostics = attachmentDiagnostics,
+            ModelAssets = modelAssets,
             ReleaseBaseline = baseline,
             Realization = ApplicationRealization.From(compiled.Value!, root),
             PassiveReadModels = compiled.Value!.PassiveReadModels,

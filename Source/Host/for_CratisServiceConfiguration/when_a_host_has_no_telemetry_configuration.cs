@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Cratis.Stage.Host.for_CratisServiceConfiguration;
 
-public class when_a_host_has_no_explicit_telemetry_configuration : Specification
+public class when_a_host_has_no_telemetry_configuration : Specification
 {
     ServiceProvider _services = null!;
     ChronicleAspNetCoreOptions _options = null!;
@@ -24,8 +24,9 @@ public class when_a_host_has_no_explicit_telemetry_configuration : Specification
 
     void Because() => _options = _services.GetRequiredService<IOptions<ChronicleAspNetCoreOptions>>().Value;
 
-    [Fact] void should_register_one_default_telemetry_configuration() => _services.GetServices<ChronicleTelemetryConfiguration>().Count().ShouldEqual(1);
-    [Fact] void should_omit_event_source_ids_by_default() => _options.Telemetry.EventSourceIdTracing.ShouldEqual(EventSourceIdTracing.Omitted);
+    // Chronicle no longer binds the telemetry configuration by convention, so a host that never asks for telemetry carries none and keeps the defaults.
+    [Fact] void should_not_bind_a_telemetry_configuration() => _services.GetServices<ChronicleTelemetryConfiguration>().ShouldBeEmpty();
+    [Fact] void should_keep_default_identifier_tracing() => _options.Telemetry.EventSourceIdTracing.ShouldEqual(EventSourceIdTracing.Raw);
 
     void Destroy() => _services.Dispose();
 }

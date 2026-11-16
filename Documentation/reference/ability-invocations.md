@@ -101,7 +101,8 @@ The identity is a fixed-length digest (`inv-` and 32 hexadecimal characters). On
   for every attempt, which is what lets an extension deduplicate the effect.
 
 A workflow action that performs an ability directly has no separate run: the action node is the invocation, and its identity is derived from the
-run and the node execution.
+run and the node execution. Its ledger fails when its action node exhausts its attempts, even when the ability descriptor permits more attempts.
+A certainly-not-sent result can be retried only while both the node and the descriptor still permit another attempt.
 
 ## Effect classes
 

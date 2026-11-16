@@ -59,19 +59,18 @@ internal sealed class AbilityPerformer(AbilityDescriptor descriptor, IInvocation
             result = new AbilityFailed(exception.Message);
         }
 
-        return await Settle(grain, record.Identity, attempt, result);
+        var configuration = JsonNode.Parse(invocation.Configuration.Value);
+        var maxAttempts = Math.Min(gates.Attempts(descriptor), configuration?["maxAttempts"]?.GetValue<int>() ?? int.MaxValue);
+        return await Settle(grain, record.Identity, attempt >= maxAttempts, result);
     }
 
     static (InvocationOrigin Origin, string Input, string AnswerPolicy) Describe(WorkflowNodeInvocation invocation)
     {
         var node = JsonNode.Parse(invocation.Input.Value) as JsonObject ?? [];
         var payload = node["trigger"]?["payload"] as JsonObject;
-        if (payload?["origin"] is JsonObject origin && Enum.TryParse<InvocationOriginKind>(origin["kind"]?.GetValue<string>(), out var kind) && origin["address"] is { } address && origin["causation"] is { } causation)
+        if (Origin(payload) is { } origin)
         {
-            return (
-                new(kind, address.GetValue<string>(), causation.GetValue<string>()),
-                payload["input"]?.ToJsonString() ?? "{}",
-                payload["answerPolicy"]?.GetValue<string>() ?? string.Empty);
+            return (origin, payload!["input"]?.ToJsonString() ?? "{}", payload["answerPolicy"]?.GetValue<string>() ?? string.Empty);
         }
 
         // A workflow action performs the ability itself: its identity is the node execution of its run, and its input is composed from what the
@@ -87,6 +86,14 @@ internal sealed class AbilityPerformer(AbilityDescriptor descriptor, IInvocation
             configuration?["answerPolicy"]?.GetValue<string>() ?? string.Empty);
     }
 
+    static InvocationOrigin? Origin(JsonObject? payload)
+    {
+        if (payload?["origin"] is not JsonObject origin) return null;
+        if (!Enum.TryParse<InvocationOriginKind>(origin["kind"]?.GetValue<string>(), out var kind)) return null;
+        if (origin["address"] is not { } address || origin["causation"] is not { } causation) return null;
+        return new(kind, address.GetValue<string>(), causation.GetValue<string>());
+    }
+
     static async Task<WorkflowNodeOutcome> Recorded(IInvocationGrain grain)
     {
         var record = (await grain.Get())!;
@@ -95,46 +102,51 @@ internal sealed class AbilityPerformer(AbilityDescriptor descriptor, IInvocation
             : WorkflowNodeOutcome.Failed(record.Reason.Length == 0 ? "The invocation already failed." : record.Reason);
     }
 
-    async Task<WorkflowNodeOutcome> Settle(IInvocationGrain grain, string identity, int attempt, AbilityResult result)
+    async Task<WorkflowNodeOutcome> Settle(IInvocationGrain grain, string identity, bool terminal, AbilityResult result)
     {
         switch (result)
         {
             case AbilityReturned returned:
-                var outlet = returned.Outcome ?? AbilityDescriptor.ReturnedOutlet;
-                if (!descriptor.Outlets.Contains(outlet))
-                {
-                    return await Unknown(grain, attempt, $"{descriptor.Reference.Capability} answered the outcome '{outlet}', which it does not declare.");
-                }
-
-                await grain.Settle(outlet, returned.Output, string.Empty);
-                return WorkflowNodeOutcome.Succeeded(outlet, new WorkflowData(returned.Output));
+                return await Returned(grain, terminal, returned);
             case AbilityAccepted when descriptor.AnswersLater:
                 await grain.Suspended();
                 return WorkflowNodeOutcome.Suspended(new WorkflowCompletionKey(identity), descriptor.AnswerExpiresAfter);
             case AbilityAccepted:
-                return await Unknown(grain, attempt, $"{descriptor.Reference.Capability} accepted the work to answer later, which it does not declare.");
+                return await Unknown(grain, terminal, $"{descriptor.Reference.Capability} accepted the work to answer later, which it does not declare.");
             case AbilityNotSent notSent:
-                return await Ended(grain, attempt, notSent.Reason);
+                return await Ended(grain, terminal, notSent.Reason);
             case AbilityFailed { MayHaveReachedTheSystem: false } failed:
-                return await Ended(grain, attempt, failed.Reason);
+                return await Ended(grain, terminal, failed.Reason);
             case AbilityFailed failed:
-                return await Unknown(grain, attempt, failed.Reason);
+                return await Unknown(grain, terminal, failed.Reason);
             default:
-                return await Unknown(grain, attempt, $"{descriptor.Reference.Capability} answered something the runtime does not know.");
+                return await Unknown(grain, terminal, $"{descriptor.Reference.Capability} answered something the runtime does not know.");
         }
     }
 
-    // The attempt may have reached the system. Retrying is only right when doing it twice is.
-    async Task<WorkflowNodeOutcome> Unknown(IInvocationGrain grain, int attempt, string reason)
+    async Task<WorkflowNodeOutcome> Returned(IInvocationGrain grain, bool terminal, AbilityReturned returned)
     {
-        if (descriptor.Effect != EffectClass.Once) return await Ended(grain, attempt, reason);
+        var outlet = returned.Outcome ?? AbilityDescriptor.ReturnedOutlet;
+        if (!descriptor.Outlets.Contains(outlet))
+        {
+            return await Unknown(grain, terminal, $"{descriptor.Reference.Capability} answered the outcome '{outlet}', which it does not declare.");
+        }
+
+        await grain.Settle(outlet, returned.Output, string.Empty);
+        return WorkflowNodeOutcome.Succeeded(outlet, new WorkflowData(returned.Output));
+    }
+
+    // The attempt may have reached the system. Retrying is only right when doing it twice is.
+    async Task<WorkflowNodeOutcome> Unknown(IInvocationGrain grain, bool terminal, string reason)
+    {
+        if (descriptor.Effect != EffectClass.Once) return await Ended(grain, terminal, reason);
         await grain.Stopped(reason);
         return WorkflowNodeOutcome.Ambiguous(reason);
     }
 
-    async Task<WorkflowNodeOutcome> Ended(IInvocationGrain grain, int attempt, string reason)
+    async Task<WorkflowNodeOutcome> Ended(IInvocationGrain grain, bool terminal, string reason)
     {
-        await grain.AttemptEnded(reason, attempt >= gates.Attempts(descriptor));
+        await grain.AttemptEnded(reason, terminal);
         return WorkflowNodeOutcome.Failed(reason);
     }
 }

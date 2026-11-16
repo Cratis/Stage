@@ -30,6 +30,7 @@ public class when_a_workflow_action_invokes_an_ability : Specification
     [Fact] void should_not_refuse_the_workflow() => _graph.Refusals.ShouldBeEmpty();
     [Fact] void should_perform_it_under_the_ability_capability() => _node.Capability.ShouldEqual("ability:Billing.Charge");
     [Fact] void should_leave_through_what_the_ability_can_end_in() => _node.Outlets.ShouldContainOnly("returned", "Declined", "failed", "expired");
+    [Fact] void should_tell_the_performer_when_its_last_attempt_ends() => _configuration["maxAttempts"]!.GetValue<int>().ShouldEqual(_node.MaxAttempts);
     [Fact] void should_name_the_action_as_the_address() => _configuration["address"]!.GetValue<string>().ShouldEqual("Collect/ChargeLateFee");
     [Fact] void should_describe_the_literal_input() => _configuration["inputs"]![0]!["value"]!.GetValue<string>().ShouldEqual("late");
     [Fact] void should_describe_the_input_read_from_the_subject() => _configuration["inputs"]![1]!["subject"]!.GetValue<string>().ShouldEqual("overdue");

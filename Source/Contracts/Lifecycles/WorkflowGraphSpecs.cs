@@ -144,7 +144,7 @@ public static class WorkflowGraphSpecs
             return make("workflows.unknown", "{}", []);
         }
 
-        var configuration = new JsonObject { ["address"] = $"{workflow.Name}/{node.Name}", ["inputs"] = inputs };
+        var configuration = new JsonObject { ["address"] = $"{workflow.Name}/{node.Name}", ["inputs"] = inputs, ["maxAttempts"] = Math.Max(1, node.MaxAttempts ?? 1) };
         return make(AbilityInputs.Capability(system.Name, ability.Name), configuration.ToJsonString(), [.. AbilityInputs.Outlets(ability)]);
     }
 

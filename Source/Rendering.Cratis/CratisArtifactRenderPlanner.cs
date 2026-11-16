@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using Cratis.Scene.Screenplay.Forward;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Lifecycles;
 using Cratis.Stage.Contracts.Rendering;
@@ -490,17 +491,17 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             : ScreenPartitionsInput.Compose(scene, partitions, userInterface.Select(slice => slice.Slice.Id.ToString()).ToHashSet(StringComparer.Ordinal));
 
         // Admission runs before rendering, even if another independent gate has already refused.
-        var guardDiagnostics = Contracts.Scene.SceneGuards.GuardAdmissionDiagnostics(sceneJson);
+        var guardDiagnostics = SceneGuards.GuardAdmissionDiagnostics(sceneJson);
         if (guardDiagnostics.Count != 0)
         {
             // Preserve the existing action diagnostic when both surfaces are refused.
-            var code = guardDiagnostics.Contains(Contracts.Scene.UnsupportedGuardedScreenAction.DiagnosticCode)
-                ? Contracts.Scene.UnsupportedGuardedScreenAction.DiagnosticCode
-                : Contracts.Scene.UnsupportedGuardedInteraction.DiagnosticCode;
+            var code = guardDiagnostics.Contains(UnsupportedGuardedScreenAction.DiagnosticCode)
+                ? UnsupportedGuardedScreenAction.DiagnosticCode
+                : UnsupportedGuardedInteraction.DiagnosticCode;
             var location = Screenplay.Diagnostics.SourceLocation.Start;
-            Exception refusal = code == Contracts.Scene.UnsupportedGuardedInteraction.DiagnosticCode
-                ? new Contracts.Scene.UnsupportedGuardedInteraction("scene.json", location)
-                : new Contracts.Scene.UnsupportedGuardedScreenAction("scene.json", location);
+            Exception refusal = code == UnsupportedGuardedInteraction.DiagnosticCode
+                ? new UnsupportedGuardedInteraction("scene.json", location)
+                : new UnsupportedGuardedScreenAction("scene.json", location);
             diagnostics.Add(Error(code, refusal.Message, request.Model.Application.Id));
         }
 

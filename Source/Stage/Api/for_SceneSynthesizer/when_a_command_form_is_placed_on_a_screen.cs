@@ -4,6 +4,7 @@
 using Cratis.Scene.Model.Elements;
 using Cratis.Scene.Model.Forms;
 using Cratis.Scene.Model.Screens;
+using Cratis.Scene.Screenplay.Forward;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Scene;
 using Xunit;

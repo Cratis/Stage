@@ -19,14 +19,16 @@ Nothing needs to be discovered by hand — start at the Scalar reference and cli
 
 > **Two modes.** Everything on this page describes the **sandbox** (the default). A host started in
 > [published mode](published-applications.md) serves only the frontend, the model's `/api` operations, Arc's
-> `/.cratis/*` operations and a handful of `/stage/*` documents; every route in the table below answers `404`
-> there, and the tooling routes are not mapped at all.
+> `/.cratis/*` operations and a handful of `/stage/*` documents, marked **yes** in the Published column below. The
+> tooling routes, marked **not mapped**, are never mapped there, and a request under `/scalar`, `/openapi`,
+> `/workbench`, `/read-models`, `/stage/read-models`, `/stage/load`, `/stage/semantic`, `/stage/lifecycles`,
+> `/stage/invocations` or `/stage/extensions` answers `404`.
 
 | Route                                                         | Sandbox | Published                                         |
 | ------------------------------------------------------------- | ------- | ------------------------------------------------- |
 | Frontend and `/api/...` model operations                      | yes     | yes                                               |
 | `/.cratis/*` Arc operations                                   | yes     | yes                                               |
-| `/assets/*` (files from the model's `assets` folder, for example a layout's `logo image`) | yes | no (ship them in the application's static web root) |
+| `/assets/*` (files from the model's `assets` folder, for example a layout's `logo image`) | yes | rendered applications copy them through `.frontend/public/assets/` into the built static web root |
 | `/stage/status` (`?wait=<seconds>` holds the request while the session is `loading`), `/stage/scene`, `/stage/routes`, `/stage/locales`, `/stage/strings/{locale}` | yes | yes |
 | `/stage/model-references`                                     | no      | yes                                               |
 | `/scalar`, `/openapi`                                         | yes     | not mapped                                        |
@@ -35,6 +37,26 @@ Nothing needs to be discovered by hand — start at the Scalar reference and cli
 | `/stage/load`, `/stage/semantic/*` (admission, specification runs) | yes | not mapped                                      |
 | `/stage/semantic/journeys/replay` (replay recorded journeys, `POST`) | yes | not mapped                                    |
 | `/stage/packages`                                             | yes     | yes (runtime metadata)                            |
+| `/stage/packages/files/**` (files of the approved [custom packages](custom-packages.md)) | yes, when a package set is configured | yes, when a package set is configured |
+| `/stage/lifecycles` (see [State machines and workflows](state-machines-and-workflows.md)) | yes | not mapped |
+| `/stage/invocations` (see [Durable ability invocations](ability-invocations.md)) | yes | not mapped |
+| `/stage/extensions`, `/stage/extensions/*` (see [extension packages](../extensions/packages.md), [execution tiers](../extensions/execution-tiers.md) and [inbound traffic](../extensions/inbound-traffic.md)) | yes, when extensions are loaded | not mapped |
+| `/stage/sandbox/acting-user` (see [Sandbox acting-user selection](#sandbox-acting-user-selection)) | yes, with development users enabled | not mapped |
+
+## Model assets
+
+Place model-owned images and other static files in `assets/` beside the model sources.
+The sandbox serves them at `/assets/<path>`. An application render includes the same
+binary bytes at `.frontend/public/assets/<path>` (under `Source/{ProjectName}/` with
+service layout). Vite serves that public directory in development and copies it to
+`wwwroot/assets/` on build; the URL remains `/assets/<path>`. This does not add a
+model-folder file server to published hosts.
+
+Rendering does not follow links or include hidden entries, `.play` sources or unsafe
+file names. Files over 5 MiB, exceeding the 25 MiB total, or colliding by case are
+omitted with warning `STAGE-ASSET-001`. Root-level `index-<hash>.js`, `index-<hash>.css` and hashed-bundle
+source-map names are reserved for Vite and omitted with `STAGE-ASSET-002`. A file or folder
+that cannot be read is omitted with `STAGE-ASSET-003`; rendering continues.
 
 ## Start here
 

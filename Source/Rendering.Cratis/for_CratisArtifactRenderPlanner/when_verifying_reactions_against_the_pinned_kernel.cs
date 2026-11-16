@@ -16,6 +16,7 @@ public class when_verifying_reactions_against_the_pinned_kernel : a_generated_ap
         using Cratis.Arc.MongoDB;
         using Cratis.Choreography.Chronicle.Hosting;
         using Cratis.Choreography.Hosting;
+        using Cratis.Chronicle.Diagnostics;
 
         public partial class Program
         {

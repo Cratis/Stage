@@ -4,6 +4,7 @@
 #if DEBUG
 using System.Text;
 using System.Text.Json;
+using Cratis.Scene.Screenplay.Forward;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;

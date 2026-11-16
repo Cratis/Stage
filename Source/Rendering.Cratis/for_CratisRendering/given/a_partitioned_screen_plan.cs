@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Scene.Screenplay.Forward;
 using Cratis.Screenplay;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
@@ -36,7 +37,7 @@ public class a_partitioned_screen_plan : Specification
         _compilation = when_rendering_authoring_documentation.Compile(ModelSource);
         var syntax = new ScreenplayCompiler().Compile(ModelSource);
         Assert.True(syntax.Success, string.Join(';', syntax.Diagnostics));
-        _scene = new ScreenplaySceneVisitor().Visit(syntax.Value);
+        _scene = StageSceneConversion.Visit(syntax.Value);
         _legacy = CratisRendering.CreateProfile("Projects", new("Projects", "Projects"), _scene);
         _profile = CratisRendering.WithScreenPartitions(_legacy, _compilation);
         _loaded = new(_compilation.Model, SemanticExecutionPlan.Compile(_compilation.Model).Plan);

@@ -73,7 +73,7 @@ public class when_checking_the_configuration
     void should_refuse_start_when_enabled_and_misconfigured()
     {
         var builder = WebApplication.CreateBuilder();
-        var context = new PublishedHostContext(builder, null!, null!, "store");
+        var context = new PublishedHostContext(builder, null, null, "store");
         Assert.Throws<PublishedModeRefused>(() => new NotesPublishedExtension().ConfigureServices(context));
     }
 }

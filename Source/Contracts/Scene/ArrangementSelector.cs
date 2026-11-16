@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Scene.Engine.Layouts;
+using Cratis.Scene.Screenplay.Forward;
 using SceneLayouts = Cratis.Scene.Model.Layouts;
 using SceneSizeClasses = Cratis.Scene.Model.SizeClasses;
 

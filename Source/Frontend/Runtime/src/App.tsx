@@ -27,10 +27,8 @@ import {
 import {
     ApplicationHost,
     ComponentName,
-    LayoutThemeProvider,
     SlotName,
     composeApplicationScreen,
-    defaultBlueprintThemes,
     effectiveShellOf,
     galleryScreenTemplates,
     externalComponent,
@@ -59,7 +57,8 @@ import { StageScreenTables } from './stageScreenTables';
 import { ColorSchemeMirror, StageChromeProvider, stageActivityComponent, stageChromeComponents } from './StageChrome';
 import { applicationChrome, type ApplicationIdentity, type ChromeOptions, stageCatalogWith, stageProfile, stageRegistry } from './blueprint';
 import { stageResponseContracts, type StageResponseContracts } from './stageResponseContracts';
-import { shellChromeOf, shellStartupProblems, stageShellSettings, themesWithAccent, type StageShellSettings } from './stageShell';
+import { shellChromeOf, shellStartupProblems, stageShellSettings, type StageShellSettings } from './stageShell';
+import { StageDesignProvider } from './stageDesign';
 import { StageShellSettingsApplier, systemPrefersDark } from './StageShellSettings';
 import { declaresRegions, stageNavigationModel } from './stageNavigationModel';
 import { bindDataSources } from './stageDataSources';
@@ -344,7 +343,6 @@ function StageApplication({ scene, registry, routing, routeState, strings, packa
     const shell = useMemo(() => initial ? stageShellOf(navigableScene, navigableScene.navigationTemplates) : undefined, [navigableScene, initial]);
     const shellProblems = useMemo(() => shell ? shellStartupProblems(profile, shell) : [], [profile, shell]);
     const shellSettings = useMemo(() => shell ? stageShellSettings(profile, shell, prefersDark) : undefined, [profile, shell, prefersDark]);
-    const themes = useMemo(() => themesWithAccent(defaultBlueprintThemes, shellSettings?.accent), [shellSettings?.accent]);
     const { showFooter, showThemeSwitcher } = shellChromeOf(shellSettings);
     const source = useStageSource();
     const showActingUser = !!source.actingUser && !!source.selectActingUser;
@@ -384,7 +382,7 @@ function StageApplication({ scene, registry, routing, routeState, strings, packa
             scope={(navigation, children) => <ScreenAvailabilityGuard
                 screens={[navigation.primaryScreen, navigation.currentScreen, navigation.currentDialog, ...Object.values(navigation.slots), ...Object.values(router.state.slots).map(slot => slot.screen)]}
                 isAvailable={isScreenAvailable}>
-                <StageScope scene={safeScene} notes={notes} routeState={routeState} strings={strings} navigation={navigation} themes={themes} shellSettings={shellSettings} onSystemSchemeChange={onSystemSchemeChange}>{children}</StageScope>
+                <StageScope scene={safeScene} notes={notes} routeState={routeState} strings={strings} navigation={navigation} profile={profile} prefersDark={prefersDark} shellSettings={shellSettings} onSystemSchemeChange={onSystemSchemeChange}>{children}</StageScope>
             </ScreenAvailabilityGuard>}
             renderScreen={(element, configuration) => <StageScreen element={element} configuration={configuration} registry={registry} />}
             renderDialog={() => <StageSliceDialog />}
@@ -406,7 +404,8 @@ interface StageScopeProps {
     routeState: ReturnType<typeof useStageRouteState>;
     strings: ReturnType<typeof useStrings>;
     navigation: SceneNavigationContextValue;
-    themes: Theme[];
+    profile: UiProfile | undefined;
+    prefersDark: boolean;
     shellSettings?: StageShellSettings;
     onSystemSchemeChange: (prefersDark: boolean) => void;
     children: ReactNode;
@@ -416,7 +415,7 @@ interface StageScopeProps {
  * What the Stage provides around the screen on the page and every dialog over it: the theme, the data and command scope, the
  * status line, and the dispatcher and invoker that point what the document does at the running application.
  */
-function StageScope({ scene, notes, routeState, strings, navigation, themes, shellSettings, onSystemSchemeChange, children }: StageScopeProps) {
+function StageScope({ scene, notes, routeState, strings, navigation, profile, prefersDark, shellSettings, onSystemSchemeChange, children }: StageScopeProps) {
     const [activity, setActivity] = useState('');
     const { navigate } = navigation;
 
@@ -455,7 +454,7 @@ function StageScope({ scene, notes, routeState, strings, navigation, themes, she
 
     return (
         <IconAdapterProvider registry={stageIconAdapters}>
-            <LayoutThemeProvider themes={themes}>
+            <StageDesignProvider profile={profile} accent={shellSettings?.accent} prefersDark={prefersDark}>
                 {shellSettings && <StageShellSettingsApplier settings={shellSettings} onSystemSchemeChange={onSystemSchemeChange} />}
                 <ColorSchemeMirror />
                 <StageApplicationContext scene={scene} screen={navigation.primaryScreen} notes={notes} />
@@ -466,7 +465,7 @@ function StageScope({ scene, notes, routeState, strings, navigation, themes, she
                         </StageStructureProvider>
                     </StageInteractions>
                 </StageDataProvider>
-            </LayoutThemeProvider>
+            </StageDesignProvider>
         </IconAdapterProvider>
     );
 }

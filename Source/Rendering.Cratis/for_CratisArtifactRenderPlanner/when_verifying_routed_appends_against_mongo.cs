@@ -81,6 +81,7 @@ public class when_verifying_routed_appends_against_mongo : a_generated_applicati
         using Cratis.Arc.MongoDB;
         using Cratis.Choreography.Chronicle.Hosting;
         using Cratis.Choreography.Hosting;
+        using Cratis.Chronicle.Diagnostics;
 
         public partial class Program
         {

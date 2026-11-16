@@ -123,6 +123,9 @@ jobs:
       - name: Verify spec shard routing and guards
         run: python3 -B -m unittest discover -s .github -p 'test_*.py'
 
+      - name: Verify generated React browser harness cleanup
+        run: bash Verification/generated-react-browser/run.cleanup.test.sh
+
   dotnet-build:
     if: ${{ needs.routing.outputs.skip != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
     needs: routing

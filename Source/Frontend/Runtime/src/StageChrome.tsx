@@ -4,8 +4,9 @@
 import { writeThemeChoice } from './stageThemeChoice';
 import { createContext, useContext, type MouseEvent, type ReactNode } from 'react';
 import type { ComponentRegistry, RegisteredComponentProps } from '@cratis/scene.react';
-import { SceneNavigationContextInternal, useSceneTheme } from '@cratis/scene.react';
+import { SceneNavigationContextInternal, useSceneDesign } from '@cratis/scene.react';
 import { useEffect } from 'react';
+import { ColorScheme as ProfileColorScheme } from '@cratis/scene.model';
 import { ColorScheme, useLayoutConfig, defaultBlueprintThemes } from '@cratis/scene.blueprint.default';
 import { NotesButton } from '@cratis/showrunner.notes.react';
 import { stageLocaleComponent, stageNotesComponent, stageActingUserComponent, stageNavigationTreeComponent, stageThemeToggleComponent } from './blueprint';
@@ -186,23 +187,24 @@ export function StageActivity() {
 }
 
 /**
- * Mirrors the active theme's colour scheme and page colors onto the document.
+ * Mirrors the active design's colour scheme and page colors onto the document.
  *
- * The theme provider scopes its tokens to its own element, but PrimeReact portals a dialog or an overlay to
+ * The design provider scopes its custom properties to its own element, but PrimeReact portals a dialog or an overlay to
  * `body`, outside that element, and the page behind the shell is `body` too. Without this, a dark theme would
  * paint the shell dark, leave the page around it light and open every dialog light.
  */
 export function ColorSchemeMirror() {
-    const theme = useSceneTheme();
-    const background = theme?.tokens?.['surface.background'];
-    const color = theme?.tokens?.['text.color'];
+    const design = useSceneDesign();
+    const background = design?.tokens['color.background'];
+    const color = design?.tokens['color.text'];
+    const dark = design?.colorScheme === ProfileColorScheme.Dark;
     useEffect(() => {
-        const scheme = theme?.isDark ? 'dark' : 'light';
+        const scheme = dark ? 'dark' : 'light';
         document.documentElement.setAttribute('data-scene-color-scheme', scheme);
         document.body.setAttribute('data-scene-color-scheme', scheme);
         document.body.style.backgroundColor = background ?? '';
         document.body.style.color = color ?? '';
-    }, [theme?.isDark, background, color]);
+    }, [dark, background, color]);
 
     return null;
 }

@@ -19,7 +19,7 @@ public class and_a_type_is_unsupported : Specification
         var application = new SemanticApplication(default, "Projects", [], [], []);
         var supported = new SemanticProperty(default, "Title", new(SemanticTypeReferenceKind.Primitive, SemanticPrimitiveType.Text, default, false, false), false);
         var unsupported = supported with { Type = primitive ? supported.Type with { Primitive = (SemanticPrimitiveType)99 } : supported.Type with { Kind = (SemanticTypeReferenceKind)99 } };
-        var diagnostics = new ConversionDiagnostics();
+        var diagnostics = new global::Cratis.Scene.Screenplay.ConversionDiagnostics();
 
         CommandFormSchemas.For(application, [unsupported], diagnostics, "Register", location).ShouldBeNull();
         CommandFormSchemas.For(application, [supported], diagnostics, "Rename", location).ShouldNotBeNull();
@@ -34,7 +34,7 @@ public class and_a_type_is_unsupported : Specification
     {
         var location = new SourceLocation(8, 5, "concepts.play");
         var application = new SemanticApplication(default, "Projects", [new SemanticConcept(default, "Title", (SemanticPrimitiveType)99, [], [])], [], []);
-        var diagnostics = new ConversionDiagnostics();
+        var diagnostics = new global::Cratis.Scene.Screenplay.ConversionDiagnostics();
 
         CommandFormSchemas.For(application, [], diagnostics, "Register", location).ShouldBeNull();
         diagnostics.All.Single().Code.ShouldEqual("STAGE-SCENE-SCHEMA-002");

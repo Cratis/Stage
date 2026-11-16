@@ -4,6 +4,7 @@
 using System.Collections.Immutable;
 using Cratis.Scene.Engine.Packages;
 using Cratis.Scene.Model.Packages;
+using Cratis.Scene.Screenplay.Forward;
 using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
@@ -256,6 +257,14 @@ public static partial class CratisRendering
         WithSinks(WithPassiveReadModels(WithRealization(profile, ApplicationRealization.From(compilation, physicalModelRoot)), compilation), compilation);
 
     /// <summary>
+    /// Attaches binary assets independently of identity providers, personas and onboarding.
+    /// </summary>
+    /// <param name="profile">The resolved profile.</param>
+    /// <param name="physicalModelRoot">The model directory, or a single model file whose directory contains assets.</param>
+    /// <returns>The profile carrying canonical assets, replacing any existing attachment.</returns>
+    public static ArtifactRenderProfile WithModelAssets(ArtifactRenderProfile profile, string physicalModelRoot) => ModelAssetsInput.With(profile, ModelAssets.Read(physicalModelRoot));
+
+    /// <summary>
     /// Adds the named sinks of the same compilation, and the read models and graphs that choose one, to the hashed render profile.
     /// Portable ESM bytes do not carry sinks; profiles without this input store everything in the default sinks.
     /// </summary>
@@ -323,7 +332,7 @@ public static partial class CratisRendering
     /// <param name="options">The explicit project and root namespace choices.</param>
     /// <returns>The complete deterministic artifact plan.</returns>
     /// <remarks>
-    /// A caller that authored screens passes its own composition to <see cref="CreateProfile(string, CratisRenderingOptions, Contracts.Scene.SceneApplication?)"/>.
+    /// A caller that authored screens passes its own composition to <see cref="CreateProfile(string, CratisRenderingOptions, SceneApplication?)"/>.
     /// A caller that did not gets a default screen composed from the model itself, so a generated application
     /// is usable without hand-writing one first.
     /// </remarks>

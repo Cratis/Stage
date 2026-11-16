@@ -4,6 +4,7 @@
 using System.Collections.Immutable;
 using System.Text;
 using System.Text.Json.Nodes;
+using Cratis.Scene.Screenplay.Forward;
 using Cratis.Screenplay;
 using Cratis.Screenplay.Files;
 using Cratis.Screenplay.Semantics;
@@ -12,6 +13,7 @@ using Cratis.Screenplay.Syntax;
 using Cratis.Screenplay.Workspaces;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Scene;
+using Cratis.Stage.Contracts.Semantics;
 
 namespace Cratis.Stage.Rendering.Cratis.Scene;
 
@@ -44,7 +46,19 @@ internal static class ScreenCompilationAuthority
         return workspace;
     }
 
-    internal static List<Declaration> Declarations(ScreenplayWorkspace workspace)
+    internal static ApplicationSyntax Compile(ScreenplayWorkspace workspace)
+    {
+        var texts = workspace.Documents.ToDictionary(document => document.Path.Value, document => document.Text, StringComparer.Ordinal);
+        var compiled = new PlayFileCompiler(new SourceTextFiles("screen-authority", texts), new ScreenplayCompiler()).CompileFolder("screen-authority").Result;
+        if (!compiled.Success)
+        {
+            throw new InvalidArtifactRenderContract("Screen partitions cannot compile their retained Scene source authority.");
+        }
+
+        return compiled.Value!;
+    }
+
+    internal static List<Declaration> Declarations(ScreenplayWorkspace workspace, ApplicationSyntax syntax)
     {
         var index = WorkspaceSyntaxIndex.Create(workspace);
         if (index.Diagnostics.Any(diagnostic => diagnostic.Severity == Screenplay.Diagnostics.DiagnosticSeverity.Error))
@@ -52,23 +66,26 @@ internal static class ScreenCompilationAuthority
             throw new InvalidArtifactRenderContract("Screen partitions contain invalid source authority.");
         }
 
-        var paths = workspace.Compilation.Value!.Model.Application.Modules.SelectMany(module => module.Features.SelectMany(feature => SlicePaths(feature, [module.Name])))
-            .ToDictionary(located => located.Slice.Id, located => located.Path);
+        var slices = workspace.Compilation.Value!.Model.Application.Modules.SelectMany(module => module.Features.SelectMany(feature => SlicePaths(feature, [module.Name]))).ToArray();
+        var paths = slices.ToDictionary(located => located.Slice.Id, located => located.Path);
+        var declared = index.Entries.Where(entry => entry.Node is SliceSyntax && entry.SemanticId is not null)
+            .SelectMany(entry => ((SliceSyntax)entry.Node).Screens.Select(screen => new Declaration(entry.SemanticId!.Value.ToString(), Key(paths[entry.SemanticId.Value], screen.Name), screen.Contributions?.Count() ?? 0)))
+            .ToList();
 
-        return [.. index.Entries.Where(entry => entry.Node is SliceSyntax && entry.SemanticId is not null)
-            .SelectMany(entry => ((SliceSyntax)entry.Node).Screens.Select(screen => new Declaration(entry.SemanticId!.Value.ToString(), Key(paths[entry.SemanticId.Value], screen.Name), screen.Contributions?.Count() ?? 0)))];
+        // A free screen is declared where it sits and owned by the first slice that adopts it - the owner the bridge gives the Scene screen, so the same
+        // slice carries it into a partial render. One no slice adopts is design-only and is not in the Scene.
+        var owners = slices.ToDictionary(located => string.Join('.', [.. located.Path, located.Slice.Name]), located => located.Slice.Id, StringComparer.Ordinal);
+        var adoptions = FreeScreenConverter.Adoptions(syntax);
+        declared.AddRange(FreeScreens(syntax)
+            .Where(free => adoptions.TryGetValue(free.Screen.Name, out var adopters) && adopters.Count > 0 && owners.ContainsKey(adopters[0].Slice))
+            .Select(free => new Declaration(owners[adoptions[free.Screen.Name][0].Slice].ToString(), Key(free.Path, free.Screen.Name), free.Screen.Contributions?.Count() ?? 0)));
+
+        return declared;
     }
 
-    internal static JsonArray Screens(ScreenplayWorkspace workspace)
+    internal static JsonArray Screens(ApplicationSyntax syntax)
     {
-        var texts = workspace.Documents.ToDictionary(document => document.Path.Value, document => document.Text, StringComparer.Ordinal);
-        var compiled = new PlayFileCompiler(new SourceFiles(texts), new ScreenplayCompiler()).CompileFolder("screen-authority").Result;
-        if (!compiled.Success)
-        {
-            throw new InvalidArtifactRenderContract("Screen partitions cannot compile their retained Scene source authority.");
-        }
-
-        var translated = new ScreenplaySceneVisitor().Convert(compiled.Value!);
+        var translated = StageSceneConversion.Convert(syntax);
         var errors = translated.ConversionDiagnostics.Where(diagnostic => diagnostic.Severity == Screenplay.Diagnostics.DiagnosticSeverity.Error).ToArray();
         if (errors.Length > 0)
         {
@@ -79,6 +96,47 @@ internal static class ScreenCompilationAuthority
     }
 
     internal static string Key(JsonObject screen) => CanonicalSceneJson.Write(new JsonArray(screen["path"]?.DeepClone(), screen["name"]?.DeepClone()));
+
+    static IEnumerable<(ScreenSyntax Screen, string[] Path)> FreeScreens(ApplicationSyntax syntax)
+    {
+        foreach (var screen in syntax.Screens ?? [])
+        {
+            yield return (screen, []);
+        }
+
+        foreach (var module in syntax.Modules)
+        {
+            foreach (var screen in module.Screens ?? [])
+            {
+                yield return (screen, [module.Name]);
+            }
+
+            foreach (var feature in module.Features)
+            {
+                foreach (var free in FreeScreens(feature, [module.Name]))
+                {
+                    yield return free;
+                }
+            }
+        }
+    }
+
+    static IEnumerable<(ScreenSyntax Screen, string[] Path)> FreeScreens(FeatureSyntax feature, string[] parent)
+    {
+        string[] path = [.. parent, feature.Name];
+        foreach (var screen in feature.Screens ?? [])
+        {
+            yield return (screen, path);
+        }
+
+        foreach (var child in feature.Features)
+        {
+            foreach (var free in FreeScreens(child, path))
+            {
+                yield return free;
+            }
+        }
+    }
 
     static string Key(string[] path, string name) => CanonicalSceneJson.Write(new JsonArray(new JsonArray([.. path.Select(segment => JsonValue.Create(segment))]), JsonValue.Create(name)));
 
@@ -92,20 +150,4 @@ internal static class ScreenCompilationAuthority
     internal sealed record Source(string ApplicationName, string IdentityCatalog, Document[] Documents, SortedDictionary<string, string> Attachments);
     internal sealed record Document(string StableKey, string Path, string Text);
     internal sealed record Declaration(string Owner, string Key, int OwnContributions);
-
-    sealed class SourceFiles(IReadOnlyDictionary<string, string> texts) : IPlayFiles
-    {
-        public IEnumerable<PlayFile> FindIn(string root)
-        {
-            var folder = root.Replace('\\', '/')["screen-authority".Length..].TrimStart('/');
-            var prefix = folder.Length == 0 ? string.Empty : $"{folder}/";
-
-            return texts.Keys.Where(path => path.StartsWith(prefix, StringComparison.Ordinal)).Order(StringComparer.Ordinal)
-                .Select(path => new PlayFile(path, path[prefix.Length..]));
-        }
-
-        public string ReadContent(PlayFile file) => texts.TryGetValue(file.Path, out var text)
-            ? text
-            : throw new InvalidArtifactRenderContract("Screen partitions reference a document outside their retained source authority.");
-    }
 }

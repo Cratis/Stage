@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <AssemblyName>Cratis.Stage.ReferencePacks.Specs</AssemblyName>
+        <RootNamespace>Cratis.Stage.Rendering.Cratis.ReferencePacks</RootNamespace>
+        <DedicatedSpecsProject>true</DedicatedSpecsProject>
+        <IsTestProject>true</IsTestProject>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="xunit" />
+        <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="All" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" />
+        <PackageReference Include="Cratis.Specifications" />
+        <PackageReference Include="Cratis.Specifications.XUnit" />
+    </ItemGroup>
+    <ItemGroup>
+        <!-- Compile exactly the source used by RoslynCodeTaskFactory, not a mirrored comparison. -->
+        <Compile Include="../Rendering.Cratis/ReferencePacks/ReferencePackVerifier.cs" Link="ReferencePackVerifier.cs" />
+        <Reference Include="Microsoft.Build.Framework" HintPath="$(MSBuildBinPath)/Microsoft.Build.Framework.dll" />
+        <Reference Include="Microsoft.Build.Utilities.Core" HintPath="$(MSBuildBinPath)/Microsoft.Build.Utilities.Core.dll" />
+    </ItemGroup>
+</Project>

@@ -53,14 +53,17 @@ using Cratis.Arc.MongoDB;
 using Cratis.Choreography.Chronicle.Hosting;
 using Cratis.Choreography.Hosting;
 using Cratis.Chronicle;
+using Cratis.Chronicle.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddHealthChecks();
-builder.Services.AddSingleton<Action<ChronicleTelemetryOptions>>(_ => { });
+builder.Services.AddSingleton<Action<ChronicleTelemetryOptions>>(telemetry => telemetry.EventSourceIdTracing = EventSourceIdTracing.Omitted);
 
+// Opt in with Raw, or Hashed with an EventSourceIdHashKey of at least 32 characters from a secret store.
 builder.AddCratis(
     configureArcBuilder: arc => arc.WithMongoDB(),
-    configureChronicleBuilder: chronicle => chronicle.WithCamelCaseNamingPolicy());
+    configureChronicleBuilder: chronicle => chronicle.WithCamelCaseNamingPolicy()
+        .WithTelemetry(telemetry => telemetry.EventSourceIdTracing = EventSourceIdTracing.Omitted));
 
 // The Orleans silo that runs jobs, event-sourced state machines and workflows. The local configuration is localhost
 // clustering with in-memory grain storage: it starts with the application and needs no extra service, but jobs and
@@ -248,6 +251,12 @@ throw rather than appearing as missing rates. The base-address check does not te
 
 The host's own sign-in settings use the same mechanism. See
 [Sign in with Microsoft Entra ID](sign-in-with-entra-id.md) for the `Cratis:Authentication` keys.
+
+## Opt in to event source ids in traces
+
+Stage Host and newly rendered applications omit event source ids from Chronicle spans by default because ids can identify people. To opt in for a rendered application, change the `WithTelemetry` callback in its `Program.cs` to set `EventSourceIdTracing.Raw`, or set `EventSourceIdTracing.Hashed` and supply an `EventSourceIdHashKey` of at least 32 characters from a secret store. The tracing modes are in `Cratis.Chronicle.Diagnostics`. Raw mode exposes the original ids to your tracing backend.
+
+For Stage Host, configure `Cratis:Chronicle:Telemetry:EventSourceIdTracing` as `Raw` or `Hashed`; hashed mode also needs `Cratis:Chronicle:Telemetry:EventSourceIdHashKey` supplied through your secret store. These settings affect trace spans, not stored event source ids.
 
 ## Behind an authenticating proxy
 

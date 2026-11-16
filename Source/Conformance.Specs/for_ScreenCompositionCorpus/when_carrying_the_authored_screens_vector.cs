@@ -124,7 +124,8 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     // Re-frozen for Screenplay 6 and Scene 5: only the scene and the WorkItemList screen fragment change.
     // Re-frozen for Scene 5.1.0: only the scene and the WorkItemList screen fragment change (the icon-only toolbar item).
     // Re-frozen for Cratis/Stage#970: only Program.cs gains the Diagnostics import and defaults event-source id tracing to Omitted.
-    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(_qualified)).ShouldEqual("7987b19b953e79fd02c33dd12486e229743a7afc43f327cc148df1e44865dfe4");
+    // Re-frozen for the combined #970 and #1073 train against its merged scaffold and reference packs.
+    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(_qualified)).ShouldEqual("f7a12dabc7cbc60a8ba508c2c09fe7dbd1c6ed0cab5909523867c2d03f381736");
 
     // Re-frozen when the license header became the caller's choice and specifications moved into the application project.
     // Re-frozen for #424: generated C# uses short type names and using directives above the namespace.
@@ -138,7 +139,8 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     // Re-frozen for Screenplay 6 and Scene 5: only the scene and the WorkItemList screen fragment change.
     // Re-frozen for Scene 5.1.0: only the scene and the WorkItemList screen fragment change (the icon-only toolbar item).
     // Re-frozen for Cratis/Stage#970: only Program.cs gains the Diagnostics import and defaults event-source id tracing to Omitted.
-    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("f76576fe7db9fd2f8251663cb3be353e71238602983d72c299fd0de889fb17e5");
+    // Re-frozen for the combined #970 and #1073 train against its merged scaffold and reference packs.
+    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("92b320a1a67b9b49f8edc8c8e2abbe046a339218f9c3f98de5be835f3c5ae338");
 
     // The #209 restoration removed 34 details bytes and 273 list bytes on Scene 4.86.0.
     // Train 11 adds the authored submit navigation: details 9773 -> 9929; list 6402 -> 6555; comments is unchanged.

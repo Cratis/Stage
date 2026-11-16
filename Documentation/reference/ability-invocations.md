@@ -21,10 +21,22 @@ and in the [Choreography runtime](https://github.com/Cratis/Choreography/blob/ma
 
 ## What is available today
 
-The runtime described here ships in Stage. The Screenplay syntax that declares abilities on a `system` and invokes them with
-`invokes <System>.<Ability>` is tracked in [Cratis/Screenplay#1250](https://github.com/Cratis/Screenplay/issues/1250) and is not part of
-the Screenplay release Stage builds against, so no model can produce an invocation yet. Stage opens the runtime through three seams, and
-that syntax and the extension protocol plug into them without changing the runtime:
+The runtime described here ships in Stage. A model invokes an ability with `invokes <System>.<Ability>` from two places today:
+
+| Where | What Stage does |
+| --- | --- |
+| A workflow action | The action node performs the ability under the capability `ability:<System>.<Ability>`. It leaves through `next` when the ability returned, through the name of a declared outcome, through `failed`, and, for an ability that answers later, through `expired`. |
+| A state machine entry (`entering invokes <System>.<Ability>`) | Entering the state records an invocation whose origin is the state machine entry, and the invocation runs on its own. Entering the same state again on redelivery finds the invocation that exists. |
+
+The input mappings of either may give a literal, a member of the subject read model, or, in a workflow, a field an earlier node returned.
+An input whose source has no value yet is left out. Neither is rendered into a generated application yet: the renderer refuses them with
+`STAGE-LIFECYCLE-010`.
+
+A reaction branch that invokes an ability is still refused with `STAGE-ESM-016`. Its outcome settles the branch together with the rest of
+its atomic batch, and running that needs a hook in Screenplay, tracked in
+[Cratis/Screenplay#1309](https://github.com/Cratis/Screenplay/issues/1309). Specifications that give ability answers are refused the same way.
+
+Stage opens the runtime through three seams, and the extension protocol plugs into them without changing the runtime:
 
 | Seam | What fills it |
 | --- | --- |
@@ -89,7 +101,8 @@ The identity is a fixed-length digest (`inv-` and 32 hexadecimal characters). On
   for every attempt, which is what lets an extension deduplicate the effect.
 
 A workflow action that performs an ability directly has no separate run: the action node is the invocation, and its identity is derived from the
-run and the node execution.
+run and the node execution. Its ledger fails when its action node exhausts its attempts, even when the ability descriptor permits more attempts.
+A certainly-not-sent result can be retried only while both the node and the descriptor still permit another attempt.
 
 ## Effect classes
 
@@ -132,9 +145,9 @@ An origin handler takes a settled invocation back to the behavior that asked for
 
 | Origin | What the outcome does |
 | --- | --- |
-| Reaction branch | The branch settles: `on returned`, `on <Outcome>` or `on failed`, together with the rest of its atomic batch. |
-| Workflow action | The workflow takes the outlet the outcome names. |
-| State machine entry | The entry effect completes. A failure stops the entry for an operator. |
+| Reaction branch | The branch settles: `on returned`, `on <Outcome>` or `on failed`, together with the rest of its atomic batch. Not run yet, see [Cratis/Screenplay#1309](https://github.com/Cratis/Screenplay/issues/1309). |
+| Workflow action | The workflow takes the outlet the outcome names. The action node is the invocation, so the run continues without a handler. |
+| State machine entry | The entry effect completes. A failure stops the entry for an operator. Stage registers this handler with its lifecycles, and it logs the outcome. |
 
 A settled invocation whose origin kind has no handler fails its `settle` node, which the engine retries; it is not silently dropped.
 

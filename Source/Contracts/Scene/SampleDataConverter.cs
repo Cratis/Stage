@@ -27,6 +27,7 @@ namespace Cratis.Stage.Contracts.Scene;
 /// names a pack a blueprint ships: its id is kept as written and the pack is resolved by the build, not here. A pack without a title is
 /// shown by its name, and one without a locale follows Scene's default locale. A row field keeps its authored literal: a string stays
 /// text, a number stays a whole number or a decimal, <c language="csharp">true</c>/<c language="csharp">false</c> stay Booleans and <c language="csharp">null</c> stays null.
+/// Child rows become ordered JSON arrays of objects, recursively; an explicitly empty collection stays an empty array.
 /// </para>
 /// <para>
 /// Whether a pack's rows fit the read model is the Screenplay compiler's check (<c language="csharp">PLAY0710</c>, <c language="csharp">PLAY0711</c>); whether the pack and
@@ -42,6 +43,7 @@ public static class SampleDataConverter
     /// </summary>
     /// <param name="application">The compiled <see cref="ScreenplaySyntax.ApplicationSyntax"/>.</param>
     /// <returns>The <see cref="SceneSampleData.SampleDataPack"/>s, in declaration order.</returns>
+    /// <exception cref="UnknownSampleDataValueKind">A field has an unrecognized sample-data value kind.</exception>
     public static IReadOnlyList<SceneSampleData.SampleDataPack> Packs(ScreenplaySyntax.ApplicationSyntax application) =>
         [.. application.SampleDataPacks.Select(Convert)];
 
@@ -145,17 +147,20 @@ public static class SampleDataConverter
         var result = new JsonObject();
         foreach (var field in row.Fields)
         {
-            result[field.Name] = field.Kind == ScreenplaySyntax.SampleDataValueKind.Null ? null : Value(field);
+            result[field.Name] = Value(field);
         }
 
         return result;
     }
 
-    static JsonValue Value(ScreenplaySyntax.SampleDataFieldSyntax field) => field.Kind switch
+    static JsonNode? Value(ScreenplaySyntax.SampleDataFieldSyntax field) => field.Kind switch
     {
+        ScreenplaySyntax.SampleDataValueKind.Text => JsonValue.Create(field.Value ?? string.Empty),
         ScreenplaySyntax.SampleDataValueKind.Flag => JsonValue.Create(string.Equals(field.Value, "true", StringComparison.Ordinal)),
         ScreenplaySyntax.SampleDataValueKind.Number => Number(field.Value ?? "0"),
-        _ => JsonValue.Create(field.Value ?? string.Empty)
+        ScreenplaySyntax.SampleDataValueKind.Null => null,
+        ScreenplaySyntax.SampleDataValueKind.Rows => new JsonArray([.. field.Rows.Select(Convert)]),
+        _ => throw new UnknownSampleDataValueKind(field.Kind)
     };
 
     static JsonValue Number(string token) =>

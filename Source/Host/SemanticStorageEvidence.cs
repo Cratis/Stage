@@ -2,7 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using System.Text.Json.Nodes;
 using Cratis.Screenplay.Semantics;
+using Cratis.Stage.Semantics;
 
 namespace Cratis.Stage.Host;
 
@@ -19,8 +21,21 @@ namespace Cratis.Stage.Host;
 /// </remarks>
 internal sealed record SemanticStorageEvidence(IReadOnlySet<string> ExactDecimals, SemanticSeedPlan? Seeds = null, int Ordinal = 0)
 {
+    /// <summary>Gets the stored schemas read from Chronicle, by stored event name.</summary>
+    internal IReadOnlyDictionary<string, SemanticStoredSchema> StoredSchemas { get; init; } = new Dictionary<string, SemanticStoredSchema>();
+
     /// <summary>Gets the evidence that nothing is known to be stored exactly.</summary>
     internal static SemanticStorageEvidence None { get; } = new(new HashSet<string>());
+
+    /// <summary>Names DateTime properties whose original text cannot be recovered from storage.</summary>
+    /// <param name="contract">The event contract.</param>
+    /// <param name="application">The application that holds the contract.</param>
+    /// <returns>The paths whose stored schemas are lossy or unknown.</returns>
+    internal IEnumerable<string> LossyDateTimes(SemanticEventContract contract, SemanticApplication application)
+    {
+        var built = JsonNode.Parse(SemanticSchemas.Schema(contract.Properties, application))!.AsObject();
+        return SemanticDateTimeSchemas.LossyProperties(built, StoredSchemas.GetValueOrDefault(SemanticStoredEventNames.Of(contract))?.Schema);
+    }
 
     /// <summary>
     /// Gets whether every decimal of an event type is stored exactly.

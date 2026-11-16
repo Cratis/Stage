@@ -1,6 +1,6 @@
 ---
 title: Published applications and export
-description: Export a versioned application package from a model and run it in published mode, with persistent storage, trusted-proxy sign-in and no tooling surfaces.
+description: Export a versioned application package from a model and run it in published mode, with persistent storage, trusted-proxy sign-in and no tooling.
 ---
 
 The default Stage is a play sandbox. An application **published** for real users needs the opposite on every point,

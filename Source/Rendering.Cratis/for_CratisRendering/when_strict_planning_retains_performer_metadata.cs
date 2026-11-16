@@ -95,7 +95,8 @@ public class when_strict_planning_retains_performer_metadata : given.a_source_pl
         Assert.Same(_defaultLegacy, _defaultAccepted);
 
         // Recomputed for Arc 23.5.0 scaffold pins and the availability registration seam (Cratis/Stage#1117).
-        Assert.Equal("338a5aeb56b1db5a2d738284347e47f075cf38dee2261614fc54f09a58fce803", _defaultLegacy.Digest);
+        // Recomputed for Arc 23.8.0, Chronicle 19.162.0 and Choreography 2.9.0 scaffold pins.
+        Assert.Equal("7b932a764632de8eaf44b636ec830ed0d31a4413543d7ebffb3f8d343ea27f2e", _defaultLegacy.Digest);
         Assert.DoesNotContain(_normal.Plan.Diagnostics, diagnostic => diagnostic.Code.StartsWith("STAGE-DEGRADE-", StringComparison.Ordinal));
         Assert.Equal(ArtifactRenderOutcome.Partial, _normal.Plan.Outcome);
         Assert.Null(_normal.Plan.Inventory);

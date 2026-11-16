@@ -1,6 +1,6 @@
 ---
 title: Connect a backend to Stage
-description: Turn on the Cratis Stage extension protocol, point Stage at an extension backend, and understand what the handshake checks, what is logged and what is not yet available.
+description: "Turn on the Cratis Stage extension protocol, point Stage at an extension backend, and see what the handshake checks, what is logged and what is unavailable."
 ---
 
 The extension protocol is off by default. Nothing listens and no backend is called until you configure it, and without it abilities answer that
@@ -64,7 +64,7 @@ The protocol, the host services and the SDKs are complete. Three inputs come fro
 
 | Input | Filled by | Until then |
 | --- | --- | --- |
-| The abilities each system declares (`IAbilityCatalog`) | Building the catalog from the bound model. The Screenplay syntax for `system` and `ability` has shipped ([Cratis/Screenplay#1250](https://github.com/Cratis/Screenplay/issues/1250)); Stage does not read it into the catalog yet. | The catalog is empty, so no model invocation reaches a backend. A backend still connects, serves HTTP and can use the host services. |
+| The abilities each system declares (`IAbilityCatalog`) | The semantic host builds the catalog from the bound model once the packages are loaded: the abilities of each system a loaded package realizes. See [from the model to a running extension](end-to-end.md). | A system that no loaded package realizes has no abilities in the catalog, so an invocation of it is refused. Without a semantic model the catalog is empty, so no model invocation reaches a backend; a backend still connects, serves HTTP and its abilities can use the host services. |
 | What reacts to each trigger (`IContractTriggerRoutes`) | Reactions and triggers declared on a system. The inbound traffic that raises them is [stored, acknowledged and delivered](inbound-traffic.md) | `RaiseTrigger` answers `NOT_ROUTED`. |
 | Finding and starting a backend from a locked package, lazily | [Execution tiers and activation](execution-tiers.md), on top of [loaded packages](packages.md) | A system that names no loaded package has its backend found in the `Backends` configuration above, and it runs where you run it. |
 

@@ -1,6 +1,6 @@
 ---
 title: From a model to a running extension
-description: Where Cratis Stage gets its ability catalog, component catalog and settings from - the compiled model and the locked packages - and the Notifier sample that runs from a lock, starts when its screen is reached and answers an invocation durably.
+description: "Where Cratis Stage gets its ability catalog, component catalog and settings from, and the Notifier sample that runs from a lock and answers durably."
 ---
 
 A model says which systems exist, which abilities they offer and which screens place which components. A locked package says what the extension

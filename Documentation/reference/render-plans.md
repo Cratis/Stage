@@ -111,9 +111,10 @@ Each `RenderPlan` carries:
 | `IsComplete` | Whether `Findings` is empty. |
 
 The separate Cratis `ArtifactRenderPlan` carries generated files and diagnostics rather than
-Scene resolution findings. Its `Outcome` is `Complete`, `Partial`, or `Refused`. With explicit
+Scene resolution findings. Its `Outcome` is `Rendered`, `Degraded`, or `Refused`; `Complete` and `Partial` remain as
+compatibility aliases of `Rendered` and `Degraded`. With explicit
 render-around opt-in, `Refusals` lists each omitted specification's semantic identity, kind,
-and diagnostic codes in ordinal identity order. Original errors remain, so a partial plan's
+and diagnostic codes in ordinal identity order. Original errors remain, so a degraded plan's
 `Success` is false. No planned file realizes a refused identity through its `Sources`.
 The output digest includes `refusals-v1` only for nonempty refusals; empty refusals preserve
 existing digests. `CratisPlanResult` exposes the same outcome and refusals.
@@ -123,7 +124,7 @@ for the exact opt-in and refusal boundary.
 ## Degraded owner omissions
 
 When Stage renders around an unsupported event member in an audited ESM version,
-`Outcome` is `Degraded`, not `Complete`. `Refusals` identifies the root event (`STAGE-DEGRADE-001`) and every omitted
+`Outcome` is `Degraded`, not `Rendered`. `Refusals` identifies the root event (`STAGE-DEGRADE-001`) and every omitted
 dependent (`STAGE-DEGRADE-005`). No emitted artifact's `Sources` includes an omitted owner.
 Selected omitted constructs appear in the semantic inventory as `GraphProvenOmittedLeaf`
 placeholders, with dependent entries linked to their root events. Report format version 1
@@ -171,6 +172,10 @@ of text, which is why it lives on the plan.
 | `ToolbarButtonInvalid` | Scene's toolbar validation found a problem in a `button`: a slice that does not exist, a slice that is not a State Change slice, or a button that names no slice. The message carries Scene's code, such as `ToolbarButtonSliceNotStateChange`. |
 | `SampleDataInvalid` | Scene's sample data validation found a problem with a pack or a profile's selection: two pack names that derive the same id, an invalid locale, a repeated shape, or an active, mapped or bound pack that is not available. Design and preview time only; a production build is unaffected. |
 | `SizeClassVariantMissing` | A freeform arrangement declares no variant for the size class this target renders at. Freeform has no fallback variant by design, so those slots have nowhere to go. |
+| `BehaviorNotFound` | A `uses` clause names a behavior the document does not declare. |
+| `RootTemplateInvalid` | The ui profile's root template cannot be the application's shell: it does not exist, its blueprint is missing, or the installed blueprint does not satisfy its version pin. |
+| `TemplateReferenceUnresolved` | A `template blueprint` reference names a blueprint the catalog does not have, a version of it the reference does not accept, or a template the blueprint does not ship. Rendering it would show a screen with no template. |
+| `ArrangementUnsupported` | An arrangement type is not supported by the Scene evaluators Stage pins. |
 
 ## One invocation, one plan per target
 

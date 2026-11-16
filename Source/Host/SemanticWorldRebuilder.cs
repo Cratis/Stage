@@ -80,7 +80,7 @@ internal static partial class SemanticWorldRebuilder
         var contract = ResolveContract(plan, context);
         var route = Route(plan, context);
         evidence ??= SemanticStorageEvidence.None;
-        var seedMustMatch = storageExact && EnsureExactStorageTypes(contract, plan.Model.Application, evidence.HasExactDecimals(context.EventType.Id), isSeed);
+        var seedMustMatch = storageExact && EnsureExactStorageTypes(contract, plan.Model.Application, evidence, isSeed);
 
         var producers = Productions(plan, contract.Id).ToArray();
         if (exact)

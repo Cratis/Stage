@@ -50,7 +50,9 @@ public class with_the_default_composition : a_register_project_render_request
     // Recomputed for the Scene 5.4.0 pins and Cratis Components 4.40.1 that Scene 5.4.0 requires.
     // Recomputed for Screenplay 6.27.0: only the Screenplay pins in Directory.Packages.props and the scaffold catalog change.
     // Recomputed for the availability manifest: Choreography 2.8.0 moves the scaffold pin.
-    const string Before = "bf3842af1aaea0aca0ff20313415af01ba2bba832b2e7f45d9014b480a0afca7";
+    // Recomputed for Arc 23.8.0, Chronicle 19.162.0 and Choreography 2.9.0: only the pins in Directory.Packages.props and the scaffold catalog change.
+    // Recomputed for Screenplay 6.29.0: only the Screenplay pins in Directory.Packages.props and the scaffold catalog change.
+    const string Before = "26f8e2a09e0df750ed24289441be358beefef8ac7757b3d6186bc79469a5f060";
 
     ArtifactRenderPlan _plan = null!;
 

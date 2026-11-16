@@ -260,10 +260,10 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         if (lifecycleRefusals.IsEmpty && request.Scope.Kind == ArtifactRenderScopeKind.Application)
         {
             artifacts.AddRange(SemanticLifecycleArtifactRenderer.Render(context).Select(Artifact));
-            diagnostics.AddRange(context.Application.StateMachines.Select(machine => new ArtifactRenderDiagnostic(
+            diagnostics.AddRange(context.Application.StateMachines.Where(machine => SemanticLifecycleStateResolution.Member(machine, context.ReadModels[machine.ReadModel]) is null).Select(machine => new ArtifactRenderDiagnostic(
                 LifecycleCodes.RestartState,
                 ArtifactRenderDiagnosticSeverity.Warning,
-                $"State machine '{machine.Name}' resumes in its initial state after its grain is reactivated: Cratis.Choreography resolves the state of an event-sourced machine from the followed read model alone, and '{machine.Name}' declares no read model member that records its state.",
+                $"State machine '{machine.Name}' resumes in its initial state after its grain is reactivated: Cratis.Choreography resolves the state of an event-sourced machine from the followed read model alone, and '{machine.Name}' declares no single required text member named State or Status (or the machine name, without a Lifecycle or StateMachine suffix, followed by State or Status) whose values are its state names; add one to resume from the followed read model.",
                 context.Application.Id)));
         }
 

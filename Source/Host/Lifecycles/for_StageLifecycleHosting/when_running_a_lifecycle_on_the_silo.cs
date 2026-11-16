@@ -60,6 +60,77 @@ public class when_running_a_lifecycle_on_the_silo
         await lifecycle.Eventually(() => lifecycle.Count("InvoiceWrittenOff") == 1);
     }
 
+    [Fact]
+    public async Task should_reject_approval_decisions_for_signal_waits_and_unknown_targets()
+    {
+        await using var lifecycle = await Start(_fast);
+        await lifecycle.Execute("RegisterInvoice", Register);
+        await lifecycle.Execute("MarkInvoiceOverdue");
+        await lifecycle.Execute("SendInvoice");
+
+        await lifecycle.Eventually(async () => (await lifecycle.WaitingAt("Collect")).Contains("Await"));
+        Assert.False(await lifecycle.Decide("Approve", approved: true, workflow: "Nope"));
+        Assert.Contains("Await", await lifecycle.WaitingAt("Collect"));
+        Assert.False(await lifecycle.Decide("Missing", approved: true));
+        Assert.Contains("Await", await lifecycle.WaitingAt("Collect"));
+        Assert.False(await lifecycle.Decide("Await", approved: true));
+        Assert.Contains("Await", await lifecycle.WaitingAt("Collect"));
+        Assert.False(await lifecycle.Decide("Await", approved: false));
+        Assert.Contains("Await", await lifecycle.WaitingAt("Collect"));
+    }
+
+    [Fact]
+    public async Task should_reject_approval_decisions_for_timer_waits()
+    {
+        await using var lifecycle = await Start(a_lifecycle_source.Source);
+        await lifecycle.Execute("RegisterInvoice", Register);
+        await lifecycle.Execute("MarkInvoiceOverdue");
+        await lifecycle.Execute("SendInvoice");
+
+        await lifecycle.Eventually(async () => (await lifecycle.WaitingAt("Collect")).Contains("Pause"));
+        Assert.False(await lifecycle.Decide("Pause", approved: true));
+        Assert.Contains("Pause", await lifecycle.WaitingAt("Collect"));
+        Assert.False(await lifecycle.Decide("Pause", approved: false));
+        Assert.Contains("Pause", await lifecycle.WaitingAt("Collect"));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task should_send_the_typed_subject_status_on_state_entry(bool optionalNull)
+    {
+        await using var lifecycle = await Start(StampSource(optionalNull));
+        await lifecycle.Execute("RegisterInvoice", Register);
+        await lifecycle.Execute("SendInvoice");
+
+        await lifecycle.Eventually(() => lifecycle.Count("InvoiceStamped") == 1);
+        var expected = optionalNull ? SemanticValue.Null : SemanticValue.Text("sent");
+        Assert.Equal(expected, lifecycle.StampedStatus());
+        Assert.Equal(["sent"], [.. await lifecycle.States()]);
+    }
+
+    static string StampSource(bool optionalNull)
+    {
+        const string stamp = """
+            slice StateChange StampInvoiceSlice
+              command StampInvoice
+                invoiceId InvoiceId identifier
+                status String
+                produces InvoiceStamped
+                  for invoiceId
+                  status = status
+              event InvoiceStamped
+                status String
+        """;
+        var source = _fast
+            .Replace("    slice StateView InvoiceView", stamp + "\n    slice StateView InvoiceView", StringComparison.Ordinal)
+            .Replace("entering invokes ChargeFee", "entering invokes StampInvoice", StringComparison.Ordinal);
+        return optionalNull ? source
+            .Replace("status String", "status String?", StringComparison.Ordinal)
+            .Replace("status    String", "status    String?", StringComparison.Ordinal)
+            .Replace("status = \"sent\"", "status = null", StringComparison.Ordinal) : source;
+    }
+
     static void Register(Dictionary<string, JsonElement> payload) =>
         payload["lines"] = JsonSerializer.SerializeToElement(new[] { new { sku = "A" }, new { sku = "B" } });
 
@@ -103,6 +174,8 @@ public class when_running_a_lifecycle_on_the_silo
 
         public int Count(string @event) => log.Facts.Count(fact => plan.Events[fact.EventContract].Name == @event);
 
+        public SemanticValue StampedStatus() => log.Facts.Single(fact => plan.Events[fact.EventContract].Name == "InvoiceStamped").Values.Single().Value;
+
         public async Task Execute(string command, Action<Dictionary<string, JsonElement>>? configure = null)
         {
             var payload = new Dictionary<string, JsonElement> { ["invoiceId"] = JsonSerializer.SerializeToElement(Invoice) };
@@ -119,7 +192,7 @@ public class when_running_a_lifecycle_on_the_silo
         public async Task<IReadOnlyList<string>> States() =>
             [.. (await driver.States(plan.Model.Application.StateMachines.Single())).Select(item => item.State.ToLowerInvariant())];
 
-        public Task<bool> Decide(string node, bool approved) => Effects.Decide("Collect", Invoice, node, approved, "spec");
+        public Task<bool> Decide(string node, bool approved, string workflow = "Collect") => Effects.Decide(workflow, Invoice, node, approved, "spec");
 
         public async Task Eventually(Func<bool> condition) => await Eventually(() => Task.FromResult(condition()));
 

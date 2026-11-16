@@ -38,6 +38,14 @@ public class when_refusing_graph_constructs : Specification
         Assert.Contains("Graph specification step 'G'", Assert.IsType<InvalidEventModel>(Catch.Exception(() => new GraphSyntaxAdmission().VisitNode(new SpecificationGraphSyntax("G", [], SourceLocation.Start)))).Message, StringComparison.Ordinal);
 
     [Fact]
+    public void should_refuse_a_graph_query_collect() =>
+        Assert.Contains(
+            "Graph query collect 'groups'",
+            Assert.IsType<InvalidEventModel>(Catch.Exception(() => new GraphSyntaxAdmission().VisitNode(
+                new GraphCollectSyntax("groups", "person", new GraphPatternHopSyntax("membership", "MEMBER_OF", true, new GraphPatternNodeSyntax("group", "Group", SourceLocation.Start), SourceLocation.Start), [], SourceLocation.Start)))).Message,
+            StringComparison.Ordinal);
+
+    [Fact]
     public void should_admit_an_application_without_graphs() =>
         Catch.Exception(() => new GraphSyntaxAdmission().VisitNode(new EventSyntax("Recorded", [], SourceLocation.Start))).ShouldBeNull();
 }

@@ -1,6 +1,6 @@
 ---
 title: Host services reference
-description: What a Cratis Stage extension backend can ask of Stage - settings, secrets, raising a trigger, answering an invocation later, and logs and metrics tied to the invocation - and what each answer means.
+description: "What a Cratis Stage extension backend can ask of Stage: settings, secrets, raising triggers, late answers, and logs and metrics tied to the invocation."
 ---
 
 Stage offers extensions the services below through `service StageHost`, defined in
@@ -45,8 +45,8 @@ How secrets are kept:
 
 ## Raise a trigger
 
-`RaiseTrigger(trigger, deduplication_key, payload_json, correlation_key)` raises a trigger the extension's contract declares, so a model that reacts to it
-starts and a workflow that waits for it resumes. A webhook handler or a poll uses it; see [inbound traffic and webhooks](inbound-traffic.md).
+`RaiseTrigger(trigger, deduplication_key, payload_json, correlation_key)` raises a trigger the extension's contract declares, so a workflow that waits for it
+resumes. Starting the reactions to a trigger needs trigger routes, which no language support registers yet (see below). A webhook handler or a poll uses it; see [inbound traffic and webhooks](inbound-traffic.md).
 
 | Status | Meaning |
 | --- | --- |
@@ -55,16 +55,21 @@ starts and a workflow that waits for it resumes. A webhook handler or a poll use
 | `NOT_ROUTED` | Nothing in the model reacts to the trigger and no run waiting for it resumed. It is reported, never silently accepted, because a raise that does nothing is a bug worth seeing. |
 | `REFUSED` | The deduplication key is missing, or the runtime did not admit a reaction. `detail` says which. |
 
-The **deduplication key is required**. Raising the same trigger with the same key again finds the runs the first raise started instead of
-starting more, so a retry, or a webhook the provider delivers twice, is harmless. Inside an invocation use its idempotency key; for a webhook use the
+The **deduplication key is required**. Once trigger routes exist, raising the same trigger with the same key again will find the runs the first raise
+started instead of starting more. Today Stage does not deduplicate a resume: the same wait cannot be resolved twice, but a repeated raise resumes any
+wait about the same correlation that is open by then, including a later wait in a run the first raise resumed. Deduplicate a retry, or a webhook
+the provider delivers twice, before raising. Inside an invocation use its idempotency key; for a webhook use the
 external message's own identity.
 
 The optional **correlation key** says what the trigger is about, such as the payment a webhook reports on. Runs that wait for `<System>.<Trigger>` about the same
-correlation resume, with the payload as the wait's data. The reactions run as the actor `extension:<System>`, never as the anonymous sender of a webhook.
+correlation resume, with the payload as the wait's data. Once trigger routes exist, the reactions will run as the actor `extension:<System>`, never as the
+anonymous sender of a webhook.
+Only the C# SDK's `Trigger` accepts a correlation key; the TypeScript, Kotlin and Go SDKs raise a trigger without one, so from them a trigger resumes no
+waiting run.
 
-Stage starts each reacting workflow as a Choreography `Signal` trigger, deduplicated on the trigger, the key and the workflow. Which workflows
-react to which trigger is supplied by the language support for reactions (`IContractTriggerRoutes`); until a model declares one, the answer is
-`NOT_ROUTED`.
+Stage will start each reacting workflow as a Choreography `Signal` trigger, deduplicated on the trigger, the key and the workflow. Which workflows
+react to which trigger is supplied by the language support for reactions (`IContractTriggerRoutes`). No language support registers routes yet,
+so a raise that resumes no waiting run is answered `NOT_ROUTED`.
 
 ## Answer later
 

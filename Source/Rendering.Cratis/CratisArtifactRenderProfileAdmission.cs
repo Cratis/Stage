@@ -43,35 +43,18 @@ static class CratisArtifactRenderProfileAdmission
             return false;
         }
 
-        if (!TryGetApprovedPackages(profile, out var approvedPackages, out mismatch))
+        if (!TryAdmitExpectedProfile(target, options!, out var expected, out mismatch))
         {
             return false;
         }
 
-        if (!CratisRenderProfileVersions.TryResolve(profile, target.ProfileVersion, out var scaffoldProfile, out mismatch))
-        {
-            return false;
-        }
-
-        if (!TryCreateExpected(target, options!, approvedPackages, scaffoldProfile, out var expected, out mismatch) ||
-            !TryAdmitScene(profile, target.Model, out mismatch) ||
-            !TryAdmitCatalogs(profile, target.Model, out mismatch) ||
-            !TryAdmitPlacementAndEvidence(target, expected!, out mismatch))
-        {
-            return false;
-        }
-
-        // A composed Scene is application content, so it is admitted separately rather than compared against the
-        // package-owned roster - which is application-agnostic and could never contain one. Every scaffold input
-        // is still matched byte for byte, and at most one Scene payload may accompany them.
-        var scaffold = profile.Inputs.Where(input => !IsComposedScene(input) && !CratisScaffoldProtocolInputs.Contains(input.Name)).ToArray();
-        if (scaffold.Length != expected!.Inputs.Length || !scaffold.Zip(expected.Inputs).All(InputMatches))
+        if (!ScaffoldRosterMatches(profile, expected!))
         {
             mismatch = "The Cratis profile scaffold roster, versions, bytes, or SHA-256 hashes do not match the package-owned profile.";
             return false;
         }
 
-        return TryAdmitStrictOptions(profile, options!, expected, out var strictOptions, out mismatch) &&
+        return TryAdmitStrictOptions(profile, options!, expected!, out var strictOptions, out mismatch) &&
             TryAdmitServiceLayout(profile, strictOptions!, out admittedOptions, out mismatch);
     }
 
@@ -81,39 +64,65 @@ static class CratisArtifactRenderProfileAdmission
         var projectInputs = profile.Inputs
             .Where(input => input.Name.StartsWith(ProjectInputPrefix, StringComparison.Ordinal) &&
                             input.Name.EndsWith(".csproj", StringComparison.Ordinal) &&
-                            !input.Name[ProjectInputPrefix.Length..].Contains('/') &&
-                            !input.Name[ProjectInputPrefix.Length..].Contains('\\'))
+                            !ContainsSeparator(input.Name[ProjectInputPrefix.Length..]))
             .ToArray();
         if (projectInputs.Length != 1)
         {
             return false;
         }
 
-        var relativePath = projectInputs[0].Name[ProjectInputPrefix.Length..];
-        if (relativePath.Contains('/') || relativePath.Contains('\\'))
-        {
-            return false;
-        }
-
         try
         {
-            var project = XDocument.Parse(new UTF8Encoding(false, true).GetString(projectInputs[0].Bytes.AsSpan()));
-            var rootNamespaces = project.Descendants("RootNamespace").Select(_ => _.Value).ToArray();
-            if (rootNamespaces.Length != 1)
-            {
-                return false;
-            }
-
-            options = new(relativePath[..^".csproj".Length], rootNamespaces[0])
-            {
-                RepositoryRoot = profile.Inputs.Any(input => input.Name.StartsWith($"{ProjectInputPrefix}{CratisContinuousIntegration.Directory}", StringComparison.Ordinal))
-            };
-            return true;
+            options = ReadOptions(profile, projectInputs[0]);
+            return options is not null;
         }
         catch (Exception exception) when (exception is DecoderFallbackException or XmlException)
         {
             return false;
         }
+    }
+
+    static bool TryAdmitExpectedProfile(ProfileAdmissionTarget target, CratisRenderingOptions options, out ArtifactRenderProfile? expected, out string mismatch)
+    {
+        var profile = target.Profile;
+        expected = null;
+        if (!TryGetApprovedPackages(profile, out var approvedPackages, out mismatch) ||
+            !CratisRenderProfileVersions.TryResolve(profile, target.ProfileVersion, out var scaffoldProfile, out mismatch))
+        {
+            return false;
+        }
+
+        return TryCreateExpected(target, options, approvedPackages, scaffoldProfile, out expected, out mismatch) &&
+            TryAdmitScene(profile, target.Model, out mismatch) &&
+            TryAdmitCatalogs(profile, target.Model, out mismatch) &&
+            TryAdmitPlacementAndEvidence(target, expected!, out mismatch);
+    }
+
+    // A composed Scene is application content, so it is admitted separately rather than compared against the
+    // package-owned roster - which is application-agnostic and could never contain one. Every scaffold input
+    // is still matched byte for byte, and at most one Scene payload may accompany them.
+    static bool ScaffoldRosterMatches(ArtifactRenderProfile profile, ArtifactRenderProfile expected)
+    {
+        var scaffold = profile.Inputs.Where(input => !IsComposedScene(input) && !CratisScaffoldProtocolInputs.Contains(input.Name)).ToArray();
+        return scaffold.Length == expected.Inputs.Length && scaffold.Zip(expected.Inputs).All(InputMatches);
+    }
+
+    static bool ContainsSeparator(string path) => path.Contains('/') || path.Contains('\\');
+
+    static CratisRenderingOptions? ReadOptions(ArtifactRenderProfile profile, ArtifactRenderInput projectInput)
+    {
+        var project = XDocument.Parse(new UTF8Encoding(false, true).GetString(projectInput.Bytes.AsSpan()));
+        var rootNamespaces = project.Descendants("RootNamespace").Select(_ => _.Value).ToArray();
+        if (rootNamespaces.Length != 1)
+        {
+            return null;
+        }
+
+        var relativePath = projectInput.Name[ProjectInputPrefix.Length..];
+        return new(relativePath[..^".csproj".Length], rootNamespaces[0])
+        {
+            RepositoryRoot = profile.Inputs.Any(input => input.Name.StartsWith($"{ProjectInputPrefix}{CratisContinuousIntegration.Directory}", StringComparison.Ordinal))
+        };
     }
 
     static bool IsCratisTargetAndRenderer(ArtifactRenderProfile profile) =>
@@ -187,17 +196,45 @@ static class CratisArtifactRenderProfileAdmission
 
     static bool TryAdmitPlacementAndEvidence(ProfileAdmissionTarget target, ArtifactRenderProfile expected, out string mismatch)
     {
-        var profile = target.Profile;
-        var model = target.Model;
         mismatch = string.Empty;
-        var domains = profile.Inputs.Where(input => input.Name == DomainPlacementInput.Name).ToArray();
-        if (domains.Length > 1 || (domains.Length == 1 &&
-            (!DomainPlacementInput.TryRead(domains[0], out var domain) || DomainPlacementInput.IsReserved(domain, expected))))
+        if (!HasValidDomainPlacement(target.Profile, expected))
         {
             mismatch = "The Cratis profile carries invalid, reserved, or duplicate domain placement.";
             return false;
         }
 
+        return TryAdmitEvidence(target, out mismatch);
+    }
+
+    static bool HasValidDomainPlacement(ArtifactRenderProfile profile, ArtifactRenderProfile expected)
+    {
+        var domains = profile.Inputs.Where(input => input.Name == DomainPlacementInput.Name).ToArray();
+        return domains.Length switch
+        {
+            0 => true,
+            1 => DomainPlacementInput.TryRead(domains[0], out var domain) && !DomainPlacementInput.IsReserved(domain, expected),
+            _ => false
+        };
+    }
+
+    static bool HasValidAuthoringMetadata(ArtifactRenderProfile profile, ExecutableSemanticModel? model)
+    {
+        var metadata = profile.Inputs.Where(input => input.Name == AuthoringMetadataInput.Name).ToArray();
+
+        // Scaffold planning does not consume documentation and has no model against which to check its identities.
+        // Source planning still validates it against the actual model before any semantic artifact is rendered.
+        return metadata.Length switch
+        {
+            0 => true,
+            1 => model is null || AuthoringMetadataInput.TryRead(metadata[0], model, out _),
+            _ => false
+        };
+    }
+
+    static bool TryAdmitEvidence(ProfileAdmissionTarget target, out string mismatch)
+    {
+        var profile = target.Profile;
+        mismatch = string.Empty;
         if (!ReducerConventionInput.TryRead(profile, target.ApplicationName, out _))
         {
             mismatch = "The Cratis profile carries malformed, stale, duplicate or unsupported reducer convention configuration.";
@@ -210,11 +247,7 @@ static class CratisArtifactRenderProfileAdmission
             return false;
         }
 
-        var metadata = profile.Inputs.Where(input => input.Name == AuthoringMetadataInput.Name).ToArray();
-
-        // Scaffold planning does not consume documentation and has no model against which to check its identities.
-        // Source planning still validates it against the actual model before any semantic artifact is rendered.
-        if (metadata.Length > 1 || (metadata.Length == 1 && model is not null && !AuthoringMetadataInput.TryRead(metadata[0], model, out _)))
+        if (!HasValidAuthoringMetadata(profile, target.Model))
         {
             mismatch = "The Cratis profile carries invalid, stale, or duplicate authoring metadata.";
             return false;
@@ -233,9 +266,7 @@ static class CratisArtifactRenderProfileAdmission
     {
         strictOptions = null;
         mismatch = string.Empty;
-        var refusalInputs = profile.Inputs.Where(input => input.Name == RefusalModeInput.Name).ToArray();
-        var refusals = ArtifactRefusalMode.Refuse;
-        if (refusalInputs.Length > 1 || (refusalInputs.Length == 1 && !RefusalModeInput.TryRead(refusalInputs[0], out refusals)))
+        if (!TryReadRefusalMode(profile, out var refusals))
         {
             mismatch = "The Cratis profile carries an invalid or duplicate refusal mode.";
             return false;
@@ -250,14 +281,36 @@ static class CratisArtifactRenderProfileAdmission
             return false;
         }
 
-        if (!UserInterfaceDomainsInput.TryRead(profile, out var userInterfaceDomains) ||
-            (userInterfaceDomains is { } named && (userInterface is null || named.Keys.Any(domain => DomainPlacementInput.IsReserved(domain, expected)))))
+        if (!HasValidUserInterfaceDomains(profile, userInterface, expected))
         {
             mismatch = "The Cratis profile carries an invalid, duplicate, reserved or unaccompanied user interface domains input.";
             return false;
         }
 
         return CratisStrictProfileInput.TryAdmit(profile, options with { Refusals = refusals, FileHeader = fileHeader }, out strictOptions, out mismatch);
+    }
+
+    static bool TryReadRefusalMode(ArtifactRenderProfile profile, out ArtifactRefusalMode refusals)
+    {
+        var refusalInputs = profile.Inputs.Where(input => input.Name == RefusalModeInput.Name).ToArray();
+        refusals = ArtifactRefusalMode.Refuse;
+        return refusalInputs.Length switch
+        {
+            0 => true,
+            1 => RefusalModeInput.TryRead(refusalInputs[0], out refusals),
+            _ => false
+        };
+    }
+
+    static bool HasValidUserInterfaceDomains(ArtifactRenderProfile profile, object? userInterface, ArtifactRenderProfile expected)
+    {
+        if (!UserInterfaceDomainsInput.TryRead(profile, out var userInterfaceDomains))
+        {
+            return false;
+        }
+
+        return userInterfaceDomains is not { } named ||
+            (userInterface is not null && !named.Keys.Any(domain => DomainPlacementInput.IsReserved(domain, expected)));
     }
 
     // The application realization and how the realized application trusts the identity AuthProxy forwards.

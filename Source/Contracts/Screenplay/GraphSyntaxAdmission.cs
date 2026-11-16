@@ -10,6 +10,10 @@ namespace Cratis.Stage.Contracts.Screenplay;
 /// <summary>
 /// Refuses graph constructs before a legacy path can drop them. Graphs render from the executable semantic model only.
 /// </summary>
+/// <remarks>
+/// A graph query that collects nested rows (ESM v54) is refused here too: the executable model carries its collects, and the sandbox
+/// reads it as a Chronicle graph view through Arc's graph session (Cratis/Stage#1144). The legacy syntax path has no such reading.
+/// </remarks>
 public sealed class GraphSyntaxAdmission : ScreenplaySyntaxWalker
 {
     /// <summary>
@@ -34,6 +38,7 @@ public sealed class GraphSyntaxAdmission : ScreenplaySyntaxWalker
         GraphSyntax graph => $"Graph '{graph.Name}'",
         GraphProjectionSyntax projection => $"Graph projection '{projection.Name}'",
         SpecificationGraphSyntax step => $"Graph specification step '{step.Graph}'",
+        GraphCollectSyntax collect => $"Graph query collect '{collect.Property}'",
         _ => null
     };
 }

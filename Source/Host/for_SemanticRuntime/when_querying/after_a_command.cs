@@ -7,6 +7,8 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Host.for_SemanticRuntime.given;
+using Cratis.Stage.Semantics;
+using NSubstitute;
 using Xunit;
 
 namespace Cratis.Stage.Host.for_SemanticRuntime.when_querying;
@@ -29,6 +31,7 @@ public class after_a_command : a_semantic_runtime
             principal,
             new(DateTimeOffset.UtcNow, "subject", "name", "user"),
             false);
+        ((ISemanticFactTail)_appender).Tail().Returns(0UL);
         var query = _runtime.Plan.Queries.Values.Single();
         _found = await _runtime.Query(query, SemanticValue.Text("3fa85f64-5717-4562-b3fc-2c963f66afa6"), principal);
         _missing = await _runtime.Query(query, SemanticValue.Text("1fa85f64-5717-4562-b3fc-2c963f66afa6"), principal);

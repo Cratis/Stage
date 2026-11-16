@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Scene.Engine.Packages;
+using Cratis.Scene.Screenplay.Forward;
 using Cratis.Stage.Contracts.Scene;
 
 namespace Cratis.Stage.Rendering.Cratis;

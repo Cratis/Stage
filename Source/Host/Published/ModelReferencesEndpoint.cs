@@ -27,9 +27,12 @@ internal static class ModelReferencesEndpoint
     };
 
     internal static void Map(WebApplication app, PackageManifest manifest, bool notesEnabled) =>
+        Map(app, Document(manifest, notesEnabled));
+
+    internal static void Map(WebApplication app, object document) =>
         app.MapGet(Route, (HttpContext context) =>
         {
             context.Response.Headers.CacheControl = "no-store";
-            return Results.Json(Document(manifest, notesEnabled), StageJson.Options);
+            return Results.Json(document, StageJson.Options);
         });
 }

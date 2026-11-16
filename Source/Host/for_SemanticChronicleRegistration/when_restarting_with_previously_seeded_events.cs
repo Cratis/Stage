@@ -39,11 +39,12 @@ public class when_restarting_with_previously_seeded_events : a_seeding_store
                   featured = false
                   tags none
             """,
-            tail: 1);
+            tail: 1,
+            exactPrice: "12345678901234567.89");
         _sourcesWithEvents.UnionWith(["mug", "tee"]);
         _history = [.. SemanticSeeds.Stored(_plan, _seeds.Groups.SelectMany(group => group.Facts), 0, _seeds.Occurred)];
         var contract = _plan.Events.Values.Single();
-        var schema = JsonSchema.FromJson(SemanticSchemas.Schema(contract.Properties, _plan.Model.Application));
+        var schema = JsonSchema.FromJson(SemanticSchemas.WithDecimalFormats(JsonNode.Parse(SemanticSchemas.Schema(contract.Properties, _plan.Model.Application))!.AsObject(), null).ToJsonString());
         var converter = new ExpandoObjectConverter(new TypeFormats());
         foreach (var stored in _history)
         {
@@ -59,5 +60,6 @@ public class when_restarting_with_previously_seeded_events : a_seeding_store
     [Fact] void should_rebuild_the_seeded_rows() => _world.ReadModels.Length.ShouldEqual(2);
     [Fact] void should_not_append_the_seeds_again() => _appends.ShouldBeEmpty();
     [Fact] void should_have_seed_causation_on_the_stored_event_context() => _history[0].Context.CausedBy.Subject.ShouldEqual(SemanticChronicleRegistration.SeedSubject);
-    [Fact] void should_exercise_a_decimal_that_storage_did_not_preserve_exactly() => JsonElement.Parse(_history[0].Content).GetProperty("price").GetDecimal().ShouldNotEqual(12345678901234567.89m);
+    [Fact] void should_register_exact_decimals() => JsonNode.Parse(_storedSchemas.Values.Single())!["properties"]!["price"]!["format"]!.GetValue<string>().ShouldEqual("decimal");
+    [Fact] void should_have_stored_the_decimal_exactly() => JsonElement.Parse(_history[0].Content).GetProperty("price").GetDecimal().ShouldEqual(12345678901234567.89m);
 }

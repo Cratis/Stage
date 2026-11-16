@@ -132,6 +132,11 @@ internal sealed partial class SemanticRuntime : ISemanticRuntime, ISemanticForei
                 return Faulted();
             }
 
+            if (_appender is ISemanticFactTail tail && !await Refresh(tail))
+            {
+                return Faulted();
+            }
+
             if (UnsupportedImplementation(query: query) is { } unsupported)
             {
                 return unsupported;
@@ -153,7 +158,17 @@ internal sealed partial class SemanticRuntime : ISemanticRuntime, ISemanticForei
         try
         {
             InitializeWorld();
-            return FaultReason is null ? [.. _world.ReadModels.Where(instance => instance.ReadModel == model)] : [];
+            if (FaultReason is not null)
+            {
+                return [];
+            }
+
+            if (_appender is ISemanticFactTail tail && !await Refresh(tail))
+            {
+                return [];
+            }
+
+            return [.. _world.ReadModels.Where(instance => instance.ReadModel == model)];
         }
         finally
         {

@@ -157,6 +157,14 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticGraphHop", graphQuery, "Alias Type Outgoing Node");
         Add(entries, "SemanticGraphCondition", graphQuery, "Alias Property Argument Literal");
         Add(entries, "SemanticGraphReturn", graphQuery, "Property Alias Source");
+
+        // ESM v54: a graph query that collects nested rows along an edge from its root. The sandbox reads it as a Chronicle graph view
+        // through Arc's graph session; the renderer refuses it like every graph query, with STAGE-ESM-068.
+        Add(entries, "SemanticGraphQuery", graphQuery, "Collects");
+        Add(entries, "SemanticGraphCollect", graphQuery, "Property From Hop Cardinality Row Members");
+        Add(entries, "SemanticGraphCollectMember", graphQuery, "Property Kind Source");
+        Add(entries, "SemanticGraphCollectCardinality", graphQuery, "Many One");
+        Add(entries, "SemanticGraphCollectMemberKind", graphQuery, "Property EdgeProperty");
         Add(entries, "SemanticGraphSpecification", graphQuery, "ThenQueries Clock");
         Add(entries, "SemanticGraphQueryExpectation", graphQuery, "Query Exactly Arguments Rows");
         Add(entries, "SemanticGraphRow", graphQuery, "Values");
@@ -373,6 +381,10 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticSpecificationAppend", rendered, "EventContract EventSource Values Route");
         Add(entries, "SemanticSpecificationEvent", rendered, "EventContract EventSource Values");
         Add(entries, "SemanticSpecificationEvent", rendered, "Route Unrouted");
+
+        // ESM v55 lets a specification state the tags an event carries. A specification that states them is refused (STAGE-ESM-016) until direct and
+        // generated specifications enforce them (Cratis/Stage#944), rather than passing without checking what it says.
+        Add(entries, "SemanticSpecificationEvent", gated, "ExpectedTags");
         Add(entries, "SemanticFixtureRoute", rendered, "Source Stream StreamId StreamIdParts");
         Add(entries, "SemanticFixtureRoutePart", rendered, "Part Value");
         Add(entries, "SemanticSpecificationReadModel", rendered, "Key ReadModel Values");
@@ -472,6 +484,18 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticScreenNavigation", ignored("Screens are a stack-neutral UI contract."), "Screen Trigger Opens By");
         Add(entries, "SemanticScreenLayout", ignored("Screens are a stack-neutral UI contract."), "Fits Regions");
         Add(entries, "SemanticScreenRegion", ignored("Screens are a stack-neutral UI contract."), "Name Kind Title Shows Actions Regions");
+
+        // ESM v56 free screens (Screenplay decision 0166): a screen declared at the application, module or feature level and adopted by a slice, with the
+        // queries that provide what it needs. The backend target renders none of it - the Scene a slice adopts is rendered from the source by the
+        // Screenplay-to-Scene bridge, which refuses an adopted screen with an unprovided need - and a provision changes no command, query or event.
+        var freeScreens = ignored("Free screens and their adoptions are a stack-neutral UI contract; the Cratis backend target renders none of them.");
+        Add(entries, "SemanticApplication", freeScreens, "Screens");
+        Add(entries, "SemanticSlice", freeScreens, "Adoptions");
+        Add(entries, "SemanticScreen", freeScreens, "Needs Scope");
+        Add(entries, "SemanticScreenNeed", freeScreens, "Name Shape Many Fields");
+        Add(entries, "SemanticScreenAdoption", freeScreens, "Screen Provisions");
+        Add(entries, "SemanticScreenProvision", freeScreens, "Need Query By Fields");
+        Add(entries, "SemanticScreenProvisionField", freeScreens, "Field Path");
 
         // ESM v43 set-once mappings and ordered children collections render as Chronicle projection behavior (SetOnce, Prepend, OrderBy).
         Add(entries, "SemanticProjectionOperation", rendered, "SetOnce");

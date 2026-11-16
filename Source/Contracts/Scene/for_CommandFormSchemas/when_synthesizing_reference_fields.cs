@@ -60,7 +60,7 @@ public class when_synthesizing_reference_fields : Specification
     public void should_not_annotate_the_commands_own_identity_or_generated_members(bool generated)
     {
         var property = Reference with { IsIdentifier = !generated, IsGenerated = generated };
-        var diagnostics = new ConversionDiagnostics();
+        var diagnostics = new global::Cratis.Scene.Screenplay.ConversionDiagnostics();
         var schema = Schema(Application(), [property], diagnostics);
         (schema["properties"]?[property.Name]?["x-reference"] is null).ShouldBeTrue();
         diagnostics.All.ShouldBeEmpty();
@@ -70,7 +70,7 @@ public class when_synthesizing_reference_fields : Specification
     public void should_still_describe_a_generated_member_so_its_type_can_be_read()
     {
         var property = Reference with { IsGenerated = true };
-        var schema = Schema(Application(), [property], new ConversionDiagnostics());
+        var schema = Schema(Application(), [property], new global::Cratis.Scene.Screenplay.ConversionDiagnostics());
         schema["properties"][property.Name].AsObject().ContainsKey("type").ShouldBeTrue();
     }
 
@@ -80,7 +80,7 @@ public class when_synthesizing_reference_fields : Specification
     public void should_keep_text_and_report_information_if_no_unique_pair_exists(bool ambiguous)
     {
         var queries = ambiguous ? new[] { Query, Query with { Name = "OtherOrganisations" } } : [];
-        var diagnostics = new ConversionDiagnostics();
+        var diagnostics = new global::Cratis.Scene.Screenplay.ConversionDiagnostics();
         var schema = Schema(Application(queries: queries), [Reference], diagnostics);
         (schema["properties"][Reference.Name]["x-reference"] is null).ShouldBeTrue();
         var note = diagnostics.All.Single();
@@ -124,12 +124,12 @@ public class when_synthesizing_reference_fields : Specification
     public void should_not_infer_references_from_an_id_suffix_on_an_ordinary_concept()
     {
         var model = Model with { Properties = [Key with { IsIdentifier = false }, Name] };
-        var diagnostics = new ConversionDiagnostics();
+        var diagnostics = new global::Cratis.Scene.Screenplay.ConversionDiagnostics();
         (Schema(Application([model]), [Reference], diagnostics)["properties"][Reference.Name]["x-reference"] is null).ShouldBeTrue();
         diagnostics.All.ShouldBeEmpty();
     }
 
-    static JsonObject Schema(SemanticApplication application, SemanticProperty[] properties, ConversionDiagnostics? diagnostics = null) =>
+    static JsonObject Schema(SemanticApplication application, SemanticProperty[] properties, global::Cratis.Scene.Screenplay.ConversionDiagnostics? diagnostics = null) =>
         JsonNode.Parse(CommandFormSchemas.For(application, properties, diagnostics ?? new(), "RegisterOpportunity", Location)).AsObject();
 
     static SemanticApplication Application(SemanticReadModel[]? models = null, SemanticKeyedQuery[]? queries = null)

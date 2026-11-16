@@ -13,6 +13,7 @@ internal static class CratisScaffoldProtocolInputs
     static readonly HashSet<string> _names = [with(comparer: StringComparer.Ordinal),
         StringsCatalogInput.Name,
         ApplicationRealizationInput.Name,
+        ModelAssetsInput.Name,
         PassiveReadModelsInput.Name,
         SinksInput.Name,
         AuthoringMetadataInput.Name,

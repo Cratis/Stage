@@ -12,6 +12,8 @@ internal static class SemanticDependencyReferences
         ExecutableSemanticModel:Application
         SemanticApplication:Concepts Modules Types Policies EventSources Triggers Graphs GraphProjections GraphSpecifications GraphQueries
         SemanticApplication:Audiences Availabilities
+        SemanticApplication:Screens
+        SemanticSlice:Adoptions
         SemanticModule:Available
         SemanticFeature:Available
         SemanticSlice:Available
@@ -76,6 +78,8 @@ internal static class SemanticDependencyReferences
         SemanticScreenAction:Command Inputs Then
         SemanticScreenInput:Property
         SemanticScreenNavigation:Screen
+        SemanticScreenAdoption:Screen Provisions
+        SemanticScreenProvision:Query
         SemanticProjectionChildren:Ordering
         SemanticProjectionChildrenOrdering:SortBy
         """,
@@ -124,10 +128,12 @@ internal static class SemanticDependencyReferences
         """,
         [SemanticDependencyKind.Query] = """
         SemanticKeyedQuery:Argument ReadModel KeyProperty Authorization Filters KeyParts
-        SemanticGraphQuery:ReadModel Arguments Conditions Returns Authorization
+        SemanticGraphQuery:ReadModel Arguments Conditions Returns Authorization Collects
         SemanticGraphQueryArgument:Type
         SemanticGraphCondition:Literal
         SemanticGraphReturn:Property
+        SemanticGraphCollect:Property Row Members
+        SemanticGraphCollectMember:Property
         SemanticQueryKeyPart:Type KeyProperty
         SemanticQueryFilter:Type Property
         SemanticQueryFilterValue:Filter Value

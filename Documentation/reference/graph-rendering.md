@@ -1,6 +1,6 @@
 ---
 title: Graph rendering
-description: Stage renders Screenplay graph declarations and projections as Chronicle node and edge records, connects the host to Neo4j, and refuses unsupported constructs.
+description: Stage renders Screenplay graph declarations and projections as Chronicle node and edge records, wires the host to Neo4j, and refuses unsupported constructs.
 ---
 
 A Screenplay `graph` declares a property graph, and a `projection ... => graph` builds it from events. Stage renders both for the ESM v38 pair as the model-bound graph types of Chronicle's graph projection API, and connects the generated host to Neo4j. This page describes what is rendered, what is refused and why, and the one piece that waits for a Chronicle release.
@@ -52,9 +52,37 @@ A graph construct that cannot be expressed is refused with a named diagnostic. I
 | `STAGE-ESM-064` | A graph specification the generated `GraphScenario` cannot express. A specification that seeds a graph with `given graph` is omitted with this code as a degradation warning (`STAGE-DEGRADE-002`), because the scenario builds a graph only from appended events; a `Strict` plan fails acceptance on it. Other malformed graph specifications are errors. |
 | `STAGE-ESM-065` | The live runtime (Play) registers each graph and its projection with the kernel it runs against, and the kernel's graph sink projects them (Neo4j by default, `Stage__Graph__SinkType=InMemoryGraph` for a kernel with no Neo4j). It does not read a graph back, and reports that as a non-blocking note on admission; graph specifications are decided by Screenplay's reference graph runner. |
 | `STAGE-ESM-066` | A scoped plan leaves out the graphs of the application. Graphs render with the application scope. |
-| `STAGE-ESM-068` | The model declares a query that reads a graph (`query ... graph <Graph>`, ESM v40). The sandbox runs it against Neo4j; the renderer does not render a graph query yet, so rendering refuses the model rather than leave the query without an endpoint. |
-| `STAGE-ESM-067` | The legacy syntax path (the structural engines that translate a parsed document rather than the executable semantic model) met a graph, graph projection or graph specification step. It would drop it, so it refuses it. |
+| `STAGE-ESM-068` | The model declares a query that reads a graph (`query ... graph <Graph>`, ESM v40), or one that collects nested rows (ESM v54). The sandbox runs both, as described in [Graph queries in the sandbox](#graph-queries-in-the-sandbox); the renderer does not render a graph query yet, so rendering refuses the model rather than leave the query without an endpoint. The message says when the query collects. |
+| `STAGE-ESM-067` | The legacy syntax path (the structural engines that translate a parsed document rather than the executable semantic model) met a graph, graph projection, graph specification step or the `collect` of a graph query. It would drop it, so it refuses it. |
 | `STAGE-ESM-016` | ESM v38 models can also carry the v37 clock and time-zone constructs and v37.1 property order, which Stage has not audited. They are refused like the members of an unaudited pair. |
+
+## Graph queries in the sandbox
+
+The sandbox serves each graph query as an ordinary query of the slice that declares its read model, through Arc's tenant-aware graph session. It is served only when the host is told where Neo4j is (`Cratis:Neo4j:Server`); without it the query has no endpoint and the rest of the model runs.
+
+A flat graph query (ESM v40) is lowered to one parameterized Cypher query from its `match`, `where` and `return`, and returns one row per path.
+
+A query that collects nested rows (ESM v54) has the shape of a Chronicle graph view, and Stage reads it as one:
+
+```screenplay
+query PeopleInGroup => PersonWithGroups[] graph Organization
+  filter groupId GroupId
+  match person:Person
+  where group.groupId = $groupId
+  return
+    id     = person.personId
+    name   = person.name
+    groups = collect person -membership:MEMBER_OF-> group:Group
+      id    = group.groupId
+      name  = group.name
+      since = membership.since
+```
+
+The root view is named after the read model and anchored at the label of the `match`; the returns from the root are its properties. Each `collect` is a relation of the view: it follows the edge type, outgoing or incoming as the arrow says, with the cardinality of the read-model property (a list is `many`, an optional row is `one`), to a nested view named after the row type and rooted at the reached label. A row line that reads the reached node is a property of the nested view, and one that reads the followed edge is an edge property. A `where` condition on the root becomes a property clause, and the conditions on one collected node become one related clause, so they select roots without narrowing what is collected.
+
+Arc's `Cratis.Arc.Neo4j.Chronicle` translates the view to one read-only Cypher query on the database of the current tenant and, in single-database mode, the current namespace. Every value is a parameter. Each root comes back as the read model with its collected rows nested: a list collect with nothing reached is an empty list, an optional one is `null`, and a property a bare node does not have reads as `null`. Roots come back ordered by key, and collected rows by the reached key and then the identity of an identified edge.
+
+A condition whose argument the caller leaves out is left out of the query, as it is for a flat graph query. A model whose collecting query is not shaped like a view is refused by the Screenplay compiler before it reaches Stage. The translated query uses `COLLECT` subqueries, so the server must be Neo4j 5.6 or later.
 
 ## Verifying graph specifications
 

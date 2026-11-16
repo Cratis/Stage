@@ -348,6 +348,9 @@ The host separates **hosting** defaults from **deployment** configuration:
 | `cratis-stage.json` | Deployment configuration, loaded from the content root if present. Optional, and reloaded on change. |
 | `STAGE_CONFIG` | Overrides the path `cratis-stage.json` is read from — point it at a mounted file to configure a session without rebuilding the image. |
 | `CRATIS_CHRONICLE_CONNECTION_STRING_FILE` | The path of a mounted file holding the connection string of a Chronicle kernel that is already running. When it names a readable, non-empty file the session uses that kernel and starts none of its own, so the event log can live in a database and outlive the container. An unreadable or empty file exits with code 78. See [Use an external Chronicle kernel](#use-an-external-chronicle-kernel). |
+| `STAGE_EVENT_STORE` | Pins the session's event store name. Unset, the first process in the container generates a name and remembers it. |
+| `STAGE_STATE_DIR` | The directory the container remembers its resolved event store name in, as the file `event-store`. Defaults to the system temporary directory. Every process in the container reads the same file, so the warm handoff restart keeps one event store instead of registering a second. Ignored when `STAGE_EVENT_STORE` is set. |
+| `STAGE_ROUTE_DIAGNOSTICS` | Set to `1` to log every endpoint the scene route resolver considered while resolving a route. Any other value, or unset, logs nothing. |
 
 Anything Chronicle-related can also be set with the kernel's own environment variables
 (`Cratis__Chronicle__…`), which is how the entrypoint pins in-memory storage and the Workbench.
@@ -467,6 +470,17 @@ Repeated tail movement also returns a conflict after eight attempts. An unknown 
 retried or reported as success: the session faults until it can be reconstructed. Unreadable or unsupported
 outside history also faults the session. Legacy custom appenders without fact-reading or guarded-write
 capabilities retain their conservative safety checks.
+
+Against Chronicle, semantic queries and compatibility read-model queries read the log tail first and
+incorporate outside facts through that observed tail before returning results. Appends after that tail
+is read are picked up by a later operation. If the outside suffix cannot be read completely or cannot
+extend the semantic world, the session faults instead of returning stale success; `/stage/status` reports
+`unsupported` with the fault reason. `ready` means the session is initialized and has no known runtime
+fault, not that it continuously follows the log: status checks do not refresh it. Live query subscriptions
+see outside appends when the next query or command refreshes the world; there is no background polling.
+Each query costs one tail read against the kernel while the session is held, so a slow kernel delays
+concurrent queries. A tail or read failure faults the session until it restarts.
+
 The Cratis renderer renders protected reads as Arc read protection (see [Protected reads rendering](../reference/protected-reads-rendering.md)),
 refusing only the shapes it cannot preserve with `STAGE-ESM-044`. The Contracts `EventModelLoader` admits the preamble and records it as `EventModel.ProtectedCommandReads`; the legacy syntax renderer, the `eventmodel` Host engine, the structural runner and `StageCommandHandlerProvider` refuse such a model with the same code. Without the preamble,
 command reads still fail binding with `PLAY0271` and the repair diagnostic `PLAY0786`.
@@ -525,14 +539,18 @@ the rebuild to finish, see [Wait for the session to settle](#wait-for-the-sessio
 Commands retain their slice-qualified `/api/…` route and legacy alias. The semantic engine also exposes one
 query by its modeled name. Compatibility `Get…ById` and `All…` queries are available only for read models with at least one keyed query and no authorization on any keyed query targeting that read model. Otherwise, the compatibility routes are not mapped, so callers cannot bypass a modeled query policy.
 Unknown or revised events, schema mismatches and unverified historical constraint claims cause
-`Unsupported(World)` with a specific issue rather than a partial world. A logged event contract with a DateTime or DecimalNumber property also refuses because Chronicle
-storage does not preserve these values exactly. Null optional event values, non-text destination IDs,
+`Unsupported(World)` with a specific issue rather than a partial world. New event types store DateTime properties as plain strings, preserving their canonical offset and precision across restarts.
+Existing event types keep their stored schema: a DateTime property registered with `date-time` refuses replay, including seeds, because its original offset was not stored; `STAGE-ESM-080` names the event and property and asks you to start a new history with a new event type. A decimal property restarts exactly when the
+event type's stored schema carries Chronicle's exact `decimal` format on every number: Stage registers a new event type that way, and reads the stored schema back
+after registration to decide. An event type that was first registered by an earlier Stage, or by another store, keeps its stored shape (the kernel refuses to change it), so a
+restart over such a log refuses the decimal with a clear message, and startup warns with `STAGE-ESM-079`; use a new event type to get exact decimals. Stored seed events whose
+decimal schema is not exact are accepted only when the model's seed still equals them exactly. When two Stage instances register the same new event type at the same time, the
+first registration wins and decides the shape; the kernel offers no atomic registration. The read-model sink narrowing is unchanged. Null optional event values, non-text destination IDs,
 changed `causedBy.name` for the same subject, and duplicate tags can also fail the exact-history check.
 Origin verification compares modeled tags and mapped `$context` values; it does not independently
 verify literal mappings, production conditions, or that a destination matches a mapped event property.
 Do not treat a successful rebuild as proof that another client could not append a plausible event.
-After rebuild, an external append detected before a command faults the runtime instead of committing
-against stale state. The semantic engine does not register Chronicle projection mirrors: its read models
+The semantic engine does not register Chronicle projection mirrors: its read models
 are available through Stage's in-process queries, not as projection views in the Chronicle Workbench.
 For admitted, unrouted models, the legacy EventModel engine continues to register its own Chronicle projections. Commands that require
 allocation of a new event-source identity return `Unsupported(IdentityAllocation)`; explicitly name a
@@ -805,10 +823,14 @@ These checks are not memoized: permissions or ancestors can change after startup
 reusing an earlier verdict would weaken the execution-time check.
 
 These keys also work as colon-separated deployment configuration, for example `Stage:BodyWorker:Enabled`.
+
+`Stage:BodyWorker:ProfileVersion` (`Stage__BodyWorker__ProfileVersion`) selects the scaffold profile version the worker
+compiles bodies against: `3` or `4`. Unset or blank means version `3`; any other value is refused with an error.
+
 For a standalone semantic SpecRunner, supply `--body-worker-path` and optionally `--body-worker-cache`,
 `--body-worker-dotnet`, `--body-worker-timeout-ms`, `--body-worker-compile-timeout-ms`,
-`--body-worker-heap-limit-mb`, `--body-worker-working-set-limit-mb`, `--body-worker-max-response-bytes`
-and `--body-worker-max-stderr-bytes`. `BodyWorkerOptions.FromArguments` parses this same argument contract;
+`--body-worker-heap-limit-mb`, `--body-worker-working-set-limit-mb`, `--body-worker-max-response-bytes`,
+`--body-worker-max-stderr-bytes` and `--body-worker-profile-version` (`3` or `4`; omitted means `3`). `BodyWorkerOptions.FromArguments` parses this same argument contract;
 without worker arguments it returns no configuration and body rules remain unsupported.
 A wall-time breach reports `STAGE-IMPL-007`, a memory breach `STAGE-IMPL-008`, and an unavailable or failed
 worker `STAGE-IMPL-009`. Each kills the worker; a later run can start a fresh one and the Host keeps serving.
@@ -976,8 +998,8 @@ Stage defaults to Sandbox mode. Opt in to Published mode with `Stage:Mode=Publis
 `STAGE_MODE=Published` in the environment, or the `--published` host argument. Mode names are case-insensitive;
 unknown names and `--published` combined with explicitly configured Sandbox mode refuse startup.
 
-Published mode requires the semantic engine and `Stage:Sandbox:ForwardedIdentity=true`. Run behind AuthProxy
-so only its forwarded principal reaches Stage. Test personas are disabled even when `Stage:Sandbox:Identity`
+Published mode requires the semantic engine and sign-in: either behind a sign-in proxy such as AuthProxy, so only its
+forwarded principal reaches Stage (`TrustedProxy`), or with Stage signing users in itself (`Oidc`). Test personas are disabled even when `Stage:Sandbox:Identity`
 is enabled. Warm hosting (`--warm` or `STAGE_WARM`) and the EventModel engine are refused.
 
 OpenAPI, Scalar, the Workbench proxy, the read-model browser, model loading, semantic admission and specification
@@ -987,11 +1009,12 @@ endpoints, static files and the application SPA fallback remain available.
 The entrypoint still requires complete `PublishedOptions`: under `Stage:Published`, a persistent
 `Storage:ConnectionString` (or `Storage:ConnectionStringFile`) for the `Storage:Type` engine (`MongoDB` by default,
 `PostgreSql` or `MsSql`) unless `CRATIS_CHRONICLE_CONNECTION_STRING_FILE` mounts an
-[external Chronicle kernel](../reference/published-applications.md#external-chronicle-kernel), `Authentication:Mode=TrustedProxy`, and explicit
-`TrustedProxies` addresses or CIDR networks; plus non-wildcard, top-level `AllowedHosts`. It also requires a valid
+[external Chronicle kernel](../reference/published-applications.md#external-chronicle-kernel), and an `Authentication:Mode` of `TrustedProxy` or `Oidc`.
+`TrustedProxy` also needs explicit `TrustedProxies` addresses or CIDR networks; `Oidc` needs its sign-in settings instead, as described in
+[authentication](../reference/published-applications.md#authentication). Both need non-wildcard, top-level `AllowedHosts`. It also requires a valid
 exported application package at `Stage:Published:PackagePath` (default `/stage/package`); the mode flag alone
 is not sufficient. If Chronicle credentials are supplied under `Stage:Published`, both `Chronicle:ClientId`
 and `Chronicle:ClientSecret` (or `Chronicle:ClientSecretFile`) are required.
 
-Published mode restricts forwarded-header and principal trust to the configured proxies, but does not restrict
+With `TrustedProxy`, published mode restricts forwarded-header and principal trust to the configured proxies. It does not restrict
 kernel network access. It is not a complete production deployment configuration.

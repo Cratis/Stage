@@ -44,7 +44,7 @@ describe('the Stage theme', () => {
 
     it('paints the page body with the active theme so switching to dark changes the applied background', async () => {
         const { rerender } = render(
-            <SceneThemeProvider theme={{ name: 'Scene Default Light', compatibleWith: [], isDark: false, tokens: { 'surface.background': '#f6f7f9', 'text.color': '#1f2430' } }}>
+            <SceneThemeProvider theme={{ name: 'Scene Default Light', compatibleWith: [], isDark: false, tokens: { 'color.background': '#f6f7f9', 'color.text': '#1f2430' } }}>
                 <ColorSchemeMirror />
             </SceneThemeProvider>,
         );
@@ -52,7 +52,7 @@ describe('the Stage theme', () => {
         const light = getComputedStyle(document.body).backgroundColor;
 
         rerender(
-            <SceneThemeProvider theme={{ name: 'Scene Default Dark', compatibleWith: [], isDark: true, tokens: { 'surface.background': '#0f1117', 'text.color': '#e6e8ef' } }}>
+            <SceneThemeProvider theme={{ name: 'Scene Default Dark', compatibleWith: [], isDark: true, tokens: { 'color.background': '#0f1117', 'color.text': '#e6e8ef' } }}>
                 <ColorSchemeMirror />
             </SceneThemeProvider>,
         );

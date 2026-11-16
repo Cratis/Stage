@@ -118,13 +118,25 @@ describe('when the profile roots the application on a template', () => {
         expect(switcher()).toBeNull();
     });
 
-    it('should apply a dark colour scheme and the accent as the theme\'s primary colour', async () => {
+    it('should apply a dark colour scheme and the accent as the design\'s primary colour', async () => {
         show(baseScene({ ...blueprintRoot(), appearance: { colorScheme: 'Dark', accent: '#e11d48' } }));
 
         await screen.findByRole('heading', { name: 'Invoices' });
         await waitFor(() => expect(document.documentElement.getAttribute('data-scene-color-scheme')).toBe('dark'));
-        const themed = document.querySelector('[style*="--scene-primary-color"]') as HTMLElement | null;
-        expect(themed?.style.getPropertyValue('--scene-primary-color')).toBe('#e11d48');
+        const themed = document.querySelector('[data-scene-theme-root]') as HTMLElement | null;
+        expect(themed?.style.getPropertyValue('--ds-token-color-primary')).toBe('#e11d48');
+    });
+
+    it('should draw the application from the design system its profile carries', async () => {
+        const designSystem = {
+            name: 'Brand', modes: ['light', 'dark'], tokens: [], components: [],
+            themes: [{ name: 'Brand', isDefault: true, modes: [{ mode: 'light', tokens: { 'color.primary': '#0a7d33', 'color.background': '#ffffff', 'color.text': '#111111' } }, { mode: 'dark', tokens: {} }] }],
+        };
+        show(baseScene({ ...blueprintRoot(), designSystem }));
+
+        await screen.findByRole('heading', { name: 'Invoices' });
+        const themed = document.querySelector('[data-scene-theme-root]') as HTMLElement | null;
+        expect(themed?.style.getPropertyValue('--ds-token-color-primary')).toBe('#0a7d33');
     });
 
     it('should follow the system colour scheme when the profile says system', async () => {

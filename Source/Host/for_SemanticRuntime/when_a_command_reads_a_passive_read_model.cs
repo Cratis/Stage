@@ -8,7 +8,9 @@ using Cratis.Screenplay.CanonicalCorpus;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
+using Cratis.Stage.Contracts;
 using Cratis.Stage.Host.for_SemanticRuntime.given;
+using Cratis.Stage.Runtime;
 using Xunit;
 
 namespace Cratis.Stage.Host.for_SemanticRuntime;
@@ -32,6 +34,9 @@ public class when_a_command_reads_a_passive_read_model : Specification
         var compiled = new SemanticModelCompiler().Compile(application, SemanticDocumentSet.Create([document], catalog));
         Assert.True(compiled.Success, string.Join("; ", compiled.Diagnostics));
         compiled.Value!.PassiveReadModels.Count.ShouldEqual(passive ? 1 : 0);
+        var definitions = StageChronicleDefinitions.Build(EventModelLoader.LoadFromSource(source), "event-log");
+        Assert.Single(definitions.Projections).IsActive.ShouldEqual(!passive);
+        Assert.Single(definitions.ReadModels).Sink.TypeId.ShouldEqual(passive ? "None" : "InMemory");
         var plan = SemanticExecutionPlan.Compile(compiled.Value.Model).Plan!;
         var log = new a_semantic_fact_log();
         var runtime = log.Runtime(plan, SemanticWorld.Empty);

@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Cratis.Scene.Screenplay.Forward;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Scene;
 using Xunit;

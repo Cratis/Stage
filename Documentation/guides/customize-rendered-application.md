@@ -50,12 +50,35 @@ The rendered `Program.cs` provides the hooks:
 
 ```csharp title="Program.cs (managed)"
 using Cratis.Arc.MongoDB;
+using Cratis.Choreography.Chronicle.Hosting;
+using Cratis.Choreography.Hosting;
+using Cratis.Chronicle;
+using Cratis.Chronicle.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddHealthChecks();
+builder.Services.AddSingleton<Action<ChronicleTelemetryOptions>>(telemetry => telemetry.EventSourceIdTracing = EventSourceIdTracing.Omitted);
+
+// Opt in with Raw, or Hashed with an EventSourceIdHashKey of at least 32 characters from a secret store.
 builder.AddCratis(
     configureArcBuilder: arc => arc.WithMongoDB(),
-    configureChronicleBuilder: chronicle => chronicle.WithCamelCaseNamingPolicy());
+    configureChronicleBuilder: chronicle => chronicle.WithCamelCaseNamingPolicy()
+        .WithTelemetry(telemetry => telemetry.EventSourceIdTracing = EventSourceIdTracing.Omitted));
+
+// The Orleans silo that runs jobs, event-sourced state machines and workflows. The local configuration is localhost
+// clustering with in-memory grain storage: it starts with the application and needs no extra service, but jobs and
+// workflow runs do not survive a restart. Configure durable storage here when they must.
+builder.AddCratisChoreography(new CratisChoreographyOptions
+{
+    Clustering = ClusteringMode.Localhost,
+    Storage = GrainStorageMode.InMemory,
+    Workflows = true
+});
+builder.Services.AddEventSourcedStateMachines();
+builder.Services.AddEventSourcedWorkflows();
+<RootNamespace>.GeneratedPolicies.Registration.Register(builder.Services);
+<RootNamespace>.GeneratedProvides.Registration.Register(builder.Services);
+<RootNamespace>.GeneratedAvailability.Registration.Register(builder);
 <RootNamespace>.GeneratedAuthentication.Authentication.Add(builder);
 ConfigureServices(builder);
 
@@ -78,7 +101,9 @@ public partial class Program
 }
 ```
 
-`ConfigureServices` runs after `AddCratis` and before `Build`. `ConfigureApplication` runs after `UseCratis` and
+`ConfigureServices` runs after `AddCratis`, the Choreography silo, the event-sourced state machines and workflows,
+and the generated policy, provided-value, availability and authentication registrations, and before `Build`, so a
+registration in it can replace any of them. `ConfigureApplication` runs after `UseCratis` and
 the generated endpoints, and before `RunAsync`. When you do not implement a hook, the compiler removes the call.
 
 The two `Authentication` calls come from the managed `GeneratedAuthentication.cs`; `<RootNamespace>` stands for your
@@ -226,6 +251,12 @@ throw rather than appearing as missing rates. The base-address check does not te
 
 The host's own sign-in settings use the same mechanism. See
 [Sign in with Microsoft Entra ID](sign-in-with-entra-id.md) for the `Cratis:Authentication` keys.
+
+## Opt in to event source ids in traces
+
+Stage Host and newly rendered applications omit event source ids from Chronicle spans by default because ids can identify people. To opt in for a rendered application, change the `WithTelemetry` callback in its `Program.cs` to set `EventSourceIdTracing.Raw`, or set `EventSourceIdTracing.Hashed` and supply an `EventSourceIdHashKey` of at least 32 characters from a secret store. The tracing modes are in `Cratis.Chronicle.Diagnostics`. Raw mode exposes the original ids to your tracing backend.
+
+For Stage Host, configure `Cratis:Chronicle:Telemetry:EventSourceIdTracing` as `Raw` or `Hashed`; hashed mode also needs `Cratis:Chronicle:Telemetry:EventSourceIdHashKey` supplied through your secret store. These settings affect trace spans, not stored event source ids.
 
 ## Behind an authenticating proxy
 

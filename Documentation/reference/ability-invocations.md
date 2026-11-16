@@ -1,6 +1,6 @@
 ---
 title: Durable ability invocations
-description: How Cratis Stage runs Screenplay ability invocations as persisted messages on its Orleans silo, how it names, retries, gates and reconciles them, and how to list and settle the ones that stopped.
+description: "How Cratis Stage runs Screenplay ability invocations as persisted Orleans messages: naming, retries, gating, reconciliation, and settling stopped invocations."
 ---
 
 An ability is something a Screenplay `system` can be asked to do: post to a chat channel, book a pickup, take a card payment. Cratis

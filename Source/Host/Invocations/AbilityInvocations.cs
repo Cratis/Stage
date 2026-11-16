@@ -121,14 +121,13 @@ public sealed class AbilityInvocations(IAbilityCatalog catalog, IInvocationLedge
     public async Task<InvocationReconciliation> Reconcile(string identity, string outcome, string output, string actor)
     {
         if (await ledger.Get(identity) is not { } record) return InvocationReconciliation.Unknown;
-        if (record.Status != InvocationStatus.Stopped || record.Run.Length == 0 || record.Execution.Length == 0) return InvocationReconciliation.NotStopped;
+        if (!IsStopped(record)) return InvocationReconciliation.NotStopped;
         if (Describe(record) is not { } descriptor || !descriptor.Outlets.Contains(outcome)) return InvocationReconciliation.UnknownOutcome;
 
         var key = WorkflowRunKey.Parse(record.Run);
         var execution = NodeExecutionKey.Parse(record.Execution);
         var run = workflows.GetRun(key.Scope, key.Run);
-        var snapshot = await run.GetSnapshot();
-        if (!snapshot.Executions.Any(candidate => candidate.Execution == execution && candidate.Status == NodeExecutionStatus.ReconciliationRequired))
+        if (!await ReadyToReconcile(run, execution, record))
         {
             return InvocationReconciliation.NotStopped;
         }
@@ -147,6 +146,24 @@ public sealed class AbilityInvocations(IAbilityCatalog catalog, IInvocationLedge
 
     /// <inheritdoc/>
     public Task<IReadOnlyList<InvocationRecord>> List(InvocationStatus? status = null) => ledger.List(status);
+
+    static bool IsStopped(InvocationRecord record) =>
+        record.Status == InvocationStatus.Stopped && record.Run.Length > 0 && record.Execution.Length > 0;
+
+    static async Task<bool> ReadyToReconcile(IWorkflowRun run, NodeExecutionKey execution, InvocationRecord record)
+    {
+        var snapshot = await run.GetSnapshot();
+        var pending = snapshot.Executions.FirstOrDefault(candidate => candidate.Execution == execution);
+        if (pending?.Status == NodeExecutionStatus.Scheduled && pending.Attempt.Value == record.Attempts)
+        {
+            // Stopped is persisted before the performer returns Ambiguous. Report that known outcome now;
+            // the engine ignores the performer's duplicate report when it eventually arrives.
+            await run.CompleteNode(execution, pending.Attempt, WorkflowNodeOutcome.Ambiguous(record.Reason));
+            snapshot = await run.GetSnapshot();
+        }
+
+        return snapshot.Executions.Any(candidate => candidate.Execution == execution && candidate.Status == NodeExecutionStatus.ReconciliationRequired);
+    }
 
     static bool IsJson(string text)
     {

@@ -3,33 +3,41 @@
 
 using System.Collections.Immutable;
 using System.Globalization;
-using System.Numerics;
 using System.Text.Json;
 using Cratis.Chronicle.Contracts.Sequences;
-using Cratis.Chronicle.Events;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Semantics;
 
 namespace Cratis.Stage.Host;
 
-internal static class SemanticWorldRebuilder
+internal static partial class SemanticWorldRebuilder
 {
-    internal static SemanticWorld Create(SemanticExecutionPlan plan, IEnumerable<AppendedEventResponse> events, ulong tail, bool exact = true) =>
-        Create(new SemanticReplayPlan(plan), events, tail, exact);
+    internal static SemanticWorld Create(SemanticExecutionPlan plan, IEnumerable<AppendedEventResponse> events, ulong tail, bool exact = true, SemanticStorageEvidence? evidence = null) =>
+        Create(new SemanticReplayPlan(plan), events, tail, exact, evidence);
 
-    internal static SemanticWorld Create(SemanticReplayPlan replay, IEnumerable<AppendedEventResponse> events, ulong tail, bool exact = true)
+    /// <summary>
+    /// Rebuilds the world a stored history holds.
+    /// </summary>
+    /// <param name="replay">The execution plan and the body execution reducer transitions replay through, if any.</param>
+    /// <param name="events">The stored events.</param>
+    /// <param name="tail">The tail sequence number the history must end at.</param>
+    /// <param name="exact">Whether the events were read back through storage; events the host holds in memory skip the storage checks.</param>
+    /// <param name="evidence">What is known about how exactly storage kept decimals; omitted, none is.</param>
+    /// <returns>The world.</returns>
+    /// <exception cref="SemanticWorldRebuildRefused">The history cannot be read completely or is not a valid semantic world.</exception>
+    internal static SemanticWorld Create(SemanticReplayPlan replay, IEnumerable<AppendedEventResponse> events, ulong tail, bool exact = true, SemanticStorageEvidence? evidence = null)
     {
         var (plan, bodies) = replay;
         var history = events.OrderBy(@event => @event.Context.SequenceNumber).ToArray();
-        if (history.Length == 0 || history[0].Context.SequenceNumber != 0 ||
-            history[^1].Context.SequenceNumber != tail ||
-            history.Where((@event, index) => @event.Context.SequenceNumber != (ulong)index).Any())
+        if (!IsCompleteThrough(history, tail))
         {
             throw new SemanticWorldRebuildRefused($"The event log cannot be read completely through tail {tail}.");
         }
 
-        var facts = history.Select(@event => Fact(plan, @event, exact)).ToImmutableArray();
+        var ordinals = SeedOrdinals(history);
+        evidence ??= SemanticStorageEvidence.None;
+        var facts = history.Select(@event => Fact(plan, @event, exact, evidence with { Ordinal = ordinals.GetValueOrDefault(@event.Context.SequenceNumber) })).ToImmutableArray();
         SemanticRebuildConstraints.Check(plan, facts);
         try
         {
@@ -57,79 +65,39 @@ internal static class SemanticWorldRebuilder
     /// <param name="exact">
     /// Whether the event must be the exact storage form of a modeled production - what a restart verifies. Events the host has just appended
     /// itself, from memory, are not read back through storage, so they need not round-trip it (a decimal or a date time) nor name a producer.
-    /// Stored seed events use the same non-exact checks as seed admission, identified by their causation subject.
+    /// Stored seed events skip the production checks, identified by their causation subject, but are read back through storage like any other event.
     /// </param>
+    /// <param name="evidence">What is known about how exactly storage kept decimals, and which model seed this event stands for; omitted, nothing is.</param>
     /// <returns>The fact.</returns>
     /// <exception cref="SemanticWorldRebuildRefused">The stored event is not one the model can have produced.</exception>
-    internal static SemanticFact Fact(SemanticExecutionPlan plan, AppendedEventResponse stored, bool exact = true)
+    internal static SemanticFact Fact(SemanticExecutionPlan plan, AppendedEventResponse stored, bool exact = true, SemanticStorageEvidence? evidence = null)
     {
         var context = stored.Context;
-        exact = exact && context.CausedBy?.Subject != SemanticChronicleRegistration.SeedSubject;
-        if (context.EventType.Generation != 1 || stored.Revisions.Any() ||
-            stored.GenerationalContent.Any(entry => entry.Key != 1))
-        {
-            throw new SemanticWorldRebuildRefused($"Event {context.SequenceNumber} has an unsupported generation or revision.");
-        }
-
-        var contracts = plan.Events.Values.Where(candidate => SemanticStoredEventNames.Of(candidate) == context.EventType.Id).ToArray();
-        if (contracts.Length != 1)
-        {
-            throw new SemanticWorldRebuildRefused($"Event {context.SequenceNumber} has unknown or ambiguous type '{context.EventType.Id}'.");
-        }
-
-        var contract = contracts[0];
+        var storageExact = exact;
+        var isSeed = IsSeed(context);
+        exact = exact && !isSeed;
+        EnsureSupportedGeneration(stored);
+        var contract = ResolveContract(plan, context);
         var route = Route(plan, context);
-        if (exact)
-        {
-            foreach (var property in contract.Properties)
-            {
-                EnsureExactStorageType(property.Name, property.Type, plan.Model.Application);
-            }
-        }
+        evidence ??= SemanticStorageEvidence.None;
+        var seedMustMatch = storageExact && EnsureExactStorageTypes(contract, plan.Model.Application, evidence, isSeed);
 
         var producers = Productions(plan, contract.Id).ToArray();
-        if (exact && producers.Length == 0 && plan.Projections.Values.Any(projection => projection.Target == SemanticProjectionTargetKind.Event && projection.ReadModel == contract.Id))
+        if (exact)
         {
-            // The reference evaluator cannot yet re-establish a history that holds published public events; refuse explicitly rather than guess.
-            throw new SemanticWorldRebuildRefused($"Event {context.SequenceNumber} is a local publication of public event '{contract.Name}'; the semantic sandbox cannot yet rebuild a history with published events after a restart. Start a fresh session.");
+            EnsureNotPublishedPublicEvent(plan, contract, context, producers.Length);
         }
 
-        var destinationType = route is null ? null : plan.Model.Application.EventSources
-            .Single(source => source.SourceKind == route.SourceKind).IdentifierType;
-        if (destinationType is null)
-        {
-            // Screenplay falls back across all producers, not just those on the stored route.
-            var destinations = DestinationTypes(plan, contract.Id, []).Distinct().ToArray();
-            if (destinations is [{ IsOptional: false, IsCollection: false }])
-            {
-                destinationType = destinations[0]!;
-            }
-            else if (exact)
-            {
-                throw new SemanticWorldRebuildRefused($"Event '{contract.Name}' has no unambiguous typed destination.");
-            }
-            else
-            {
-                // An event the host appended itself - seed data - need not be what a command produces; its source id is then plain text.
-                destinationType = SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Text);
-            }
-        }
+        var destinationType = DestinationType(plan, contract, route, exact);
         var destination = Text(context.EventSourceId, destinationType, plan.Model.Application);
-        if ((DateTimeOffset?)context.Occurred is not { } occurred)
-        {
-            throw new SemanticWorldRebuildRefused($"Event {context.SequenceNumber} has no occurrence time.");
-        }
-
+        var occurred = OccurredOf(context);
         using var content = JsonDocument.Parse(stored.Content);
         var values = Values(content.RootElement, contract.Properties, plan.Model.Application);
-        if (exact && !producers.Any(producer => RouteMatches(plan, producer.Route, route)))
-        {
-            throw new SemanticWorldRebuildRefused($"Event {context.SequenceNumber} has a route inconsistent with every modeled production of '{contract.Name}'.");
-        }
+        EnsureSeedMatches(seedMustMatch, evidence, contract, context, values);
 
-        if (exact && !producers.Any(producer => RouteMatches(plan, producer.Route, route) && ProductionMatches(producer.Produced, contract, values, context, occurred)))
+        if (exact)
         {
-            throw new SemanticWorldRebuildRefused($"Event {context.SequenceNumber} has tags or occurrence values inconsistent with every modeled production of '{contract.Name}'.");
+            EnsureConsistentProductions(plan, new(producers, route, contract, values, context, occurred));
         }
 
         return new SemanticFact(contract.Id, destination, values)
@@ -137,39 +105,99 @@ internal static class SemanticWorldRebuilder
             Context = plan.Model.SemanticVersion != SemanticVersion.V1 ? new(new(destinationType, destination)) : null,
             Tags = [.. context.Tags],
             Occurred = occurred,
-            CausedBy = context.CausedBy is { } causedBy ? new SemanticCausedBy(causedBy.Subject ?? string.Empty, causedBy.Name ?? string.Empty, causedBy.UserName ?? string.Empty) : null,
+            CausedBy = CausedByOf(context),
             Route = route
         };
     }
 
-    internal static ImmutableArray<SemanticPropertyValue> Values(JsonElement json, ImmutableArray<SemanticProperty> properties, SemanticApplication application)
-    {
-        if (!MatchesSchema(json, properties))
-        {
-            throw new SemanticWorldRebuildRefused("Chronicle content does not match its semantic property schema.");
-        }
+    static bool IsCompleteThrough(AppendedEventResponse[] history, ulong tail) =>
+        history.Length > 0 &&
+        history[0].Context.SequenceNumber == 0 &&
+        history[^1].Context.SequenceNumber == tail &&
+        !history.Where((@event, index) => @event.Context.SequenceNumber != (ulong)index).Any();
 
-        return [.. properties.Select(property => new SemanticPropertyValue(property.Id, PropertyValue(json, property, application)))];
+    static DateTimeOffset OccurredOf(Chronicle.Contracts.Sequences.EventContext context) =>
+        (DateTimeOffset?)context.Occurred is { } occurred
+            ? occurred
+            : throw new SemanticWorldRebuildRefused($"Event {context.SequenceNumber} has no occurrence time.");
+
+    static SemanticCausedBy? CausedByOf(Chronicle.Contracts.Sequences.EventContext context) =>
+        context.CausedBy is { } causedBy ? new SemanticCausedBy(causedBy.Subject ?? string.Empty, causedBy.Name ?? string.Empty, causedBy.UserName ?? string.Empty) : null;
+
+    static void EnsureSupportedGeneration(AppendedEventResponse stored)
+    {
+        if (stored.Context.EventType.Generation != 1 || HasRevisionsOrGenerations(stored))
+        {
+            throw new SemanticWorldRebuildRefused($"Event {stored.Context.SequenceNumber} has an unsupported generation or revision.");
+        }
     }
 
-    static SemanticEventRoute? Route(SemanticExecutionPlan plan, Chronicle.Contracts.Sequences.EventContext context)
+    static bool HasRevisionsOrGenerations(AppendedEventResponse stored) =>
+        stored.Revisions.Any() || stored.GenerationalContent.Any(entry => entry.Key != 1);
+
+    static SemanticEventContract ResolveContract(SemanticExecutionPlan plan, Chronicle.Contracts.Sequences.EventContext context)
     {
-        if (context.EventSourceType == EventSourceType.Default.Value &&
-            context.EventStreamType == EventStreamType.All.Value && context.EventStreamId == EventStreamId.Default)
+        var contracts = plan.Events.Values.Where(candidate => SemanticStoredEventNames.Of(candidate) == context.EventType.Id).ToArray();
+        if (contracts.Length != 1)
         {
-            return null;
+            throw new SemanticWorldRebuildRefused($"Event {context.SequenceNumber} has unknown or ambiguous type '{context.EventType.Id}'.");
         }
 
-        var source = (plan.Model.Application.EventSources.IsDefault ? [] : plan.Model.Application.EventSources)
-            .SingleOrDefault(candidate => candidate.SourceKind == context.EventSourceType);
-        var stream = source?.Streams.SingleOrDefault(candidate => candidate.StreamKind == context.EventStreamType)
-            ?? throw new SemanticWorldRebuildRefused($"Event {context.SequenceNumber} has an unknown stored event-source route.");
-        var keyed = stream.StreamIdType is not null || !stream.StreamIdParts.IsDefaultOrEmpty;
+        return contracts[0];
+    }
 
-        return new(
-            context.EventSourceType,
-            context.EventStreamType,
-            !keyed && context.EventStreamId == EventStreamId.Default ? null : context.EventStreamId);
+    static bool IsSeed(Chronicle.Contracts.Sequences.EventContext context) =>
+        context.CausedBy?.Subject == SemanticChronicleRegistration.SeedSubject;
+
+    static void EnsureNotPublishedPublicEvent(SemanticExecutionPlan plan, SemanticEventContract contract, Chronicle.Contracts.Sequences.EventContext context, int producerCount)
+    {
+        // The reference evaluator cannot yet re-establish a history that holds published public events; refuse explicitly rather than guess.
+        if (producerCount == 0 && IsPublishedPublicEvent(plan, contract))
+        {
+            throw new SemanticWorldRebuildRefused($"Event {context.SequenceNumber} is a local publication of public event '{contract.Name}'; the semantic sandbox cannot yet rebuild a history with published events after a restart. Start a fresh session.");
+        }
+    }
+
+    static bool IsPublishedPublicEvent(SemanticExecutionPlan plan, SemanticEventContract contract) =>
+        plan.Projections.Values.Any(projection => projection.Target == SemanticProjectionTargetKind.Event && projection.ReadModel == contract.Id);
+
+    static SemanticTypeReference DestinationType(SemanticExecutionPlan plan, SemanticEventContract contract, SemanticEventRoute? route, bool exact)
+    {
+        var routed = route is null ? null : plan.Model.Application.EventSources
+            .Single(source => source.SourceKind == route.SourceKind).IdentifierType;
+        if (routed is not null)
+        {
+            return routed;
+        }
+
+        // Screenplay falls back across all producers, not just those on the stored route.
+        var destinations = DestinationTypes(plan, contract.Id, []).Distinct().ToArray();
+        if (destinations is [{ IsOptional: false, IsCollection: false }])
+        {
+            return destinations[0]!;
+        }
+
+        if (exact)
+        {
+            throw new SemanticWorldRebuildRefused($"Event '{contract.Name}' has no unambiguous typed destination.");
+        }
+
+        // An event the host appended itself - seed data - need not be what a command produces; its source id is then plain text.
+        return SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Text);
+    }
+
+    static void EnsureConsistentProductions(SemanticExecutionPlan plan, ProductionCheck check)
+    {
+        var routed = check.Producers.Where(producer => RouteMatches(plan, producer.Route, check.Route)).ToArray();
+        if (routed.Length == 0)
+        {
+            throw new SemanticWorldRebuildRefused($"Event {check.Context.SequenceNumber} has a route inconsistent with every modeled production of '{check.Contract.Name}'.");
+        }
+
+        if (!routed.Any(producer => ProductionMatches(producer.Produced, check)))
+        {
+            throw new SemanticWorldRebuildRefused($"Event {check.Context.SequenceNumber} has tags or occurrence values inconsistent with every modeled production of '{check.Contract.Name}'.");
+        }
     }
 
     // Screenplay 4.141 settlement creates unrouted reaction productions, even from a routed cause.
@@ -207,204 +235,32 @@ internal static class SemanticWorldRebuilder
     static IEnumerable<SemanticProducedEvent> ReactionProductions(SemanticReactionTrigger trigger) =>
         trigger.Produces.Concat(trigger.Invokes.SelectMany(invocation => invocation.OnRefused.SelectMany(branch => branch.Produces)));
 
-    static bool RouteMatches(SemanticExecutionPlan plan, SemanticCommandRoute? productionRoute, SemanticEventRoute? route)
+    static bool ProductionMatches(SemanticProducedEvent produced, ProductionCheck check) =>
+        check.Contract.Tags.AddRange(produced.Tags).SequenceEqual(check.Context.Tags) &&
+        produced.Mappings
+            .Where(mapping => mapping.Source is SemanticEventContextExpression)
+            .All(mapping => ContextMappingMatches(mapping, check));
+
+    static bool ContextMappingMatches(SemanticPropertyMapping mapping, ProductionCheck check)
     {
-        if (route is null)
+        var actual = check.Values.Single(value => value.TargetProperty == mapping.TargetProperty).Value;
+        var expected = ((SemanticEventContextExpression)mapping.Source).Value switch
         {
-            return productionRoute is null;
-        }
-
-        if (productionRoute is not { } declaration)
-        {
-            return false;
-        }
-
-        var source = plan.Model.Application.EventSources.Single(candidate => candidate.Id == declaration.Source);
-        var stream = source.Streams.Single(candidate => candidate.Id == declaration.Stream);
-        if (source.SourceKind != route.SourceKind || stream.StreamKind != route.StreamKind)
-        {
-            return false;
-        }
-
-        if (declaration.StreamId is SemanticValueExpression literal)
-        {
-            return TryFormatLiteral(ScalarKind(stream.StreamIdType!, plan.Model.Application), literal.Value, out var formatted) && formatted == route.StreamId;
-        }
-
-        if (!declaration.StreamIdParts.IsDefaultOrEmpty && route.StreamId is { } encoded)
-        {
-            var kinds = stream.StreamIdParts.Select(part => ScalarKind(part.Type, plan.Model.Application)).ToArray();
-            if (!SemanticStreamIdFormatter.TryDecodeComposite(encoded, kinds, out var decoded, out _))
-            {
-                return false;
-            }
-
-            return stream.StreamIdParts.Select((part, index) => (declaration.StreamIdParts.Single(mapping => mapping.Part == part.Name).Value, Index: index))
-                .Where(part => part.Value is SemanticValueExpression)
-                .All(part => TryFormatLiteral(kinds[part.Index], ((SemanticValueExpression)part.Value).Value, out var formatted) && formatted == decoded![part.Index]);
-        }
-
-        return true;
-    }
-
-    static StreamIdScalarKind ScalarKind(SemanticTypeReference type, SemanticApplication application) =>
-        (type.Kind == SemanticTypeReferenceKind.Concept ? application.Concepts.Single(concept => concept.Id == type.Target).Primitive : type.Primitive) switch
-        {
-            SemanticPrimitiveType.Uuid => StreamIdScalarKind.Uuid,
-            SemanticPrimitiveType.WholeNumber => StreamIdScalarKind.WholeNumber,
-            SemanticPrimitiveType.Text => StreamIdScalarKind.Text,
-            _ => throw new SemanticWorldRebuildRefused("A stored route has an unsupported stream identity type.")
+            SemanticEventContextValueKind.Occurred => check.Occurred.UtcDateTime.ToString("O", CultureInfo.InvariantCulture),
+            SemanticEventContextValueKind.CausedBySubject => check.Context.CausedBy?.Subject,
+            SemanticEventContextValueKind.CausedByName => check.Context.CausedBy?.Name,
+            SemanticEventContextValueKind.CausedByUserName => check.Context.CausedBy?.UserName,
+            _ => null
         };
 
-    static bool TryFormatLiteral(StreamIdScalarKind kind, SemanticValue value, out string? formatted)
-    {
-        formatted = null;
-        return (kind, value) switch
-        {
-            (StreamIdScalarKind.Text, SemanticTextValue text) => SemanticStreamIdFormatter.TryFormatText(text.Value, out formatted, out _),
-            (StreamIdScalarKind.Uuid, SemanticTextValue text) => SemanticStreamIdFormatter.TryFormatUuidText(text.Value, out formatted, out _),
-            (StreamIdScalarKind.WholeNumber, SemanticNumberValue number) when decimal.Truncate(number.Value) == number.Value =>
-                SemanticStreamIdFormatter.TryFormatInteger(new BigInteger(number.Value), true, out formatted, out _),
-            _ => false
-        };
+        return expected is not null && actual is SemanticTextValue text && text.Value == expected;
     }
 
-    static void EnsureExactStorageType(string path, SemanticTypeReference type, SemanticApplication application)
-    {
-        if (type.Kind == SemanticTypeReferenceKind.CompositeType)
-        {
-            foreach (var property in application.Types.Single(candidate => candidate.Id == type.Target).Properties)
-            {
-                EnsureExactStorageType($"{path}.{property.Name}", property.Type, application);
-            }
-
-            return;
-        }
-
-        var primitive = type.Kind == SemanticTypeReferenceKind.Concept
-            ? application.Concepts.Single(candidate => candidate.Id == type.Target).Primitive
-            : type.Primitive;
-        if (primitive is SemanticPrimitiveType.DateTime or SemanticPrimitiveType.DecimalNumber)
-        {
-            throw new SemanticWorldRebuildRefused($"Event property '{path}' uses {primitive}, which Chronicle storage cannot round-trip exactly.");
-        }
-    }
-
-    static bool ProductionMatches(
-        SemanticProducedEvent produced,
-        SemanticEventContract contract,
-        ImmutableArray<SemanticPropertyValue> values,
-        Chronicle.Contracts.Sequences.EventContext context,
-        DateTimeOffset occurred)
-    {
-        if (!contract.Tags.AddRange(produced.Tags).SequenceEqual(context.Tags))
-        {
-            return false;
-        }
-
-        foreach (var mapping in produced.Mappings.Where(mapping => mapping.Source is SemanticEventContextExpression))
-        {
-            var actual = values.Single(value => value.TargetProperty == mapping.TargetProperty).Value;
-            var expected = ((SemanticEventContextExpression)mapping.Source).Value switch
-            {
-                SemanticEventContextValueKind.Occurred => occurred.UtcDateTime.ToString("O", CultureInfo.InvariantCulture),
-                SemanticEventContextValueKind.CausedBySubject => context.CausedBy?.Subject,
-                SemanticEventContextValueKind.CausedByName => context.CausedBy?.Name,
-                SemanticEventContextValueKind.CausedByUserName => context.CausedBy?.UserName,
-                _ => null
-            };
-            if (expected is null || actual is not SemanticTextValue text || text.Value != expected)
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    static ImmutableArray<SemanticPropertyValue> CompositeValues(JsonElement json, ImmutableArray<SemanticProperty> properties, SemanticApplication application)
-    {
-        if (!MatchesSchema(json, properties))
-        {
-            throw new SemanticWorldRebuildRefused("Chronicle content does not match its semantic property schema.");
-        }
-
-        // Composite absence and supplied order are semantic data, not missing top-level event columns.
-        return [.. json.EnumerateObject().Select(member =>
-        {
-            var property = properties.Single(property => property.Name == member.Name);
-            return new SemanticPropertyValue(property.Id, Value(member.Value, property.Type, application));
-        })];
-    }
-
-    // Every stored name is declared exactly once and appears once. Chronicle may omit an absent optional value
-    // (it does for protected concepts), so only optional properties may be missing.
-    static bool MatchesSchema(JsonElement json, ImmutableArray<SemanticProperty> properties)
-    {
-        if (json.ValueKind != JsonValueKind.Object) return false;
-        var names = json.EnumerateObject().Select(entry => entry.Name).ToArray();
-        if (names.Distinct(StringComparer.Ordinal).Count() != names.Length) return false;
-        if (names.Any(name => properties.Count(property => property.Name == name) != 1)) return false;
-
-        return properties.All(property => property.Type.IsOptional || names.Contains(property.Name, StringComparer.Ordinal));
-    }
-
-    static SemanticValue PropertyValue(JsonElement json, SemanticProperty property, SemanticApplication application) =>
-        json.TryGetProperty(property.Name, out var value) ? Value(value, property.Type, application) : SemanticValue.Null;
-
-    static int EnumerationIndex(SemanticConcept concept, int number)
-    {
-        if (concept.Numbers is { } numbers) return numbers.IndexOf(number);
-
-        return number >= 0 && number < concept.Values.Length ? number : -1;
-    }
-
-    static SemanticValue Text(string value, SemanticTypeReference type, SemanticApplication application) => Value(JsonSerializer.SerializeToElement(value), type, application);
-
-    static SemanticValue Value(JsonElement json, SemanticTypeReference type, SemanticApplication application)
-    {
-        if (json.ValueKind == JsonValueKind.Null && type.IsOptional)
-        {
-            return SemanticValue.Null;
-        }
-
-        if (type.IsCollection && json.ValueKind == JsonValueKind.Array)
-        {
-            return SemanticValue.Array([.. json.EnumerateArray().Select(item => Value(item, type with { IsCollection = false, IsOptional = false }, application))]);
-        }
-
-        if (type.Kind == SemanticTypeReferenceKind.CompositeType && json.ValueKind == JsonValueKind.Object)
-        {
-            var composite = application.Types.Single(candidate => candidate.Id == type.Target);
-            return SemanticValue.Composite(CompositeValues(json, composite.Properties, application));
-        }
-
-        var concept = type.Kind == SemanticTypeReferenceKind.Concept
-            ? application.Concepts.Single(candidate => candidate.Id == type.Target)
-            : null;
-        if (concept?.Values is { IsEmpty: false } allowed)
-        {
-            return json.ValueKind switch
-            {
-                JsonValueKind.Number when json.TryGetInt32(out var number) && EnumerationIndex(concept, number) is var index && index >= 0 => SemanticValue.Text(allowed[index]),
-                JsonValueKind.String when allowed.Contains(json.GetString()!, StringComparer.Ordinal) => SemanticValue.Text(json.GetString()!),
-                JsonValueKind.String => throw new SemanticWorldRebuildRefused("Chronicle content contains a value outside its concept enumeration."),
-                _ => throw new SemanticWorldRebuildRefused("Chronicle content contains a value incompatible with its semantic type.")
-            };
-        }
-
-        var primitive = concept?.Primitive ?? type.Primitive;
-        return (primitive, json.ValueKind) switch
-        {
-            (SemanticPrimitiveType.Text, JsonValueKind.String) => SemanticValue.Text(json.GetString()!),
-            (SemanticPrimitiveType.Uuid, JsonValueKind.String) when Guid.TryParseExact(json.GetString(), "D", out var guid) && guid.ToString("D") == json.GetString() => SemanticValue.Text(json.GetString()!),
-            (SemanticPrimitiveType.Date, JsonValueKind.String) when DateOnly.TryParseExact(json.GetString(), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _) => SemanticValue.Text(json.GetString()!),
-            (SemanticPrimitiveType.DateTime, JsonValueKind.String) when DateTimeOffset.TryParseExact(json.GetString(), "O", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out _) => SemanticValue.Text(json.GetString()!),
-            (SemanticPrimitiveType.Boolean, JsonValueKind.True) => SemanticValue.Boolean(true),
-            (SemanticPrimitiveType.Boolean, JsonValueKind.False) => SemanticValue.Boolean(false),
-            (SemanticPrimitiveType.DecimalNumber, JsonValueKind.Number) when json.TryGetDecimal(out var decimalNumber) => SemanticValue.Number(decimalNumber),
-            (SemanticPrimitiveType.WholeNumber, JsonValueKind.Number) when json.TryGetDecimal(out var wholeNumber) && decimal.Truncate(wholeNumber) == wholeNumber => SemanticValue.Number(wholeNumber),
-            _ => throw new SemanticWorldRebuildRefused("Chronicle content contains a value incompatible with its semantic type.")
-        };
-    }
+    sealed record ProductionCheck(
+        (SemanticProducedEvent Produced, SemanticCommandRoute? Route)[] Producers,
+        SemanticEventRoute? Route,
+        SemanticEventContract Contract,
+        ImmutableArray<SemanticPropertyValue> Values,
+        Chronicle.Contracts.Sequences.EventContext Context,
+        DateTimeOffset Occurred);
 }

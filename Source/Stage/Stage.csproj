@@ -24,6 +24,8 @@
         <PackageReference Include="Cratis.Fundamentals" />
         <PackageReference Include="Cratis.Arc.MongoDB" />
         <PackageReference Include="Cratis.Arc.Neo4j" />
+        <!-- A graph query that collects nested rows (ESM v54) is read as a Chronicle graph view through Arc's graph session. -->
+        <PackageReference Include="Cratis.Arc.Neo4j.Chronicle" />
         <!--
             The Chronicle client packages are referenced directly, not left to arrive transitively through the Cratis
             meta-package: central package management only pins direct references, so without these the client ships at

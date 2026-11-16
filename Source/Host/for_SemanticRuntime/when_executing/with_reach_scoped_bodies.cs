@@ -63,6 +63,7 @@ public class with_reach_scoped_bodies : a_semantic_runtime
         var payload = new Dictionary<string, JsonElement> { ["id"] = JsonSerializer.SerializeToElement("one") };
         var occurrence = new SemanticCommandOccurrence(DateTimeOffset.UtcNow, "subject", "name", "user");
         _clean = await runtime.Execute(_plan.Commands.Values.Single(command => command.Name == "Clean"), payload, new ClaimsPrincipal(), occurrence, false);
+        ((ISemanticFactTail)_appender).Tail().Returns(0UL);
         _feeding = await runtime.Execute(_plan.Commands.Values.Single(command => command.Name == "Feed"), payload, new ClaimsPrincipal(), occurrence, false);
         _query = await runtime.Query(_plan.Queries.Values.Single(), SemanticValue.Text("one"), new ClaimsPrincipal());
     }

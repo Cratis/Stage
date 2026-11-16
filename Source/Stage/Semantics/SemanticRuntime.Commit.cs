@@ -145,7 +145,7 @@ internal sealed partial class SemanticRuntime
         }
         catch (Exception exception)
         {
-            Fault($"Cannot read the event-log tail or outside facts before append: {exception.Message}");
+            Fault($"Cannot read the event-log tail or outside facts: {exception.Message}");
             return false;
         }
     }

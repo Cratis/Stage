@@ -16,8 +16,8 @@ The default screen belongs to the application and is not copied into each slice 
 
 ## Navigation, toolbar buttons and template references
 
-`ScreenplaySceneVisitor` carries authored navigation, toolbar buttons and template references into the Scene
-model. Scene validates these constructs; Stage reports the findings described below.
+`ScreenplaySceneVisitor` (in `Cratis.Scene.Screenplay`, the Screenplay and Scene bridge) carries authored navigation, toolbar buttons and template references into the Scene
+model. Stage calls it through `StageSceneConversion`, which also puts the resolved design system on the ui profiles. Scene validates these constructs; Stage reports the findings described below.
 
 Each `outlet <name> of navigation` in the first declared `layout` becomes one of the application's navigation
 outlets, and the topbar's `logo` its `ApplicationLogo`. A `logo image "/assets/logo.svg"` is a URL path: a sandbox

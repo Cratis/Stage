@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Cratis.Scene.Engine.Guards;
+using Cratis.Scene.Screenplay.Forward;
 using Cratis.Screenplay;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;

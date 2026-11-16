@@ -2,7 +2,7 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageVersionOverrideEnabled>false</CentralPackageVersionOverrideEnabled>
-    <CratisScreenplayVersion Condition="'$(CratisScreenplayVersion)' == ''">6.27.0</CratisScreenplayVersion>
+    <CratisScreenplayVersion Condition="'$(CratisScreenplayVersion)' == ''">6.32.0</CratisScreenplayVersion>
     <PureTransitionReferencePackVersion>10.0.12</PureTransitionReferencePackVersion>
     <PureTransitionReferencePackVersion11>11.0.0</PureTransitionReferencePackVersion11>
     <!-- Cratis.Ante.Contracts requires this Chronicle client or later. Only an application rendered with onboarding pins it; every other render stays on the Chronicle pin below. -->
@@ -10,17 +10,18 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Cratis -->
-    <PackageVersion Include="Cratis" Version="23.5.0" />
+    <PackageVersion Include="Cratis" Version="23.8.0" />
     <PackageVersion Include="Cratis.Fundamentals" Version="7.34.0" />
-    <PackageVersion Include="Cratis.Arc" Version="23.5.0" />
-    <PackageVersion Include="Cratis.Arc.Chronicle" Version="23.5.0" />
-    <PackageVersion Include="Cratis.Arc.Availability" Version="23.5.0" />
-    <PackageVersion Include="Cratis.Arc.Chronicle.Testing" Version="23.5.0" />
-    <PackageVersion Include="Cratis.Arc.MongoDB" Version="23.5.0" />
-    <PackageVersion Include="Cratis.Arc.Neo4j" Version="23.5.0" />
-    <PackageVersion Include="Cratis.Arc.Screenplay" Version="23.5.0" />
-    <PackageVersion Include="Cratis.Arc.Swagger" Version="23.5.0" />
-    <PackageVersion Include="Cratis.Arc.Testing" Version="23.5.0" />
+    <PackageVersion Include="Cratis.Arc" Version="23.8.0" />
+    <PackageVersion Include="Cratis.Arc.Chronicle" Version="23.8.0" />
+    <PackageVersion Include="Cratis.Arc.Availability" Version="23.8.0" />
+    <PackageVersion Include="Cratis.Arc.Chronicle.Testing" Version="23.8.0" />
+    <PackageVersion Include="Cratis.Arc.MongoDB" Version="23.8.0" />
+    <PackageVersion Include="Cratis.Arc.Neo4j" Version="23.8.0" />
+    <PackageVersion Include="Cratis.Arc.Neo4j.Chronicle" Version="23.8.0" />
+    <PackageVersion Include="Cratis.Arc.Screenplay" Version="23.8.0" />
+    <PackageVersion Include="Cratis.Arc.Swagger" Version="23.8.0" />
+    <PackageVersion Include="Cratis.Arc.Testing" Version="23.8.0" />
     <PackageVersion Include="Cratis.Showrunner.Notes" Version="1.14.0" />
     <!--
         The Chronicle client packages are pinned here AND referenced directly from Stage and Host - central package
@@ -32,14 +33,14 @@
     -->
     <!-- The Orleans silo hosted by the Stage runtime and by every rendered application. Cratis.Choreography.Chronicle requires the Chronicle client pinned below. -->
     <PackageVersion Include="Grpc.AspNetCore" Version="2.83.0" />
-    <PackageVersion Include="Cratis.Choreography" Version="2.8.0" />
-    <PackageVersion Include="Cratis.Choreography.Chronicle" Version="2.8.0" />
-    <PackageVersion Include="Cratis.Chronicle" Version="19.155.1" />
+    <PackageVersion Include="Cratis.Choreography" Version="2.9.0" />
+    <PackageVersion Include="Cratis.Choreography.Chronicle" Version="2.9.0" />
+    <PackageVersion Include="Cratis.Chronicle" Version="19.162.0" />
     <!-- Only the multi-service repository scaffold emits this pin (Stage references no Aspire package). It matches the Aspire version of Chronicle and Studio. -->
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.6.5" />
-    <PackageVersion Include="Cratis.Chronicle.AspNetCore" Version="19.155.1" />
-    <PackageVersion Include="Cratis.Chronicle.Contracts" Version="19.155.1" />
-    <PackageVersion Include="Cratis.Chronicle.Testing" Version="19.155.1" />
+    <PackageVersion Include="Cratis.Chronicle.AspNetCore" Version="19.162.0" />
+    <PackageVersion Include="Cratis.Chronicle.Contracts" Version="19.162.0" />
+    <PackageVersion Include="Cratis.Chronicle.Testing" Version="19.162.0" />
     <!--
         Cratis.Chronicle.Testing 19.114.0 bundles Cratis.Chronicle.Core and Cratis.Chronicle.Grpc, which are built against
         Microsoft.Extensions.Telemetry.Abstractions 10.11.0, but the package does not declare that dependency. Without this
@@ -54,8 +55,9 @@
     <PackageVersion Include="Cratis.Showrunner.GuestList" Version="2.6.0" />
     <PackageVersion Include="Cratis.Showrunner.GuestList.Availability" Version="2.6.0" />
     <PackageVersion Include="Cratis.Showrunner.Herald" Version="1.14.0" />
-    <PackageVersion Include="Cratis.Scene.Engine" Version="5.4.0" />
-    <PackageVersion Include="Cratis.Scene.Model" Version="5.4.0" />
+    <PackageVersion Include="Cratis.Scene.Engine" Version="6.0.1" />
+    <PackageVersion Include="Cratis.Scene.Model" Version="6.0.1" />
+    <PackageVersion Include="Cratis.Scene.Screenplay" Version="6.0.1" />
     <PackageVersion Include="Cratis.Screenplay" Version="$(CratisScreenplayVersion)" />
     <PackageVersion Include="Cratis.Screenplay.Matching" Version="$(CratisScreenplayVersion)" />
     <!-- Spec-only: the released conformance corpus consumed by the Cratis renderer's planner fixtures, at the Screenplay version the renderer compiles with. -->

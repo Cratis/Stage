@@ -4,6 +4,7 @@
 using System.Text.Json.Nodes;
 using Cratis.Scene.Model.Common;
 using Cratis.Scene.Model.Interactions;
+using Cratis.Scene.Screenplay.Forward;
 
 namespace Cratis.Stage.Contracts.Scene;
 

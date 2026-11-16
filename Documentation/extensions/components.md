@@ -1,6 +1,6 @@
 ---
 title: Run extension components
-description: How Cratis Stage runs the extension components placed on a screen - loading React and mount components over the Scene contract, the context they receive, public settings only, invoking an ability from the browser through the contract allowlist and the screen authorization, and static placeholders.
+description: "How Cratis Stage serves extension components to the browser: the context they receive, public settings only, allowlisted ability calls and static placeholders."
 ---
 
 An extension can bring frontend components as well as a backend. A screen places one with `component <System>.<Component>`, and Stage serves it
@@ -12,7 +12,7 @@ server side of that: what reaches the browser, and what a component may ask Stag
 Where the catalog of placements comes from, and how a model reaches a running extension, is on
 [From a model to a running extension](https://github.com/Cratis/Stage/blob/main/Documentation/extensions/end-to-end.md).
 
-The browser half runs in the Stage runtime on `@cratis/scene.extensions` 5.4.0. A screen's component is a `Stage:extensionComponent` element, and the
+The browser half runs in the Stage runtime on `@cratis/scene.extensions`, at the Scene release Stage is built on. A screen's component is a `Stage:extensionComponent` element, and the
 runtime loads its frontend, builds the contract's context and renders or mounts it. See [In the browser](#in-the-browser).
 
 ## Public settings only
@@ -117,7 +117,7 @@ component with `resolveSignalBehaviors` and runs them with the Scene interaction
 once the interaction has run. A signal never starts an application trigger of the same name, and the reverse. The contract is on
 [Binding a raised signal to a screen interaction](https://github.com/Cratis/Scene/blob/main/Documentation/extensions/contract.md).
 
-Stage depends on Scene 5.4.0 for every Scene package, and on `@cratis/components` 4.40.1, which Scene 5.4.0 requires. The Notifier sample's
+Stage depends on one Scene release for every Scene package, and on `@cratis/components` 4.40.1, which that release requires. The Notifier sample's
 [`contract.play`](https://github.com/Cratis/Stage/blob/main/Samples/Extensions/Notifier/contract.play) declares the `dismissed` signal, and the
 [end-to-end](https://github.com/Cratis/Stage/blob/main/Documentation/extensions/end-to-end.md) specification raises it.
 

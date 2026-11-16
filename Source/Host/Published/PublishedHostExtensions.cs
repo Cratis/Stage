@@ -33,10 +33,10 @@ internal interface IPublishedHostExtension
 /// What an extension of the published host can see.
 /// </summary>
 /// <param name="Builder">The web application builder, to register services on the Arc application and Chronicle event store.</param>
-/// <param name="Options">The deployment configuration.</param>
-/// <param name="Manifest">The manifest of the package being served.</param>
+/// <param name="Options">The deployment configuration, or <see langword="null"/> in a sandbox host.</param>
+/// <param name="Manifest">The manifest of the package being served, or <see langword="null"/> in a sandbox host.</param>
 /// <param name="EventStore">The Chronicle event store name.</param>
-internal sealed record PublishedHostContext(WebApplicationBuilder Builder, PublishedOptions Options, PackageManifest Manifest, string EventStore);
+internal sealed record PublishedHostContext(WebApplicationBuilder Builder, PublishedOptions? Options, PackageManifest? Manifest, string EventStore);
 
 /// <summary>
 /// The extension point of the published host. The Notes backend registers an extension named <see cref="Notes"/>

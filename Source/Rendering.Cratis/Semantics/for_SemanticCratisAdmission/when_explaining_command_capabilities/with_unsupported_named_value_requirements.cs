@@ -29,6 +29,6 @@ public class with_unsupported_named_value_requirements : given.a_command_model
         }
         Evaluate();
         _diagnostics.Single().Code.ShouldEqual("STAGE-ESM-005");
-        Messages.Single().ShouldContain("Optional operands, collections, different concepts, and ordering remain unsupported (Cratis/Stage#420).");
+        Messages.Single().ShouldContain("Optional operands, collections, different concepts, and ordering remain unsupported (Cratis/Stage#962).");
     }
 }

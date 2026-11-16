@@ -96,6 +96,6 @@ Codes are permanent. `STAGE-ONBOARDING-001` (the offering is not rendered) and `
 | `STAGE-ONBOARDING-005` | An email template could not be read from the model root. |
 | `STAGE-ONBOARDING-006` | An invitation to join a tenant names no inviting persona. |
 | `STAGE-ONBOARDING-008` | Information: the offering is started through Box Office, so the operator must publish an offer with that name (tenants are started as soon as it is) and the host defines the Box Office policies. |
-| `STAGE-AUTH-001` | A provider kind AuthProxy does not know. |
-| `STAGE-AUTH-002` | A persona that cannot be reduced to roles and claims. |
+| `STAGE-AUTH-001` | A provider kind AuthProxy does not know. The renderer also reports this code for an artifact whose authorization cannot be rendered. |
+| `STAGE-AUTH-002` | A persona that cannot be reduced to roles and claims. The renderer also reports this code for operations whose different policy bindings would share one generated policy class name. |
 | `STAGE-AUTH-003` | Warning: the application trusts forwarded identity headers without verifying a signature; opt in to [signed forwarded identity](authentication-rendering.md#signed-forwarded-identity-opt-in). |

@@ -80,18 +80,18 @@ pre { background: var(--layout-background, #f4f5f7); border-radius: 0.4rem; over
 
 /* The decision dialog of a ConfirmDialog screen: its decisions and Cancel wear the theme's dialog buttons; the chosen decision is marked and its form's submit is the primary action. */
 .stage-confirm-dialog__decisions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-.stage-confirm-dialog__decision[aria-pressed='true'] { box-shadow: var(--scene-focus-ring, 0 0 0 2px rgb(79 70 229 / 0.4)); }
+.stage-confirm-dialog__decision[aria-pressed='true'] { box-shadow: var(--layout-focus-ring, 0 0 0 2px rgb(79 70 229 / 0.4)); }
 .stage-confirm-dialog button[type='submit'] {
-    background: var(--scene-primary-color, #4f46e5);
-    border: 1px solid var(--scene-primary-color, #4f46e5);
-    border-radius: var(--scene-content-border-radius, 0.5rem);
-    color: var(--scene-primary-contrast-color, #ffffff);
+    background: var(--ds-button-primary-background, #4f46e5);
+    border: 1px solid var(--ds-button-primary-background, #4f46e5);
+    border-radius: var(--layout-radius, 0.5rem);
+    color: var(--layout-primary-contrast, #ffffff);
     cursor: pointer;
     font: inherit;
     justify-self: end;
     padding: 0.55rem 1.1rem;
 }
-.stage-confirm-dialog button[type='submit']:focus-visible { box-shadow: var(--scene-focus-ring, 0 0 0 2px rgb(79 70 229 / 0.4)); outline: none; }
+.stage-confirm-dialog button[type='submit']:focus-visible { box-shadow: var(--layout-focus-ring, 0 0 0 2px rgb(79 70 229 / 0.4)); outline: none; }
 
 /* Cratis Components size a field with Tailwind utilities (`cratis:w-full`) the Stage does not compile: a field fills its column. */
 .stage-command-form__field > div,
@@ -106,10 +106,10 @@ pre { background: var(--layout-background, #f4f5f7); border-radius: 0.4rem; over
     padding: 0.55rem 1.1rem;
     font: inherit;
     cursor: pointer;
-    color: var(--scene-primary-contrast-color, #fff);
-    background: var(--scene-primary-color, #4f46e5);
-    border: 1px solid var(--scene-primary-color, #4f46e5);
-    border-radius: var(--scene-content-border-radius, 0.5rem);
+    color: var(--layout-primary-contrast, #fff);
+    background: var(--ds-button-primary-background, #4f46e5);
+    border: 1px solid var(--ds-button-primary-background, #4f46e5);
+    border-radius: var(--layout-radius, 0.5rem);
 }
 .stage-command-form__submit { margin-top: 1rem; }
 .scene-slice-dialog-footer { margin-top: 1rem; }

@@ -46,5 +46,7 @@
     <ItemGroup Condition="'$(Configuration)' == 'Debug'">
         <PackageReference Include="Cratis.Screenplay.CanonicalCorpus" PrivateAssets="All" />
         <None Update="for_SemanticSpecificationExecutor/when_running_routed_specifications/Vectors/*.play" CopyToOutputDirectory="PreserveNewest" />
+        <!-- The shared graph views fixtures, byte-identical copies of the cross-repository specification, and the model that reads them with collect. -->
+        <None Update="for_SemanticGraphViews/Fixtures/*" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 </Project>

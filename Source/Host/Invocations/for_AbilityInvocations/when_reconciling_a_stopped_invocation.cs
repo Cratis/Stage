@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Choreography.Workflows;
+using Cratis.Choreography.Workflows.Runs;
 using Cratis.Specifications;
 using Cratis.Stage.Host.Invocations.given;
 using Xunit;
@@ -24,10 +26,16 @@ public class when_reconciling_a_stopped_invocation : an_invocation_silo
         var admission = await Invocations.Invoke(new("Slack", "Pay", Origin("event 21", InvocationOriginKind.StateMachineEntry)));
         _identity = admission.Record!.Identity;
         await Eventually(async () => (await Invocations.List(InvocationStatus.Stopped)).Count == 1, "the invocation to stop");
+        var record = (await Ledger.Get(_identity))!;
+        var key = WorkflowRunKey.Parse(record.Run);
+        var execution = NodeExecutionKey.Parse(record.Execution);
+        var run = _app.Services.GetRequiredService<IWorkflows>().GetRun(key.Scope, key.Run);
+        await Eventually(async () => (await run.GetSnapshot()).Executions.Any(candidate => candidate.Execution == execution && candidate.Status == NodeExecutionStatus.ReconciliationRequired), "the workflow execution to be ready for reconciliation");
 
         _unknownOutcome = await Invocations.Reconcile(_identity, "Exploded", "{}", "alice");
         _unknownInvocation = await Invocations.Reconcile("inv-nothing", "returned", "{}", "alice");
         _reconciled = await Invocations.Reconcile(_identity, "Declined", """{"reason":"insufficient funds"}""", "alice");
+        _reconciled.ShouldEqual(InvocationReconciliation.Reconciled);
         await Eventually(() => !_stateMachines.Settlements.IsEmpty, "the state machine to be settled");
         _settled = _stateMachines.Settlements.Single();
         _again = await Invocations.Reconcile(_identity, "returned", "{}", "bob");

@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using Cratis.Scene.Screenplay.Forward;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Lifecycles;
 using Cratis.Stage.Contracts.Rendering;
@@ -260,10 +261,10 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         if (lifecycleRefusals.IsEmpty && request.Scope.Kind == ArtifactRenderScopeKind.Application)
         {
             artifacts.AddRange(SemanticLifecycleArtifactRenderer.Render(context).Select(Artifact));
-            diagnostics.AddRange(context.Application.StateMachines.Select(machine => new ArtifactRenderDiagnostic(
+            diagnostics.AddRange(context.Application.StateMachines.Where(machine => SemanticLifecycleStateResolution.Member(machine, context.ReadModels[machine.ReadModel]) is null).Select(machine => new ArtifactRenderDiagnostic(
                 LifecycleCodes.RestartState,
                 ArtifactRenderDiagnosticSeverity.Warning,
-                $"State machine '{machine.Name}' resumes in its initial state after its grain is reactivated: Cratis.Choreography resolves the state of an event-sourced machine from the followed read model alone, and '{machine.Name}' declares no read model member that records its state.",
+                $"State machine '{machine.Name}' resumes in its initial state after its grain is reactivated: Cratis.Choreography resolves the state of an event-sourced machine from the followed read model alone, and '{machine.Name}' declares no single required text member named State or Status (or the machine name, without a Lifecycle or StateMachine suffix, followed by State or Status) whose values are its state names; add one to resume from the followed read model.",
                 context.Application.Id)));
         }
 
@@ -490,17 +491,17 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             : ScreenPartitionsInput.Compose(scene, partitions, userInterface.Select(slice => slice.Slice.Id.ToString()).ToHashSet(StringComparer.Ordinal));
 
         // Admission runs before rendering, even if another independent gate has already refused.
-        var guardDiagnostics = Contracts.Scene.SceneGuards.GuardAdmissionDiagnostics(sceneJson);
+        var guardDiagnostics = SceneGuards.GuardAdmissionDiagnostics(sceneJson);
         if (guardDiagnostics.Count != 0)
         {
             // Preserve the existing action diagnostic when both surfaces are refused.
-            var code = guardDiagnostics.Contains(Contracts.Scene.UnsupportedGuardedScreenAction.DiagnosticCode)
-                ? Contracts.Scene.UnsupportedGuardedScreenAction.DiagnosticCode
-                : Contracts.Scene.UnsupportedGuardedInteraction.DiagnosticCode;
+            var code = guardDiagnostics.Contains(UnsupportedGuardedScreenAction.DiagnosticCode)
+                ? UnsupportedGuardedScreenAction.DiagnosticCode
+                : UnsupportedGuardedInteraction.DiagnosticCode;
             var location = Screenplay.Diagnostics.SourceLocation.Start;
-            Exception refusal = code == Contracts.Scene.UnsupportedGuardedInteraction.DiagnosticCode
-                ? new Contracts.Scene.UnsupportedGuardedInteraction("scene.json", location)
-                : new Contracts.Scene.UnsupportedGuardedScreenAction("scene.json", location);
+            Exception refusal = code == UnsupportedGuardedInteraction.DiagnosticCode
+                ? new UnsupportedGuardedInteraction("scene.json", location)
+                : new UnsupportedGuardedScreenAction("scene.json", location);
             diagnostics.Add(Error(code, refusal.Message, request.Model.Application.Id));
         }
 

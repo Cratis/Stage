@@ -3,6 +3,8 @@
 
 using Cratis.Specifications;
 using Cratis.Stage.Host.for_SemanticHttpBinding.given;
+using Cratis.Stage.Semantics;
+using NSubstitute;
 using Xunit;
 
 namespace Cratis.Stage.Host.for_SemanticHttpBinding.when_querying;
@@ -23,6 +25,7 @@ public class after_registering : a_bound_semantic_model
     async Task Because()
     {
         await Request("POST", Route, Payload);
+        ((ISemanticFactTail)_facts).Tail().Returns(0UL);
         (_keyedStatus, _keyedBody, _) = await Request("GET", "/api/projects/registration/public-lookup/public-by-id?projectId=3fa85f64-5717-4562-b3fc-2c963f66afa6");
         (_allStatus, _allBody, _) = await Request("GET", "/api/projects/registration/public-lookup/all-public-summaries");
         (_byIdStatus, _byIdBody, _) = await Request("GET", "/api/projects/registration/public-lookup/get-public-summary-by-id?id=3fa85f64-5717-4562-b3fc-2c963f66afa6");

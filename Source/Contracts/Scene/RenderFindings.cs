@@ -1,20 +1,17 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using Cratis.Scene.Engine.Navigation;
 using Cratis.Scene.Engine.Packages;
 using Cratis.Scene.Engine.Profiles;
 using Cratis.Scene.Engine.Screens;
-using Cratis.Scene.Engine.Structure;
 using Cratis.Scene.Engine.Templates;
-using Cratis.Scene.Engine.Toolbar;
+using Cratis.Scene.Screenplay.Forward;
 using SceneElements = Cratis.Scene.Model.Elements;
 using ScenePackagesModel = Cratis.Scene.Model.Packages;
 using SceneProfilesModel = Cratis.Scene.Model.Profiles;
 using SceneScreens = Cratis.Scene.Model.Screens;
 using SceneShell = Cratis.Scene.Engine.Shell;
 using SceneSizeClasses = Cratis.Scene.Model.SizeClasses;
-using SceneToolbar = Cratis.Scene.Model.Toolbar;
 
 namespace Cratis.Stage.Contracts.Scene;
 
@@ -48,40 +45,13 @@ public static class RenderFindings
     /// <param name="application">The translated <see cref="SceneApplication"/>.</param>
     /// <returns>The findings, if any.</returns>
     /// <remarks>
-    /// The rules are Scene's: <c language="csharp">NavigationOutletDiagnostics</c> and <c language="csharp">ToolbarButtonValidation</c> run unmodified over the
-    /// <see cref="SceneApplication.Structure"/> built from the compiled model, so a finding here is the one the designer reports.
-    /// The slot names a navigation item may render into are the slots of the layouts the document declares.
+    /// The rules are Scene's: <c language="csharp">ApplicationFindings</c> in <c language="csharp">Cratis.Scene.Screenplay</c> runs Scene's structure, navigation and toolbar
+    /// validation unmodified over the application the bridge converted, so a finding here is the one the designer reports. Each
+    /// <c language="csharp">ConversionFindingKind</c> is mapped onto the <see cref="RenderFindingKind"/> of the same name.
     /// </remarks>
-    public static IEnumerable<RenderFinding> ForStructure(SceneApplication application)
-    {
-        var index = new ApplicationStructureIndex(application.Structure);
-        foreach (var diagnostic in index.Diagnostics)
-        {
-            yield return new RenderFinding(RenderFindingKind.StructureInvalid, string.Empty, $"{diagnostic.Code}: {diagnostic.Message}");
-        }
-
-        var slots = application.Layouts.SelectMany(layout => layout.Slots.Select(slot => slot.Name)).Distinct(StringComparer.Ordinal).ToList();
-        foreach (var diagnostic in NavigationOutletDiagnostics.Diagnose(index, application.Navigation, slots))
-        {
-            yield return new RenderFinding(RenderFindingKind.NavigationInvalid, diagnostic.Entry ?? string.Empty, $"{diagnostic.Code}: {diagnostic.Message}");
-        }
-
-        foreach (var finding in SampleDataConverter.Validate(application))
-        {
-            yield return finding;
-        }
-
-        // A hook button names a slice; a button that names no slice, command, destination or built-in does nothing, which the
-        // engine's validation reports.
-        var buttons = application.OutletButtons()
-            .Where(button => button.BuiltIn is null && button.Command is null && button.NavigateTo is null)
-            .Select(button => new SceneToolbar.ToolbarButton(button.Id, button.Title, button.Slice, button.Emphasis, button.Icon))
-            .ToList();
-        foreach (var diagnostic in ToolbarButtonValidation.Validate(index, new SceneToolbar.Toolbar(buttons)))
-        {
-            yield return new RenderFinding(RenderFindingKind.ToolbarButtonInvalid, diagnostic.Button, $"{diagnostic.Code}: {diagnostic.Message}");
-        }
-    }
+    public static IEnumerable<RenderFinding> ForStructure(SceneApplication application) =>
+        ApplicationFindings.ForApplication(application).Select(finding =>
+            new RenderFinding(Enum.Parse<RenderFindingKind>(finding.Kind.ToString()), finding.Subject, finding.Message));
 
     /// <summary>
     /// States which <c language="csharp">template blueprint</c> references name something the catalog cannot supply.
@@ -245,6 +215,37 @@ public static class RenderFindings
                 RenderFindingKind.ThemeIncompatible,
                 package,
                 $"Theme '{theme.Name}' is not declared compatible with package '{package}', which target '{target}' activates."));
+    }
+
+    /// <summary>
+    /// States what the design system a target draws from could not resolve for the theme the target selects.
+    /// </summary>
+    /// <param name="profile">The target, carrying the design system the application declares.</param>
+    /// <param name="target">The target's name, for the message.</param>
+    /// <returns>One finding for every problem the design system carries for the selected theme, in each mode; none when the target draws from no design system.</returns>
+    /// <remarks>
+    /// The problems are the ones <c language="csharp">Cratis.Scene.Screenplay</c> collected while it resolved the design system - Screenplay's own resolver plus Scene's
+    /// evaluation of the components - so Stage says nothing a second time that the model already decided. A target that selects no theme draws the
+    /// design system's default theme, which is what Scene's resolution does too.
+    /// </remarks>
+    public static IEnumerable<RenderFinding> ForDesignSystem(SceneProfilesModel.UiProfile profile, string target)
+    {
+        if (profile.DesignSystem is not { } designSystem)
+        {
+            return [];
+        }
+
+        var theme = designSystem.Themes.FirstOrDefault(candidate => candidate.Name == profile.Theme)
+            ?? designSystem.Themes.FirstOrDefault(candidate => candidate.IsDefault);
+        if (theme is null)
+        {
+            return [];
+        }
+
+        return theme.Modes.SelectMany(mode => (mode.Problems ?? []).Select(problem => new RenderFinding(
+            RenderFindingKind.DesignSystemUnresolved,
+            $"{designSystem.Name}/{theme.Name}/{mode.Mode}",
+            $"Design system '{designSystem.Name}' cannot resolve theme '{theme.Name}' in {mode.Mode} mode for target '{target}': {problem}")));
     }
 
     /// <summary>

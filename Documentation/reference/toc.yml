@@ -4,6 +4,8 @@
   href: urls.md
 - name: Published applications and export
   href: published-applications.md
+- name: Feedback in a play session
+  href: sandbox-feedback.md
 - name: Scene UI render plans
   href: render-plans.md
 - name: Concept compliance rendering

@@ -53,7 +53,7 @@ internal static class StageSceneDocument
     /// <exception cref="InvalidArtifactRenderContract">A command schema cannot be converted faithfully.</exception>
     public static string Render(string sceneJson, SemanticApplicationContext context)
     {
-        var diagnostics = new ConversionDiagnostics();
+        var diagnostics = new global::Cratis.Scene.Screenplay.ConversionDiagnostics();
         var creation = new SemanticListCreation(context.Application);
         var schemas = context.Commands.Values
             .Where(command => !context.OmittedOwners.Contains(command.Id))
@@ -64,7 +64,7 @@ internal static class StageSceneDocument
 
                 // Contracts serves semantic Host names. Only this generated application's transport uses CLR escapes.
                 var names = properties.ToDictionary(property => property.Name, context.MemberNames.WireProperty, StringComparer.Ordinal);
-                var schema = CommandFormSchemas.For(context.Application, properties.Select(property => property with { Name = names[property.Name] }), new ConversionDiagnostics(), group.Key, SourceLocation.Start);
+                var schema = CommandFormSchemas.For(context.Application, properties.Select(property => property with { Name = names[property.Name] }), new global::Cratis.Scene.Screenplay.ConversionDiagnostics(), group.Key, SourceLocation.Start);
                 var fieldSchema = CommandFormSchemas.For(context.Application, properties, diagnostics, group.Key, SourceLocation.Start);
                 var creates = creation.Creates(group.First(), diagnostics, group.Key);
                 return (Name: group.Key, Schema: SchemaSynthesizer.WithCreationIntent(schema!, creates), FieldSchema: fieldSchema, Names: names, Creates: creates);

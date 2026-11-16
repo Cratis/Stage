@@ -257,6 +257,14 @@ public static partial class CratisRendering
         WithSinks(WithPassiveReadModels(WithRealization(profile, ApplicationRealization.From(compilation, physicalModelRoot)), compilation), compilation);
 
     /// <summary>
+    /// Attaches binary assets independently of identity providers, personas and onboarding.
+    /// </summary>
+    /// <param name="profile">The resolved profile.</param>
+    /// <param name="physicalModelRoot">The model directory, or a single model file whose directory contains assets.</param>
+    /// <returns>The profile carrying canonical assets, replacing any existing attachment.</returns>
+    public static ArtifactRenderProfile WithModelAssets(ArtifactRenderProfile profile, string physicalModelRoot) => ModelAssetsInput.With(profile, ModelAssets.Read(physicalModelRoot));
+
+    /// <summary>
     /// Adds the named sinks of the same compilation, and the read models and graphs that choose one, to the hashed render profile.
     /// Portable ESM bytes do not carry sinks; profiles without this input store everything in the default sinks.
     /// </summary>

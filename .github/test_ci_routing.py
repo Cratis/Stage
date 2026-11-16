@@ -378,7 +378,10 @@ class RoutingTests(unittest.TestCase):
         self.assertIn(checkout, scripts)
         self.assertNotIn("setup-dotnet", scripts)
         self.assertNotIn("dotnet-cache", scripts)
-        self.assertEqual(2, scripts.count("      - name:"))
+        harness_cleanup = "      - name: Verify generated React browser harness cleanup\n        run: bash Verification/generated-react-browser/run.cleanup.test.sh\n"
+        self.assertEqual(1, WORKFLOW.count(harness_cleanup))
+        self.assertIn(harness_cleanup, scripts)
+        self.assertEqual(3, scripts.count("      - name:"))
         self.assertIn("ci-scripts", JOBS["build"].splitlines()[0])
         self.assertIn('"ci-scripts": {"result": "${{ needs.ci-scripts.result }}"}', JOBS["build"])
         self.assertNotIn("ci-scripts", JOBS["specs"].split("runs-on:")[0])

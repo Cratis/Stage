@@ -77,6 +77,29 @@ Pass the same `Profile` to `PlanScaffold` and `PlanFrom`. The scaffold supplies
 code that references localized messages compiles with that scaffold. Documentation
 is checked against the model by `PlanFrom`; scaffold planning does not consume it.
 
+## Model asset attachment
+
+`SemanticModelLoader.LoadAsync` reads `<modelRoot>/assets/` into
+`LoadedSemanticModel.ModelAssets`; a single-file root uses the file's directory.
+Source-backed `PlanFrom` carries this immutable attachment in the hashed
+`cratis-realization:model-assets` profile input. The loaded-model overload uses the
+attachment without further file I/O. As with all scaffold artifacts, scoped plans do
+not emit these files; application-scope planning emits binary artifacts under
+`.frontend/public/assets/`.
+
+A caller that compiles sources itself must explicitly attach assets to the profile
+used for application planning:
+
+```csharp
+profile = CratisRendering.WithModelAssets(profile, physicalModelRoot);
+```
+
+This API is independent of `WithRealization`; it does not require authentication or
+onboarding metadata. No input is added for an empty attachment. Asset bytes affect
+the render digests, never portable ESM bytes or its semantic revision. Loader warnings
+identify omitted oversized files or Vite bundle-name collisions; see
+[Model assets](urls.md#model-assets).
+
 ## Reducer rendering convention
 
 Existing applications and all existing `CreateProfile` overloads remain **classic**:

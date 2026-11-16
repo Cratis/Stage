@@ -36,8 +36,8 @@ public static class LifecycleCodes
     public const string RestartState = "STAGE-LIFECYCLE-009";
 
     /// <summary>
-    /// A workflow action that invokes an ability. This is the same code as the renderer's "not rendered" lifecycle refusal: the engine's graph
-    /// does not run ability nodes yet (Cratis/Stage#1118).
+    /// A workflow action or a state entry that invokes an ability the runtime cannot run, such as one whose inputs it cannot compose. This is
+    /// the same code as the renderer's "not rendered" lifecycle refusal.
     /// </summary>
     public const string AbilityNode = "STAGE-LIFECYCLE-010";
 }

@@ -18,6 +18,7 @@ internal static class EventModelHost
         {
             var application = await (load ?? EventModelLoader.LoadStageApplicationFromPathAsync)(modelPath);
             ProtectedCommandReadsAdmission.EnsureExecutableBy(application.EventModel, modelPath, "eventmodel");
+            EventModelRuleAdmission.EnsureExecutable(application.EventModel, modelPath);
             if (application.Scene.RuntimeIssues.All(SafeSceneApplication.CanServeWithoutUnsafeBehavior))
             {
                 return application with { Scene = SafeSceneApplication.From(application.Scene) };

@@ -39,7 +39,7 @@ public class when_loading_a_form_field_picker : given.a_model_path
                     name String
                   query AllReviewers => ReviewerRow[]
             """;
-        await File.WriteAllTextAsync(_path, Cratis.Stage.Api.for_SceneSynthesizer.given.a_scene_model.Source + "\n" + screen);
+        await File.WriteAllTextAsync(_path, given.SceneModelSource.ForEngine(engine) + "\n" + screen);
         var issues = new List<StageUnsupportedIssue>();
         LoadedSemanticModel? model = null;
         SceneApplication? scene = null;

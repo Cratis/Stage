@@ -126,7 +126,13 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
 
         var collection = new ModuleCollection(collectionId, modelId, collectionModules);
 
-        return new(new EventModel(modelId, modelName, [collection]) { ProtectedCommandReads = protectedCommandReads }, diagnostics?.All ?? []);
+        var eventModel = new EventModel(modelId, modelName, [collection])
+        {
+            ProtectedCommandReads = protectedCommandReads,
+            UnsupportedEventModelRules = EventModelRuleAdmission.Inspect(syntax)
+        };
+
+        return new(eventModel, diagnostics?.All ?? []);
     }
 
     static Module ConvertModule(

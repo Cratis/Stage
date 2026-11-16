@@ -22,6 +22,12 @@ internal static partial class InvocationLog
     [LoggerMessage(LogLevel.Information, "Invocation {Identity} was reconciled by {Actor} with the outcome {Outcome}")]
     internal static partial void Reconciled(ILogger logger, string identity, string actor, string outcome);
 
+    [LoggerMessage(LogLevel.Information, "Invocation {Identity} that {Address} made settled with {Outcome}")]
+    internal static partial void StateEntrySettled(ILogger logger, string identity, string address, string outcome);
+
+    [LoggerMessage(LogLevel.Warning, "Invocation {Identity} that {Address} made failed and stops the entry for the operator: {Reason}")]
+    internal static partial void StateEntryFailed(ILogger logger, string identity, string address, string reason);
+
     [LoggerMessage(LogLevel.Information, "Invocation {Identity} was answered by {Actor} with {Outlet}")]
     internal static partial void Answered(ILogger logger, string identity, string actor, string outlet);
 }

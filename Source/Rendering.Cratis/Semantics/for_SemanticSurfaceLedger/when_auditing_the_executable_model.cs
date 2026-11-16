@@ -65,6 +65,32 @@ public class when_auditing_the_executable_model : given.the_executable_surface
         _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-016"));
 
     [Theory]
+    [InlineData("SemanticInvocation.System")]
+    [InlineData("SemanticInvocation.Ability")]
+    [InlineData("SemanticInvocation.Inputs")]
+    [InlineData("SemanticInvocation.Branches")]
+    [InlineData("SemanticInvocationBranch.Selector")]
+    [InlineData("SemanticInvocationBranch.Produces")]
+    [InlineData("SemanticAbilityAnswer.Outcome")]
+    [InlineData("SemanticAbilityAnswerKind.Returned")]
+    [InlineData("SemanticAbilityFieldValue.Value")]
+    [InlineData("SemanticSpecification.GivenAbilityAnswers")]
+    [InlineData("SemanticStateEntry.RequirementId")]
+    [InlineData("SemanticStateEntryKind.RunBody")]
+    public void should_keep_reaction_ability_invocations_gated(string member) =>
+        _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-016"));
+
+    [Theory]
+    [InlineData("SemanticStateEntry.Ability")]
+    [InlineData("SemanticStateEntryKind.InvokeAbility")]
+    [InlineData("SemanticAbilityInputMapping.Source")]
+    [InlineData("SemanticInvocationValueExpression.Member")]
+    [InlineData("SemanticExpressionKind.InvocationValue")]
+    [InlineData("SemanticWorkflowNode.Ability")]
+    public void should_run_lifecycle_ability_invocations_in_the_runtime_only(string member) =>
+        _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-LIFECYCLE-010"));
+
+    [Theory]
     [InlineData("SemanticApplication.ContextMembers")]
     [InlineData("SemanticReadModel.PropertyOrder")]
     public void should_keep_the_v37_members_outside_the_audited_v38_pair(string member) =>

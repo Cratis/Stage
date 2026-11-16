@@ -78,8 +78,11 @@ export function registerStageLibrary(name: string, library: StageLibrary): void 
  */
 export function stageProfile(profiles: UiProfile[] | undefined): UiProfile {
     const profile = previewProfile(profiles);
+    // The preview profile is rebuilt from the declared one member by member and leaves the design system out, which the application is drawn from.
+    const designSystem = (profiles?.find(candidate => candidate.targetPlatform === 'web') ?? profiles?.[0])?.designSystem;
     return {
         ...profile,
+        ...(designSystem === undefined ? {} : { designSystem }),
         name: profiles?.length ? profile.name : 'Stage',
         packages: hostProfilePackages(profile.packages, {
             baseline: stageBaselinePackage,

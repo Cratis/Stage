@@ -37,7 +37,8 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     // Re-frozen for Cratis/Stage#937: only Directory.Packages.props pins Pkcs to 10.0.14 and documents Xml runtime servicing.
     // Re-frozen for Cratis/Stage#926: the scaffold hosts an Orleans silo (Program.cs, Directory.Packages.props, the project).
     // Re-frozen for Choreography 2.2.0 with Chronicle 19.124.0 and Arc 22.165.2: the scaffold uses the renamed hosting APIs.
-    const string Digest = "babaf23b71e49d8c993576827ba0f774af80b7fb2d33150c27f70dfc98b5ea3e";
+    // Re-frozen for Cratis/Stage#970: only Program.cs gains the Diagnostics import and defaults event-source id tracing to Omitted.
+    const string Digest = "d6b8bce04fc560a9874025396f79aa9e02d516a1f13605398ded17610eb3a03a";
 
     const string Manifest = """
         .editorconfig 0071ecdc7a762e5966d5f6e6c72cc6b53d96c918c2e32dbe74059ffbc792859f 741
@@ -62,7 +63,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         GeneratedPolicyRegistration.cs 7962c40dc5f71ab971cf01ae185b06e584594e03161c3db0fed18363ca166100 593
         GeneratedProvideRegistration.cs 555e9abc6df7e08445cec29299a70dcbad34b5409f9dd28254d1527c918862f3 598
         GlobalUsings.cs 74b2438fda9d5bc192e6fcd6b44837b6129b532faa99555d77013f62f1ec3f8e 137
-        Program.cs bfaaef89f21c2e5ccf10f9b3adf2510adcca0e9a3e46abc16d97ccb59c767b02 1876
+        Program.cs 502d23cf522c85ee2e4bd302bbe604112ed3f65614c814a52f127a251d8456c1 2183
         README.md aa64c1ef6846ab9796feb390c9aa112864126aaac54c9c81c0e50fea02d38e74 2392
         Workspaces.csproj 9eb3a11850e8a7c4a6810367e622c7658dfcf7220bf8bb211d20024cfd30ec8b 2992
         Workspaces.slnx f74d3ddcde0097a4bdb2ce376128f76d0ed516c309d01f273f9b92c394ba2166 62
@@ -112,7 +113,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         GeneratedAvailabilityRegistration.cs 44ae7da0bcb5886f92195b70f11fb3a4b1a46c548d235d22413aaecf6355fe92 781
         GeneratedPolicyRegistration.cs 05e8d5a16d52bc9e50828e14aab5d929e5778f7f855b3f8e8ec4c4e7d122ddbf 742
         GeneratedProvideRegistration.cs 94e228e13080072ab566d7ddf0bf906abb9176a175a58b55cb922634c2159cdb 747
-        Program.cs eeba3e4ac83d01ddd878425f4adb1bfe526225c0ecc20da487b3383ca57f1e07 2025
+        Program.cs 44415c83c0e9fdcf141a8ef960fef9ab13e945023ddb4ff9077529e9fc9ad89b 2332
         README.md 30cac1be79d8dfeb616a606e0f54a3ddbc819d8641cef281c0d946c92ad647c4 2332
         Workspaces.Specs/Workspaces.Specs.csproj b88f81e8d9f2f47b00113df7ec92e37919c703083d9b767a24451a5104d8f617 1105
         Workspaces.csproj 748d15f27efb72689aa19963fbdef615d4a6bd6f628aedf8ddeca98fdce21f0c 1593
@@ -198,7 +199,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("eaa07d2627d312470597a6299874c908aaa8598255ffce082ac029732ec16d51"); // Re-frozen for #741 (.gitignore gains the .yarn/ line), Scene 4.86.0, Cratis/Stage#120 merged with train 10 and #937 (only Directory.Packages.props pins Pkcs and documents Xml runtime servicing).
+            plan.Diagnostics).ShouldEqual("a70ecf2f3fab8acbcd78b4ef8d97d936b59842791f0c59fa9d2dc6e4da5ea0f1"); // Re-frozen for #741 (.gitignore gains the .yarn/ line), Scene 4.86.0, Cratis/Stage#120 merged with train 10 and #937 (only Directory.Packages.props pins Pkcs and documents Xml runtime servicing).
     }
 
     [Theory]

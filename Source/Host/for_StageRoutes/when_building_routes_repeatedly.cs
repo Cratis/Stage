@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Text.Json;
+using Cratis.Scene.Screenplay.Forward;
 using Cratis.Specifications;
 using Cratis.Stage.Host.for_SemanticRuntime.given;
 using Cratis.Stage.Semantics;
@@ -20,7 +21,7 @@ public class when_building_routes_repeatedly : Specification
     {
         var plan = compiled_plan.From(Source);
         await using var app = WebApplication.CreateBuilder().Build();
-        var scene = new Contracts.Scene.SceneApplication([], [], [], [], [], []);
+        var scene = new SceneApplication([], [], [], [], [], []);
         var source = new StageRoutesSource(
             new StageSceneRoutes(scene, app.Services, NullLogger.Instance),
             plan.Model,

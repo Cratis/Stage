@@ -15,6 +15,7 @@ public class when_verifying_reaction_bodies_against_the_pinned_kernel : a_genera
         using Cratis.Arc.MongoDB;
         using Cratis.Choreography.Chronicle.Hosting;
         using Cratis.Choreography.Hosting;
+        using Cratis.Chronicle.Diagnostics;
 
         public partial class Program
         {

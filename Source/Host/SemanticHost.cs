@@ -3,6 +3,7 @@
 
 using Cratis.Arc.Commands;
 using Cratis.Chronicle;
+using Cratis.Scene.Screenplay.Forward;
 using Cratis.Screenplay.Extensions;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
@@ -119,11 +120,14 @@ internal static class SemanticHost
             AddSandboxServices(builder.Services, mode);
         }
 
-        var extensions = SelectExtensions(published, package);
-        var hostContext = published is null ? null : new PublishedHostContext(builder, published, package!.Manifest, eventStore);
+        var sandboxNotes = mode == StageHostMode.Sandbox ? SandboxNotes.Read(builder.Configuration) : null;
+        var extensions = sandboxNotes is { Enabled: true }
+            ? PublishedHostExtensions.Select(PublishedHostExtensions.Registered, true)
+            : SelectExtensions(published, package);
+        var hostContext = published is null ? new PublishedHostContext(builder, null, null, eventStore) : new PublishedHostContext(builder, published, package!.Manifest, eventStore);
         foreach (var extension in extensions)
         {
-            extension.ConfigureServices(hostContext!);
+            extension.ConfigureServices(hostContext);
         }
 
         // Arc discovers every referenced assembly, so Notes' routes would otherwise exist unconfigured wherever Notes is not enabled.
@@ -222,6 +226,10 @@ internal static class SemanticHost
             InvocationEndpoints.Map(app);
             if (app.Services.GetService<IInboundDeliveries>() is not null) InboundDeliveryEndpoints.Map(app);
             SemanticReadModelBrowser.Map(app, new(app.Services.GetRequiredService<ISemanticRuntime>(), () => world is not null, context => issues.Count > 0 ? RefusedResponse(context, issues) : null, admission));
+            if (sandboxNotes is { Enabled: true })
+            {
+                ModelReferencesEndpoint.Map(app, sandboxNotes.Document(builder.Configuration, loaded.Model, scene));
+            }
         }
         else if (published is not null)
         {
@@ -248,7 +256,7 @@ internal static class SemanticHost
 
         foreach (var extension in extensions)
         {
-            extension.MapEndpoints(app, hostContext!);
+            extension.MapEndpoints(app, hostContext);
         }
 
         app.MapFallbackToFile("index.html");

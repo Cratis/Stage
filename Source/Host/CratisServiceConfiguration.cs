@@ -6,6 +6,7 @@ using Cratis.Arc.Neo4j;
 using Cratis.Chronicle;
 using Cratis.Chronicle.AspNetCore;
 using Cratis.Chronicle.Connections;
+using Cratis.Chronicle.Diagnostics;
 using Cratis.Json;
 using Cratis.OpenTelemetry;
 using Cratis.Serialization;
@@ -106,6 +107,7 @@ public static class CratisServiceConfiguration
             configureChronicleBuilder: chronicleBuilder =>
             {
                 chronicleBuilder.WithCamelCaseNamingPolicy();
+                ConfigureTelemetry(chronicleBuilder, builder);
 
                 // Nothing discovers on its own here (see AutoDiscoverAndRegister above), but when the published host
                 // registers the Notes artifacts it is this provider the client discovers them from. Scoping it to the
@@ -137,6 +139,20 @@ public static class CratisServiceConfiguration
         builder.AddCratisOpenTelemetry();
 
         return builder;
+    }
+
+    static void ConfigureTelemetry(IChronicleBuilder chronicleBuilder, WebApplicationBuilder builder)
+    {
+        chronicleBuilder.WithTelemetry(telemetry =>
+        {
+            telemetry.EventSourceIdTracing = EventSourceIdTracing.Omitted;
+            builder.Configuration.GetSection("Cratis:Chronicle:Telemetry").Bind(telemetry);
+        });
+
+        // Defaults precede explicit registrations, including ones added before AddStageCratis.
+        var defaults = builder.Services.Last(service => service.ServiceType == typeof(ChronicleTelemetryConfiguration));
+        builder.Services.Remove(defaults);
+        builder.Services.Insert(0, defaults);
     }
 
     static ChronicleConnectionString ResolveConnection(ChronicleConnectionString configured, ChronicleConnectionString? mounted, PublishedOptions? published)

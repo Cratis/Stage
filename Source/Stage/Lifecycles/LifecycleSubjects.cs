@@ -48,6 +48,28 @@ public static class LifecycleSubjects
     }
 
     /// <summary>
+    /// Builds a plain, typed source from the subject snapshot for a command sent on state entry.
+    /// </summary>
+    /// <param name="plan">The execution plan.</param>
+    /// <param name="command">The command receiving the subject values.</param>
+    /// <param name="subject">The subject snapshot.</param>
+    /// <returns>Matching subject members, spelled as the command declares them, without workflow list keys.</returns>
+    /// <exception cref="InvalidOperationException">The snapshot ownership or a matching member is ambiguous, or its type differs.</exception>
+    public static JsonObject CommandSource(SemanticExecutionPlan plan, SemanticCommand command, ImmutableArray<SemanticPropertyValue> subject)
+    {
+        var source = new JsonObject();
+        if (subject.IsDefaultOrEmpty) return source;
+        var owner = SubjectOwner(plan, subject);
+        foreach (var property in command.Properties.Where(property => !property.IsGenerated && !property.IsIdentifier))
+        {
+            if (CommandMember(owner, property) is not { } member) continue;
+            source[property.Name] = CommandValue(plan, member, subject);
+        }
+
+        return source;
+    }
+
+    /// <summary>
     /// Builds the payload of a command a lifecycle sends: the key for the identifier and same-named members for the rest.
     /// </summary>
     /// <param name="plan">The execution plan.</param>
@@ -85,6 +107,55 @@ public static class LifecycleSubjects
     /// <param name="name">The name.</param>
     /// <returns>The camel case name.</returns>
     public static string CamelCase(string name) => name.Length == 0 ? name : char.ToLowerInvariant(name[0]) + name[1..];
+
+    static SemanticReadModel SubjectOwner(SemanticExecutionPlan plan, ImmutableArray<SemanticPropertyValue> subject)
+    {
+        var definitions = plan.ReadModels.Values
+            .SelectMany(model => model.Properties.Select(property => (Model: model, Property: property)))
+            .ToLookup(definition => definition.Property.Id);
+        var owners = subject.Select(value => PropertyOwner(definitions, value.TargetProperty)).DistinctBy(model => model.Id).ToArray();
+        if (owners.Length != 1)
+        {
+            throw new InvalidOperationException("A command source snapshot must belong to one read model.");
+        }
+
+        return owners[0];
+    }
+
+    static SemanticReadModel PropertyOwner(ILookup<SemanticId, (SemanticReadModel Model, SemanticProperty Property)> definitions, SemanticId property)
+    {
+        var matches = definitions[property].ToArray();
+        if (matches.Length != 1)
+        {
+            throw new InvalidOperationException($"Subject property {property} must have exactly one read model definition.");
+        }
+
+        return matches[0].Model;
+    }
+
+    static JsonNode? CommandValue(SemanticExecutionPlan plan, SemanticProperty member, ImmutableArray<SemanticPropertyValue> subject)
+    {
+        var value = subject.FirstOrDefault(candidate => candidate.TargetProperty == member.Id)?.Value ?? SemanticValue.Null;
+        return JsonSerializer.SerializeToNode(SemanticJsonValues.ToObject(value, member.Type, plan.Model.Application));
+    }
+
+    static SemanticProperty? CommandMember(SemanticReadModel owner, SemanticProperty property)
+    {
+        var matches = owner.Properties.Where(member => string.Equals(member.Name, property.Name, StringComparison.OrdinalIgnoreCase)).ToArray();
+        if (matches.Length == 0) return null;
+        if (matches.Length != 1)
+        {
+            throw new InvalidOperationException($"Subject member '{property.Name}' is ambiguous.");
+        }
+
+        var member = matches[0];
+        if (member.Type != property.Type)
+        {
+            throw new InvalidOperationException($"Subject member '{member.Name}' does not have the command property's semantic type.");
+        }
+
+        return member;
+    }
 
     // The workflow engine fans out over a list of objects that each have a unique string 'key'. Screenplay lists carry no such key, so
     // the position is the key, and a scalar element becomes an object holding its 'value'.

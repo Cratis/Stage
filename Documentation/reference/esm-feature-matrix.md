@@ -43,6 +43,8 @@ the single command, trigger, reaction or specification that needs it, and the re
 | Application time zone, context members and declared read model property order | Commands and queries run, with properties ordered canonically; specifications in the affected scope are refused | The model is refused | `STAGE-ESM-016` |
 | Graph queries (ESM 40) | Run against Neo4j | Refused | `STAGE-ESM-068` |
 | Graph queries that collect nested rows (ESM 54) | Read as Chronicle graph views through Arc's graph session | Refused | `STAGE-ESM-068` |
+| Free screens and their adoptions (ESM 56) | Rendered as Scene screens bound to the query the adopting slice provides; an unprovided need is refused | Rendered by the slice that adopts the screen; refused with the same reason when a need is unprovided | `STAGE-SCENE-*` finding, Screenplay `PLAY1155` |
+| Specification event tag expectations (ESM 55) | The specification is refused | The specification is refused | `STAGE-ESM-016` |
 | Form field `choose from query` | Kept as a plain input; the gap is reported as a warning | Kept as a plain input; the gap is reported as a warning | `STAGE-SCENE-FORM-004` |
 | Unaudited ESM pair or unknown version | The whole model is refused | The whole model is refused | `STAGE-ESM-016` |
 | Any other unaudited member, including security-relevant ones | The whole model is refused | The whole model is refused | `STAGE-ESM-016` |

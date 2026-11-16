@@ -4,6 +4,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Cratis.Scene.Screenplay.Forward;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.Naming;
@@ -29,8 +30,9 @@ internal static class ScreenPartitionsInput
 
         var authority = ScreenCompilationAuthority.Capture(compilation);
         var workspace = ScreenCompilationAuthority.Open(authority, compilation.Model.Revision.ToString());
-        var declarations = ScreenCompilationAuthority.Declarations(workspace);
-        var compiledScreens = ScreenCompilationAuthority.Screens(workspace);
+        var syntax = ScreenCompilationAuthority.Compile(workspace);
+        var declarations = ScreenCompilationAuthority.Declarations(workspace, syntax);
+        var compiledScreens = ScreenCompilationAuthority.Screens(syntax);
         if (scene is null)
         {
             if (declarations.Count > 0)
@@ -113,8 +115,9 @@ internal static class ScreenPartitionsInput
             }
 
             var workspace = ScreenCompilationAuthority.Open(candidate.Authority, candidate.ModelRevision);
-            var declarations = ScreenCompilationAuthority.Declarations(workspace);
-            var compiledScreens = ScreenCompilationAuthority.Screens(workspace);
+            var syntax = ScreenCompilationAuthority.Compile(workspace);
+            var declarations = ScreenCompilationAuthority.Declarations(workspace, syntax);
+            var compiledScreens = ScreenCompilationAuthority.Screens(syntax);
             if (scene is null)
             {
                 if (candidate.Entries.Count != 0 || declarations.Count != 0 || !inputs[0].Bytes.SequenceEqual(Serialize(candidate)))
@@ -134,7 +137,7 @@ internal static class ScreenPartitionsInput
                 return false;
             }
 
-            if (Contracts.Scene.SceneGuards.HasUnevaluableGuard(Encoding.UTF8.GetString(scene.Bytes.AsSpan())))
+            if (SceneGuards.HasUnevaluableGuard(Encoding.UTF8.GetString(scene.Bytes.AsSpan())))
             {
                 mismatch = "Screen partitions contain a guard the Stage runtime cannot evaluate.";
                 return false;

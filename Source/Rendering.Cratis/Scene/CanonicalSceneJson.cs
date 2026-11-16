@@ -4,6 +4,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using Cratis.Scene.Screenplay.Forward;
 using Cratis.Stage.Contracts.Scene;
 
 namespace Cratis.Stage.Rendering.Cratis.Scene;

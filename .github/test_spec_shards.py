@@ -100,7 +100,8 @@ class SpecShardsTests(unittest.TestCase):
                     "Source/Rendering.Templates/Rendering.Templates.csproj",
                     "Source/Rendering.Declarative/Rendering.Declarative.csproj", "Source/Stage/Stage.csproj",
                     "Source/SpecRunner/SpecRunner.csproj",
-                    "Source/Rendering.Cratis.Scaffolding/Rendering.Cratis.Scaffolding.csproj"]
+                    "Source/Rendering.Cratis.Scaffolding/Rendering.Cratis.Scaffolding.csproj",
+                    "Source/ReferencePacks.Specs/ReferencePacks.Specs.csproj"]
         for lane in (False, True):
             with self.subTest(blueprint_templates_lane=lane):
                 shards = {shard["name"]: shard for shard in SHARDS["matrix"](blueprint_templates_lane=lane)["include"]}
@@ -437,7 +438,7 @@ class SpecShardsTests(unittest.TestCase):
         with patch("subprocess.run") as run, contextlib.redirect_stdout(io.StringIO()):
             run.side_effect = project_test_status
             SHARDS["guard_solution"](SHARDS["matrix"]())
-            self.assertEqual(15, run.call_count)
+            self.assertEqual(16, run.call_count)
             for call in run.call_args_list:
                 self.assertIn("-property:Configuration=Debug", call.args[0])
                 self.assertTrue(call.kwargs["check"])

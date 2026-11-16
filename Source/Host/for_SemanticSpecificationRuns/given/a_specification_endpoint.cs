@@ -68,7 +68,9 @@ public class a_specification_endpoint : Specification
         _request = pipeline.Build();
     }
 
-    protected async Task Request(string body, CancellationToken cancellationToken = default)
+    protected async Task Request(string body, CancellationToken cancellationToken = default) => await RequestStatus(body, cancellationToken);
+
+    protected async Task<int> RequestStatus(string body, CancellationToken cancellationToken = default)
     {
         await using var requestBody = new MemoryStream(Encoding.UTF8.GetBytes(body));
         await using var responseBody = new MemoryStream();
@@ -84,6 +86,7 @@ public class a_specification_endpoint : Specification
         await _request(context);
         _status = context.Response.StatusCode;
         _body = Encoding.UTF8.GetString(responseBody.ToArray());
+        return context.Response.StatusCode;
     }
 
     async Task Destroy()

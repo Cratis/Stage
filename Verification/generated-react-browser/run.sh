@@ -21,15 +21,27 @@ if [ -z "$chronicle_image" ]; then
     echo "run.sh: no cratis/chronicle image in $application/docker-compose.yml and STAGE_GENERATED_REACT_CHRONICLE_IMAGE is not set" >&2
     exit 2
 fi
-container="stage-generated-react-$$"
+container_name="stage-generated-react-$$"
+container=""
+work=$(mktemp -d "${TMPDIR:-/tmp}/stage-generated-react.XXXXXX") || exit 2
+owner=${work##*/}
+cidfile="$work/container.cid"
 port=${STAGE_GENERATED_REACT_PORT:-19371}
 host_pid=""
 
 cleanup() {
     [ -n "$host_pid" ] && kill "$host_pid" 2>/dev/null && wait "$host_pid" 2>/dev/null
-    # Keep the kernel's own log next to the host log, so a connection failure can be diagnosed from both sides.
-    docker logs "$container" > "$result.kernel.log" 2>&1
-    docker rm --force --volumes "$container" >/dev/null 2>&1
+    # A failed create may leave no receipt; never fall back to the requested name.
+    if [ -s "$cidfile" ]; then
+        container=$(cat "$cidfile")
+        if [[ "$container" =~ ^[a-f0-9]{64}$ ]] &&
+            [ "$(docker inspect --format '{{ index .Config.Labels "cratis.stage.verification.owner" }}' "$container" 2>/dev/null)" = "$owner" ]; then
+            # Keep the kernel's own log next to the host log, so a connection failure can be diagnosed from both sides.
+            docker logs "$container" > "$result.kernel.log" 2>&1
+            docker rm --force --volumes "$container" >/dev/null 2>&1
+        fi
+    fi
+    rm -rf "$work"
 }
 trap cleanup EXIT
 
@@ -41,8 +53,10 @@ could_not_run() {
 [ -f "$application/wwwroot/index.html" ] || could_not_run "$application/wwwroot/index.html is missing; build the frontend first"
 [ -d "$harness/node_modules/playwright" ] || could_not_run "run 'npm ci' in $harness first"
 
-docker run --detach --name "$container" --publish 127.0.0.1::27017 --publish 127.0.0.1::35000 "$chronicle_image" >/dev/null \
+docker run --detach --name "$container_name" --cidfile "$cidfile" --label "cratis.stage.verification.owner=$owner" \
+    --publish 127.0.0.1::27017 --publish 127.0.0.1::35000 "$chronicle_image" >/dev/null \
     || could_not_run "the pinned Chronicle image $chronicle_image did not start"
+container=$(cat "$cidfile")
 mongo_port=$(docker port "$container" 27017/tcp | head -n 1 | sed 's/.*://')
 chronicle_port=$(docker port "$container" 35000/tcp | head -n 1 | sed 's/.*://')
 [ -n "$mongo_port" ] && [ -n "$chronicle_port" ] || could_not_run "the Chronicle container exposed no ports"

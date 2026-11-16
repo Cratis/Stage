@@ -3,6 +3,7 @@
         <Project Path="Source/BodyWorker/BodyWorker.csproj" />
         <Project Path="Source/Conformance.Specs/Conformance.Specs.csproj" />
         <Project Path="Source/Contracts/Contracts.csproj" />
+        <Project Path="Source/ReferencePacks.Specs/ReferencePacks.Specs.csproj" />
         <Project Path="Source/Extensions/DotNET/Cratis.Stage.Extensions.csproj" />
         <Project Path="Source/Extensions/DotNET/Example/Cratis.Stage.Extensions.Example.csproj" />
         <Project Path="Source/Rendering.Kits/Rendering.Kits.csproj" />

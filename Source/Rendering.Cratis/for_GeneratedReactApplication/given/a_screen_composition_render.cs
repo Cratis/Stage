@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Cratis.Scene.Screenplay.Forward;
 using Cratis.Screenplay.CanonicalCorpus;
 using Cratis.Screenplay.Files;
 using Cratis.Screenplay.Semantics;

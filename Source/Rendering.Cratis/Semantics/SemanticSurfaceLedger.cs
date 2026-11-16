@@ -382,7 +382,7 @@ internal static class SemanticSurfaceLedger
 
         // ESM v55 lets a specification state the tags an event carries. A specification that states them is refused (STAGE-ESM-016) until direct and
         // generated specifications enforce them (Cratis/Stage#944), rather than passing without checking what it says.
-        Add(entries, "SemanticSpecificationEvent", gated, "ExpectedTags");
+        Add(entries, "SemanticSpecificationEvent", rejected("STAGE-ESM-016"), "ExpectedTags");
         Add(entries, "SemanticFixtureRoute", rendered, "Source Stream StreamId StreamIdParts");
         Add(entries, "SemanticFixtureRoutePart", rendered, "Part Value");
         Add(entries, "SemanticSpecificationReadModel", rendered, "Key ReadModel Values");

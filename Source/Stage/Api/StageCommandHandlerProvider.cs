@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using Cratis.Arc.Commands;
 using Cratis.Arc.Tenancy;
 using Cratis.Stage.Contracts;
+using Cratis.Stage.Contracts.Screenplay;
 using Cratis.Stage.Runtime;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -57,6 +58,7 @@ public sealed class StageCommandHandlerProvider : ICommandHandlerProvider
         if (model is not null)
         {
             ProtectedCommandReadsAdmission.EnsureExecutableBy(model, model.Name, "eventmodel");
+            EventModelRuleAdmission.EnsureExecutable(model, model.Name);
         }
 
         var typeFactory = typeFactories.FirstOrDefault();

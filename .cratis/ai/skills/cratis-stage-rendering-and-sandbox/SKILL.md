@@ -27,7 +27,9 @@ against Stage v4.197.0: matched language/ESM 1.0–30.0 and 32.0 are admitted, n
 Stage then applies matched-pair and construct gates. V32 needs a direct caller of
 the reviewed Stage baseline. See [CLI bundle details](../cratis-screenplay-toolchain/references/language-admission.md#stage-admission-and-execution).
 Renderer, semantic Host/specification execution and legacy syntax admission are
-separate gates.
+separate gates. Reading a model that carries unknown additions is a further separate gate:
+[the unknown-preserving reader](../cratis-screenplay-toolchain/references/unknown-preserving-reader.md)
+retains them without executing or rendering them, so renderer admission of such a model is not implied.
 Bounded atomic batches render; unverifiable query performers can produce explicit
 gaps, not completed behavior. Described handlers still refuse even in Stub mode.
 Keep protection and report remaining refusals.
@@ -151,7 +153,7 @@ and unaudited-version refusals still stop first. Codes, limits and fixes:
   Protected reads render as Arc read protection in a new enough bundle; shapes it cannot preserve, and every protected read in an older bundle, refuse `STAGE-ESM-044` (see admission.md). Described handlers still refuse `STAGE-IMPL-002` even in Stub mode. Query-performer gaps are a separate contract, not a completed implementation.
 - **Attached command handlers:** a file/inline handler beside unconditional `produces`
   with a resolved body binds as the v23 result contract and Stage renders its C# body.
-  Without `produces`, with `produces ... when` or with an unresolved body it refuses
+  Without `produces` or `may produce`, with `produces ... when` or with an unresolved body it refuses
   `PLAY0800`: read the required typed `arguments.subject` for the command, never match
   message text. Older bundled binders refuse every attached handler (version gate:
   toolchain `references/executable-subset.md`).

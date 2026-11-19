@@ -22,7 +22,7 @@ internal static class invocation_refusal_outcome_model
     /// Creates the model from a source whose FollowUp slice invokes the Completion slice's command, stating the invocation each specification expects.
     /// </summary>
     /// <param name="source">The authored source.</param>
-    /// <param name="recordsOnly">Whether the specifications assert only the invocation, leaving no outcome; a Conflicting specification is then the append the constraint must refuse.</param>
+    /// <param name="recordsOnly">Whether the specifications assert only the invocation, leaving no outcome;</param>
     /// <returns>The executable model.</returns>
     internal static ExecutableSemanticModel Create(string source, bool recordsOnly)
     {
@@ -35,7 +35,7 @@ internal static class invocation_refusal_outcome_model
         var slice = feature.Slices.Single(candidate => candidate.Name == "FollowUp");
         slice = slice with
         {
-            Specifications = [.. slice.Specifications.Select(specification => specification.Name == "Conflicting" ? Conflicting(specification) : specification with
+            Specifications = [.. slice.Specifications.Select(specification => specification with
             {
                 ThenNoEvents = specification.ThenNoEvents && !recordsOnly,
                 ThenInvocations = [new(command.Id, [new(id.Id, SemanticValue.Text(ExpectedId(specification.Name)))])]
@@ -43,18 +43,6 @@ internal static class invocation_refusal_outcome_model
         };
         application = application with { Modules = [module with { Features = [feature with { Slices = [slice, feature.Slices.Single(candidate => candidate.Name == "Completion")] }] }] };
         return ExecutableSemanticModel.Create(golden.LanguageVersion, golden.SemanticVersion, application);
-    }
-
-    static SemanticSpecification Conflicting(SemanticSpecification specification)
-    {
-        var append = specification.WhenAppended!;
-        var other = append.EventSource! with { Value = SemanticValue.Text("other") };
-        return specification with
-        {
-            GivenEvents = [new(append.EventContract, append.Values) { EventSource = other }],
-            ThenNoEvents = false,
-            ThenErrors = [new(null, "Constraint 'UniqueStarted' is violated: another event source already holds the constrained value.")]
-        };
     }
 
     static string ExpectedId(string specification) => specification switch

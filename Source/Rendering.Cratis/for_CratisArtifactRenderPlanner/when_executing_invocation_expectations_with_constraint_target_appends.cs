@@ -18,8 +18,8 @@ public class when_executing_invocation_expectations_with_constraint_target_appen
     [Fact] void should_pass_every_fact_when_the_constraint_accepts_the_append() => AssertOutcome("when_recorded", "Passed");
     [Fact] void should_assert_the_invocation() => Assert.Contains(fixture.Results, result => result.Matches("when_recorded", "should_match_authored_invocation_1_id"));
     [Fact] void should_not_assert_the_invoked_commands_outcome() => Assert.DoesNotContain(fixture.Results, result => result.Matches("when_recorded", "should_settle"));
-    [Fact] void should_refuse_a_conflicting_append_through_the_constraint() => AssertOutcome("when_conflicting", "Passed");
-    [Fact] void should_assert_the_constraint_violation() => Assert.Contains(fixture.Results, result => result.Matches("when_conflicting", "should_report_the_constraint_violation"));
+    [Fact] void should_refuse_a_conflicting_append_through_the_constraint() => AssertOutcome("when_conflicting", "Failed");
+    [Fact] void should_run_the_conflicting_copy_of_the_recorded_specification() => Assert.Contains(fixture.Results, result => result.Matches("when_conflicting", "should_match_authored_invocation_1_id"));
     [Fact] void should_fail_when_the_invocation_value_is_wrong() => AssertFailed("when_mismatching", "should_match_authored_invocation_1_id");
 
     void AssertOutcome(string name, string outcome)
@@ -37,6 +37,22 @@ public class when_executing_invocation_expectations_with_constraint_target_appen
         public ImmutableArray<GeneratedTestResult> Results { get; private set; }
         protected override bool DeferPlan => true;
 
+        // The admitted record-only specification appends its trigger through the event log and requires the append to be accepted.
+        // A copy that first seeds the same value under another event source must therefore fail in Because: only the constraint can refuse it.
+        void AddConflictingCopyOfTheRecordedSpecification()
+        {
+            var path = Assert.Single(GeneratedFiles("when_recorded.cs"));
+            var recorded = ReadGeneratedFile(path);
+            const string Marker = "var @event = ";
+            var start = recorded.IndexOf(Marker, StringComparison.Ordinal);
+            Assert.True(start >= 0, recorded);
+            start += Marker.Length;
+            var appended = recorded[start..recorded.IndexOf(';', start)];
+            var seed = $"(await _scenario.EventLog.Append(\"other\", {appended})).IsSuccess.ShouldBeTrue();";
+            Assert.Contains("var reactor = new", recorded, StringComparison.Ordinal);
+            AddGeneratedSpecification("when_conflicting.cs", recorded.Replace("var reactor = new", $"{seed}{Environment.NewLine}        var reactor = new", StringComparison.Ordinal).Replace("when_recorded", "when_conflicting", StringComparison.Ordinal));
+        }
+
         async Task Because()
         {
             try
@@ -48,6 +64,7 @@ public class when_executing_invocation_expectations_with_constraint_target_appen
                 var plan = _planner.Plan(new(model, execution.Plan, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id)));
                 Assert.True(plan.Refusals.IsEmpty, string.Join(Environment.NewLine, plan.Diagnostics.Select(diagnostic => $"{diagnostic.Code} {diagnostic.Artifact}: {diagnostic.Message}")));
                 RenderApplication(plan);
+                AddConflictingCopyOfTheRecordedSpecification();
                 await Run("debug-build.log", "build", "BackendHost.csproj", "-c", "Debug", "--nologo", "-nodeReuse:false", "-m:2");
                 await Run("debug-test.log", true, "test", "BackendHost.csproj", "-c", "Debug", "--no-build", "--nologo", "--logger", "trx;LogFileName=constraint-target.trx", "--results-directory", _evidence.FullName);
                 Results = GeneratedTestResults.Read(XDocument.Load(Path.Combine(_evidence.FullName, "constraint-target.trx")));

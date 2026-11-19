@@ -16,7 +16,7 @@ internal static partial class SemanticReactionSpecificationRenderer
     {
         var selected = SemanticSpecificationAdmission.SelectReaction(context, specification);
         var prelude = new SemanticReactionSpecificationPrelude(selected, SemanticReactionSpecification.Input(specification), specification.WhenRedelivered is null ? null : specification);
-        if (selected.Trigger.Invokes.Any(invocation => !invocation.OnRefused.IsEmpty))
+        if (specification.ThenInvocations.IsDefaultOrEmpty && selected.Trigger.Invokes.Any(invocation => !invocation.OnRefused.IsEmpty))
         {
             return RenderRefusals(specification, context, prelude);
         }
@@ -33,6 +33,16 @@ internal static partial class SemanticReactionSpecificationRenderer
     internal static void RenderHeader(CSharpCodeBuilder builder, SemanticReactionSpecificationPrelude prelude, SemanticApplicationContext context) =>
         builder.Line($"readonly global::Cratis.Chronicle.Testing.Reactors.ReactorScenario<{ReactorType(prelude, context)}> _reactor = new();");
 
+    /// <summary>
+    /// The recorded reactor effects as commands: a reaction with refusal branches returns an Arc command invocation wrapper, which is unwrapped to the command it carries.
+    /// </summary>
+    /// <param name="prelude">The selected reaction.</param>
+    /// <returns>The C# expression listing what the reactor produced.</returns>
+    internal static string Recorded(SemanticReactionSpecificationPrelude prelude) =>
+        prelude.Selection.Trigger.Invokes.Any(invocation => !invocation.OnRefused.IsDefaultOrEmpty)
+            ? "_reactor.Produced.Select(produced => produced is global::Cratis.Arc.Chronicle.Reactors.CommandInvocation invocation ? invocation.Command : produced).ToList()"
+            : "_reactor.Produced";
+
     internal static void RenderBecause(SpecificationScope scope)
     {
         var builder = scope.Builder;
@@ -40,7 +50,8 @@ internal static partial class SemanticReactionSpecificationRenderer
         builder.Using("System.Reflection")
             .OpenBlock("async global::System.Threading.Tasks.Task Because()");
         RenderAppend(builder, prelude, scope.Context, scope.Types);
-        builder.Line($"var command = _reactor.Produced.OfType<{scope.CommandName}>().Single();")
+        var recorded = Recorded(prelude);
+        builder.Line($"var command = {recorded}.OfType<{scope.CommandName}>().Single();")
             .Line("// Mirrors Arc's CommandSideEffectExecutor: identity comes from the reactor's own attribute.")
             .Line($"var identity = typeof({ReactorType(prelude, scope.Context)}).GetCustomAttribute<global::Cratis.Arc.Chronicle.Reactors.ExecuteCommandsAsSystemAttribute>();")
             .Line("var accessor = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor());")
@@ -51,11 +62,11 @@ internal static partial class SemanticReactionSpecificationRenderer
         var fields = scope.Command.Properties.Where(property => !property.IsGenerated).Select(property =>
             (property, scope.Specification.When!.Values.Single(value => value.TargetProperty == property.Id).Value)).ToArray();
         RenderExpectedCollections(builder, fields, values);
-        builder.Line("[global::Xunit.FactAttribute] void should_invoke_exactly_one_command() => _reactor.Produced.Count.ShouldEqual(1);")
-            .Line($"[global::Xunit.FactAttribute] void should_invoke_the_expected_command() => (_reactor.Produced.Single() is {scope.CommandName}).ShouldBeTrue();");
+        builder.Line($"[global::Xunit.FactAttribute] void should_invoke_exactly_one_command() => {recorded}.Count.ShouldEqual(1);")
+            .Line($"[global::Xunit.FactAttribute] void should_invoke_the_expected_command() => ({recorded}.Single() is {scope.CommandName}).ShouldBeTrue();");
         foreach (var (property, value) in fields)
         {
-            builder.Line($"[global::Xunit.FactAttribute] void should_invoke_with_{Identifiers.ToSnakeCase(property.Name)}() => (_reactor.Produced.Single() is {scope.CommandName} command && {ValuePredicate(property, value, values)}).ShouldBeTrue();");
+            builder.Line($"[global::Xunit.FactAttribute] void should_invoke_with_{Identifiers.ToSnakeCase(property.Name)}() => ({recorded}.Single() is {scope.CommandName} command && {ValuePredicate(property, value, values)}).ShouldBeTrue();");
         }
         RenderInvocationExpectations(scope);
         builder.BlankLine();

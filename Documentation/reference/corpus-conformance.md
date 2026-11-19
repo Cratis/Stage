@@ -81,7 +81,7 @@ The Cratis specification renderer compares authored `then invokes` expectations 
 
 Support is bounded to one fired declarative, invoke-only reaction entered by a direct append or a lowerable command cascade. The cascade keeps invocation expectations on its reaction half, not its trigger half. Scalar and concept values, nulls and scalar collections are comparable; absent or empty expectations keep the existing output path.
 
-Other shapes remain explicit `STAGE-ESM-016` refusals on the original specification: Translate, capture and trigger entry points, redelivery, native bodies, fan-out, mixed production/invocation, refusal branches, context mappings, deeper effects and non-comparable expected values. Admitting the V34 version pair does not imply blanket support for V34 invocation scenarios.
+Other shapes remain explicit `STAGE-ESM-016` refusals on the original specification: Translate, capture and trigger entry points, redelivery, native bodies, fan-out, mixed production/invocation, refusal branches combined with an asserted refusal outcome (an invocation scenario asserts only the recorded invocations: it still executes the invoked command but asserts neither its outcome nor its facts when refusal branches exist, and it never exercises the branches, so they are admitted only when the specification asserts no events, errors, denial, `then no events` or return), context mappings, deeper effects and non-comparable expected values. Admitting the V34 version pair does not imply blanket support for V34 invocation scenarios.
 
 ## Version 53 screen availability
 

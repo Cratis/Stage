@@ -22,6 +22,12 @@ internal static partial class SemanticCommandSpecificationRenderer
             RenderExpectedCollections(scope, expected, index);
         }
 
+        if (scope.ReactionPrelude is { } prelude && !specification.ThenInvocations.IsDefaultOrEmpty && prelude.Selection.Trigger.Invokes.Any(invocation => !invocation.OnRefused.IsDefaultOrEmpty))
+        {
+            // The reaction handles a refusal of the invoked command, so that command may be refused: the scenario only records the invocation and asserts neither its outcome nor its facts.
+            return;
+        }
+
         builder.Line("[global::Xunit.FactAttribute] void should_succeed() => _result.ShouldBeSuccessful();");
         if (scope.ReactionPrelude is { DecidedOnly: true })
         {

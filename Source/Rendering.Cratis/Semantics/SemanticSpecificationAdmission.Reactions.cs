@@ -25,6 +25,15 @@ internal static partial class SemanticSpecificationAdmission
         return specification.ThenNoEvents || specification.WhenRedelivered is not null ? candidates.Single() : candidates.Single(candidate => candidate.Fires);
     }
 
+    /// <summary>
+    /// Gets whether a reaction specification runs its invoked commands for real so their refusal branches settle.
+    /// </summary>
+    /// <param name="specification">The specification.</param>
+    /// <param name="selected">The selected reaction trigger.</param>
+    /// <returns>Whether the refusal harness renders it; invocation expectations alone stay on the recording scenario.</returns>
+    internal static bool UsesRefusalScenario(SemanticSpecification specification, SemanticReactionSpecification selected) =>
+        selected.Trigger.Invokes.Any(invocation => !invocation.OnRefused.IsDefaultOrEmpty) && (specification.ThenInvocations.IsDefaultOrEmpty || HasRefusalOutcome(specification));
+
     static IEnumerable<SemanticReactionSpecification> ReactionCandidates(SemanticApplicationContext context, SemanticSpecification specification) =>
         SemanticReactionSpecification.Candidates(context, specification, SemanticReactionSpecification.Input(specification))
             .Where(candidate => specification.WhenRedelivered is not { } redelivery || candidate.Reaction.Id == redelivery.Reaction);
@@ -71,13 +80,11 @@ internal static partial class SemanticSpecificationAdmission
                 : "The append must select one reaction trigger, not fan-out or a non-reaction append.";
         }
 
-        // Invocation expectations record the invoked commands and never refuse them, so refusal branches are not exercised (and ValidateInvocations has already gated them).
-        if (specification.ThenInvocations.IsDefaultOrEmpty && active[0].Trigger.Invokes.Any(invocation => !invocation.OnRefused.IsEmpty))
-        {
-            return specification.WhenRedelivered is not null
-                ? "Redelivery with invocation refusal branches requires a context-preserving refusal settlement harness."
-                : RefusalScenarioRejection(context, specification, active[0]);
-        }
+        if (ConstraintTargetAppendRejection(context, specification, active[0]) is { } constraintReason) return constraintReason;
+
+        // Invocation expectations alone record the invoked commands and never refuse them (ValidateInvocations has already gated them); a refusal outcome, or no invocation expectations, runs them for real.
+        if (UsesRefusalScenario(specification, active[0]))
+            return RefusalSettlementRejection(context, specification, active[0]);
 
         // Screenplay decision 0115: a command another slice owns is decided for its outcome, but its facts are not the specification's.
         var foreign = InvokesForeignCommand(context, specification, active[0]);
@@ -117,9 +124,13 @@ internal static partial class SemanticSpecificationAdmission
         if (!HasRenderableReactionRoute(context, append))
             return "The append route's stream identity cannot be formatted portably.";
 
-        return IsReactionConstraintTarget(context, append.EventContract)
-            ? "The appended event is an append-time constraint target; a reactor scenario does not enforce that append." : null;
+        return null;
     }
+
+    static string? RefusalSettlementRejection(SemanticApplicationContext context, SemanticSpecification specification, SemanticReactionSpecification selected) =>
+        specification.WhenRedelivered is not null
+            ? "Redelivery with invocation refusal branches requires a context-preserving refusal settlement harness."
+            : RefusalScenarioRejection(context, specification, selected);
 
     static string? RefusalScenarioRejection(SemanticApplicationContext context, SemanticSpecification specification, SemanticReactionSpecification selected)
     {

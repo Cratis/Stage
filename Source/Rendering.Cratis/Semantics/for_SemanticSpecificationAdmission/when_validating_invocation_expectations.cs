@@ -63,7 +63,7 @@ public class when_validating_invocation_expectations : for_SemanticReactionSpeci
     [InlineData("denied")]
     [InlineData("events")]
     [InlineData("returns")]
-    public void should_refuse_refusal_branches_when_a_refusal_outcome_is_asserted(string outcome)
+    public void should_admit_refusal_branches_when_a_refusal_outcome_is_asserted_leaving_the_refusal_scenario_to_decide(string outcome)
     {
         AddRefusalBranches();
         _specification = outcome switch
@@ -75,10 +75,7 @@ public class when_validating_invocation_expectations : for_SemanticReactionSpeci
             _ => _specification with { ThenDenied = true }
         };
         ValidateExpectations();
-        var diagnostic = Assert.Single(_diagnostics);
-        Assert.Equal("STAGE-ESM-016", diagnostic.Code);
-        Assert.Equal(_specification.Id, diagnostic.Artifact);
-        Assert.Contains("refusal branches", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Empty(_diagnostics);
     }
 
     [Theory]

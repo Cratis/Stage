@@ -16,9 +16,13 @@ internal static partial class SemanticReactionSpecificationRenderer
     {
         var selected = SemanticSpecificationAdmission.SelectReaction(context, specification);
         var prelude = new SemanticReactionSpecificationPrelude(selected, SemanticReactionSpecification.Input(specification), specification.WhenRedelivered is null ? null : specification);
-        if (specification.ThenInvocations.IsDefaultOrEmpty && selected.Trigger.Invokes.Any(invocation => !invocation.OnRefused.IsEmpty))
+        if (SemanticSpecificationAdmission.UsesRefusalScenario(specification, selected))
         {
-            return RenderRefusals(specification, context, prelude);
+            return RenderRefusals(specification, context, prelude, false);
+        }
+        if (SemanticSpecificationAdmission.UsesRecordingAppendScenario(context, specification, selected))
+        {
+            return RenderRefusals(specification, context, prelude, true);
         }
         if (!selected.Trigger.Invokes.IsEmpty)
         {
@@ -40,7 +44,7 @@ internal static partial class SemanticReactionSpecificationRenderer
     /// <returns>The C# expression listing what the reactor produced.</returns>
     internal static string Recorded(SemanticReactionSpecificationPrelude prelude) =>
         prelude.Selection.Trigger.Invokes.Any(invocation => !invocation.OnRefused.IsDefaultOrEmpty)
-            ? "_reactor.Produced.Select(produced => produced is global::Cratis.Arc.Chronicle.Reactors.CommandInvocation invocation ? invocation.Command : produced).ToList()"
+            ? $"{RecordedEffects("_reactor.Produced")}.ToList()"
             : "_reactor.Produced";
 
     internal static void RenderBecause(SpecificationScope scope)
@@ -74,6 +78,9 @@ internal static partial class SemanticReactionSpecificationRenderer
 
     internal static void RenderDispose(CSharpCodeBuilder builder) => builder.OpenBlock("public void Dispose()")
         .Line("_reactor.Dispose();").Line("_scenario.Dispose();").EndBlock();
+
+    static string RecordedEffects(string effects) =>
+        $"{effects}.Select(produced => produced is global::Cratis.Arc.Chronicle.Reactors.CommandInvocation invocation ? invocation.Command : produced)";
 
     static string ReactorType(SemanticReactionSpecificationPrelude prelude, SemanticApplicationContext context)
     {

@@ -22,6 +22,9 @@ internal static partial class SemanticSpecificationAdmission
         }
     }
 
+    static bool RefusesAfterCommand(SemanticSpecification original, SemanticSpecification lowered, SemanticReactionSpecification selected) =>
+        original.When is not null && UsesRefusalScenario(lowered, selected);
+
     static string? InvocationRejection(SemanticApplicationContext context, SemanticSlice slice, SemanticSpecification original)
     {
         if (!IsInvocationEntry(slice, original))
@@ -33,8 +36,8 @@ internal static partial class SemanticSpecificationAdmission
         var fired = SemanticReactionSpecification.Candidates(context, specification, append).Where(candidate => candidate.Fires).ToArray();
         if (fired.Length != 1)
             return "invocation recording requires exactly one fired reaction.";
-        if (HasUnexercisedRefusalBranches(specification, fired[0]))
-            return "the reaction has refusal branches, but the specification asserts a refusal outcome; the recording scenario never refuses, so those branches are not executed.";
+        if (RefusesAfterCommand(original, specification, fired[0]))
+            return "the reaction has refusal branches and the specification asserts a refusal outcome after a command; only a direct append runs the invoked command so that its refusal settles.";
         if (!IsSingleRecordedInvocation(context, specification, fired[0]))
             return "invocation recording requires a declarative invoke-only reaction without native bodies, context mappings or deeper effects.";
         if (specification.ThenInvocations.Any(expected => !CanCompareInvocation(context, expected)))
@@ -79,10 +82,6 @@ internal static partial class SemanticSpecificationAdmission
         if (UsesReactionContext(selected.Reaction, trigger.Source)) return false;
         return !HasDeeperReactionCascade(context, specification, selected);
     }
-
-    // The recorder never refuses, so refusal branches are admitted only while the specification asserts nothing about a refusal outcome.
-    static bool HasUnexercisedRefusalBranches(SemanticSpecification specification, SemanticReactionSpecification selected) =>
-        selected.Trigger.Invokes.Any(invocation => !invocation.OnRefused.IsDefaultOrEmpty) && HasRefusalOutcome(specification);
 
     static bool HasRefusalOutcome(SemanticSpecification specification) =>
         !specification.ThenEvents.IsDefaultOrEmpty || !specification.ThenErrors.IsDefaultOrEmpty || specification.ThenDenied || specification.ThenNoEvents || specification.ThenReturns is not null;

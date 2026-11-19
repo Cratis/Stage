@@ -26,7 +26,13 @@ internal static partial class SemanticReactionSpecificationRenderer
         RenderScenarioField(builder, typed);
         builder.Line(SemanticSpecificationValuesRenderer.Declarations)
             .Line("global::Cratis.Chronicle.Events.AppendedEvent[] _facts = [];")
-            .Line("bool _settled;")
+            .Line("bool _settled;");
+        if (!specification.ThenInvocations.IsDefaultOrEmpty)
+        {
+            builder.Line("global::System.Collections.Generic.List<object> _effects = [];");
+        }
+
+        builder
             .BlankLine().OpenBlock("async global::System.Threading.Tasks.Task Because()");
         if (prelude.Selection.Trigger.Invokes.Any(invocation => context.Commands[invocation.Command].Authorization is not null))
         {
@@ -73,11 +79,17 @@ internal static partial class SemanticReactionSpecificationRenderer
             .Line("var reactorContext = new global::Cratis.Chronicle.Reactors.SideEffects.ReactorContext(eventContext, reactor, new());")
             .Line("var eventStore = (global::Cratis.Chronicle.IEventStore)_scenario.Services.Last(registration => registration.ServiceType == typeof(global::Cratis.Chronicle.IEventStore)).ImplementationInstance!;")
             .Line("var result = await executor.Execute(effects, reactorContext, eventStore);")
-            .Line("_settled = result.IsSuccess;")
-            .Line("var persisted = await _scenario.EventLog.GetFromSequenceNumber(global::Cratis.Chronicle.Events.EventSequenceNumber.First);")
+            .Line("_settled = result.IsSuccess;");
+        if (!specification.ThenInvocations.IsDefaultOrEmpty)
+        {
+            builder.Line($"_effects = [.. {RecordedEffects("effects")}];");
+        }
+
+        builder.Line("var persisted = await _scenario.EventLog.GetFromSequenceNumber(global::Cratis.Chronicle.Events.EventSequenceNumber.First);")
             .Line("_facts = [.. persisted.Skip(initial)];")
             .EndBlock().BlankLine();
         RenderRefusalOutcome(builder, specification, context, types);
+        RenderInvocationExpectations(builder, specification, context, types, "_effects");
         builder.BlankLine().ExpressionMember("public void Dispose()", "_scenario.Dispose()").EndBlock();
 
         return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), types.SpecificationContent(builder));

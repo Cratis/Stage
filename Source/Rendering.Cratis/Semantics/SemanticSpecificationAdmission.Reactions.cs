@@ -25,6 +25,15 @@ internal static partial class SemanticSpecificationAdmission
         return specification.ThenNoEvents || specification.WhenRedelivered is not null ? candidates.Single() : candidates.Single(candidate => candidate.Fires);
     }
 
+    /// <summary>
+    /// Gets whether a reaction specification runs its invoked commands for real so their refusal branches settle.
+    /// </summary>
+    /// <param name="specification">The specification.</param>
+    /// <param name="selected">The selected reaction trigger.</param>
+    /// <returns>Whether the refusal harness renders it; invocation expectations alone stay on the recording scenario.</returns>
+    internal static bool UsesRefusalScenario(SemanticSpecification specification, SemanticReactionSpecification selected) =>
+        selected.Trigger.Invokes.Any(invocation => !invocation.OnRefused.IsDefaultOrEmpty) && (specification.ThenInvocations.IsDefaultOrEmpty || HasRefusalOutcome(specification));
+
     static IEnumerable<SemanticReactionSpecification> ReactionCandidates(SemanticApplicationContext context, SemanticSpecification specification) =>
         SemanticReactionSpecification.Candidates(context, specification, SemanticReactionSpecification.Input(specification))
             .Where(candidate => specification.WhenRedelivered is not { } redelivery || candidate.Reaction.Id == redelivery.Reaction);
@@ -71,8 +80,8 @@ internal static partial class SemanticSpecificationAdmission
                 : "The append must select one reaction trigger, not fan-out or a non-reaction append.";
         }
 
-        // Invocation expectations record the invoked commands and never refuse them, so refusal branches are not exercised (and ValidateInvocations has already gated them).
-        if (specification.ThenInvocations.IsDefaultOrEmpty && active[0].Trigger.Invokes.Any(invocation => !invocation.OnRefused.IsEmpty))
+        // Invocation expectations alone record the invoked commands and never refuse them (ValidateInvocations has already gated them); a refusal outcome, or no invocation expectations, runs them for real.
+        if (UsesRefusalScenario(specification, active[0]))
         {
             return specification.WhenRedelivered is not null
                 ? "Redelivery with invocation refusal branches requires a context-preserving refusal settlement harness."

@@ -16,14 +16,15 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 /// </remarks>
 internal static class invocation_refusal_outcome_model
 {
-    internal static ExecutableSemanticModel Create() => Create(Source);
+    internal static ExecutableSemanticModel Create() => Create(Source, false);
 
     /// <summary>
     /// Creates the model from a source whose FollowUp slice invokes the Completion slice's command, stating the invocation each specification expects.
     /// </summary>
     /// <param name="source">The authored source.</param>
+    /// <param name="recordsOnly">Whether the specifications assert only the invocation, leaving no outcome; a Conflicting specification is then the append the constraint must refuse.</param>
     /// <returns>The executable model.</returns>
-    internal static ExecutableSemanticModel Create(string source)
+    internal static ExecutableSemanticModel Create(string source, bool recordsOnly)
     {
         var golden = SemanticModelSerializer.Deserialize(EsmGoldenVectors.Get(34).Bytes.AsSpan());
         var application = Semantics.for_SemanticAutomationArtifactRenderer.given.an_automation.Compile(source).Application;
@@ -34,13 +35,26 @@ internal static class invocation_refusal_outcome_model
         var slice = feature.Slices.Single(candidate => candidate.Name == "FollowUp");
         slice = slice with
         {
-            Specifications = [.. slice.Specifications.Select(specification => specification with
+            Specifications = [.. slice.Specifications.Select(specification => specification.Name == "Conflicting" ? Conflicting(specification) : specification with
             {
+                ThenNoEvents = specification.ThenNoEvents && !recordsOnly,
                 ThenInvocations = [new(command.Id, [new(id.Id, SemanticValue.Text(ExpectedId(specification.Name)))])]
             })]
         };
         application = application with { Modules = [module with { Features = [feature with { Slices = [slice, feature.Slices.Single(candidate => candidate.Name == "Completion")] }] }] };
         return ExecutableSemanticModel.Create(golden.LanguageVersion, golden.SemanticVersion, application);
+    }
+
+    static SemanticSpecification Conflicting(SemanticSpecification specification)
+    {
+        var append = specification.WhenAppended!;
+        var other = append.EventSource! with { Value = SemanticValue.Text("other") };
+        return specification with
+        {
+            GivenEvents = [new(append.EventContract, append.Values) { EventSource = other }],
+            ThenNoEvents = false,
+            ThenErrors = [new(null, "Constraint 'UniqueStarted' is violated: another event source already holds the constrained value.")]
+        };
     }
 
     static string ExpectedId(string specification) => specification switch

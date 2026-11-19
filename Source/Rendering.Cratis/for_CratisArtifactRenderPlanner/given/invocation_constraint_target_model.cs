@@ -10,11 +10,11 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 /// A reaction whose triggering event is the target of a unique constraint and which invokes a command owned by another slice, with specifications that assert only the invocation.
 /// </summary>
 /// <remarks>
-/// Recorded states the invocation the reaction makes. Mismatching states another command value, so it must fail an assertion.
+/// Recorded states the invocation the reaction makes. Mismatching states another command value, so it must fail an assertion. Conflicting appends a value another event source already holds and asserts that the constraint refuses it.
 /// </remarks>
 internal static class invocation_constraint_target_model
 {
-    internal static ExecutableSemanticModel Create() => invocation_refusal_outcome_model.Create(Source);
+    internal static ExecutableSemanticModel Create() => invocation_refusal_outcome_model.Create(Source, true);
 
     const string Source = """
         module Work
@@ -40,6 +40,11 @@ internal static class invocation_constraint_target_model
                   id = "fine"
                 then no events
               specification Mismatching
+                when append Started
+                  for "fine"
+                  id = "fine"
+                then no events
+              specification Conflicting
                 when append Started
                   for "fine"
                   id = "fine"

@@ -18,6 +18,8 @@ public class when_executing_invocation_expectations_with_constraint_target_appen
     [Fact] void should_pass_every_fact_when_the_constraint_accepts_the_append() => AssertOutcome("when_recorded", "Passed");
     [Fact] void should_assert_the_invocation() => Assert.Contains(fixture.Results, result => result.Matches("when_recorded", "should_match_authored_invocation_1_id"));
     [Fact] void should_not_assert_the_invoked_commands_outcome() => Assert.DoesNotContain(fixture.Results, result => result.Matches("when_recorded", "should_settle"));
+    [Fact] void should_refuse_a_conflicting_append_through_the_constraint() => AssertOutcome("when_conflicting", "Passed");
+    [Fact] void should_assert_the_constraint_violation() => Assert.Contains(fixture.Results, result => result.Matches("when_conflicting", "should_report_the_constraint_violation"));
     [Fact] void should_fail_when_the_invocation_value_is_wrong() => AssertFailed("when_mismatching", "should_match_authored_invocation_1_id");
 
     void AssertOutcome(string name, string outcome)

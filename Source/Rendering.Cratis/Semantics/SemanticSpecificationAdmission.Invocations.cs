@@ -33,8 +33,10 @@ internal static partial class SemanticSpecificationAdmission
         var fired = SemanticReactionSpecification.Candidates(context, specification, append).Where(candidate => candidate.Fires).ToArray();
         if (fired.Length != 1)
             return "invocation recording requires exactly one fired reaction.";
+        if (HasUnexercisedRefusalBranches(specification, fired[0]))
+            return "the reaction has refusal branches, but the specification asserts a refusal outcome; the recording scenario never refuses, so those branches are not executed.";
         if (!IsSingleRecordedInvocation(context, specification, fired[0]))
-            return "invocation recording requires a declarative invoke-only reaction without native bodies, refusal branches, context mappings or deeper effects.";
+            return "invocation recording requires a declarative invoke-only reaction without native bodies, context mappings or deeper effects.";
         if (specification.ThenInvocations.Any(expected => !CanCompareInvocation(context, expected)))
             return "expected values require distinct non-generated scalar, concept or scalar collection command properties.";
         return null;
@@ -74,10 +76,16 @@ internal static partial class SemanticSpecificationAdmission
     {
         var trigger = selected.Trigger;
         if (!IsDeclarativeInvocation(trigger)) return false;
-        if (!trigger.Invokes[0].OnRefused.IsDefaultOrEmpty) return false;
         if (UsesReactionContext(selected.Reaction, trigger.Source)) return false;
         return !HasDeeperReactionCascade(context, specification, selected);
     }
+
+    // The recorder never refuses, so refusal branches are admitted only while the specification asserts nothing about a refusal outcome.
+    static bool HasUnexercisedRefusalBranches(SemanticSpecification specification, SemanticReactionSpecification selected) =>
+        selected.Trigger.Invokes.Any(invocation => !invocation.OnRefused.IsDefaultOrEmpty) && HasRefusalOutcome(specification);
+
+    static bool HasRefusalOutcome(SemanticSpecification specification) =>
+        !specification.ThenEvents.IsDefaultOrEmpty || !specification.ThenErrors.IsDefaultOrEmpty || specification.ThenDenied || specification.ThenNoEvents || specification.ThenReturns is not null;
 
     static bool CanCompareInvocation(SemanticApplicationContext context, SemanticSpecificationInvocation expected)
     {

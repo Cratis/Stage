@@ -14,7 +14,6 @@ public class when_validating_invocation_expectations : for_SemanticReactionSpeci
     [InlineData("fan-out")]
     [InlineData("multiple-invocations")]
     [InlineData("mixed-effects")]
-    [InlineData("refusal")]
     [InlineData("unordered")]
     [InlineData("no-observer")]
     public void should_refuse_unobservable_shapes_on_the_original_specification(string shape)
@@ -40,7 +39,6 @@ public class when_validating_invocation_expectations : for_SemanticReactionSpeci
                 var destination = trigger.Invokes.Single().Mappings.Single(mapping => command.Properties.Single(property => property.Id == mapping.TargetProperty).Name == "invoiceId").Source;
                 ChangeTrigger(candidate => candidate with { Produces = [produced with { Destination = destination, DestinationType = command.Properties.Single(property => property.Name == "invoiceId").Type, Mappings = [.. mappings] }] });
                 break;
-            case "refusal": ChangeTrigger(candidate => candidate with { Invokes = [trigger.Invokes.Single() with { OnRefused = [new("validation", null, [])] }] }); break;
             case "unordered": _specification = _specification with { ThenEventsInAnyOrder = true }; break;
             case "no-observer": ReplaceAutomation(_located.Slice with { Reactions = [] }); break;
         }
@@ -49,6 +47,34 @@ public class when_validating_invocation_expectations : for_SemanticReactionSpeci
         var diagnostic = Assert.Single(_diagnostics);
         Assert.Equal("STAGE-ESM-016", diagnostic.Code);
         Assert.Equal(_specification.Id, diagnostic.Artifact);
+    }
+
+    [Fact]
+    public void should_admit_refusal_branches_when_only_invocations_are_asserted()
+    {
+        AddRefusalBranches();
+        ValidateExpectations();
+        Assert.Empty(_diagnostics);
+    }
+
+    [Theory]
+    [InlineData("errors")]
+    [InlineData("no-events")]
+    [InlineData("denied")]
+    public void should_refuse_refusal_branches_when_a_refusal_outcome_is_asserted(string outcome)
+    {
+        AddRefusalBranches();
+        _specification = outcome switch
+        {
+            "errors" => _specification with { ThenErrors = [new(null, "rejected")] },
+            "no-events" => _specification with { ThenNoEvents = true },
+            _ => _specification with { ThenDenied = true }
+        };
+        ValidateExpectations();
+        var diagnostic = Assert.Single(_diagnostics);
+        Assert.Equal("STAGE-ESM-016", diagnostic.Code);
+        Assert.Equal(_specification.Id, diagnostic.Artifact);
+        Assert.Contains("refusal branches", diagnostic.Message, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -72,6 +98,12 @@ public class when_validating_invocation_expectations : for_SemanticReactionSpeci
         SetExpectations(wrongCommand ? [new(other.Id, [])] : [expected, expected]);
         ValidateExpectations();
         Assert.Empty(_diagnostics);
+    }
+
+    void AddRefusalBranches()
+    {
+        var invocation = _located.Slice.Reactions.Single().Triggers.Single().Invokes.Single();
+        ChangeTrigger(candidate => candidate with { Invokes = [invocation with { OnRefused = [new("validation", null, []), new("any", null, [])] }] });
     }
 
     [Fact]

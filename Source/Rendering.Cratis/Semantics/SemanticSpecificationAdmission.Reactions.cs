@@ -71,7 +71,8 @@ internal static partial class SemanticSpecificationAdmission
                 : "The append must select one reaction trigger, not fan-out or a non-reaction append.";
         }
 
-        if (active[0].Trigger.Invokes.Any(invocation => !invocation.OnRefused.IsEmpty))
+        // Invocation expectations record the invoked commands and never refuse them, so refusal branches are not exercised (and ValidateInvocations has already gated them).
+        if (specification.ThenInvocations.IsDefaultOrEmpty && active[0].Trigger.Invokes.Any(invocation => !invocation.OnRefused.IsEmpty))
         {
             return specification.WhenRedelivered is not null
                 ? "Redelivery with invocation refusal branches requires a context-preserving refusal settlement harness."

@@ -10,7 +10,8 @@ internal static partial class SemanticReactionSpecificationRenderer
         var expectations = scope.Specification.ThenInvocations;
         if (expectations.IsDefaultOrEmpty) return;
         var builder = scope.Builder;
-        builder.Line($"[global::Xunit.FactAttribute] void should_match_authored_invocation_count() => _reactor.Produced.Count.ShouldEqual({expectations.Length});");
+        var recorded = Recorded(scope.ReactionPrelude!);
+        builder.Line($"[global::Xunit.FactAttribute] void should_match_authored_invocation_count() => {recorded}.Count.ShouldEqual({expectations.Length});");
         foreach (var (expected, index) in expectations.Select((expected, index) => (expected, index)))
         {
             var command = scope.Context.Commands[expected.Command];
@@ -18,10 +19,10 @@ internal static partial class SemanticReactionSpecificationRenderer
             var values = new ValueScope(scope.Types, scope.Context.MemberNames, "command", $"_expected_invocation_{index + 1}");
             var fields = expected.Values.Select(value => (command.Properties.Single(property => property.Id == value.TargetProperty), value.Value)).ToArray();
             RenderExpectedCollections(builder, fields, values);
-            builder.Line($"[global::Xunit.FactAttribute] void should_match_authored_invocation_{index + 1}_command() => (_reactor.Produced.ElementAtOrDefault({index}) is {commandType}).ShouldBeTrue();");
+            builder.Line($"[global::Xunit.FactAttribute] void should_match_authored_invocation_{index + 1}_command() => ({recorded}.ElementAtOrDefault({index}) is {commandType}).ShouldBeTrue();");
             foreach (var (property, value) in fields)
             {
-                builder.Line($"[global::Xunit.FactAttribute] void should_match_authored_invocation_{index + 1}_{Naming.Identifiers.ToSnakeCase(property.Name)}() => (_reactor.Produced.ElementAtOrDefault({index}) is {commandType} command && {ValuePredicate(property, value, values)}).ShouldBeTrue();");
+                builder.Line($"[global::Xunit.FactAttribute] void should_match_authored_invocation_{index + 1}_{Naming.Identifiers.ToSnakeCase(property.Name)}() => ({recorded}.ElementAtOrDefault({index}) is {commandType} command && {ValuePredicate(property, value, values)}).ShouldBeTrue();");
             }
         }
     }

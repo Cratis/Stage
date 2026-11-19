@@ -61,12 +61,16 @@ public class when_validating_invocation_expectations : for_SemanticReactionSpeci
     [InlineData("errors")]
     [InlineData("no-events")]
     [InlineData("denied")]
+    [InlineData("events")]
+    [InlineData("returns")]
     public void should_refuse_refusal_branches_when_a_refusal_outcome_is_asserted(string outcome)
     {
         AddRefusalBranches();
         _specification = outcome switch
         {
             "errors" => _specification with { ThenErrors = [new(null, "rejected")] },
+            "events" => _specification with { ThenEvents = [new(SemanticId.Create(SemanticKind.EventContract, "Completed"), [])] },
+            "returns" => _specification with { ThenReturns = new SemanticScalarSpecificationResponse(SemanticValue.Text("x")) },
             "no-events" => _specification with { ThenNoEvents = true },
             _ => _specification with { ThenDenied = true }
         };

@@ -39,6 +39,11 @@ internal static class invocation_constraint_model
                 produces Completed
                   for completion
                   id = id
+                produces CompletionRecorded
+                  for id
+                  completion = completion
+              event CompletionRecorded
+                completion CompletionId
               event Completed
                 id String
               constraint OneCompletion

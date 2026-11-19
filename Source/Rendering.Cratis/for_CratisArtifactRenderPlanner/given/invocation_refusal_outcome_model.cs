@@ -16,10 +16,17 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 /// </remarks>
 internal static class invocation_refusal_outcome_model
 {
-    internal static ExecutableSemanticModel Create()
+    internal static ExecutableSemanticModel Create() => Create(Source);
+
+    /// <summary>
+    /// Creates the model from a source whose FollowUp slice invokes the Completion slice's command, stating the invocation each specification expects.
+    /// </summary>
+    /// <param name="source">The authored source.</param>
+    /// <returns>The executable model.</returns>
+    internal static ExecutableSemanticModel Create(string source)
     {
         var golden = SemanticModelSerializer.Deserialize(EsmGoldenVectors.Get(34).Bytes.AsSpan());
-        var application = Semantics.for_SemanticAutomationArtifactRenderer.given.an_automation.Compile(Source).Application;
+        var application = Semantics.for_SemanticAutomationArtifactRenderer.given.an_automation.Compile(source).Application;
         var module = application.Modules.Single();
         var feature = module.Features.Single();
         var command = feature.Slices.Single(candidate => candidate.Name == "Completion").Commands.Single();
@@ -39,11 +46,11 @@ internal static class invocation_refusal_outcome_model
     static string ExpectedId(string specification) => specification switch
     {
         "Mismatching" => "other",
-        "Succeeding" => "fine",
+        "Succeeding" or "Recorded" => "fine",
         _ => "blocked"
     };
 
-    const string Source = """
+    internal const string Source = """
         module Work
           feature Processing
             slice Automation FollowUp
@@ -78,7 +85,7 @@ internal static class invocation_refusal_outcome_model
                   for "blocked"
                   id = "blocked"
                 then no events
-            slice Automation Completion
+            slice StateChange Completion
               command Complete
                 id String identifier
                 validate

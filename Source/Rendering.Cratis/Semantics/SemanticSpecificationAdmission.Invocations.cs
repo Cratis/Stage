@@ -22,6 +22,9 @@ internal static partial class SemanticSpecificationAdmission
         }
     }
 
+    static bool RefusesAfterCommand(SemanticSpecification original, SemanticSpecification lowered, SemanticReactionSpecification selected) =>
+        original.When is not null && UsesRefusalScenario(lowered, selected);
+
     static string? InvocationRejection(SemanticApplicationContext context, SemanticSlice slice, SemanticSpecification original)
     {
         if (!IsInvocationEntry(slice, original))
@@ -33,7 +36,7 @@ internal static partial class SemanticSpecificationAdmission
         var fired = SemanticReactionSpecification.Candidates(context, specification, append).Where(candidate => candidate.Fires).ToArray();
         if (fired.Length != 1)
             return "invocation recording requires exactly one fired reaction.";
-        if (original.When is not null && UsesRefusalScenario(specification, fired[0]))
+        if (RefusesAfterCommand(original, specification, fired[0]))
             return "the reaction has refusal branches and the specification asserts a refusal outcome after a command; only a direct append runs the invoked command so that its refusal settles.";
         if (!IsSingleRecordedInvocation(context, specification, fired[0]))
             return "invocation recording requires a declarative invoke-only reaction without native bodies, context mappings or deeper effects.";

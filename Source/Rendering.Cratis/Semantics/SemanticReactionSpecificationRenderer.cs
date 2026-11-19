@@ -18,7 +18,11 @@ internal static partial class SemanticReactionSpecificationRenderer
         var prelude = new SemanticReactionSpecificationPrelude(selected, SemanticReactionSpecification.Input(specification), specification.WhenRedelivered is null ? null : specification);
         if (SemanticSpecificationAdmission.UsesRefusalScenario(specification, selected))
         {
-            return RenderRefusals(specification, context, prelude);
+            return RenderRefusals(specification, context, prelude, false);
+        }
+        if (SemanticSpecificationAdmission.UsesRecordingAppendScenario(context, specification, selected))
+        {
+            return RenderRefusals(specification, context, prelude, true);
         }
         if (!selected.Trigger.Invokes.IsEmpty)
         {

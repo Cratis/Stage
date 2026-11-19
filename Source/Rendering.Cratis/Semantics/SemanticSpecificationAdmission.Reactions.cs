@@ -80,13 +80,11 @@ internal static partial class SemanticSpecificationAdmission
                 : "The append must select one reaction trigger, not fan-out or a non-reaction append.";
         }
 
+        if (ConstraintTargetAppendRejection(context, specification, active[0]) is { } constraintReason) return constraintReason;
+
         // Invocation expectations alone record the invoked commands and never refuse them (ValidateInvocations has already gated them); a refusal outcome, or no invocation expectations, runs them for real.
         if (UsesRefusalScenario(specification, active[0]))
-        {
-            return specification.WhenRedelivered is not null
-                ? "Redelivery with invocation refusal branches requires a context-preserving refusal settlement harness."
-                : RefusalScenarioRejection(context, specification, active[0]);
-        }
+            return RefusalSettlementRejection(context, specification, active[0]);
 
         // Screenplay decision 0115: a command another slice owns is decided for its outcome, but its facts are not the specification's.
         var foreign = InvokesForeignCommand(context, specification, active[0]);
@@ -126,9 +124,13 @@ internal static partial class SemanticSpecificationAdmission
         if (!HasRenderableReactionRoute(context, append))
             return "The append route's stream identity cannot be formatted portably.";
 
-        return IsReactionConstraintTarget(context, append.EventContract)
-            ? "The appended event is an append-time constraint target; a reactor scenario does not enforce that append." : null;
+        return null;
     }
+
+    static string? RefusalSettlementRejection(SemanticApplicationContext context, SemanticSpecification specification, SemanticReactionSpecification selected) =>
+        specification.WhenRedelivered is not null
+            ? "Redelivery with invocation refusal branches requires a context-preserving refusal settlement harness."
+            : RefusalScenarioRejection(context, specification, selected);
 
     static string? RefusalScenarioRejection(SemanticApplicationContext context, SemanticSpecification specification, SemanticReactionSpecification selected)
     {

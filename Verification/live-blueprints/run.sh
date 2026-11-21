@@ -26,10 +26,23 @@ esac
 work=$(mktemp -d)
 mkdir -p "$results"
 pids=()
+batch=()
+
+cleanup_batch() {
+    for entry in ${batch[@]+"${batch[@]}"}; do
+        index=${entry%%:*}
+        model=${entry#*:}
+        container="stage-live-blueprints-$$-$index"
+        docker logs "$container" >"$results/$model/stage.log" 2>&1
+        docker rm --force --volumes "$container" >/dev/null 2>&1
+    done
+    batch=()
+}
 
 trap '
     for pid in ${pids[@]+"${pids[@]}"}; do kill "$pid" 2>/dev/null || true; done
     for pid in ${pids[@]+"${pids[@]}"}; do wait "$pid" 2>/dev/null || true; done
+    cleanup_batch
     rm -rf "$work"
 ' EXIT
 trap 'exit 2' INT TERM
@@ -51,7 +64,7 @@ for wait in ${STAGE_LIVE_INSTALL_RETRY_WAITS:-15 30 60 120}; do
 done
 $installed || { echo "could not run: the blueprint packages could not be installed"; exit 2; }
 
-run_model() (
+start_model() (
     index=$1
     model=$2
     port=$((base_port + index))
@@ -59,11 +72,7 @@ run_model() (
     packages="$work/$model/packages"
     model_results="$results/$model"
     mkdir -p "$work/$model" "$model_results"
-    # A worker owns its container until its browser has finished. Keep full logs even on startup or browser failure.
-    trap '
-        docker logs "$container" >"$model_results/stage.log" 2>&1
-        docker rm --force --volumes "$container" >/dev/null 2>&1
-    ' EXIT
+    # The parent keeps every container until all browsers in the batch finish, including on failure.
     trap 'exit 2' INT TERM
     exec >"$model_results/scenario.log" 2>&1
     echo "== $model"
@@ -89,9 +98,14 @@ run_model() (
     done
     $ready || { docker logs "$container" 2>&1 | tail -30; echo "could not run: the Stage did not become ready for $model"; exit 2; }
 
-    STAGE_LIVE_URL="http://127.0.0.1:$port" STAGE_LIVE_NAME="$model" STAGE_LIVE_MODEL="$here/models/$model/$model.play" STAGE_LIVE_APPROVED="$packages/approved-packages.json" \
-        STAGE_LIVE_RESULT="$model_results/live-blueprints-$model.json" node "$here/scenario.cjs"
-    exit $?
+    touch "$work/$model/ready"
+)
+
+probe_model() (
+    index=$1
+    model=$2
+    STAGE_LIVE_URL="http://127.0.0.1:$((base_port + index))" STAGE_LIVE_NAME="$model" STAGE_LIVE_MODEL="$here/models/$model/$model.play" STAGE_LIVE_APPROVED="$work/$model/packages/approved-packages.json" \
+        STAGE_LIVE_RESULT="$results/$model/live-blueprints-$model.json" node "$here/scenario.cjs" >>"$results/$model/scenario.log" 2>&1
 )
 
 status=0
@@ -107,16 +121,32 @@ wait_batch() {
     pids=()
 }
 
+run_batch() {
+    # Docker bridge attach/detach changes the host's interfaces. Finish all network setup before Chromium imports
+    # packages, and defer every teardown until all probes finish, so siblings cannot cause ERR_NETWORK_CHANGED.
+    wait_batch
+    for entry in ${batch[@]+"${batch[@]}"}; do
+        index=${entry%%:*}
+        model=${entry#*:}
+        [ -f "$work/$model/ready" ] || continue
+        probe_model "$index" "$model" &
+        pids+=("$!")
+    done
+    wait_batch
+    cleanup_batch
+}
+
 count=$(node -e "console.log(require('$here/blueprints.json').length)")
 [ "${count:-0}" -gt 0 ] || { echo "could not run: no blueprints were found"; exit 2; }
 # Join every worker, including failed ones, and keep scheduling: no model may be silently skipped by an earlier failure.
 for index in $(seq 0 $((count - 1))); do
     model=$(node -e "console.log(require('$here/blueprints.json')[$index].model)")
-    run_model "$index" "$model" &
+    batch+=("$index:$model")
+    start_model "$index" "$model" &
     pids+=("$!")
-    [ "${#pids[@]}" -lt "$concurrency" ] || wait_batch
+    [ "${#pids[@]}" -lt "$concurrency" ] || run_batch
 done
-wait_batch
+run_batch
 for index in $(seq 0 $((count - 1))); do
     model=$(node -e "console.log(require('$here/blueprints.json')[$index].model)")
     cat "$results/$model/scenario.log"

@@ -52,7 +52,8 @@ public class with_an_authored_scene : a_screen_composition_render
     // Re-frozen for Cratis/Stage#970: only Program.cs gains the Diagnostics import and defaults event-source id tracing to Omitted.
     // Recomputed for Cratis/Stage#1147: the Scene 6.0.1 pins of the Stage runtime and the scaffold, and the Screenplay 6.32.0 pins.
     // Recomputed after merging main into the #970 train: the #970 Program.cs change on top of the #1147 pins.
-    const string Before = "d05e6ac882836aa152e057dc7bc0162bb96b3d8f8f4e6a1ffe29568175c447a6";
+    // Recomputed for Screenplay 6.33.0 (Cratis/Stage#1052): only the Screenplay pins in Directory.Packages.props and the scaffold catalog change.
+    const string Before = "214963d60b4af2fa3350db7b6483a260b119f8cd2618580995f653b18c55b06d";
 
     ArtifactRenderPlan _plan = null!;
 

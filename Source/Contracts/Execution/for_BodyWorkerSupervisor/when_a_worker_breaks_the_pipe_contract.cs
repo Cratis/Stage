@@ -70,6 +70,7 @@ public class when_a_worker_breaks_the_pipe_contract : Specification
         await using var supervisor = Supervisor(cache, script, timeout: 30000);
         var result = await supervisor.SendAsync(new("probe", "evaluate"));
         Assert.StartsWith(BodyDiagnostics.WorkerFailed, result.Evaluation.Diagnostic, StringComparison.Ordinal);
+        Assert.Contains(response == "{" ? "Exception: JsonException; phase: exchange." : "Exception: IOException; phase: response validation.", result.Evaluation.Diagnostic, StringComparison.Ordinal);
         supervisor.ProcessId.ShouldBeNull();
         (await supervisor.SendAsync(new("probe", "evaluate"))).Evaluation.Outcome.ShouldEqual("satisfied");
     }

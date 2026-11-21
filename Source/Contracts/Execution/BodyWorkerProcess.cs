@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
@@ -10,7 +11,8 @@ namespace Cratis.Stage.Contracts.Execution;
 /// <summary>Owns the redirected child and its bounded streams.</summary>
 /// <param name="options">The launch settings and resource bounds.</param>
 /// <param name="role">The worker process role.</param>
-internal sealed class BodyWorkerProcess(BodyWorkerOptions options, string role) : IAsyncDisposable
+/// <param name="sampleWorkingSet">An optional working-set sampler.</param>
+internal sealed class BodyWorkerProcess(BodyWorkerOptions options, string role, Func<Process, long>? sampleWorkingSet = null) : IAsyncDisposable
 {
     Process? _process;
     Task<string>? _stderr;
@@ -121,10 +123,9 @@ internal sealed class BodyWorkerProcess(BodyWorkerOptions options, string role) 
         var limit = role == "compile" ? 4096 : options.WorkingSetLimitMb;
         try
         {
-            while (!process.HasExited)
+            while (WorkingSet(process) is { } workingSet)
             {
-                process.Refresh();
-                if (process.WorkingSet64 > (long)limit * 1024 * 1024)
+                if (workingSet > (long)limit * 1024 * 1024)
                 {
                     ExceededMemory = true;
                     process.Kill(entireProcessTree: true);
@@ -135,6 +136,21 @@ internal sealed class BodyWorkerProcess(BodyWorkerOptions options, string role) 
         }
         catch (OperationCanceledException)
         {
+        }
+    }
+
+    long? WorkingSet(Process process)
+    {
+        try
+        {
+            if (process.HasExited) return null;
+            process.Refresh();
+            return sampleWorkingSet?.Invoke(process) ?? process.WorkingSet64;
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or Win32Exception)
+        {
+            // Process exit and unavailable statistics end sampling, not the exchange.
+            return null;
         }
     }
 

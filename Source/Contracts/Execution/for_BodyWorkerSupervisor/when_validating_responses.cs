@@ -19,6 +19,7 @@ public class when_validating_responses : Specification
         await using var worker = new BodyWorkerSupervisor(new(string.Empty, cache) { Launch = new("/bin/sh", ["-c", script]), TimeoutMs = 10000 });
         var result = await worker.SendAsync(new("probe", "validate"));
         Assert.StartsWith(BodyDiagnostics.WorkerFailed, result.Evaluation.Diagnostic, StringComparison.Ordinal);
+        Assert.Contains("Exception: IOException; phase: startup.", result.Evaluation.Diagnostic, StringComparison.Ordinal);
         worker.ProcessId.ShouldBeNull();
     }
 

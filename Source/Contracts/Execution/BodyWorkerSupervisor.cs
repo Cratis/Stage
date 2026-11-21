@@ -77,11 +77,18 @@ public sealed class BodyWorkerSupervisor(BodyWorkerOptions options) : IBodyWorke
         if (linked is null) return Failure(request.Id, BodyDiagnostics.WorkerFailed, "Body worker is disposed.");
         await _gate.WaitAsync(linked.Token).ConfigureAwait(false);
         BodyWorkerProcess? active = null;
+        var phase = "startup";
         try
         {
             linked.Token.ThrowIfCancellationRequested();
             active = Worker(request.Kind);
-            return await ExchangeAsync(active, request, linked.Token).ConfigureAwait(false);
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(linked.Token);
+            deadline.CancelAfter(request.Kind == "compile" ? options.CompileTimeoutMs : options.TimeoutMs);
+            await active.StartAsync(deadline.Token).ConfigureAwait(false);
+            phase = "exchange";
+            var response = await active.ExchangeAsync(request, deadline.Token).ConfigureAwait(false);
+            phase = "response validation";
+            return ValidateResponse(request, response);
         }
         catch (OperationCanceledException)
         {
@@ -94,7 +101,7 @@ public sealed class BodyWorkerSupervisor(BodyWorkerOptions options) : IBodyWorke
         catch (Exception exception) when (exception is IOException or JsonException or InvalidOperationException or UnauthorizedAccessException or System.ComponentModel.Win32Exception or ArgumentException)
         {
             await KillAsync(active).ConfigureAwait(false);
-            return WorkerFailure(request.Id, active);
+            return WorkerFailure(request.Id, active, exception, phase);
         }
         finally
         {
@@ -113,6 +120,12 @@ public sealed class BodyWorkerSupervisor(BodyWorkerOptions options) : IBodyWorke
     {
         Evaluation = new(code switch { BodyDiagnostics.ExceededTime => "exceeded-time", BodyDiagnostics.ExceededMemory => "exceeded-memory", _ => "faulted" }, Diagnostic: BodyDiagnostics.Format(code, message))
     };
+
+    static BodyWorkerResponse ValidateResponse(BodyWorkerRequest request, BodyWorkerResponse response)
+    {
+        if (!ValidResponse(request, response)) throw new IOException("Worker response did not match the request.");
+        return response;
+    }
 
     static bool ValidResponse(BodyWorkerRequest request, BodyWorkerResponse response) => response.Id == request.Id && request.Kind switch
     {
@@ -146,9 +159,9 @@ public sealed class BodyWorkerSupervisor(BodyWorkerOptions options) : IBodyWorke
     static bool FailureOutcome(string outcome) =>
         outcome == "refused" || outcome == "faulted" || outcome == "exceeded-time" || outcome == "exceeded-memory";
 
-    static BodyWorkerResponse WorkerFailure(string id, BodyWorkerProcess? process) => process?.ExceededMemory == true
+    static BodyWorkerResponse WorkerFailure(string id, BodyWorkerProcess? process, Exception exception, string phase) => process?.ExceededMemory == true
         ? Failure(id, BodyDiagnostics.ExceededMemory, "Body worker exhausted its memory limit.")
-        : Failure(id, BodyDiagnostics.WorkerFailed, "Body worker failed or returned an invalid response.");
+        : Failure(id, BodyDiagnostics.WorkerFailed, $"Body worker failed or returned an invalid response. Exception: {exception.GetType().Name}; phase: {phase}.");
 
     async Task<BodyEvaluation> InvokeAsync(string kind, BodyEvaluationRequest request, CancellationToken cancellationToken)
     {
@@ -164,16 +177,6 @@ public sealed class BodyWorkerSupervisor(BodyWorkerOptions options) : IBodyWorke
     CancellationTokenSource? Link(CancellationToken caller)
     {
         lock (_disposeLock) return _disposeTask is null ? CancellationTokenSource.CreateLinkedTokenSource(caller, _lifetime.Token) : null;
-    }
-
-    async Task<BodyWorkerResponse> ExchangeAsync(BodyWorkerProcess process, BodyWorkerRequest request, CancellationToken token)
-    {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token);
-        deadline.CancelAfter(request.Kind == "compile" ? options.CompileTimeoutMs : options.TimeoutMs);
-        await process.StartAsync(deadline.Token).ConfigureAwait(false);
-        var response = await process.ExchangeAsync(request, deadline.Token).ConfigureAwait(false);
-        if (!ValidResponse(request, response)) throw new IOException("Worker response did not match the request.");
-        return response;
     }
 
     async Task DisposeCoreAsync()

@@ -73,61 +73,56 @@ class WorkflowProvenanceTests(unittest.TestCase):
 
 
 class RoutingToolSelectionTests(unittest.TestCase):
-    def create_base_tools(self, directory):
-        tools = directory / "gate-tools/.github"
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.directory = Path(temporary.name)
+
+    def create_base_tools(self):
+        tools = self.directory / "gate-tools/.github"
         tools.mkdir(parents=True)
         (tools / "ci-routing.py").write_text("raise SystemExit(7)\n")
 
-    def select(self, directory, job, event):
-        environment_file = directory / "environment"
+    def select(self, job, event):
+        environment_file = self.directory / "environment"
         environment_file.write_text("")
         # Only revision logging is stubbed; execute the workflow's selection verbatim.
         script = 'git() { if [ "$1" = -C ]; then echo base-revision; else echo head-revision; fi; }\n'
-        result = run_shell(script + shell(job, "Select routing tools"), directory,
+        result = run_shell(script + shell(job, "Select routing tools"), self.directory,
                            GITHUB_EVENT_NAME=event, GITHUB_ENV=str(environment_file))
         self.assertEqual(0, result.returncode, result.stderr)
         return environment_file.read_text().strip().split("=", 1)[1], result.stdout
 
+    def assert_event_selection(self, event, expected_script, revision):
+        for job in DECISION_JOBS:
+            with self.subTest(job=job, event=event):
+                selected, output = self.select(job, event)
+                self.assertEqual(expected_script, selected)
+                self.assertIn(revision, output)
+                self.assertNotIn("Bootstrap", output)
+
     def test_pull_requests_select_base_tools(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            directory = Path(temporary)
-            self.create_base_tools(directory)
-            for job in DECISION_JOBS:
-                with self.subTest(job=job):
-                    selected, output = self.select(directory, job, "pull_request")
-                    self.assertEqual("gate-tools/.github/ci-routing.py", selected)
-                    self.assertIn("base-revision", output)
-                    self.assertNotIn("Bootstrap", output)
+        self.create_base_tools()
+        self.assert_event_selection("pull_request", "gate-tools/.github/ci-routing.py", "base-revision")
 
     def test_missing_base_script_bootstraps_with_logged_head_revision(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            directory = Path(temporary)
-            for job in DECISION_JOBS:
-                with self.subTest(job=job):
-                    selected, output = self.select(directory, job, "pull_request")
-                    self.assertEqual(".github/ci-routing.py", selected)
-                    self.assertIn("Bootstrap: base has no ci-routing.py", output)
-                    self.assertIn("head-revision", output)
+        for job in DECISION_JOBS:
+            with self.subTest(job=job):
+                selected, output = self.select(job, "pull_request")
+                self.assertEqual(".github/ci-routing.py", selected)
+                self.assertIn("Bootstrap: base has no ci-routing.py", output)
+                self.assertIn("head-revision", output)
 
     def test_non_pr_events_keep_head_tools_even_when_base_exists(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            directory = Path(temporary)
-            self.create_base_tools(directory)
-            for job in DECISION_JOBS:
-                for event in ("schedule", "workflow_dispatch"):
-                    with self.subTest(job=job, event=event):
-                        selected, output = self.select(directory, job, event)
-                        self.assertEqual(".github/ci-routing.py", selected)
-                        self.assertIn("head-revision", output)
-                        self.assertNotIn("Bootstrap", output)
+        self.create_base_tools()
+        for event in ("schedule", "workflow_dispatch"):
+            self.assert_event_selection(event, ".github/ci-routing.py", "head-revision")
 
     def test_base_execution_failure_does_not_select_head(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            directory = Path(temporary)
-            self.create_base_tools(directory)
-            selected, _ = self.select(directory, "routing", "pull_request")
-            result = subprocess.run([sys.executable, "-I", selected, "route"], cwd=directory, check=False)
-            self.assertEqual(7, result.returncode)
+        self.create_base_tools()
+        selected, _ = self.select("routing", "pull_request")
+        result = subprocess.run([sys.executable, "-I", selected, "route"], cwd=self.directory, check=False)
+        self.assertEqual(7, result.returncode)
 
 
 class BasePolicyTests(unittest.TestCase):

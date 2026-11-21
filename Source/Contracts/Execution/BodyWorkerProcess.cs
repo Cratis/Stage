@@ -123,9 +123,9 @@ internal sealed class BodyWorkerProcess(BodyWorkerOptions options, string role, 
         var limit = role == "compile" ? 4096 : options.WorkingSetLimitMb;
         try
         {
-            while (WorkingSet(process) is { } workingSet)
+            while (!HasExited(process))
             {
-                if (workingSet > (long)limit * 1024 * 1024)
+                if (WorkingSet(process) is { } workingSet && workingSet > (long)limit * 1024 * 1024)
                 {
                     ExceededMemory = true;
                     process.Kill(entireProcessTree: true);
@@ -139,17 +139,28 @@ internal sealed class BodyWorkerProcess(BodyWorkerOptions options, string role, 
         }
     }
 
+    bool HasExited(Process process)
+    {
+        try
+        {
+            return process.HasExited;
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or Win32Exception)
+        {
+            return true;
+        }
+    }
+
     long? WorkingSet(Process process)
     {
         try
         {
-            if (process.HasExited) return null;
             process.Refresh();
             return sampleWorkingSet?.Invoke(process) ?? process.WorkingSet64;
         }
         catch (Exception exception) when (exception is InvalidOperationException or Win32Exception)
         {
-            // Process exit and unavailable statistics end sampling, not the exchange.
+            // A failed sample is skipped; sampling ends only when the process has exited.
             return null;
         }
     }

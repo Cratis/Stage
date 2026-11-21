@@ -28,6 +28,9 @@ public static partial class SemanticModelLoader
         {
             return new(null, [new("STAGE-PLAN-003", "Screenplay compilation failed."), .. diagnostics]);
         }
+
+        // Screenplay reports the descriptors of a model with a refused specification beside the refused value, not on the compiled result.
+        var typedContextDescriptors = compiled.Value is null ? compiled.SpecificationRefusedTypedContextDescriptors : compiled.TypedContextDescriptors;
         var model = executable.Model;
 
         // A free screen a slice adopts is rendered from the source, so it has to be one the executable model can serve (Cratis/Stage#1150).
@@ -54,7 +57,7 @@ public static partial class SemanticModelLoader
             SemanticIdentities = executable.Documents.IdentityCatalog.Semantics,
             IdentityCatalog = executable.Documents.IdentityCatalog,
             ImplementationRequirements = compiled.ImplementationRequirements,
-            TypedContextDescriptors = compiled.TypedContextDescriptors,
+            TypedContextDescriptors = typedContextDescriptors,
             ImplementationContents = SemanticImplementationBodies.Resolve(executable.Documents, compiled.ImplementationRequirements),
             AttachmentDiagnostics = attachmentDiagnostics,
             ModelAssets = modelAssets,

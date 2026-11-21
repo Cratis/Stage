@@ -2,7 +2,7 @@
 # Copyright (c) Cratis. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-"""Keep routing decisions and policy on base, with PR history and build inputs on head."""
+"""Keep routing tools outside the workspace and select only trusted revisions."""
 
 import json
 import os
@@ -19,7 +19,9 @@ WORKFLOWS = ROOT / ".github/workflows"
 WORKFLOW = (WORKFLOWS / "dotnet-build.yml").read_text()
 SECTIONS = re.split(r"^  ([\w-]+):\n", WORKFLOW.split("jobs:\n", 1)[1], flags=re.MULTILINE)
 JOBS = dict(zip(SECTIONS[1::2], SECTIONS[2::2]))
-DECISION_JOBS = ("routing", "dotnet-build", "analyzers", "build", "routed-checks")
+DECISION_COMMANDS = {"routing": "route", "dotnet-build": "write-slnf", "analyzers": "write-slnf",
+                     "build": "check-build", "routed-checks": "check"}
+DECISION_JOBS = tuple(DECISION_COMMANDS)
 PIN = "3d3c42e5aac5ba805825da76410c181273ba90b1"
 
 
@@ -28,7 +30,10 @@ def step(job, name):
 
 
 def shell(job, name):
-    return textwrap.dedent(step(job, name).split("        run: |\n", 1)[1]).rstrip()
+    block = step(job, name)
+    if "run: *select-routing-tools" in block:
+        block = step("routing", "Select routing tools")
+    return textwrap.dedent(re.split(r"        run: (?:&[\w-]+ )?\|\n", block, maxsplit=1)[1]).rstrip()
 
 
 def run_shell(script, directory, **environment):
@@ -44,23 +49,30 @@ class WorkflowProvenanceTests(unittest.TestCase):
                 with self.subTest(workflow=workflow.name, step=checkout.splitlines()[0]):
                     self.assertIn("persist-credentials: false", checkout)
 
-    def test_decisions_use_pinned_base_checkout_and_isolated_python(self):
-        for job in DECISION_JOBS:
+    def test_decisions_share_trusted_selection_and_isolated_python(self):
+        for job, command in DECISION_COMMANDS.items():
             with self.subTest(job=job):
-                checkout = step(job, "Checkout routing tools")
-                self.assertIn("if: github.event_name == 'pull_request'", checkout)
-                self.assertIn(f"uses: actions/checkout@{PIN}", checkout)
-                self.assertIn("ref: ${{ github.event.pull_request.base.sha }}", checkout)
-                self.assertIn("path: gate-tools", checkout)
-                self.assertIn('python3 -I "$CI_ROUTING_SCRIPT"', JOBS[job])
-                self.assertLess(JOBS[job].index("Select routing tools"),
-                                JOBS[job].index('python3 -I "$CI_ROUTING_SCRIPT"'))
-        self.assertIn('"$CI_ROUTING_SCRIPT" route', JOBS["routing"])
-        self.assertIn('"$CI_ROUTING_SCRIPT" check-build', JOBS["build"])
-        self.assertIn('"$CI_ROUTING_SCRIPT" check', JOBS["routed-checks"])
+                selection = step(job, "Select routing tools")
+                self.assertIn("CI_BASE_SHA: ${{ github.event.pull_request.base.sha }}", selection)
+                self.assertIn("CI_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}", selection)
+                self.assertIn(f"CI_TOOLS_COMMAND: {command}", selection)
+                self.assertEqual(shell("routing", "Select routing tools"), shell(job, "Select routing tools"))
+                self.assertNotIn("${{", shell(job, "Select routing tools"))
+                before_selection = JOBS[job].split("      - name: Select routing tools", 1)[0]
+                self.assertNotIn("run:", before_selection)
+                self.assertIn(f'python3 -I "$CI_ROUTING_SCRIPT" {command}', JOBS[job])
         self.assertIn("fetch-depth: 0", step("routing", "Checkout merge-base history"))
         self.assertNotIn("working-directory:", JOBS["routing"])
         self.assertIn(f"actions/checkout@{PIN}", step("build", "Checkout code"))
+
+    def test_no_checkout_places_routing_tools_in_the_workspace(self):
+        for job in DECISION_JOBS:
+            checkouts = [item for item in JOBS[job].split("      - name:") if "uses: actions/checkout@" in item]
+            with self.subTest(job=job):
+                self.assertEqual(1, len(checkouts))
+                self.assertNotRegex(checkouts[0], r"\n\s+path:")
+                self.assertLess(JOBS[job].index("Select routing tools"),
+                                JOBS[job].index('python3 -I "$CI_ROUTING_SCRIPT"'))
 
     def test_filter_selection_precedes_pr_build_tools(self):
         for job in ("dotnet-build", "analyzers"):
@@ -74,54 +86,163 @@ class WorkflowProvenanceTests(unittest.TestCase):
 
 class RoutingToolSelectionTests(unittest.TestCase):
     def setUp(self):
-        temporary = tempfile.TemporaryDirectory()
+        temporary = tempfile.TemporaryDirectory(dir=ROOT / ".ai-work")
         self.addCleanup(temporary.cleanup)
-        self.directory = Path(temporary.name)
+        self.root = Path(temporary.name).resolve()
+        self.directory = self.root / "workspace"
+        self.runner_temp = self.root / "runner-temp"
+        self.environment_file = self.root / "environment"
+        self.directory.mkdir()
+        self.runner_temp.mkdir()
+        self.git("init", "--initial-branch=main")
+        self.git("init", "--bare", "--initial-branch=main", str(self.root / "origin"))
+        self.git("remote", "add", "origin", str(self.root / "origin"))
+        self.empty_base = self.publish("Initial policy")
 
-    def create_base_tools(self):
-        tools = self.directory / "gate-tools/.github"
-        tools.mkdir(parents=True)
-        (tools / "ci-routing.py").write_text("raise SystemExit(7)\n")
-
-    def select(self, job, event):
-        environment_file = self.directory / "environment"
-        environment_file.write_text("")
-        # Only revision logging is stubbed; execute the workflow's selection verbatim.
-        script = 'git() { if [ "$1" = -C ]; then echo base-revision; else echo head-revision; fi; }\n'
-        result = run_shell(script + shell(job, "Select routing tools"), self.directory,
-                           GITHUB_EVENT_NAME=event, GITHUB_ENV=str(environment_file))
+    def git(self, *arguments):
+        result = subprocess.run(["git", "-c", "user.name=CI specs", "-c", "user.email=ci@example.invalid",
+                                 "-c", "core.hooksPath=/dev/null", *arguments], cwd=self.directory,
+                                env={**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"},
+                                text=True, capture_output=True, check=False)
         self.assertEqual(0, result.returncode, result.stderr)
-        return environment_file.read_text().strip().split("=", 1)[1], result.stdout
+        return result.stdout.strip()
 
-    def assert_event_selection(self, event, expected_script, revision):
+    def commit(self, message):
+        self.git("add", "--all")
+        self.git("commit", "--allow-empty", "-m", message)
+        return self.git("rev-parse", "HEAD")
+
+    def publish(self, message):
+        revision = self.commit(message)
+        self.git("push", "origin", "HEAD:refs/heads/main")
+        return revision
+
+    def publish_tools(self, policy, commands=tuple(DECISION_COMMANDS.values())):
+        tools = self.directory / ".github"
+        tools.mkdir(exist_ok=True)
+        (tools / "ci-routing.py").write_text(
+            "from pathlib import Path\n"
+            f"COMMANDS = {json.dumps(commands)}\n"
+            "print((Path(__file__).resolve().parent.parent / 'policy.txt').read_text().strip())\n")
+        (tools / "spec-shards.py").write_text("SHARDS = 'trusted'\n")
+        (self.directory / "Stage.slnx").write_text("<Solution />")
+        (self.directory / "policy.txt").write_text(policy)
+        return self.publish(policy)
+
+    def create_head(self):
+        tools = self.directory / ".github"
+        tools.mkdir(exist_ok=True)
+        (tools / "ci-routing.py").write_text(
+            "from pathlib import Path\nPath('head-executed').touch()\nraise SystemExit(7)\n")
+        (self.directory / "policy.txt").write_text("head policy")
+        (self.directory / "gate-tools").symlink_to(".")
+        return self.commit("Head inputs")
+
+    def select(self, job, base, event="pull_request"):
+        self.environment_file.write_text("")
+        return run_shell(shell(job, "Select routing tools"), self.directory,
+                         GITHUB_EVENT_NAME=event, GITHUB_ENV=str(self.environment_file),
+                         GITHUB_WORKSPACE=str(self.directory), RUNNER_TEMP=str(self.runner_temp),
+                         CI_BASE_SHA=base, CI_DEFAULT_BRANCH="main", CI_TOOLS_COMMAND=DECISION_COMMANDS[job])
+
+    def selected_script(self, job, base, revision, event="pull_request"):
+        result = self.select(job, base, event)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn(f"CI routing tools revision: {revision}", result.stdout)
+        selected = Path(self.environment_file.read_text().strip().split("=", 1)[1]).resolve()
+        self.assertTrue(selected.is_relative_to(self.runner_temp))
+        self.assertFalse(selected.is_relative_to(self.directory))
+        self.assertFalse((self.directory / "head-executed").exists())
+        return selected
+
+    def assert_policy(self, base, revision, policy, event="pull_request"):
         for job in DECISION_JOBS:
             with self.subTest(job=job, event=event):
-                selected, output = self.select(job, event)
-                self.assertEqual(expected_script, selected)
-                self.assertIn(revision, output)
-                self.assertNotIn("Bootstrap", output)
+                script = self.selected_script(job, base, revision, event)
+                result = subprocess.run([sys.executable, "-I", str(script), DECISION_COMMANDS[job]],
+                                        cwd=self.directory, text=True, capture_output=True, check=False)
+                self.assertEqual(0, result.returncode, result.stderr)
+                self.assertEqual(policy, result.stdout.strip())
+                self.assertFalse((self.directory / "head-executed").exists())
 
-    def test_pull_requests_select_base_tools(self):
-        self.create_base_tools()
-        self.assert_event_selection("pull_request", "gate-tools/.github/ci-routing.py", "base-revision")
-
-    def test_missing_base_script_bootstraps_with_logged_head_revision(self):
-        for job in DECISION_JOBS:
+    def assert_closed(self, base, missing, jobs=DECISION_JOBS):
+        for job in jobs:
             with self.subTest(job=job):
-                selected, output = self.select(job, "pull_request")
-                self.assertEqual(".github/ci-routing.py", selected)
-                self.assertIn("Bootstrap: base has no ci-routing.py", output)
-                self.assertIn("head-revision", output)
+                result = self.select(job, base)
+                self.assertNotEqual(0, result.returncode)
+                self.assertIn(f"::error::Trusted routing tools are missing {missing}", result.stdout)
+                self.assertEqual("", self.environment_file.read_text())
+                self.assertFalse((self.directory / "head-executed").exists())
 
-    def test_non_pr_events_keep_head_tools_even_when_base_exists(self):
-        self.create_base_tools()
+    def test_head_symlink_does_not_change_base_tools_or_policy(self):
+        base = self.publish_tools("base policy")
+        self.publish_tools("default policy")
+        self.create_head()
+        self.assert_policy(base, base, "base policy")
+
+    def test_base_objects_not_in_checkout_are_fetched_by_sha(self):
+        base = self.publish_tools("base policy")
+        self.create_head()
+        self.git("push", "origin", "HEAD:refs/heads/pull-inputs")
+        shallow = self.root / "shallow"
+        self.git("clone", "--depth=1", "--branch=pull-inputs", (self.root / "origin").as_uri(), str(shallow))
+        self.directory = shallow
+        self.assert_policy(base, base, "base policy")
+
+    def test_default_branch_current_head_is_resolved_from_origin(self):
+        self.publish_tools("initial default policy")
+        self.create_head()
+        workspace = self.directory
+        publisher = self.root / "publisher"
+        self.git("clone", str(self.root / "origin"), str(publisher))
+        self.directory = publisher
+        default = self.publish_tools("current default policy")
+        self.directory = workspace
+        self.assert_policy(self.empty_base, default, "current default policy")
+
+    def test_base_without_script_uses_default_branch_tools(self):
+        default = self.publish_tools("default policy")
+        self.create_head()
+        self.assert_policy(self.empty_base, default, "default policy")
+
+    def test_neither_trusted_revision_has_script_fails_closed(self):
+        self.create_head()
+        self.assert_closed(self.empty_base, ".github/ci-routing.py")
+
+    def test_non_pr_events_use_default_branch_not_checkout_revision(self):
+        default = self.publish_tools("default policy")
+        head = self.create_head()
         for event in ("schedule", "workflow_dispatch"):
-            self.assert_event_selection(event, ".github/ci-routing.py", "head-revision")
+            self.assert_policy(head, default, "default policy", event)
 
-    def test_base_execution_failure_does_not_select_head(self):
-        self.create_base_tools()
-        selected, _ = self.select("routing", "pull_request")
-        result = subprocess.run([sys.executable, "-I", selected, "route"], cwd=self.directory, check=False)
+    def test_missing_required_command_uses_default_branch(self):
+        base = self.publish_tools("base policy", commands=("route",))
+        default = self.publish_tools("default policy")
+        self.create_head()
+        self.selected_script("dotnet-build", base, default)
+
+    def test_neither_revision_has_required_command_fails_closed(self):
+        base = self.publish_tools("base policy", commands=("route",))
+        self.create_head()
+        self.assert_closed(base, ".github/ci-routing.py command write-slnf", jobs=("dotnet-build", "analyzers"))
+
+    def test_missing_policy_tool_uses_default_branch(self):
+        self.publish_tools("base policy")
+        (self.directory / ".github/spec-shards.py").unlink()
+        base = self.commit("Policy tool not present")
+        default = self.publish_tools("default policy")
+        self.create_head()
+        self.assert_policy(base, default, "default policy")
+
+    def test_base_execution_failure_does_not_select_another_revision(self):
+        self.publish_tools("base policy")
+        with (self.directory / ".github/ci-routing.py").open("a") as script:
+            script.write("raise SystemExit(7)\n")
+        base = self.commit("Tool execution result")
+        self.publish_tools("default policy")
+        self.create_head()
+        selected = self.selected_script("routing", base, base)
+        result = subprocess.run([sys.executable, "-I", str(selected), "route"], cwd=self.directory, check=False)
         self.assertEqual(7, result.returncode)
 
 

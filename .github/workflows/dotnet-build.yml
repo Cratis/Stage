@@ -90,29 +90,69 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      # Policy and decision tools come from base; cwd remains the PR checkout for diff data.
-      - name: Checkout routing tools
-        if: github.event_name == 'pull_request'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.base.sha }}
-          path: gate-tools
-          persist-credentials: false
-
+      # Policy stays outside the workspace; cwd remains the PR checkout for diff data.
       - name: Select routing tools
-        run: |
-          script=.github/ci-routing.py
-          revision=$(git rev-parse HEAD)
-          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
-            if [ -f gate-tools/.github/ci-routing.py ]; then
-              script=gate-tools/.github/ci-routing.py
-              revision=$(git -C gate-tools rev-parse HEAD)
+        shell: bash
+        env:
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          CI_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          CI_TOOLS_COMMAND: route
+        run: &select-routing-tools |
+          set -euo pipefail
+          fetch_revision() {
+            GIT_TERMINAL_PROMPT=0 git -c credential.helper= -c http.extraheader= fetch --no-tags origin "$1"
+          }
+          has_tools() {
+            if ! git cat-file -e "$1^{commit}" 2>/dev/null; then
+              if ! fetch_revision "$1"; then
+                missing="revision $1 for .github/ci-routing.py"
+                return 1
+              fi
+            fi
+            for tool in .github/ci-routing.py .github/spec-shards.py Stage.slnx; do
+              if ! git cat-file -e "$1:$tool" 2>/dev/null; then
+                missing=$tool
+                return 1
+              fi
+            done
+            if ! git show "$1:.github/ci-routing.py" | grep -F "\"$CI_TOOLS_COMMAND\"" > /dev/null; then
+              missing=".github/ci-routing.py command $CI_TOOLS_COMMAND"
+              return 1
+            fi
+          }
+          revision=
+          source=base
+          if [ "$GITHUB_EVENT_NAME" = pull_request ] && [ -n "$CI_BASE_SHA" ]; then
+            if [[ ! "$CI_BASE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+              echo "::error::Invalid base revision for routing tools"
+              exit 1
+            fi
+            if has_tools "$CI_BASE_SHA"; then
+              revision=$CI_BASE_SHA
             else
-              echo "::notice::Bootstrap: base has no ci-routing.py; using head routing tools."
+              echo "::notice::Base revision lacks $missing; trying the default branch."
             fi
           fi
-          echo "CI routing tools revision: $revision ($script)"
-          echo "CI_ROUTING_SCRIPT=$script" >> "$GITHUB_ENV"
+          if [ -z "$revision" ]; then
+            source="default branch $CI_DEFAULT_BRANCH"
+            git check-ref-format "refs/heads/$CI_DEFAULT_BRANCH"
+            if ! revision=$(GIT_TERMINAL_PROMPT=0 git -c credential.helper= -c http.extraheader= ls-remote origin "refs/heads/$CI_DEFAULT_BRANCH" | cut -f1); then
+              echo "::error::Cannot resolve default-branch routing tools (.github/ci-routing.py)"
+              exit 1
+            fi
+            if [[ ! "$revision" =~ ^[0-9a-f]{40}$ ]]; then
+              echo "::error::No default-branch revision provides .github/ci-routing.py"
+              exit 1
+            fi
+            if ! has_tools "$revision"; then
+              echo "::error::Trusted routing tools are missing $missing"
+              exit 1
+            fi
+          fi
+          tools=$(mktemp -d "$RUNNER_TEMP/gate-tools.XXXXXX")
+          git archive "$revision" | tar -x -C "$tools"
+          echo "CI routing tools revision: $revision ($source)"
+          echo "CI_ROUTING_SCRIPT=$tools/.github/ci-routing.py" >> "$GITHUB_ENV"
 
       - name: Select lanes from the PR merge-base diff or full-run event
         id: routes
@@ -171,28 +211,13 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Checkout routing tools
-        if: github.event_name == 'pull_request'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.base.sha }}
-          path: gate-tools
-          persist-credentials: false
-
       - name: Select routing tools
-        run: |
-          script=.github/ci-routing.py
-          revision=$(git rev-parse HEAD)
-          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
-            if [ -f gate-tools/.github/ci-routing.py ]; then
-              script=gate-tools/.github/ci-routing.py
-              revision=$(git -C gate-tools rev-parse HEAD)
-            else
-              echo "::notice::Bootstrap: base has no ci-routing.py; using head routing tools."
-            fi
-          fi
-          echo "CI routing tools revision: $revision ($script)"
-          echo "CI_ROUTING_SCRIPT=$script" >> "$GITHUB_ENV"
+        shell: bash
+        env:
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          CI_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          CI_TOOLS_COMMAND: write-slnf
+        run: *select-routing-tools
 
       # Validate selection before running PR build inputs; only the solution location is rebased.
       - name: Write affected solution filter
@@ -282,28 +307,13 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Checkout routing tools
-        if: github.event_name == 'pull_request'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.base.sha }}
-          path: gate-tools
-          persist-credentials: false
-
       - name: Select routing tools
-        run: |
-          script=.github/ci-routing.py
-          revision=$(git rev-parse HEAD)
-          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
-            if [ -f gate-tools/.github/ci-routing.py ]; then
-              script=gate-tools/.github/ci-routing.py
-              revision=$(git -C gate-tools rev-parse HEAD)
-            else
-              echo "::notice::Bootstrap: base has no ci-routing.py; using head routing tools."
-            fi
-          fi
-          echo "CI routing tools revision: $revision ($script)"
-          echo "CI_ROUTING_SCRIPT=$script" >> "$GITHUB_ENV"
+        shell: bash
+        env:
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          CI_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          CI_TOOLS_COMMAND: write-slnf
+        run: *select-routing-tools
 
       # Validate selection before running PR build inputs; only the solution location is rebased.
       - name: Write affected solution filter
@@ -501,28 +511,13 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Checkout routing tools
-        if: github.event_name == 'pull_request'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.base.sha }}
-          path: gate-tools
-          persist-credentials: false
-
       - name: Select routing tools
-        run: |
-          script=.github/ci-routing.py
-          revision=$(git rev-parse HEAD)
-          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
-            if [ -f gate-tools/.github/ci-routing.py ]; then
-              script=gate-tools/.github/ci-routing.py
-              revision=$(git -C gate-tools rev-parse HEAD)
-            else
-              echo "::notice::Bootstrap: base has no ci-routing.py; using head routing tools."
-            fi
-          fi
-          echo "CI routing tools revision: $revision ($script)"
-          echo "CI_ROUTING_SCRIPT=$script" >> "$GITHUB_ENV"
+        shell: bash
+        env:
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          CI_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          CI_TOOLS_COMMAND: check-build
+        run: *select-routing-tools
 
       - name: Require preflight, CI scripts, build, analyzers, every spec shard and the selected standalone application spec to succeed
         if: needs.routing.outputs.standalone-generated-application == 'true'
@@ -1390,28 +1385,13 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Checkout routing tools
-        if: github.event_name == 'pull_request'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.base.sha }}
-          path: gate-tools
-          persist-credentials: false
-
       - name: Select routing tools
-        run: |
-          script=.github/ci-routing.py
-          revision=$(git rev-parse HEAD)
-          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
-            if [ -f gate-tools/.github/ci-routing.py ]; then
-              script=gate-tools/.github/ci-routing.py
-              revision=$(git -C gate-tools rev-parse HEAD)
-            else
-              echo "::notice::Bootstrap: base has no ci-routing.py; using head routing tools."
-            fi
-          fi
-          echo "CI routing tools revision: $revision ($script)"
-          echo "CI_ROUTING_SCRIPT=$script" >> "$GITHUB_ENV"
+        shell: bash
+        env:
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          CI_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          CI_TOOLS_COMMAND: check
+        run: *select-routing-tools
 
       - name: Require every selected lane to succeed
         env:

@@ -86,7 +86,7 @@ class WorkflowProvenanceTests(unittest.TestCase):
 
 class RoutingToolSelectionTests(unittest.TestCase):
     def setUp(self):
-        temporary = tempfile.TemporaryDirectory(dir=ROOT / ".ai-work")
+        temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name).resolve()
         self.directory = self.root / "workspace"

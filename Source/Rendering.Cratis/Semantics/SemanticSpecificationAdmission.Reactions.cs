@@ -226,9 +226,13 @@ internal static partial class SemanticSpecificationAdmission
         if (HasDeeperReactionCascade(context, specification, selected))
             return "Generated reactor scenarios do not settle deeper reaction cascades.";
 
-        return selected.InvokedProductions(specification, context).Any(produced => IsReactionConstraintTarget(context, produced.EventContract))
+        return !RecordsOnlyHandledInvocation(specification, trigger) && selected.InvokedProductions(specification, context).Any(produced => IsReactionConstraintTarget(context, produced.EventContract))
             ? "An invoked command produces an append-time constraint target." : null;
     }
+
+    static bool RecordsOnlyHandledInvocation(SemanticSpecification specification, SemanticReactionTrigger trigger) =>
+        !specification.ThenInvocations.IsDefaultOrEmpty && !HasRefusalOutcome(specification) &&
+        trigger.Invokes.Any(invocation => !invocation.OnRefused.IsDefaultOrEmpty);
 
     static bool HasUnsupportedReactionEffects(SemanticReactionTrigger trigger) =>
         trigger.Invokes.Length > 1 || (!trigger.Invokes.IsEmpty && !trigger.Produces.IsEmpty);

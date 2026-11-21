@@ -120,7 +120,7 @@ internal static partial class SemanticSpecificationAdmission
                 HasOneOutcome(specification, reactionInvocation) &&
                 HasRenderableProductions(context, specification, command!, foreignInvocationExpectations) &&
                 HasRenderableStateExpectations(context, specification) &&
-                HasRenderableOutcome(context, specification, command!)));
+                HasRenderableOutcome(context, specification, command!, foreignInvocationExpectations)));
 
     static bool HasRenderableFixtures(SemanticApplicationContext context, SemanticSpecification specification, SemanticCommand command) =>
         HasRenderableOrderedGivenEvents(context, specification) && GivenKeysMatchProjectedProperties(context, specification) &&
@@ -143,9 +143,10 @@ internal static partial class SemanticSpecificationAdmission
             !HasReducer(context, context.Queries[expected.Query].ReadModel) &&
             expected.Results.All(result => HasExpectedProjectionEvent(context, specification, result)));
 
-    static bool HasRenderableOutcome(SemanticApplicationContext context, SemanticSpecification specification, SemanticCommand command) =>
+    // Foreign invocation expectations assert no command facts, so there are no event sources to compare.
+    static bool HasRenderableOutcome(SemanticApplicationContext context, SemanticSpecification specification, SemanticCommand command, bool foreignInvocationExpectations) =>
         HasRenderableErrors(context, specification, command) &&
-        HasRenderableEventSources(context, specification, command) &&
+        (foreignInvocationExpectations || HasRenderableEventSources(context, specification, command)) &&
         ProtectedQuerySourcesMatch(context, specification, command) &&
         HasComparableResponse(context, specification, command);
 

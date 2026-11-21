@@ -294,7 +294,10 @@ describe('screen availability', () => {
             name: 'GoHome', bindings: [{ trigger: { kind: InteractionTriggerKind.Click }, actions: [{ kind: InteractionActionKind.Navigate, screen: 'Home' }] }],
         }] };
         const origin = { ...screenOf('Origin'), slotContent: { content: [...screenOf('Origin').slotContent.content, button] } };
-        renderStage(availability, '#/Origin', { model: { ...scene, navigation: regions ? scene.navigation : undefined, screens: [origin, screenOf('Home'), screenOf('Restricted')] } });
+        // Flush the asynchronously loaded scene's mount effects before clicking: the history listener must be attached.
+        await act(async () => {
+            renderStage(availability, '#/Origin', { model: { ...scene, navigation: regions ? scene.navigation : undefined, screens: [origin, screenOf('Home'), screenOf('Restricted')] } });
+        });
         fireEvent.click(await screen.findByRole('button', { name: 'Navigate Home' }));
         await waitFor(() => expect(window.location.hash).toBe('#/Home'));
         await act(async () => window.dispatchEvent(new HashChangeEvent('hashchange')));

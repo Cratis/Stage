@@ -193,7 +193,7 @@ internal static class SemanticHost
             ExtensionPackageEndpoints.MapTooling(app, packages);
             if (ExtensionsEnabled(app)) ExtensionActivationEndpoints.MapTooling(app);
             app.MapPost("/stage/load", () => Results.Conflict());
-            app.MapGet("/stage/semantic/admission", () => Results.Json(new { engine = "semantic", issues = issues.Select(issue => issue.Details), entries = admission?.Entries ?? [] }, StageJson.Options));
+            app.MapGet("/stage/semantic/admission", () => Results.Json(new { engine = "semantic", issues = issues.Select(issue => issue.Details), refusedSpecifications = DescribeRefusedSpecifications(loaded), entries = admission?.Entries ?? [] }, StageJson.Options));
             MapReadModelBrowserPage(app);
         }
         LogRenderedAround(app, admission);
@@ -219,7 +219,7 @@ internal static class SemanticHost
         MapStatus(app, () => RegistrationStatus(world, issues, app.Services, modelName, modelPath), notes);
         if (mode == StageHostMode.Sandbox)
         {
-            SemanticSpecificationRuns.Map(app, loaded.Plan, modelPath);
+            SemanticSpecificationRuns.Map(app, loaded.Plan, modelPath, loaded);
             var journeyRoutes = scene is null ? null : new StageRoutesSource(new StageSceneRoutes(scene, app.Services, app.Logger), loaded.Model);
             StageJourneyReplay.Map(app, () => journeyRoutes?.Build(), () => RegistrationStatus(world, issues, app.Services, modelName, modelPath));
             StageLifecycleEndpoints.Map(app, loaded.Plan, () => lifecycles);
@@ -311,7 +311,7 @@ internal static class SemanticHost
     internal static async Task<(LoadedSemanticModel? Model, SceneApplication? Scene)> LoadModel(string modelPath, List<StageUnsupportedIssue> issues, List<SemanticModelLoadDiagnostic>? notes = null, string? applicationName = null)
     {
         var found = new List<StageLoadIssue>();
-        var result = await StageModelLoader.Load(modelPath, found, notes, applicationName);
+        var result = await StageModelLoader.LoadForRunningModel(modelPath, found, notes, applicationName);
         issues.AddRange(found.Select(issue => new StageUnsupportedIssue(issue.Capability, issue.Artifact, issue.Details)));
 
         return result;
@@ -366,6 +366,19 @@ internal static class SemanticHost
 
     internal static Func<SemanticWorld> WorldProvider(Func<SemanticWorld?> world) =>
         () => world() ?? throw new SemanticWorldRebuildRefused("The semantic world has not been reconstructed yet.");
+
+    /// <summary>
+    /// Describes the specifications left out of the running model, with the diagnostics that refused each, for the admission report.
+    /// </summary>
+    /// <param name="loaded">The loaded model, or null when none was admitted.</param>
+    /// <returns>One entry per refused specification.</returns>
+    internal static object[] DescribeRefusedSpecifications(LoadedSemanticModel? loaded) =>
+        [.. (loaded?.RefusedSpecifications ?? []).Select(specification => new
+        {
+            id = specification.Id,
+            name = specification.Origin?.Effective.Name,
+            diagnostics = specification.Diagnostics.Select(diagnostic => new { code = diagnostic.Code, message = diagnostic.Message })
+        })];
 
     internal static StageStatus RegistrationStatus(SemanticWorld? world, List<StageUnsupportedIssue> issues, IServiceProvider services, string modelName, string modelPath)
     {

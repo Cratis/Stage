@@ -42,7 +42,7 @@ internal static class SemanticBodyWorkerHosting
     internal static async Task<SemanticBodyExecution?> Start(LoadedSemanticModel loaded, string modelPath, SemanticBodyWorkerOptions settings, List<SemanticModelLoadDiagnostic> notes)
     {
         if (!settings.Enabled || !loaded.ImplementationRequirements.Any(requirement => requirement.Role is SemanticImplementationRole.RulePredicate or SemanticImplementationRole.CommandValidation or SemanticImplementationRole.ConceptValidation or SemanticImplementationRole.ReducerTransition)) return null;
-        var options = settings.Worker();
+        var options = settings.Worker() with { AllowRefusedSpecifications = true };
         if (!File.Exists(options.WorkerPath))
         {
             notes.Add(new(BodyDiagnostics.WorkerFailed, $"Body worker is unavailable at '{settings.WorkerPath}'. Rule bodies remain opaque."));

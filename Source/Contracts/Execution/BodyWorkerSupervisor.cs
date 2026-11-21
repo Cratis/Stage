@@ -50,6 +50,7 @@ public sealed class BodyWorkerSupervisor(BodyWorkerOptions options) : IBodyWorke
             CatalogPath = catalogPath is null ? null : Path.GetFullPath(catalogPath),
             ApplicationName = applicationName,
             ProfileVersion = profileVersion,
+            AllowRefusedSpecifications = options.AllowRefusedSpecifications,
             CacheDirectory = Path.GetFullPath(options.CacheDirectory)
         };
         var response = await SendAsync(request, cancellationToken).ConfigureAwait(false);

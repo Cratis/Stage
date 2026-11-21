@@ -19,6 +19,7 @@ public class a_specification_endpoint : Specification
 {
     protected WebApplication _app = null!;
     protected SemanticExecutionPlan _plan = null!;
+    protected LoadedSemanticModel _loaded = null!;
     protected IEventStore _hostEventStore = null!;
     protected int _status;
     protected string _body = null!;
@@ -39,7 +40,8 @@ public class a_specification_endpoint : Specification
         Directory.CreateDirectory(_directory);
         _modelPath = Path.Combine(_directory, "Projects.play");
         await File.WriteAllTextAsync(_modelPath, Source);
-        _plan = (await SemanticModelLoader.LoadFromPathAsync(_modelPath)).Plan;
+        _loaded = await SemanticModelLoader.LoadFromPathAsync(_modelPath, null, null, allowRefusedSpecifications: true);
+        _plan = _loaded.Plan;
         _hostEventStore = Substitute.For<IEventStore>();
         var builder = WebApplication.CreateBuilder();
         builder.Services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadRequest = true);
@@ -53,7 +55,7 @@ public class a_specification_endpoint : Specification
         }
         else
         {
-            SemanticSpecificationRuns.Map(_app, _plan, _modelPath);
+            SemanticSpecificationRuns.Map(_app, _plan, _modelPath, _loaded);
         }
         var pipeline = new ApplicationBuilder(_app.Services);
         if (LiveRegistrationRefused) SemanticHost.UseReadinessGate(pipeline, () => null, [new StageUnsupportedIssue("World", "model", "Chronicle registration was refused.")]);

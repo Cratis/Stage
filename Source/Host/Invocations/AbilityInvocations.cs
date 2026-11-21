@@ -101,17 +101,19 @@ public sealed class AbilityInvocations(IAbilityCatalog catalog, IInvocationLedge
     public async Task<InvocationAnswer> Answer(string identity, string outlet, string payload, ClaimsPrincipal answeredBy)
     {
         if (await ledger.Get(identity) is not { } record) return InvocationAnswer.Unknown;
-        if (record.Status != InvocationStatus.Suspended || record.Run.Length == 0 || record.Execution.Length == 0) return InvocationAnswer.NotWaiting;
+        if (!IsWaiting(record)) return InvocationAnswer.NotWaiting;
         if (!await authorizer.Authorize(record, answeredBy)) return InvocationAnswer.Forbidden;
         if (Describe(record) is not { } descriptor || !Answers(descriptor).Contains(outlet)) return InvocationAnswer.UnknownOutlet;
 
         var actor = Actor(answeredBy);
         var key = WorkflowRunKey.Parse(record.Run);
         var execution = NodeExecutionKey.Parse(record.Execution);
+        var run = workflows.GetRun(key.Scope, key.Run);
 
         // Who answered is recorded before the run takes the answer, so it survives whichever node ends the invocation. Taking an answer twice is harmless.
         await ledger.Of(identity).Decided(outlet, payload, actor);
-        await workflows.GetRun(key.Scope, key.Run).ResolveWait(WaitHandling.WaitIdFor(key.Run, execution), outlet, new WorkflowData(payload), new WorkflowActor(actor));
+        await RegisterPendingWait(run, execution, record, descriptor);
+        await run.ResolveWait(WaitHandling.WaitIdFor(key.Run, execution), outlet, new WorkflowData(payload), new WorkflowActor(actor));
         await ledger.Of(identity).Settle(outlet, payload, actor);
         InvocationLog.Answered(_logger, identity, actor, outlet);
         return InvocationAnswer.Answered;
@@ -147,8 +149,23 @@ public sealed class AbilityInvocations(IAbilityCatalog catalog, IInvocationLedge
     /// <inheritdoc/>
     public Task<IReadOnlyList<InvocationRecord>> List(InvocationStatus? status = null) => ledger.List(status);
 
+    static bool IsWaiting(InvocationRecord record) =>
+        record is { Status: InvocationStatus.Suspended, Run.Length: > 0, Execution.Length: > 0 };
+
     static bool IsStopped(InvocationRecord record) =>
         record.Status == InvocationStatus.Stopped && record.Run.Length > 0 && record.Execution.Length > 0;
+
+    static async Task RegisterPendingWait(IWorkflowRun run, NodeExecutionKey execution, InvocationRecord record, AbilityDescriptor descriptor)
+    {
+        var snapshot = await run.GetSnapshot();
+        var pending = snapshot.Executions.FirstOrDefault(candidate => candidate.Execution == execution);
+        if (pending?.Status == NodeExecutionStatus.Scheduled && pending.Attempt.Value == record.Attempts)
+        {
+            // Suspended is persisted before the performer reports it. Register that known outcome before resolving its wait;
+            // the engine ignores the performer's duplicate report when it eventually arrives.
+            await run.CompleteNode(execution, pending.Attempt, WorkflowNodeOutcome.Suspended(new(record.Identity), descriptor.AnswerExpiresAfter));
+        }
+    }
 
     static async Task<bool> ReadyToReconcile(IWorkflowRun run, NodeExecutionKey execution, InvocationRecord record)
     {

@@ -41,7 +41,7 @@ public static partial class SemanticModelLoader
         Path.Combine(root, ".screenplay", PersistedIdentityStateSerializer.FileName),
         OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
 
-    static SemanticModelLoadResult LoadModelRoot(string root, string[] files, IEnumerable<string> namedFiles, string name, CancellationToken cancellationToken)
+    static SemanticModelLoadResult LoadModelRoot(string root, string[] files, IEnumerable<string> namedFiles, string name, CancellationToken cancellationToken, bool allowRefusedSpecifications = false)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var outcome = ScreenplayModelRoot.OpenForReleaseBaselineCheck(root);
@@ -79,7 +79,7 @@ public static partial class SemanticModelLoader
                 "Release baseline checks require the whole model root with its persisted application name.");
         }
 
-        return FinishCompilation(compiled, workspace.AttachmentDiagnostics, assessment, cancellationToken, root);
+        return FinishCompilation(compiled, workspace.AttachmentDiagnostics, assessment, cancellationToken, root, allowRefusedSpecifications);
     }
 
     static CompilationResult<SemanticCompilation> CompileSelection(ScreenplayWorkspace workspace, ImmutableArray<WorkspaceDocument> documents, string name) =>

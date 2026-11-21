@@ -41,6 +41,9 @@ public sealed record BodyWorkerRequest(string Id, string Kind)
     /// <summary>Gets the scaffold profile version whose target framework selects the reference pack, or null for the default version 3.</summary>
     public string? ProfileVersion { get; init; }
 
+    /// <summary>Gets whether a specification Screenplay refuses is left out of the compiled model instead of failing the compile. Absent means strict.</summary>
+    public bool AllowRefusedSpecifications { get; init; }
+
     /// <summary>Gets the cache path holding compiled units.</summary>
     public string? CacheDirectory { get; init; }
 

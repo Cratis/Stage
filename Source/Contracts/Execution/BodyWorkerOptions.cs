@@ -11,6 +11,9 @@ public sealed record BodyWorkerOptions(string WorkerPath, string CacheDirectory)
     /// <summary>Gets an optional executable/argument launch for the CLI's embedded worker.</summary>
     public BodyWorkerLaunch? Launch { get; init; }
 
+    /// <summary>Gets whether the worker compiles a model that has a broken specification, leaving that specification out, as a running model does.</summary>
+    public bool AllowRefusedSpecifications { get; init; }
+
     /// <summary>Gets the .NET executable used for a framework-dependent worker.</summary>
     public string DotnetPath { get; init; } = "dotnet";
 

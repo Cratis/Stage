@@ -19,18 +19,19 @@ public static partial class SemanticModelLoader
     /// </summary>
     internal const string FreeScreenRefusalCode = "STAGE-SCENE-FREE-001";
 
-    internal static SemanticModelLoadResult FinishCompilation(CompilationResult<SemanticCompilation> compiled, ImmutableArray<Diagnostic> attachmentDiagnostics, ReleaseBaselineAssessment baseline, CancellationToken cancellationToken, string? root = null)
+    internal static SemanticModelLoadResult FinishCompilation(CompilationResult<SemanticCompilation> compiled, ImmutableArray<Diagnostic> attachmentDiagnostics, ReleaseBaselineAssessment baseline, CancellationToken cancellationToken, string? root = null, bool allowRefusedSpecifications = false)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var diagnostics = compiled.Diagnostics.Select(diagnostic => new SemanticModelLoadDiagnostic(diagnostic.Code, diagnostic.Message, $"{diagnostic.Location.Path}({diagnostic.Location.Line},{diagnostic.Location.Column})") { Severity = diagnostic.Severity }).ToImmutableArray();
-        if (!compiled.Success)
+        var executable = Executable(compiled, allowRefusedSpecifications);
+        if (executable is null)
         {
             return new(null, [new("STAGE-PLAN-003", "Screenplay compilation failed."), .. diagnostics]);
         }
-        var model = compiled.Value!.Model;
+        var model = executable.Model;
 
         // A free screen a slice adopts is rendered from the source, so it has to be one the executable model can serve (Cratis/Stage#1150).
-        var screenRefusals = FreeScreenRefusals(compiled.Value!);
+        var screenRefusals = FreeScreenRefusals(executable);
         if (screenRefusals.Length > 0)
         {
             return new(null, [.. diagnostics, .. screenRefusals.Select(refusal => new SemanticModelLoadDiagnostic(FreeScreenRefusalCode, refusal))]);
@@ -48,22 +49,26 @@ public static partial class SemanticModelLoader
         diagnostics = [.. diagnostics, .. LocalPlanDiagnostics(plan), .. modelAssets.Diagnostics];
         var loaded = new LoadedSemanticModel(model, plan.Plan!)
         {
-            SpecificationOrigins = compiled.Value!.SpecificationOrigins,
-            SemanticIdentities = compiled.Value.Documents.IdentityCatalog.Semantics,
-            IdentityCatalog = compiled.Value.Documents.IdentityCatalog,
+            SpecificationOrigins = executable.SpecificationOrigins,
+            RefusedSpecifications = executable.RefusedSpecifications,
+            SemanticIdentities = executable.Documents.IdentityCatalog.Semantics,
+            IdentityCatalog = executable.Documents.IdentityCatalog,
             ImplementationRequirements = compiled.ImplementationRequirements,
             TypedContextDescriptors = compiled.TypedContextDescriptors,
-            ImplementationContents = SemanticImplementationBodies.Resolve(compiled.Value!.Documents, compiled.ImplementationRequirements),
+            ImplementationContents = SemanticImplementationBodies.Resolve(executable.Documents, compiled.ImplementationRequirements),
             AttachmentDiagnostics = attachmentDiagnostics,
             ModelAssets = modelAssets,
             ReleaseBaseline = baseline,
-            Realization = ApplicationRealization.From(compiled.Value!, root),
-            PassiveReadModels = compiled.Value!.PassiveReadModels,
+            Realization = ApplicationRealization.From(executable, root),
+            PassiveReadModels = executable.PassiveReadModels,
             Diagnostics = diagnostics
         };
 
         return new(loaded, diagnostics);
     }
+
+    static SemanticCompilation? Executable(CompilationResult<SemanticCompilation> compiled, bool allowRefusedSpecifications) =>
+        compiled.Value ?? (allowRefusedSpecifications ? compiled.SpecificationRefusedValue : null);
 
     /// <summary>
     /// Asks Screenplay's executable screen admission about the free screens the sources adopt, so that a need nobody provides is refused

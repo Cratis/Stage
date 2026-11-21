@@ -24,35 +24,60 @@ internal static class SemanticSpecificationRuns
 
     static async Task<IResult> Run(RunContext run, SemanticSpecificationRunRequest request, CancellationToken cancellationToken)
     {
+        var (scopes, rejection) = ParseScopes(request);
+        if (rejection is not null) return rejection;
+
+        var refusal = run.Loaded is null ? null : RefusalFor(run.Loaded, scopes);
+        return refusal ?? await Execute(run, scopes, cancellationToken);
+    }
+
+    static (HashSet<SemanticId> Scopes, IResult? Rejection) ParseScopes(SemanticSpecificationRunRequest request)
+    {
+        var scopes = new HashSet<SemanticId>();
         if (request.Scopes is { Length: > 1000 })
         {
-            return Results.BadRequest(new { details = "A run accepts at most 1000 scopes." });
+            return (scopes, Results.BadRequest(new { details = "A run accepts at most 1000 scopes." }));
         }
-        var scopes = new HashSet<SemanticId>();
         foreach (var scope in request.Scopes ?? [])
         {
             if (!SemanticId.TryParse(scope, out var id))
             {
-                return Results.BadRequest(new { details = $"Invalid semantic identity '{scope}'." });
+                return (scopes, Results.BadRequest(new { details = $"Invalid semantic identity '{scope}'." }));
             }
             scopes.Add(id);
         }
+        return (scopes, null);
+    }
 
-        if (run.Loaded is { } loaded)
+    static IResult? RefusalFor(LoadedSemanticModel loaded, HashSet<SemanticId> scopes)
+    {
+        var refused = loaded.RefusalsFor(scopes);
+        return refused.IsEmpty
+            ? null
+            : Results.Json(new { engine = "semantic", issues = refused.SelectMany(specification => specification.Diagnostics).Select(diagnostic => diagnostic.Message), notes = loaded.Diagnostics }, StageJson.Options, statusCode: StatusCodes.Status501NotImplemented);
+    }
+
+    static ProcessStartInfo RunnerStart(RunContext run, string directory, string output, HashSet<SemanticId> scopes)
+    {
+        var start = new ProcessStartInfo("dotnet")
         {
-            var refused = loaded.RefusalsFor(scopes);
-            if (!refused.IsEmpty)
-            {
-                return Results.Json(new { engine = "semantic", issues = refused.SelectMany(specification => specification.Diagnostics).Select(diagnostic => diagnostic.Message), notes = loaded.Diagnostics }, StageJson.Options, statusCode: StatusCodes.Status501NotImplemented);
-            }
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            WorkingDirectory = directory,
+            CreateNoWindow = true
+        };
+        SemanticBodyWorkerHosting.AddRunnerArguments(start, [Path.GetFullPath(run.Options.RunnerPath), "--engine", "semantic", "--model", Path.GetFullPath(run.ModelPath), "--output", output, "--application", run.Plan.Model.Application.Name, "--allow-refused-specifications", "true"], run.Options.BodyWorker);
+        foreach (var scope in scopes)
+        {
+            start.ArgumentList.Add("--scope");
+            start.ArgumentList.Add(scope.ToString());
         }
-
-        return await Execute(run, scopes, cancellationToken);
+        return start;
     }
 
     static async Task<IResult> Execute(RunContext run, HashSet<SemanticId> scopes, CancellationToken cancellationToken)
     {
-        var (plan, modelPath, process, options, logger, _) = run;
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var directory = Path.Combine(Path.GetTempPath(), $"stage-specifications-{Guid.NewGuid():N}");
         var acquired = false;
@@ -61,42 +86,15 @@ internal static class SemanticSpecificationRuns
             // The execution budget starts once the gate is held; only the client can cancel queueing.
             await _processGate.WaitAsync(cancellationToken);
             acquired = true;
-            deadline.CancelAfter(options.Timeout);
+            deadline.CancelAfter(run.Options.Timeout);
             Directory.CreateDirectory(directory);
             var output = Path.Combine(directory, "results.json");
-            var start = new ProcessStartInfo("dotnet")
-            {
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                WorkingDirectory = directory,
-                CreateNoWindow = true
-            };
-            SemanticBodyWorkerHosting.AddRunnerArguments(start, [Path.GetFullPath(options.RunnerPath), "--engine", "semantic", "--model", Path.GetFullPath(modelPath), "--output", output, "--application", plan.Model.Application.Name, "--allow-refused-specifications", "true"], options.BodyWorker);
-            foreach (var scope in scopes)
-            {
-                start.ArgumentList.Add("--scope");
-                start.ArgumentList.Add(scope.ToString());
-            }
 
             // No live world, services or Chronicle transport reach the runner. Its report must match the
             // admitted plan revision, so changing disk sources after startup cannot produce a false pass.
-            var result = await process.Run(start, deadline.Token);
-            logger.SpecificationProcessFinished(result.ExitCode, result.Output, result.Error);
-            if (result.ExitCode != 0 || !File.Exists(output))
-            {
-                return Failure("The specification runner did not produce a completed report.");
-            }
-            if (new FileInfo(output).Length > 16 * 1024 * 1024)
-            {
-                return Failure("The specification report exceeds the size limit.");
-            }
-            var report = SemanticSpecificationRunReportFile.Read(await File.ReadAllTextAsync(output, deadline.Token));
-            if (!Valid(report, plan, scopes))
-            {
-                return Failure("The specification runner produced an invalid or mismatched report.");
-            }
-            return Results.Json(report, SemanticSpecificationRunReportFile.SerializerOptions);
+            var result = await run.Process.Run(RunnerStart(run, directory, output, scopes), deadline.Token);
+            run.Logger.SpecificationProcessFinished(result.ExitCode, result.Output, result.Error);
+            return await Report(run.Plan, scopes, (output, result.ExitCode), deadline.Token);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
@@ -104,7 +102,7 @@ internal static class SemanticSpecificationRuns
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException or Win32Exception)
         {
-            logger.SpecificationProcessFailed(exception);
+            run.Logger.SpecificationProcessFailed(exception);
             return Failure("The specification runner could not complete the run.");
         }
         finally
@@ -120,13 +118,59 @@ internal static class SemanticSpecificationRuns
         }
     }
 
+    static async Task<IResult> Report(SemanticExecutionPlan plan, HashSet<SemanticId> scopes, (string Output, int ExitCode) result, CancellationToken cancellationToken)
+    {
+        var (output, exitCode) = result;
+        if (exitCode != 0 || !File.Exists(output))
+        {
+            return Failure("The specification runner did not produce a completed report.");
+        }
+        if (new FileInfo(output).Length > 16 * 1024 * 1024)
+        {
+            return Failure("The specification report exceeds the size limit.");
+        }
+        var report = SemanticSpecificationRunReportFile.Read(await File.ReadAllTextAsync(output, cancellationToken));
+        return Valid(report, plan, scopes)
+            ? Results.Json(report, SemanticSpecificationRunReportFile.SerializerOptions)
+            : Failure("The specification runner produced an invalid or mismatched report.");
+    }
+
     static bool Valid(SemanticSpecificationRunReport? report, SemanticExecutionPlan plan, HashSet<SemanticId> scopes)
     {
-        if (report is null || report.SchemaVersion != "stage-spec-run/1" || report.ApplicationId != plan.Model.Application.Id.ToString() ||
-            report.SemanticRevision != plan.Revision.ToString() || report.Results is null)
-        {
-            return false;
-        }
+        if (report is null || !MatchesPlan(report, plan)) return false;
+        var expected = ExpectedSpecifications(plan, scopes);
+        if (report.Results.Any(record => record is null)) return false;
+        if (!ValidGraphRecords(report, plan, scopes)) return false;
+
+        var sliceRecords = report.Results.Where(record => record.SliceKind != GraphKind).ToArray();
+        return sliceRecords.Length == expected.Count && expected.SetEquals(sliceRecords.Select(record => record.SpecificationId)) &&
+            report.Results.All(ValidRecord);
+    }
+
+    static bool MatchesPlan(SemanticSpecificationRunReport report, SemanticExecutionPlan plan) =>
+        report.SchemaVersion == "stage-spec-run/1" && report.ApplicationId == plan.Model.Application.Id.ToString() &&
+        report.SemanticRevision == plan.Revision.ToString() && report.Results is not null;
+
+    static bool ValidRecord(SemanticSpecificationRunRecord record) =>
+        Enum.IsDefined(record.Outcome) && record.Failures is not null &&
+        (record.Outcome != SemanticSpecificationOutcome.Unsupported || record.Unsupported is { Details.Length: > 0 });
+
+    static bool ValidGraphRecords(SemanticSpecificationRunReport report, SemanticExecutionPlan plan, HashSet<SemanticId> scopes)
+    {
+        // A graph specification asserts the graph rather than a slice, so the reference graph runner reports it under its own identity. Each such
+        // record must be one the model declares and appear once; an unscoped run must report all of them. Which of them a scope selects is
+        // the runner's to decide, so a record is held to the model and not to a second copy of the selection.
+        var graphIdentities = plan.Model.Application.GraphSpecifications.IsDefaultOrEmpty
+            ? []
+            : plan.Model.Application.GraphSpecifications.Select(specification => $"{plan.Model.Application.Id}/{GraphKind}/{specification.Owner}/{specification.Name}").ToHashSet();
+        var graphRecords = report.Results.Where(record => record.SliceKind == GraphKind).ToArray();
+        return graphRecords.All(record => graphIdentities.Contains(record.SpecificationId)) &&
+            graphRecords.Select(record => record.SpecificationId).Distinct().Count() == graphRecords.Length &&
+            (scopes.Count != 0 || graphRecords.Length == graphIdentities.Count);
+    }
+
+    static HashSet<string> ExpectedSpecifications(SemanticExecutionPlan plan, HashSet<SemanticId> scopes)
+    {
         var known = new HashSet<SemanticId> { plan.Model.Application.Id };
         var expected = new HashSet<string>();
         foreach (var module in plan.Model.Application.Modules)
@@ -135,25 +179,7 @@ internal static class SemanticSpecificationRuns
             Select(module.Features, scopes.Count == 0 || scopes.Contains(plan.Model.Application.Id) || scopes.Contains(module.Id));
         }
         expected.UnionWith(scopes.Where(scope => !known.Contains(scope)).Select(scope => scope.ToString()));
-        if (report.Results.Any(record => record is null)) return false;
-
-        // A graph specification asserts the graph rather than a slice, so the reference graph runner reports it under its own identity. Each such
-        // record must be one the model declares and appear once; an unscoped run must report all of them. Which of them a scope selects is
-        // the runner's to decide, so a record is held to the model and not to a second copy of the selection.
-        var graphIdentities = plan.Model.Application.GraphSpecifications.IsDefaultOrEmpty
-            ? []
-            : plan.Model.Application.GraphSpecifications.Select(specification => $"{plan.Model.Application.Id}/{GraphKind}/{specification.Owner}/{specification.Name}").ToHashSet();
-        var graphRecords = report.Results.Where(record => record.SliceKind == GraphKind).ToArray();
-        if (graphRecords.Any(record => !graphIdentities.Contains(record.SpecificationId)) || graphRecords.Select(record => record.SpecificationId).Distinct().Count() != graphRecords.Length ||
-            (scopes.Count == 0 && graphRecords.Length != graphIdentities.Count))
-        {
-            return false;
-        }
-
-        var sliceRecords = report.Results.Where(record => record.SliceKind != GraphKind).ToArray();
-        return sliceRecords.Length == expected.Count && expected.SetEquals(sliceRecords.Select(record => record.SpecificationId)) &&
-            report.Results.All(record => Enum.IsDefined(record.Outcome) && record.Failures is not null &&
-                (record.Outcome != SemanticSpecificationOutcome.Unsupported || record.Unsupported is { Details.Length: > 0 }));
+        return expected;
 
         void Select(IEnumerable<SemanticFeature> features, bool inherited)
         {
@@ -163,13 +189,18 @@ internal static class SemanticSpecificationRuns
                 foreach (var slice in feature.Slices)
                 {
                     known.Add(slice.Id);
-                    foreach (var specification in slice.Specifications)
-                    {
-                        known.Add(specification.Id);
-                        if (inherited || scopes.Contains(feature.Id) || scopes.Contains(slice.Id) || scopes.Contains(specification.Id)) expected.Add(specification.Id.ToString());
-                    }
+                    SelectSpecifications(slice.Specifications, inherited || scopes.Contains(feature.Id) || scopes.Contains(slice.Id));
                 }
                 Select(feature.Features, inherited || scopes.Contains(feature.Id));
+            }
+        }
+
+        void SelectSpecifications(IEnumerable<SemanticSpecification> specifications, bool inherited)
+        {
+            foreach (var specification in specifications)
+            {
+                known.Add(specification.Id);
+                if (inherited || scopes.Contains(specification.Id)) expected.Add(specification.Id.ToString());
             }
         }
     }

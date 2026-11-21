@@ -36,17 +36,24 @@ public static partial class SemanticModelLoader
             DeserializeCatalog(await File.ReadAllBytesAsync(catalogPath), out state);
         if (state is not null && IsRootIdentityPath(Path.GetFullPath(root), Path.GetFullPath(catalogPath!)))
         {
-            var opened = LoadModelRoot(Path.GetFullPath(root), [.. files.Select(Path.GetFullPath)], isFolder ? [] : [Path.GetFullPath(path)], applicationName ?? state.ApplicationName, default, allowRefusedSpecifications);
-            if (!opened.Success) throw new InvalidSemanticModel([.. opened.Diagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).Select(diagnostic => diagnostic.Message)]) { Notes = opened.Notes };
-            return opened.Loaded!;
+            return OpenModelRoot(path, root, files, isFolder, applicationName ?? state.ApplicationName, allowRefusedSpecifications);
         }
         var documents = await ReadDocuments(root, files, state, catalog);
         return RequireCompilation(Compile(root, name, catalog, documents, default, allowRefusedSpecifications));
     }
 
+    static LoadedSemanticModel OpenModelRoot(string path, string root, string[] files, bool isFolder, string name, bool allowRefusedSpecifications)
+    {
+        var opened = LoadModelRoot(Path.GetFullPath(root), [.. files.Select(Path.GetFullPath)], isFolder ? [] : [Path.GetFullPath(path)], name, default, allowRefusedSpecifications);
+        if (!opened.Success) throw new InvalidSemanticModel([.. opened.Diagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).Select(diagnostic => diagnostic.Message)]) { Notes = opened.Notes };
+        return opened.Loaded!;
+    }
+
+    static bool IsPlayFile(string path) => File.Exists(path) && string.Equals(Path.GetExtension(path), ".play", StringComparison.OrdinalIgnoreCase);
+
     static string[] SourceFiles(string path, bool isFolder)
     {
-        if (!isFolder && (!File.Exists(path) || !string.Equals(Path.GetExtension(path), ".play", StringComparison.OrdinalIgnoreCase)))
+        if (!isFolder && !IsPlayFile(path))
         {
             throw new InvalidSemanticModel(["Supply an existing .play file or a directory containing .play files."]);
         }

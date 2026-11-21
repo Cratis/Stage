@@ -400,7 +400,7 @@ class RoutingTests(unittest.TestCase):
         for fragment in ("BUILD_SCOPE: ${{ needs.routing.outputs.build-scope }}",
                          "BUILD_PROJECTS: ${{ needs.routing.outputs.build-projects }}",
                          'if [ "$BUILD_SCOPE" = affected ]; then',
-                         'python3 .github/ci-routing.py write-slnf "$BUILD_PROJECTS" > "$RUNNER_TEMP/affected.slnf"'):
+                         'python3 -I "$CI_ROUTING_SCRIPT" write-slnf "$BUILD_PROJECTS" | node -e'):
             self.assertIn(fragment, analyzers)
             self.assertIn(fragment, producer)
         flags = "-p:TreatWarningsAsErrors=true -p:MSBuildTreatWarningsAsErrors=true -p:CodeAnalysisTreatWarningsAsErrors=true"
@@ -446,7 +446,7 @@ class RoutingTests(unittest.TestCase):
         for job in ("preflight", "dotnet-build", "frontend", "release-pack", "specs", "standalone-generated-application"):
             self.assertIn(f'"{job}": {{"result": "${{{{ needs.{job}.result }}}}"}}', JOBS["build"])
         self.assertIn('"routing": ${{ toJson(needs.routing) }}}', JOBS["build"])
-        self.assertIn("run: python3 .github/ci-routing.py check-build", JOBS["build"])
+        self.assertIn('run: python3 -I "$CI_ROUTING_SCRIPT" check-build', JOBS["build"])
         self.assertTrue(JOBS["routed-checks"].startswith("    needs: [routing, reducer-mongo, generated-name-matrix, live-custom-packages, generated-react, generated-react-blueprint-templates]\n"))
         self.assertTrue(JOBS["generated-react"].startswith(gate + "\n      && needs.routing.outputs.generated-react == 'true'\n    runs-on:"), "generated-react")
         self.assertTrue(

@@ -51,6 +51,7 @@ on:
       - ".github/test_spec_shards.py"
       - ".github/ci-routing.py"
       - ".github/test_ci_routing.py"
+      - ".github/test_ci_routing_provenance.py"
       - ".github/reducer-mongo-disk.py"
       - ".github/test_reducer_mongo_disk.py"
       - ".github/workflows/warm-nuget-cache.yml"
@@ -87,6 +88,31 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
+
+      # Policy and decision tools come from base; cwd remains the PR checkout for diff data.
+      - name: Checkout routing tools
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: gate-tools
+          persist-credentials: false
+
+      - name: Select routing tools
+        run: |
+          script=.github/ci-routing.py
+          revision=$(git rev-parse HEAD)
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            if [ -f gate-tools/.github/ci-routing.py ]; then
+              script=gate-tools/.github/ci-routing.py
+              revision=$(git -C gate-tools rev-parse HEAD)
+            else
+              echo "::notice::Bootstrap: base has no ci-routing.py; using head routing tools."
+            fi
+          fi
+          echo "CI routing tools revision: $revision ($script)"
+          echo "CI_ROUTING_SCRIPT=$script" >> "$GITHUB_ENV"
 
       - name: Select lanes from the PR merge-base diff or full-run event
         id: routes
@@ -95,7 +121,7 @@ jobs:
           # Enable only after 5 consecutive green scheduled nightlies with the alert fix live.
           # Unset/false preserves both always-on lanes; ci:full and manual/nightly runs stay full.
           STAGE_ROUTE_ALWAYS_ON_LANES: ${{ vars.STAGE_ROUTE_ALWAYS_ON_LANES }}
-        run: python3 .github/ci-routing.py route
+        run: python3 -I "$CI_ROUTING_SCRIPT" route
 
   preflight:
     if: ${{ needs.routing.outputs.skip != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
@@ -105,6 +131,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Verify Host kernel and client compatibility pins
         run: python3 Verification/verify-runtime-compatibility.py --self-test
@@ -119,6 +147,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Verify spec shard routing and guards
         run: python3 -B -m unittest discover -s .github -p 'test_*.py'
@@ -138,6 +168,46 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Checkout routing tools
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: gate-tools
+          persist-credentials: false
+
+      - name: Select routing tools
+        run: |
+          script=.github/ci-routing.py
+          revision=$(git rev-parse HEAD)
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            if [ -f gate-tools/.github/ci-routing.py ]; then
+              script=gate-tools/.github/ci-routing.py
+              revision=$(git -C gate-tools rev-parse HEAD)
+            else
+              echo "::notice::Bootstrap: base has no ci-routing.py; using head routing tools."
+            fi
+          fi
+          echo "CI routing tools revision: $revision ($script)"
+          echo "CI_ROUTING_SCRIPT=$script" >> "$GITHUB_ENV"
+
+      # Validate selection before running PR build inputs; only the solution location is rebased.
+      - name: Write affected solution filter
+        if: needs.routing.outputs.build-scope == 'affected'
+        shell: bash
+        env:
+          BUILD_PROJECTS: ${{ needs.routing.outputs.build-projects }}
+        run: |
+          python3 -I "$CI_ROUTING_SCRIPT" write-slnf "$BUILD_PROJECTS" | node -e '
+            const fs = require("node:fs");
+            const path = require("node:path");
+            const filter = JSON.parse(fs.readFileSync(0, "utf8"));
+            filter.solution.path = path.join(process.env.GITHUB_WORKSPACE, "Stage.slnx");
+            process.stdout.write(JSON.stringify(filter));
+          ' > "$RUNNER_TEMP/affected.slnf"
 
       - name: Setup .Net
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
@@ -156,10 +226,8 @@ jobs:
       - name: Build Debug
         env:
           BUILD_SCOPE: ${{ needs.routing.outputs.build-scope }}
-          BUILD_PROJECTS: ${{ needs.routing.outputs.build-projects }}
         run: |
           if [ "$BUILD_SCOPE" = affected ]; then
-            python3 .github/ci-routing.py write-slnf "$BUILD_PROJECTS" > "$RUNNER_TEMP/affected.slnf"
             dotnet build "$RUNNER_TEMP/affected.slnf" --configuration Debug -p:RunAnalyzers=false -p:EnforceCodeStyleInBuild=false
           else
             dotnet build --configuration Debug -p:RunAnalyzers=false -p:EnforceCodeStyleInBuild=false
@@ -211,6 +279,46 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Checkout routing tools
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: gate-tools
+          persist-credentials: false
+
+      - name: Select routing tools
+        run: |
+          script=.github/ci-routing.py
+          revision=$(git rev-parse HEAD)
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            if [ -f gate-tools/.github/ci-routing.py ]; then
+              script=gate-tools/.github/ci-routing.py
+              revision=$(git -C gate-tools rev-parse HEAD)
+            else
+              echo "::notice::Bootstrap: base has no ci-routing.py; using head routing tools."
+            fi
+          fi
+          echo "CI routing tools revision: $revision ($script)"
+          echo "CI_ROUTING_SCRIPT=$script" >> "$GITHUB_ENV"
+
+      # Validate selection before running PR build inputs; only the solution location is rebased.
+      - name: Write affected solution filter
+        if: needs.routing.outputs.build-scope == 'affected'
+        shell: bash
+        env:
+          BUILD_PROJECTS: ${{ needs.routing.outputs.build-projects }}
+        run: |
+          python3 -I "$CI_ROUTING_SCRIPT" write-slnf "$BUILD_PROJECTS" | node -e '
+            const fs = require("node:fs");
+            const path = require("node:path");
+            const filter = JSON.parse(fs.readFileSync(0, "utf8"));
+            filter.solution.path = path.join(process.env.GITHUB_WORKSPACE, "Stage.slnx");
+            process.stdout.write(JSON.stringify(filter));
+          ' > "$RUNNER_TEMP/affected.slnf"
 
       - name: Setup .Net
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
@@ -226,10 +334,8 @@ jobs:
       - name: Build Debug with analyzers
         env:
           BUILD_SCOPE: ${{ needs.routing.outputs.build-scope }}
-          BUILD_PROJECTS: ${{ needs.routing.outputs.build-projects }}
         run: |
           if [ "$BUILD_SCOPE" = affected ]; then
-            python3 .github/ci-routing.py write-slnf "$BUILD_PROJECTS" > "$RUNNER_TEMP/affected.slnf"
             dotnet build "$RUNNER_TEMP/affected.slnf" --configuration Debug -p:TreatWarningsAsErrors=true -p:MSBuildTreatWarningsAsErrors=true -p:CodeAnalysisTreatWarningsAsErrors=true
           else
             dotnet build --configuration Debug -p:TreatWarningsAsErrors=true -p:MSBuildTreatWarningsAsErrors=true -p:CodeAnalysisTreatWarningsAsErrors=true
@@ -244,6 +350,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -274,6 +382,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup .Net
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
@@ -315,6 +425,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup .Net
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
@@ -385,7 +497,32 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Checkout routing tools
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: gate-tools
+          persist-credentials: false
+
+      - name: Select routing tools
+        run: |
+          script=.github/ci-routing.py
+          revision=$(git rev-parse HEAD)
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            if [ -f gate-tools/.github/ci-routing.py ]; then
+              script=gate-tools/.github/ci-routing.py
+              revision=$(git -C gate-tools rev-parse HEAD)
+            else
+              echo "::notice::Bootstrap: base has no ci-routing.py; using head routing tools."
+            fi
+          fi
+          echo "CI routing tools revision: $revision ($script)"
+          echo "CI_ROUTING_SCRIPT=$script" >> "$GITHUB_ENV"
 
       - name: Require preflight, CI scripts, build, analyzers, every spec shard and the selected standalone application spec to succeed
         if: needs.routing.outputs.standalone-generated-application == 'true'
@@ -415,7 +552,7 @@ jobs:
             "specs": {"result": "${{ needs.specs.result }}"},
             "standalone-generated-application": {"result": "${{ needs.standalone-generated-application.result }}"},
             "routing": ${{ toJson(needs.routing) }}}
-        run: python3 .github/ci-routing.py check-build
+        run: python3 -I "$CI_ROUTING_SCRIPT" check-build
 
   # Live persistence is a separate gate: the ordinary Debug suite skips live execution of these probes
   # without a connection. The pinned development kernel includes MongoDB, unlike Stage's in-memory Host.
@@ -491,6 +628,8 @@ jobs:
 
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Verify scratch survived checkout
         run: python3 -B .github/reducer-mongo-disk.py verify-temp
@@ -796,6 +935,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup .Net
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
@@ -849,6 +990,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup .Net
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
@@ -978,6 +1121,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup .Net
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
@@ -1062,6 +1207,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup .Net
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
@@ -1153,6 +1300,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup .Net
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
@@ -1238,11 +1387,36 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Checkout routing tools
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: gate-tools
+          persist-credentials: false
+
+      - name: Select routing tools
+        run: |
+          script=.github/ci-routing.py
+          revision=$(git rev-parse HEAD)
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            if [ -f gate-tools/.github/ci-routing.py ]; then
+              script=gate-tools/.github/ci-routing.py
+              revision=$(git -C gate-tools rev-parse HEAD)
+            else
+              echo "::notice::Bootstrap: base has no ci-routing.py; using head routing tools."
+            fi
+          fi
+          echo "CI routing tools revision: $revision ($script)"
+          echo "CI_ROUTING_SCRIPT=$script" >> "$GITHUB_ENV"
 
       - name: Require every selected lane to succeed
         env:
           NEEDS_JSON: ${{ toJson(needs) }}
-        run: python3 .github/ci-routing.py check
+        run: python3 -I "$CI_ROUTING_SCRIPT" check
 
   nightly-red:
     needs: [routing, build, routed-checks]
@@ -1258,6 +1432,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Open or update the red-nightly issue with the last-green merge range
         env:

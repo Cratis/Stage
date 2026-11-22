@@ -30,16 +30,6 @@ internal static class SemanticProductionSelection
         return [.. command.Produces.Where(produced => produced.When is null || Holds(produced.When, inputs, (dateTypes, clock)))];
     }
 
-    static bool IsUnconditional(SemanticCommand command) => command.Produces.All(produced => produced.When is null);
-
-    static IEnumerable<SemanticCondition> Conditions(SemanticCommand command) => command.Produces.Select(produced => produced.When).OfType<SemanticCondition>();
-
-    static bool HasReadCondition(SemanticCommand command) => Conditions(command).Any(ReadsView);
-
-    static bool ClockRequiresAdmission(SemanticApplication application, SemanticCommand command, DateTimeOffset? clock) =>
-        Conditions(command).Any(SemanticCommandClockSupport.Uses) &&
-        (clock is null || !SemanticCommandClockSupport.Supports(application, command));
-
     // A condition over a protected read is refused by admission, which reports it; selection must not fail before that.
     internal static bool ReadsView(SemanticCondition condition) => condition switch
     {
@@ -54,6 +44,16 @@ internal static class SemanticProductionSelection
         SemanticComparison comparison => new[] { comparison.Left, comparison.Right }.Where(operand => operand.Clock is null && operand.Property.IsSet).Select(operand => operand.Property),
         _ => throw UnsupportedSemanticRendering.For(nameof(SemanticCondition), condition.GetType().Name)
     };
+
+    static bool IsUnconditional(SemanticCommand command) => command.Produces.All(produced => produced.When is null);
+
+    static IEnumerable<SemanticCondition> Conditions(SemanticCommand command) => command.Produces.Select(produced => produced.When).OfType<SemanticCondition>();
+
+    static bool HasReadCondition(SemanticCommand command) => Conditions(command).Any(ReadsView);
+
+    static bool ClockRequiresAdmission(SemanticApplication application, SemanticCommand command, DateTimeOffset? clock) =>
+        Conditions(command).Any(SemanticCommandClockSupport.Uses) &&
+        (clock is null || !SemanticCommandClockSupport.Supports(application, command));
 
     static bool Holds(SemanticCondition condition, IReadOnlyDictionary<SemanticId, SemanticValue> values, (IReadOnlyDictionary<SemanticId, SemanticPrimitiveType> Dates, DateTimeOffset? Clock) inputs) => condition switch
     {

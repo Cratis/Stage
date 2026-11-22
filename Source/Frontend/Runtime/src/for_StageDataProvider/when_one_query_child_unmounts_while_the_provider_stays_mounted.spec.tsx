@@ -13,16 +13,17 @@ vi.mock('../queryExecutor', () => ({
     subscribeQuery: () => undefined,
 }));
 
-const paths = ['query.Orders', 'query.Products', 'query.Basket'];
+const paths = ['query.Orders', 'query.Products'];
 
 describe('when one query child unmounts while the provider stays mounted', () => {
     async function mounted() {
         const view = renderUnderProvider(<>
-            <Publisher key='orders' scope='orders' name='Orders' alias='query.Basket' list value='order' />
+            <Publisher key='orders' scope='orders' name='Orders' alias='Basket' list value='order' />
             <Publisher key='products' scope='products' name='Products' value='product' />
             <Probe paths={paths} />
         </>);
         await waitFor(() => resolved('scopes').should.equal('orders,products'));
+        resolved('results').should.include('Basket');
         return view;
     }
 
@@ -40,7 +41,7 @@ describe('when one query child unmounts while the provider stays mounted', () =>
         view.rerenderUnderProvider(<><Publisher key='products' scope='products' name='Products' value='product' /><Probe paths={paths} /></>);
 
         await waitFor(() => resolved('query.Orders').should.equal('null'));
-        resolved('query.Basket').should.equal('null');
+        resolved('results').should.not.include('Basket');
     });
 
     it('should leave an unrelated publisher resolving', async () => {

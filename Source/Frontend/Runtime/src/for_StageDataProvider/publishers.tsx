@@ -3,7 +3,7 @@
 
 import { render, screen } from '@testing-library/react';
 import { PrimeReactProvider } from '@primereact/core';
-import type React from 'react';
+import React from 'react';
 import { StageDataProvider, useStageData, useStageQuery, type StageQueryRequest } from '../stageData';
 
 /** What the specs' faked query executor answers with: one row carrying the `value` argument it was asked for. */
@@ -19,6 +19,7 @@ export function Publisher({ value, ...request }: Omit<StageQueryRequest, 'argume
 export function Probe({ paths }: { paths: string[] }) {
     const data = useStageData();
     return <>
+        <output aria-label='results'>{Object.keys(data.queryResults).sort().join(',')}</output>
         <output aria-label='scopes'>{Object.keys(data.queries).sort().join(',')}</output>
         {paths.map(path => <output key={path} aria-label={path}>{JSON.stringify(data.resolveBinding({ path }) ?? null)}</output>)}
     </>;
@@ -26,10 +27,11 @@ export function Probe({ paths }: { paths: string[] }) {
 
 export const resolved = (label: string) => screen.getByLabelText(label).textContent ?? '';
 
-export function renderUnderProvider(ui: React.ReactElement) {
-    const tree = (children: React.ReactElement) => <PrimeReactProvider>
+export function renderUnderProvider(ui: React.ReactElement, strict = false) {
+    const Mode = strict ? React.StrictMode : React.Fragment;
+    const tree = (children: React.ReactElement) => <Mode><PrimeReactProvider>
         <StageDataProvider routes={{ commands: {}, queries: {} }} locale='en' locales={['en']} screen='Products'>{children}</StageDataProvider>
-    </PrimeReactProvider>;
+    </PrimeReactProvider></Mode>;
     const view = render(tree(ui));
     return { ...view, rerenderUnderProvider: (next: React.ReactElement) => view.rerender(tree(next)) };
 }

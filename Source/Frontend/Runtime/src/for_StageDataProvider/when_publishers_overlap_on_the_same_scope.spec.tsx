@@ -13,28 +13,36 @@ vi.mock('../queryExecutor', () => ({
     subscribeQuery: () => undefined,
 }));
 
+const probe = <Probe paths={['query.Shared.value']} />;
+const older = <Publisher key='older' scope='shared' name='Shared' value='older' />;
+const newer = <Publisher key='newer' scope='shared' name='Shared' value='newer' />;
+
 describe('when publishers overlap on the same scope', () => {
-    async function handedOver() {
-        const view = renderUnderProvider(<><Publisher key='older' scope='shared' name='Shared' value='older' /><Probe paths={['query.Shared.value']} /></>);
+    async function olderUnmounted() {
+        const view = renderUnderProvider(<>{older}{probe}</>);
         await waitFor(() => resolved('query.Shared.value').should.equal('"older"'));
 
-        // The newer publisher mounts and publishes before the older one's cleanup runs.
-        view.rerenderUnderProvider(<><Publisher key='newer' scope='shared' name='Shared' value='newer' /><Probe paths={['query.Shared.value']} /></>);
+        // Both are mounted; the newer one's publication replaces the older one's registration.
+        view.rerenderUnderProvider(<>{older}{newer}{probe}</>);
+        await waitFor(() => resolved('query.Shared.value').should.equal('"newer"'));
+
+        // Only the older one goes away: its stale cleanup must not take the newer result with it.
+        view.rerenderUnderProvider(<>{newer}{probe}</>);
         return view;
     }
 
-    it('should keep the newer publisher registered after the older one is cleaned up', async () => {
-        await handedOver();
+    it('should keep the newer publisher registered after the older one unmounts', async () => {
+        await olderUnmounted();
 
-        await waitFor(() => resolved('query.Shared.value').should.equal('"newer"'));
+        await new Promise(resolve => setTimeout(resolve, 50));
         resolved('scopes').should.equal('shared');
+        resolved('query.Shared.value').should.equal('"newer"');
     });
 
-    it('should withdraw it when the newer publisher unmounts', async () => {
-        const view = await handedOver();
-        await waitFor(() => resolved('query.Shared.value').should.equal('"newer"'));
+    it('should withdraw it when the newer publisher unmounts too', async () => {
+        const view = await olderUnmounted();
 
-        view.rerenderUnderProvider(<Probe paths={['query.Shared.value']} />);
+        view.rerenderUnderProvider(probe);
 
         await waitFor(() => resolved('scopes').should.equal(''));
     });

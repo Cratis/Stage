@@ -13,10 +13,10 @@ vi.mock('../queryExecutor', () => ({
     subscribeQuery: () => undefined,
 }));
 
-const paths = ['query.Orders', 'query.Basket', 'value', 'query.Invoices'];
+const paths = ['query.Orders', 'value', 'query.Invoices'];
 
 const ordersScreen = <>
-    <Publisher key='orders' scope='orders' name='Orders' alias='query.Basket' list value='order' />
+    <Publisher key='orders' scope='orders' name='Orders' alias='Basket' list value='order' />
     <Publisher key='unnamed' scope='unnamed' value='row' />
     <Probe paths={paths} />
 </>;
@@ -29,6 +29,7 @@ describe('when navigating between screens under the same provider', () => {
     async function navigated() {
         const view = renderUnderProvider(ordersScreen);
         await waitFor(() => resolved('scopes').should.equal('orders,unnamed'));
+        resolved('results').should.include('Basket');
         view.rerenderUnderProvider(invoicesScreen);
         await waitFor(() => resolved('scopes').should.equal('invoices'));
     }
@@ -37,7 +38,7 @@ describe('when navigating between screens under the same provider', () => {
         await navigated();
 
         resolved('query.Orders').should.equal('null');
-        resolved('query.Basket').should.equal('null');
+        resolved('results').should.not.include('Basket');
     });
 
     it('should no longer resolve the previous screen\'s unnamed binding', async () => {

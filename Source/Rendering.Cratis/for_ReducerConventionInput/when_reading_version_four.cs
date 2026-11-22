@@ -44,7 +44,7 @@ public class when_reading_version_four
     [InlineData(/* lang=json */ "{\"version\":4,\"application\":\"Projects\",\"reducerConvention\":\"self\",\"projectionConvention\":\"fluent\"}")]
     [InlineData(/* lang=json */ "{\"version\":4,\"application\":\"Projects\",\"reducerConvention\":\"self\"}")]
     [InlineData(/* lang=json */ "{\"version\":4,\"application\":\"Projects\",\"reducerConvention\":\"self\",\"projectionConvention\":\"model-bound\",\"readModels\":[]}")]
-    [InlineData(/* lang=json */ "{\"version\":5,\"application\":\"Projects\",\"reducerConvention\":\"self\",\"projectionConvention\":\"model-bound\"}")]
+    [InlineData(/* lang=json */ "{\"version\":6,\"application\":\"Projects\",\"reducerConvention\":\"self\",\"projectionConvention\":\"model-bound\"}")]
     public void should_refuse_other_configurations(string json) =>
         Assert.Throws<InvalidArtifactRenderContract>(() => ReducerConventionInput.Read("Projects", json));
 
@@ -60,15 +60,6 @@ public class when_reading_version_four
         Assert.True(ReducerConventionInput.TryParse(json, "Projects", out var convention));
         Assert.Equal(projections, convention.ModelBoundProjections);
         Assert.Equal(operations, convention.ModelBoundOperations);
-    }
-
-    [Fact]
-    public void should_be_selected_for_new_applications()
-    {
-        var profile = CratisRendering.CreateNewApplicationProfile("Projects", new("Projects", "Projects"));
-        Assert.Equal("4", profile.Inputs.Single(input => input.Name == ReducerConventionInput.Name).Version);
-        Assert.True(ReducerConventionInput.TryRead(profile, "Projects", out var created));
-        Assert.True(created.ModelBoundOperations);
     }
 
     static string Text(ArtifactRenderInput input) => Encoding.UTF8.GetString(input.Bytes.AsSpan());

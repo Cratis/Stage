@@ -25,6 +25,11 @@ internal sealed record ReducerConvention(bool SelfDefault, ImmutableDictionary<S
     /// </summary>
     internal bool ModelBoundOperations { get; init; }
 
+    /// <summary>
+    /// Gets whether flat scoped projections use the version-five attribute capability set.
+    /// </summary>
+    internal bool ModelBoundFlatScopes { get; init; }
+
     internal bool SelfReduces(SemanticId readModel) => SelfDefault || Overrides.ContainsKey(readModel);
 
     internal string? PinnedObserverId(SemanticId readModel) => Overrides.TryGetValue(readModel, out var pinned) ? pinned.ObserverId : null;

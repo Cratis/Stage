@@ -16,7 +16,7 @@ public class when_rendering_version_four_without_new_operators
     public void should_render_flat_projections_as_version_three_does()
     {
         var versionThree = when_rendering_model_bound_projections.Code(when_rendering_model_bound_projections.Plan(when_rendering_model_bound_projections.Source, when_rendering_model_bound_running_totals.VersionThree()));
-        var versionFour = when_rendering_model_bound_projections.Code(when_rendering_model_bound_projections.Plan(when_rendering_model_bound_projections.Source, true));
+        var versionFour = when_rendering_model_bound_projections.Code(when_rendering_model_bound_projections.Plan(when_rendering_model_bound_projections.Source, when_rendering_model_bound_running_totals.VersionFour()));
         Assert.Equal(versionThree, versionFour);
     }
 
@@ -25,7 +25,7 @@ public class when_rendering_version_four_without_new_operators
     {
         const string source = when_rendering_scoped_projections.ScopedSource;
         var versionThree = when_rendering_model_bound_projections.Plan(source, when_rendering_model_bound_running_totals.VersionThree());
-        var versionFour = when_rendering_model_bound_projections.Plan(source, true);
+        var versionFour = when_rendering_model_bound_projections.Plan(source, when_rendering_model_bound_running_totals.VersionFour());
         Assert.True(versionThree.Success && versionFour.Success);
         Assert.Equal(Describe(versionThree), Describe(versionFour));
     }

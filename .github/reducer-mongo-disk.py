@@ -32,9 +32,7 @@ def scratch_boundary(env):
     runner = Path(env["RUNNER_TEMP"]).resolve(strict=True)
     workspace = Path(env["GITHUB_WORKSPACE"]).resolve()
     scratch = Path(env["TMPDIR"])
-    if runner.is_relative_to(workspace):
-        raise RuntimeError("Scratch must be a private RUNNER_TEMP child outside checkout.")
-    if scratch.is_symlink() or not scratch.is_absolute():
+    if runner.is_relative_to(workspace) or scratch.is_symlink() or not scratch.is_absolute():
         raise RuntimeError("Scratch must be a private RUNNER_TEMP child outside checkout.")
     if scratch.resolve(strict=True).parent != runner or not scratch.name.startswith("stage342-tmp."):
         raise RuntimeError("Scratch must be a private RUNNER_TEMP child outside checkout.")
@@ -62,15 +60,20 @@ def verify_temp(env):
     return scratch
 
 
+def record_nuget_path(line, paths):
+    name, separator, path = line.partition(": ")
+    if separator and name in ("global-packages", "http-cache", "temp", "plugins-cache"):
+        if name in paths or not Path(path).is_absolute():
+            raise RuntimeError("Ambiguous NuGet writable path evidence.")
+        paths[name] = path
+
+
 def nuget_locations():
-    output = checked(["dotnet", "nuget", "locals", "all", "--list", "--force-english-output"])
+    # A cold SDK can take longer than the filesystem probes; keep the wait bounded.
+    output = checked(["dotnet", "nuget", "locals", "all", "--list", "--force-english-output"], timeout=60)
     paths = {}
     for line in output.splitlines():
-        name, separator, path = line.partition(": ")
-        if separator and name in ("global-packages", "http-cache", "temp", "plugins-cache"):
-            if name in paths or not Path(path).is_absolute():
-                raise RuntimeError("Ambiguous NuGet writable path evidence.")
-            paths[name] = path
+        record_nuget_path(line, paths)
     if set(paths) != {"global-packages", "http-cache", "temp", "plugins-cache"}:
         raise RuntimeError("Incomplete resolved NuGet writable path evidence.")
     return paths
@@ -140,7 +143,9 @@ def container_locations(kernel):
 def capacity(domain, path, target, row):
     fsid, fragment, available, total = row.split()
     fragment, available, total = int(fragment), int(available), int(total)
-    if int(fsid, 16) == 0 or fragment <= 0 or not 0 <= available <= total or total <= 0:
+    if int(fsid, 16) == 0 or fragment <= 0:
+        raise RuntimeError("Invalid filesystem capacity/identity evidence.")
+    if not 0 <= available <= total or total <= 0:
         raise RuntimeError("Invalid filesystem capacity/identity evidence.")
     return f"{domain}:{path}:{target}:{fsid}:{fragment}:{total}", available * fragment
 

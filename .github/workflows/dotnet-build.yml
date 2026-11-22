@@ -66,6 +66,7 @@ jobs:
       pull-requests: read
       actions: read
     outputs:
+      default-tools-revision: ${{ steps.default-tools.outputs.revision }}
       skip: ${{ steps.already-ran.outputs.skip }}
       reducer-mongo: ${{ steps.routes.outputs.reducer-mongo }}
       live-custom-packages: ${{ steps.routes.outputs.live-custom-packages }}
@@ -90,17 +91,37 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # Pin the fallback once so later jobs cannot observe a different default-branch head.
+      - name: Resolve default-branch routing revision
+        id: default-tools
+        shell: bash
+        env:
+          CI_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          git check-ref-format "refs/heads/$CI_DEFAULT_BRANCH"
+          if ! revision=$(GIT_TERMINAL_PROMPT=0 git -c credential.helper= -c http.extraheader= ls-remote --refs origin "refs/heads/$CI_DEFAULT_BRANCH" | awk -v ref="refs/heads/$CI_DEFAULT_BRANCH" '$2 == ref { print $1 }'); then
+            echo "::error::Cannot resolve default-branch routing tools (.github/ci-routing.py)"
+            exit 1
+          fi
+          if [[ ! "$revision" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::No default-branch revision provides .github/ci-routing.py"
+            exit 1
+          fi
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
+
       # Policy stays outside the workspace; cwd remains the PR checkout for diff data.
       - name: Select routing tools
         shell: bash
         env:
           CI_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           CI_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          CI_DEFAULT_SHA: ${{ steps.default-tools.outputs.revision }}
           CI_TOOLS_COMMAND: route
         run: &select-routing-tools |
           set -euo pipefail
           fetch_revision() {
-            GIT_TERMINAL_PROMPT=0 git -c credential.helper= -c http.extraheader= fetch --no-tags origin "$1"
+            GIT_TERMINAL_PROMPT=0 git -c credential.helper= -c http.extraheader= fetch --depth=1 --no-tags origin "$1"
           }
           has_tools() {
             if ! git cat-file -e "$1^{commit}" 2>/dev/null; then
@@ -135,11 +156,7 @@ jobs:
           fi
           if [ -z "$revision" ]; then
             source="default branch $CI_DEFAULT_BRANCH"
-            git check-ref-format "refs/heads/$CI_DEFAULT_BRANCH"
-            if ! revision=$(GIT_TERMINAL_PROMPT=0 git -c credential.helper= -c http.extraheader= ls-remote origin "refs/heads/$CI_DEFAULT_BRANCH" | cut -f1); then
-              echo "::error::Cannot resolve default-branch routing tools (.github/ci-routing.py)"
-              exit 1
-            fi
+            revision=$CI_DEFAULT_SHA
             if [[ ! "$revision" =~ ^[0-9a-f]{40}$ ]]; then
               echo "::error::No default-branch revision provides .github/ci-routing.py"
               exit 1
@@ -150,7 +167,11 @@ jobs:
             fi
           fi
           tools=$(mktemp -d "$RUNNER_TEMP/gate-tools.XXXXXX")
-          git archive "$revision" | tar -x -C "$tools"
+          # Read raw blobs: archive/checkout attributes must not omit or rewrite trusted policy.
+          git ls-tree -r -z --name-only "$revision" | while IFS= read -r -d '' path; do
+            mkdir -p "$tools/$(dirname -- "$path")"
+            git cat-file blob "$revision:$path" > "$tools/$path"
+          done
           echo "CI routing tools revision: $revision ($source)"
           echo "CI_ROUTING_SCRIPT=$tools/.github/ci-routing.py" >> "$GITHUB_ENV"
 
@@ -216,6 +237,7 @@ jobs:
         env:
           CI_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           CI_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          CI_DEFAULT_SHA: ${{ needs.routing.outputs.default-tools-revision }}
           CI_TOOLS_COMMAND: write-slnf
         run: *select-routing-tools
 
@@ -312,6 +334,7 @@ jobs:
         env:
           CI_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           CI_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          CI_DEFAULT_SHA: ${{ needs.routing.outputs.default-tools-revision }}
           CI_TOOLS_COMMAND: write-slnf
         run: *select-routing-tools
 
@@ -516,6 +539,7 @@ jobs:
         env:
           CI_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           CI_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          CI_DEFAULT_SHA: ${{ needs.routing.outputs.default-tools-revision }}
           CI_TOOLS_COMMAND: check-build
         run: *select-routing-tools
 
@@ -1390,6 +1414,7 @@ jobs:
         env:
           CI_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           CI_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          CI_DEFAULT_SHA: ${{ needs.routing.outputs.default-tools-revision }}
           CI_TOOLS_COMMAND: check
         run: *select-routing-tools
 

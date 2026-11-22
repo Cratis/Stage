@@ -48,9 +48,12 @@ public sealed partial class ArtifactRenderPlan
     public ArtifactRenderPlan WithPlanEvidence(ImmutableArray<ArtifactRenderDegradation> evidence) =>
         ApplyAcceptance(Degradations, Strict, Inventory, ArtifactRenderDegradation.Normalize(evidence, GenerationDiagnostics));
 
+    ImmutableArray<ArtifactRenderDegradation> RetainExclusionEvidence(ImmutableArray<ArtifactRenderDegradation> evidence) =>
+        ExclusionEvidence.IsEmpty ? evidence : ArtifactRenderDegradation.Normalize([.. evidence.Concat(ExclusionEvidence).Distinct()], GenerationDiagnostics);
+
     ArtifactRenderPlan ApplyAcceptance(ImmutableArray<ArtifactRenderDegradation> degradations, bool strict, ArtifactRenderInventory? inventory, ImmutableArray<ArtifactRenderDegradation>? planEvidence = null, ArtifactRenderInputProvenance? provenance = null)
     {
-        var retained = ArtifactRenderDegradation.Normalize([.. (planEvidence ?? PlanEvidence).Concat(ExclusionEvidence).Distinct()], GenerationDiagnostics);
+        var retained = RetainExclusionEvidence(planEvidence ?? PlanEvidence);
         var original = GenerationDiagnostics;
         var normalized = ArtifactRenderDegradation.Normalize(degradations, original);
         if (inventory is not null && !normalized.ToHashSet().SetEquals(inventory.Evidence)) throw new InvalidArtifactRenderContract("Acceptance evidence must agree with the attached inventory.");

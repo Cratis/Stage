@@ -20,6 +20,9 @@ internal static partial class SemanticCommandClockAdmission
 
     static readonly string[] _applicationMembers = ["SemanticApplication.TimeZone", "SemanticTimeZone.Id", "SemanticTimeZone.Configurable"];
 
+    [GeneratedRegex(@"\.Commands\[(?<index>[0-9]+)\]", RegexOptions.ExplicitCapture | RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex CommandSegment { get; }
+
     internal static EsmSupportStanding Known(EsmSupportStanding standing, ExecutableSemanticModel model) =>
         standing with { UnknownMembers = [.. standing.UnknownMembers.Where(member => !Admits(model, member))] };
 
@@ -38,7 +41,4 @@ internal static partial class SemanticCommandClockAdmission
         var slice = SemanticVersionFeatures.Slices(application).FirstOrDefault(candidate => candidate.Id == member.Owner);
         return slice?.Commands.ElementAtOrDefault(int.Parse(match.Groups["index"].Value, CultureInfo.InvariantCulture));
     }
-
-    [GeneratedRegex(@"\.Commands\[(?<index>[0-9]+)\]", RegexOptions.ExplicitCapture | RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
-    private static partial Regex CommandSegment { get; }
 }

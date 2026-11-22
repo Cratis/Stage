@@ -162,7 +162,7 @@ public class when_rendering_utc_now
         var command = Conditional(context);
         var specification = Fixture(command, "2026-01-02T00:00:00.0000000Z") with { GivenClock = null };
         SemanticProductionSelection.Taken(context.Application, command, specification).ShouldEqual(command.Produces);
-        SemanticOpaqueBodyDependencies.Rejection(context, specification)!.ShouldContain("given clock");
+        SemanticOpaqueBodyDependencies.Rejection(context, specification).ShouldContain("given clock");
     }
 
     [Fact]

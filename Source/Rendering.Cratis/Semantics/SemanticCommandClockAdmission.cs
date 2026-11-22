@@ -42,6 +42,6 @@ internal static partial class SemanticCommandClockAdmission
         return slice?.Commands.ElementAtOrDefault(int.Parse(match.Groups["index"].Value, CultureInfo.InvariantCulture));
     }
 
-    [GeneratedRegex(@"\.Commands\[(?<index>[0-9]+)\]", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"\.Commands\[(?<index>[0-9]+)\]", RegexOptions.ExplicitCapture | RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
     private static partial Regex CommandSegment();
 }

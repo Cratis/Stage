@@ -15,6 +15,36 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticCommandClockRender
 
 public class when_rendering_utc_now
 {
+    static readonly Dictionary<ProductionCase, (string Condition, string At, bool Taken)> _productionCases = new()
+    {
+        [ProductionCase.EquivalentOffset] = ("at == now", "2026-01-01T19:00:00.0000000-05:00", true),
+        [ProductionCase.BeforeLowerBound] = ("at >= now", "2026-01-01T23:59:59.9999999Z", false),
+        [ProductionCase.OneTickBefore] = ("at < now", "2026-01-01T23:59:59.9999999Z", true),
+        [ProductionCase.ClockOnLeft] = ("now < at", "2026-01-02T00:00:00.0000001Z", true),
+        [ProductionCase.Conjunction] = ("at >= now and at < now + 1 minute", "2026-01-02T00:00:59.9999999Z", true),
+        [ProductionCase.Disjunction] = ("at < now or at > now + 1 hour", "2026-01-02T01:00:00.0000000Z", false),
+        [ProductionCase.NegativeDay] = ("at <= now - 1 day", "2026-01-01T00:00:00.0000000Z", true),
+        [ProductionCase.PositiveMinute] = ("at > now + 1 minute", "2026-01-02T00:01:00.0000001Z", true)
+    };
+
+    public enum ZoneCase
+    {
+        ConfigurableUtc,
+        NonUtc
+    }
+
+    public enum ProductionCase
+    {
+        EquivalentOffset,
+        BeforeLowerBound,
+        OneTickBefore,
+        ClockOnLeft,
+        Conjunction,
+        Disjunction,
+        NegativeDay,
+        PositiveMinute
+    }
+
     [Theory]
     [InlineData("at == now")]
     [InlineData("at != now")]
@@ -83,26 +113,29 @@ public class when_rendering_utc_now
     }
 
     [Theory]
-    [InlineData("UTC", true)]
-    [InlineData("America/New_York", false)]
-    public void should_refuse_configurable_or_non_utc_zones(string zone, bool configurable)
+    [InlineData(ZoneCase.ConfigurableUtc)]
+    [InlineData(ZoneCase.NonUtc)]
+    public void should_refuse_configurable_or_non_utc_zones(ZoneCase scenario)
     {
+        var zone = scenario == ZoneCase.NonUtc ? "America/New_York" : "UTC";
+        var configurable = scenario == ZoneCase.ConfigurableUtc;
         var context = Context("at >= now");
         var application = context.Application with { TimeZone = context.Application.TimeZone! with { Id = zone, Configurable = configurable } };
         SemanticCommandClockSupport.Supports(application, context.Commands.Values.Single()).ShouldBeFalse();
     }
 
     [Theory]
-    [InlineData("at == now", "2026-01-01T19:00:00.0000000-05:00", true)]
-    [InlineData("at >= now", "2026-01-01T23:59:59.9999999Z", false)]
-    [InlineData("at < now", "2026-01-01T23:59:59.9999999Z", true)]
-    [InlineData("now < at", "2026-01-02T00:00:00.0000001Z", true)]
-    [InlineData("at >= now and at < now + 1 minute", "2026-01-02T00:00:59.9999999Z", true)]
-    [InlineData("at < now or at > now + 1 hour", "2026-01-02T01:00:00.0000000Z", false)]
-    [InlineData("at <= now - 1 day", "2026-01-01T00:00:00.0000000Z", true)]
-    [InlineData("at > now + 1 minute", "2026-01-02T00:01:00.0000001Z", true)]
-    public void should_select_conditional_productions_at_the_authored_instant(string condition, string at, bool taken)
+    [InlineData(ProductionCase.EquivalentOffset)]
+    [InlineData(ProductionCase.BeforeLowerBound)]
+    [InlineData(ProductionCase.OneTickBefore)]
+    [InlineData(ProductionCase.ClockOnLeft)]
+    [InlineData(ProductionCase.Conjunction)]
+    [InlineData(ProductionCase.Disjunction)]
+    [InlineData(ProductionCase.NegativeDay)]
+    [InlineData(ProductionCase.PositiveMinute)]
+    public void should_select_conditional_productions_at_the_authored_instant(ProductionCase scenario)
     {
+        var (condition, at, taken) = _productionCases[scenario];
         var context = Context(condition);
         var command = Conditional(context);
         var specification = Fixture(command, at);
@@ -119,7 +152,7 @@ public class when_rendering_utc_now
         var command = context.Commands.Values.Single();
         var clock = new DateTimeOffset(2026, 1, 2, 0, 0, 0, TimeSpan.Zero).AddTicks(1);
         var values = Fixture(command, clock.AddTicks(difference).ToString("O", CultureInfo.InvariantCulture)).When!.Values.ToDictionary(value => value.TargetProperty, value => value.Value);
-        SemanticProductionComparison.Compare((SemanticComparison)command.Requirements[0].Condition, values, (static () => new InvalidOperationException(), static () => new InvalidOperationException()), clock: clock).ShouldEqual(equal);
+        SemanticProductionComparison.Compare((SemanticComparison)command.Requirements[0].Condition, values, (static () => new InvalidOperationException(), static () => new InvalidOperationException()), (null, clock)).ShouldEqual(equal);
     }
 
     [Fact]

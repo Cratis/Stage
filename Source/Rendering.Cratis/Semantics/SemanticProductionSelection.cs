@@ -16,7 +16,7 @@ internal static class SemanticProductionSelection
 
     internal static ImmutableArray<SemanticProducedEvent> Taken(SemanticApplication application, SemanticCommand command, IEnumerable<SemanticPropertyValue> values, DateTimeOffset? clock = null)
     {
-        if (command.Produces.All(produced => produced.When is null) || command.Produces.Any(produced => produced.When is { } when && ReadsView(when))) return command.Produces;
+        if (IsUnconditional(command) || HasReadCondition(command)) return command.Produces;
 
         // Selection precedes admission. Keep every clock branch until an authored instant and supported shape are available.
         if (ClockRequiresAdmission(application, command, clock)) return command.Produces;
@@ -30,8 +30,14 @@ internal static class SemanticProductionSelection
         return [.. command.Produces.Where(produced => produced.When is null || Holds(produced.When, inputs, (dateTypes, clock)))];
     }
 
+    static bool IsUnconditional(SemanticCommand command) => command.Produces.All(produced => produced.When is null);
+
+    static IEnumerable<SemanticCondition> Conditions(SemanticCommand command) => command.Produces.Select(produced => produced.When).OfType<SemanticCondition>();
+
+    static bool HasReadCondition(SemanticCommand command) => Conditions(command).Any(ReadsView);
+
     static bool ClockRequiresAdmission(SemanticApplication application, SemanticCommand command, DateTimeOffset? clock) =>
-        command.Produces.Any(produced => produced.When is { } when && SemanticCommandClockSupport.Uses(when)) &&
+        Conditions(command).Any(SemanticCommandClockSupport.Uses) &&
         (clock is null || !SemanticCommandClockSupport.Supports(application, command));
 
     // A condition over a protected read is refused by admission, which reports it; selection must not fail before that.
@@ -63,6 +69,5 @@ internal static class SemanticProductionSelection
             comparison,
             values,
             (() => UnsupportedSemanticRendering.For(nameof(SemanticComparison), comparison.Operator), () => UnsupportedSemanticRendering.For(nameof(SemanticComparisonOperator), comparison.Operator)),
-            inputs.Dates,
-            inputs.Clock);
+            inputs);
 }

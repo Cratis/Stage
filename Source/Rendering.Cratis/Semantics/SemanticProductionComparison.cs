@@ -19,15 +19,18 @@ internal static class SemanticProductionComparison
             [SemanticComparisonOperator.LessThanOrEqual] = (left, right) => left <= right
         };
 
-    internal static bool Compare(SemanticComparison comparison, IReadOnlyDictionary<SemanticId, SemanticValue> values, (Func<Exception> Nonnumeric, Func<Exception> Unknown) errors, IReadOnlyDictionary<SemanticId, SemanticPrimitiveType>? dateTypes = null, DateTimeOffset? clock = null)
+    internal static bool Compare(SemanticComparison comparison, IReadOnlyDictionary<SemanticId, SemanticValue> values, (Func<Exception> Nonnumeric, Func<Exception> Unknown) errors, IReadOnlyDictionary<SemanticId, SemanticPrimitiveType>? dateTypes = null) =>
+        Compare(comparison, values, errors, (dateTypes, null));
+
+    internal static bool Compare(SemanticComparison comparison, IReadOnlyDictionary<SemanticId, SemanticValue> values, (Func<Exception> Nonnumeric, Func<Exception> Unknown) errors, (IReadOnlyDictionary<SemanticId, SemanticPrimitiveType>? Dates, DateTimeOffset? Clock) inputs)
     {
         if (comparison.Left.Clock is not null || comparison.Right.Clock is not null)
         {
-            return CompareValues(comparison.Operator, ClockValue(comparison.Left, values, clock, errors.Unknown), ClockValue(comparison.Right, values, clock, errors.Unknown), errors);
+            return CompareValues(comparison.Operator, ClockValue(comparison.Left, values, inputs.Clock, errors.Unknown), ClockValue(comparison.Right, values, inputs.Clock, errors.Unknown), errors);
         }
-        if (dateTypes?.ContainsKey(comparison.Left.Property) == true)
+        if (inputs.Dates?.ContainsKey(comparison.Left.Property) == true)
         {
-            return SemanticConditionEvaluator.Evaluate(comparison, values, dateTypes);
+            return SemanticConditionEvaluator.Evaluate(comparison, values, inputs.Dates);
         }
 
         var left = Operand(comparison.Left, values);

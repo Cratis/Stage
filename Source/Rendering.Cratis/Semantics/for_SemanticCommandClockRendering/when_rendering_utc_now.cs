@@ -90,6 +90,28 @@ public class when_rendering_utc_now
         Assert.True(plan.Success, string.Join(';', plan.Diagnostics));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void should_resolve_clock_members_owned_by_the_slice_or_command(bool commandOwned)
+    {
+        var context = Context("at >= now");
+        var slice = context.SelectedSlices().Single().Slice;
+        var command = slice.Commands.Single();
+        var member = new SemanticUnknownMember(commandOwned ? command.Id : slice.Id, commandOwned ? "command" : "slice", "SemanticClockKind.Now", "Application.Modules[0].Features[0].Slices[0].Commands[0].Requirements[0].Condition.Right.Clock.Kind", true);
+        var standing = new EsmSupportStanding(EsmVersionStanding.Audited, [member]);
+        SemanticCommandClockAdmission.Known(standing, context.Request.Model).UnknownMembers.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void should_not_admit_a_clock_member_without_a_matching_owner()
+    {
+        var context = Context("at >= now");
+        var member = new SemanticUnknownMember(context.Application.Id, "application", "SemanticClockKind.Now", "Application.Modules[0].Features[0].Slices[0].Commands[0].Requirements[0].Condition.Right.Clock.Kind", true);
+        var standing = new EsmSupportStanding(EsmVersionStanding.Audited, [member]);
+        SemanticCommandClockAdmission.Known(standing, context.Request.Model).UnknownMembers.Single().ShouldEqual(member);
+    }
+
     [Fact]
     public void should_share_the_active_receipt_between_validator_and_handler()
     {

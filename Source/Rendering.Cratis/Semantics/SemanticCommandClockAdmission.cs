@@ -38,7 +38,16 @@ internal static partial class SemanticCommandClockAdmission
     {
         var match = CommandSegment.Match(member.Path);
         if (!match.Success) return null;
-        var slice = SemanticVersionFeatures.Slices(application).FirstOrDefault(candidate => candidate.Id == member.Owner);
-        return slice?.Commands.ElementAtOrDefault(int.Parse(match.Groups["index"].Value, CultureInfo.InvariantCulture));
+        var index = int.Parse(match.Groups["index"].Value, CultureInfo.InvariantCulture);
+        return SemanticVersionFeatures.Slices(application)
+            .Select(slice => OwnedCommand(slice, index, member.Owner))
+            .FirstOrDefault(command => command is not null);
+    }
+
+    static SemanticCommand? OwnedCommand(SemanticSlice slice, int index, SemanticId owner)
+    {
+        var command = slice.Commands.ElementAtOrDefault(index);
+        if (slice.Id == owner) return command;
+        return command?.Id == owner ? command : null;
     }
 }

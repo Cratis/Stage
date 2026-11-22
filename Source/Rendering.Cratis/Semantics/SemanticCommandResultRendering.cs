@@ -40,7 +40,7 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
         }
     }
 
-    bool HasOccurrence => command.Produces.Any(produced => produced.Mappings.Any(mapping =>
+    bool HasOccurrence => SemanticCommandClockSupport.Uses(command) || command.Produces.Any(produced => produced.Mappings.Any(mapping =>
         mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred }));
 
     internal static string PropertyValue(SemanticProperty property, SemanticApplicationContext? application = null) => property.IsGenerated
@@ -113,6 +113,12 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
 
     string Value(SemanticProperty property) => PropertyValue(property, context);
 
+    string? Clock() => SemanticCommandClockSupport.Uses(command) ? locals.Name("stageClock") : null;
+
+    string Occurrence() => Clock() is { } clock
+        ? $"global::System.DateTimeOffset.FromUnixTimeMilliseconds({clock}.ToUnixTimeMilliseconds())"
+        : $"global::{context.RootNamespace}.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt({locals.Name("operation")})";
+
     void RenderCheckedHandle(CSharpCodeBuilder builder, ResultExpression result, Action? renderEvents = null)
     {
         var routing = new SemanticCommandRouteRendering(command, context, locals);
@@ -120,19 +126,21 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
         var routeResult = $"global::OneOf.OneOf<{result.Type}, global::Cratis.Arc.Validation.ValidationResult>";
         var checkedResult = routing.HasChecks || Reads.HasReads;
         builder.OpenBlock($"public {(checkedResult ? routeResult : result.Type)} Handle({Parameters()})");
+
+        // The decision is read first, so a missing view wins over every requirement; requirements then run in model order.
+        if (Reads.HasReads) Reads.RenderAbsenceGuards(builder, routeResult);
+        if (Clock() is { } clock) builder.Line($"var {clock} = {SemanticCommandClockRendering.Instant(context, locals.Name("operation"))};");
         if (Reads.HasReads)
         {
-            // The decision is read first, so a missing view wins over every requirement; requirements then run in model order.
-            Reads.RenderAbsenceGuards(builder, routeResult);
             foreach (var requirement in command.Requirements)
             {
-                SemanticRequirementRendering.RenderGuard(builder, requirement, command, context, Reads.Scope, routeResult);
+                SemanticRequirementRendering.RenderGuard(builder, requirement, command, context, Reads.Scope, routeResult, Clock());
             }
         }
         if (routing.HasChecks) routing.RenderChecks(builder, routeResult);
         if (HasOccurrence)
         {
-            builder.Line($"var {locals.Name("occurred")} = global::{context.RootNamespace}.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt({locals.Name("operation")});");
+            builder.Line($"var {locals.Name("occurred")} = {Occurrence()};");
         }
         SemanticCommandHandlerRendering.Prepare(builder, command, context, locals);
         renderEvents?.Invoke();

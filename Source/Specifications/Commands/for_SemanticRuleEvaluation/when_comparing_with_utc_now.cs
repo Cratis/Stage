@@ -100,7 +100,8 @@ public class when_comparing_with_utc_now : Specification
                   command Keep
                     id String identifier
                     at {{(concept ? "Moment" : "DateTime")}}
-                    require at {{operation}} now
+                    validate
+                      require at {{operation}} now
                     produces Kept
                       for id
                   event Kept

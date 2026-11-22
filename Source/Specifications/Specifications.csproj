@@ -14,6 +14,7 @@
     </PropertyGroup>
     <ItemGroup>
         <Compile Include="../Stage/Semantics/SemanticApplicationContext.cs" Link="Admission/SemanticApplicationContext.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/SemanticCommandClockSupport.cs" Link="Admission/SemanticCommandClockSupport.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/Projections/SemanticScopedProjectionSupport.cs" Link="Admission/SemanticScopedProjectionSupport.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/Projections/SemanticProjectionProducts.cs" Link="Admission/SemanticProjectionProducts.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/Projections/SemanticFlatProjectionSupport.cs" Link="Admission/SemanticFlatProjectionSupport.cs" />

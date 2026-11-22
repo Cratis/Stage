@@ -152,7 +152,7 @@ internal static class SemanticStateChangeArtifactRenderer
         }
 
         results.RenderDeclaration(builder);
-        var hasOccurrence = command.Produces.Any(produced => produced.Mappings.Any(mapping =>
+        var hasOccurrence = SemanticCommandClockSupport.Uses(command) || command.Produces.Any(produced => produced.Mappings.Any(mapping =>
             mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred }));
         var hasTags = command.Produces.Any(produced => !produced.Tags.IsEmpty || !context.Events[produced.EventContract].Tags.IsEmpty);
         var routing = new SemanticCommandRouteRendering(command, context, locals);
@@ -347,7 +347,7 @@ internal static class SemanticStateChangeArtifactRenderer
 
         // A protected command evaluates its requirements inside Handle, with the decision reads, not in the parameterless validator.
         var requirements = command.Reads.IsDefaultOrEmpty ? command.Requirements : [];
-        if (command.Validations.IsEmpty && command.CodeValidations.IsEmpty && requirements.IsEmpty && constrained.Length == 0 && !context.DeniedOperations.ContainsKey(command.Id))
+        if (!RequiresValidator(command, context, !requirements.IsEmpty, constrained.Length != 0))
         {
             return;
         }
@@ -357,7 +357,11 @@ internal static class SemanticStateChangeArtifactRenderer
             .OpenBlock($"public class {commandName}Validator : global::Cratis.Arc.Commands.CommandValidator<{commandName}>");
         SemanticValidationRendering.RenderMatchFields(builder, command.Validations, commandName);
         builder.Summary($"Initializes validation rules for {commandName}.")
-            .OpenBlock($"public {commandName}Validator()");
+            .OpenBlock($"public {commandName}Validator({(SemanticCommandClockSupport.Uses(command) ? "global::Cratis.Arc.IOperationContextAccessor operation" : string.Empty)})");
+        if (SemanticCommandClockSupport.Uses(command))
+        {
+            SemanticCommandClockRendering.RenderValidationReceipt(builder, context);
+        }
         if (context.DeniedOperations.TryGetValue(command.Id, out var denial))
         {
             builder.Line($"RuleFor(_ => _).Must(_ => false).WithMessage({CSharpCodeBuilder.StringLiteral(SemanticDeniedValidations.Message(command, denial))});");
@@ -395,12 +399,17 @@ internal static class SemanticStateChangeArtifactRenderer
 
         foreach (var requirement in requirements)
         {
-            SemanticRequirementRendering.Render(builder, requirement, command, context);
+            var clock = SemanticCommandClockSupport.Uses(command) ? SemanticCommandClockRendering.ValidationInstant : null;
+            SemanticRequirementRendering.Render(builder, requirement, command, context, clock);
         }
 
         builder.EndBlock().EndBlock();
         if (hasBodies) SemanticValidationContextRuntime.RenderOwnerBodies(builder, context, command.Id);
     }
+
+    static bool RequiresValidator(SemanticCommand command, SemanticApplicationContext context, bool hasRequirements, bool hasConstraints) =>
+        !command.Validations.IsEmpty || !command.CodeValidations.IsEmpty || hasRequirements || hasConstraints ||
+        context.DeniedOperations.ContainsKey(command.Id) || SemanticCommandClockSupport.Uses(command);
 
     static void RenderInlineConceptRules(CSharpCodeBuilder builder, SemanticCommand command, SemanticApplicationContext context)
     {

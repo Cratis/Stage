@@ -56,5 +56,4 @@ internal static class SemanticUtcNow
 
     static bool Satisfies(SemanticComparisonOperator comparison, int order) =>
         _comparisons.TryGetValue(comparison, out var predicate) ? predicate(order) : throw new UnsupportedSemanticMapping();
-
 }

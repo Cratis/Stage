@@ -82,23 +82,31 @@ public class when_rendering_utc_now
         }
     }
 
-    [Fact]
-    public void should_admit_the_audited_utc_now_condition()
+    [Theory]
+    [InlineData("at >= now")]
+    [InlineData("now < at")]
+    [InlineData("at >= now and at <= now + 1 minute")]
+    [InlineData("at < now or at > now + 1 hour")]
+    public void should_admit_the_audited_utc_now_condition(string condition)
     {
-        var context = Context("at >= now");
+        var context = Context(condition);
         var plan = invoice_model.Plan(context.Request.Model);
         Assert.True(plan.Success, string.Join(';', plan.Diagnostics));
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void should_resolve_clock_members_owned_by_the_slice_or_command(bool commandOwned)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void should_resolve_clock_members_owned_by_the_slice_or_command(bool commandOwned, bool nestedFeature)
     {
-        var context = Context("at >= now");
-        var slice = context.SelectedSlices().Single().Slice;
+        var context = nestedFeature ? CompetingContext() : Context("at >= now");
+        var slice = context.SelectedSlices().Single(located => located.Slice.Name == (nestedFeature ? "Deep" : "Keep")).Slice;
         var command = slice.Commands.Single();
-        var member = new SemanticUnknownMember(commandOwned ? command.Id : slice.Id, commandOwned ? "command" : "slice", "SemanticClockKind.Now", "Application.Modules[0].Features[0].Slices[0].Commands[0].Requirements[0].Condition.Right.Clock.Kind", true);
+        var path = nestedFeature
+            ? "Application.Modules[0].Features[0].Features[0].Slices[0].Commands[0].Requirements[0].Condition.Right.Clock.Kind"
+            : "Application.Modules[0].Features[0].Slices[0].Commands[0].Requirements[0].Condition.Right.Clock.Kind";
+        var member = new SemanticUnknownMember(commandOwned ? command.Id : slice.Id, commandOwned ? "command" : "slice", "SemanticClockKind.Now", path, true);
         var standing = new EsmSupportStanding(EsmVersionStanding.Audited, [member]);
         SemanticCommandClockAdmission.Known(standing, context.Request.Model).UnknownMembers.ShouldBeEmpty();
     }
@@ -110,6 +118,43 @@ public class when_rendering_utc_now
         var member = new SemanticUnknownMember(context.Application.Id, "application", "SemanticClockKind.Now", "Application.Modules[0].Features[0].Slices[0].Commands[0].Requirements[0].Condition.Right.Clock.Kind", true);
         var standing = new EsmSupportStanding(EsmVersionStanding.Audited, [member]);
         SemanticCommandClockAdmission.Known(standing, context.Request.Model).UnknownMembers.Single().ShouldEqual(member);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void should_refuse_a_competing_owner_for_the_indexed_command(bool differentSlice)
+    {
+        var context = CompetingContext();
+        var slice = context.SelectedSlices().Single(located => located.Slice.Name == (differentSlice ? "Beta" : "Alpha")).Slice;
+        var competing = slice.Commands[differentSlice ? 0 : 1];
+        SemanticCommandClockSupport.Supports(context.Application, competing).ShouldBeTrue();
+        var member = new SemanticUnknownMember(differentSlice ? slice.Id : competing.Id, differentSlice ? "slice" : "command", "SemanticClockKind.Now", "Application.Modules[0].Features[0].Slices[0].Commands[0].Requirements[0].Condition.Right.Clock.Kind", true);
+        ShouldRemainRefused(context, member);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("Modules[0].Features[0].Slices[0].Commands[0].Requirements[0].Condition.Right.Clock.Kind")]
+    [InlineData("Application.Modules[99].Features[0].Slices[0].Commands[0].Requirements[0].Condition.Right.Clock.Kind")]
+    [InlineData("Application.Modules[0].Features[99].Slices[0].Commands[0].Requirements[0].Condition.Right.Clock.Kind")]
+    [InlineData("Application.Modules[0].Features[0].Features[99].Slices[0].Commands[0].Requirements[0].Condition.Right.Clock.Kind")]
+    [InlineData("Application.Modules[0].Features[0].Slices[99].Commands[0].Requirements[0].Condition.Right.Clock.Kind")]
+    [InlineData("Application.Modules[0].Features[0].Slices[0].Commands[99].Requirements[0].Condition.Right.Clock.Kind")]
+    [InlineData("Application.Modules[0].Features[0].Slices[0].Commands[0].Requirements[99].Condition.Right.Clock.Kind")]
+    [InlineData("Application.Modules[-1].Features[0].Slices[0].Commands[0].Requirements[0].Condition.Right.Clock.Kind")]
+    [InlineData("Application.Modules[2147483648].Features[0].Slices[0].Commands[0].Requirements[0].Condition.Right.Clock.Kind")]
+    [InlineData("Application.Modules[00].Features[0].Slices[0].Commands[0].Requirements[0].Condition.Right.Clock.Kind")]
+    [InlineData("Application.Modules[0].Unknown[0].Slices[0].Commands[0].Requirements[0].Condition.Right.Clock.Kind")]
+    [InlineData("Application.Modules[0].Features[0].Slices[0].Commands[0].Requirements[0].Condition.Middle.Clock.Kind")]
+    [InlineData("Application.Modules[0].Features[0].Slices[0].Commands[0].Requirements[0].Condition.Right.Clock.Kind.Extra")]
+    public void should_retain_the_refusal_for_an_invalid_clock_path(string? path)
+    {
+        var context = CompetingContext();
+        var slice = context.SelectedSlices().Single(located => located.Slice.Name == "Alpha").Slice;
+        var member = new SemanticUnknownMember(slice.Id, "slice", "SemanticClockKind.Now", path!, true);
+        ShouldRemainRefused(context, member);
     }
 
     [Fact]
@@ -207,6 +252,13 @@ public class when_rendering_utc_now
         code.ShouldNotContain("FromUnixTimeMilliseconds");
     }
 
+    static void ShouldRemainRefused(SemanticApplicationContext context, SemanticUnknownMember member)
+    {
+        var standing = SemanticCommandClockAdmission.Known(new(EsmVersionStanding.Audited, [member]), context.Request.Model);
+        standing.UnknownMembers.Single().ShouldEqual(member);
+        CratisEsmRangeAdmission.FromFindings(context.Request, standing).Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-016").Artifact.ShouldEqual(member.Owner);
+    }
+
     static SemanticCommand Conditional(SemanticApplicationContext context)
     {
         var command = context.Commands.Values.Single();
@@ -235,6 +287,55 @@ public class when_rendering_utc_now
                       for id
                   event Kept
             """);
+        return Context(model);
+    }
+
+    static SemanticApplicationContext CompetingContext()
+    {
+        var model = invoice_model.Compile("""
+            module Scheduling
+              feature Windows
+                slice StateChange Alpha
+                  command Acknowledge
+                    id String identifier
+                    at DateTime
+                    validate
+                      require at >= now
+                    produces Kept
+                      for id
+                  command Reschedule
+                    id String identifier
+                    at DateTime
+                    validate
+                      require at >= now
+                    produces Kept
+                      for id
+                  event Kept
+                slice StateChange Beta
+                  command Submit
+                    id String identifier
+                    at DateTime
+                    validate
+                      require at >= now
+                    produces Submitted
+                      for id
+                  event Submitted
+                feature Nested
+                  slice StateChange Deep
+                    command Decide
+                      id String identifier
+                      at DateTime
+                      validate
+                        require at >= now
+                      produces Recorded
+                        for id
+                    event Recorded
+            """);
+        return Context(model);
+    }
+
+    static SemanticApplicationContext Context(ExecutableSemanticModel model)
+    {
         var options = new CratisRenderingOptions("InvoiceApp", "Invoices");
         var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile("InvoiceApp", options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
         return new(request, options);

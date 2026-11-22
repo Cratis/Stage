@@ -7,6 +7,7 @@ import type { ExternalComponent, SceneElement } from '@cratis/scene.model';
 import { selectableRowsOf, selectedRowsOf } from './StageCommandForm';
 import { useStageData } from './stageData';
 import { isBoardComponent } from './stageBoardSelection';
+import { isRowMenuAction } from './stageRowMenuActions';
 
 /**
  * The row-source scopes of one screen, including tables and board card queries nested in its slots. An outlet belongs to another screen, so its children are not visited.
@@ -35,16 +36,34 @@ function rowScopesOf(component: ExternalComponent): string[] {
 }
 
 const ScreenTablesContext = createContext<ReadonlySet<string> | undefined>(undefined);
+const ScreenRowMenuActionsContext = createContext<ExternalComponent[]>([]);
+
+/** Collects opted-in actions in this screen only; outlet screens have their own action scope. */
+export function screenRowMenuActionsOf(element: SceneElement): ExternalComponent[] {
+    const component = element as ExternalComponent;
+    if (component.componentName === 'core:slot') return [];
+    const actions = isRowMenuAction(element) ? [element] : [];
+    for (const children of Object.values(component.slots ?? {})) {
+        actions.push(...children.flatMap(screenRowMenuActionsOf));
+    }
+    return actions;
+}
+
+/** The item actions explicitly presented as menus by the nearest screen. */
+export function useScreenRowMenuActions(): ExternalComponent[] {
+    return useContext(ScreenRowMenuActionsContext);
+}
 
 /** Limits action selection and hidden form identifiers to the tables and boards of this screen, independently of other screens on the page. */
 export function StageScreenTables({ element, outputScope, children }: { element: SceneElement; outputScope?: string; children: ReactNode }) {
     const tables = useMemo(() => new Set(screenTablesOf(element).flatMap(source => outputScope ? [source, `${outputScope}:${source}`] : [source])), [element, outputScope]);
-    return <ScreenTablesContext.Provider value={tables}>{children}</ScreenTablesContext.Provider>;
+    const actions = useMemo(() => screenRowMenuActionsOf(element), [element]);
+    return <ScreenTablesContext.Provider value={tables}><ScreenRowMenuActionsContext.Provider value={actions}>{children}</ScreenRowMenuActionsContext.Provider></ScreenTablesContext.Provider>;
 }
 
 /** Preserves the page-wide selection of a confirmation decision and its form after leaving the list screen. */
 export function StagePageRows({ children }: { children: ReactNode }) {
-    return <ScreenTablesContext.Provider value={undefined}>{children}</ScreenTablesContext.Provider>;
+    return <ScreenTablesContext.Provider value={undefined}><ScreenRowMenuActionsContext.Provider value={[]}>{children}</ScreenRowMenuActionsContext.Provider></ScreenTablesContext.Provider>;
 }
 
 /**

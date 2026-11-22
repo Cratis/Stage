@@ -34,6 +34,7 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
     readonly List<DateTimeOffset?> _occurrences = parent?._occurrences ?? [];
     readonly Dictionary<SemanticCommandRoute, SemanticFixtureRoute> _routes = [with(comparer: ReferenceEqualityComparer.Instance)];
     readonly SemanticBodyRuleSession? _bodyRules = parent is null && options.BodyExecution is { } execution ? new(plan.Model.Application, execution) : null;
+    readonly Lazy<DateTimeOffset> _fallbackOccurrence = new(options.Clock.GetUtcNow);
 
     internal SemanticRunReads Reads { get; } = new(runtimeTypes);
     internal SemanticBodyExecution? BodyExecution => options.BodyExecution;
@@ -51,7 +52,7 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
     internal IReadOnlyList<SemanticSpecificationEvent> Facts => _facts;
     internal IReadOnlyList<SemanticValue> Destinations => _destinations;
     internal IReadOnlyList<DateTimeOffset?> Occurrences => _occurrences;
-    internal DateTimeOffset Occurred => AuthoredOccurrence ?? options.Clock.GetUtcNow();
+    internal DateTimeOffset Occurred => AuthoredOccurrence ?? _fallbackOccurrence.Value;
     internal DateTimeOffset? AuthoredOccurrence => OccurrenceOf(specification);
     internal string Tenant => options.Tenant;
     internal SemanticExecutionResponse? Response { get; private set; }

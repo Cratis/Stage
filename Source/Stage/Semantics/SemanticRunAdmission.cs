@@ -222,7 +222,8 @@ public static partial class SemanticRunAdmission
             static (_, state) =>
             {
                 var owners = SemanticVersionFeatures.Slices(state.Model.Application).Select(slice => slice.Id).Append(state.Model.Application.Id).ToHashSet();
-                return EsmSupportStanding.Evaluate(CratisEsmSupport.Descriptor, state.Model, EsmRangeSurface.Known, EsmRangeSurface.Scope(owners, state.Excluded));
+                var standing = EsmSupportStanding.Evaluate(CratisEsmSupport.Descriptor, state.Model, EsmRangeSurface.Known, EsmRangeSurface.Scope(owners, state.Excluded));
+                return SemanticCommandClockAdmission.Known(standing, state.Model);
             },
             (Model: model, Excluded: excluded));
     }
@@ -343,7 +344,8 @@ public static partial class SemanticRunAdmission
         if (!SupportsRun(plan.Model)) return new(StageExecutionCapability.PlanIssue, plan.Model.Application.Id.ToString(), UnsupportedVersion(plan.Model));
         if (plan.IsolatedSlice is null && plan.SliceOf(specification.Id) is { } owner) plan = plan.IsolatedTo(owner);
         var excluded = SemanticVersionFeatures.Slices(plan.Model.Application).Where(slice => plan.IsolatedSlice is not null && slice.Id != plan.IsolatedSlice).Select(slice => slice.Id).ToHashSet();
-        return RunStanding(plan.Model, excluded).UnknownMembers.FirstOrDefault() is { } unknown
+        return RunStanding(plan.Model, excluded).UnknownMembers.FirstOrDefault(member =>
+            ScopedClockMember(plan.Model, member)?.Command is not { } command || command.Id == specification.When?.Command) is { } unknown
             ? new(StageExecutionCapability.PlanIssue, unknown.Owner.ToString(), UnauditedMember(unknown))
             : null;
     }

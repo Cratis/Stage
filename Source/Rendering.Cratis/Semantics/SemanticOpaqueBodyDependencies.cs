@@ -44,6 +44,10 @@ internal static class SemanticOpaqueBodyDependencies
     internal static string? Rejection(SemanticApplicationContext context, SemanticSpecification specification)
     {
         if (SemanticSpecificationClock.TryGet(specification, out _)) return null;
+        if (UsesCommandClock(context, specification))
+        {
+            return "the command uses a clock condition; add `given clock` so the rendered command decides deterministically";
+        }
         var dependency = Reached(context, specification).FirstOrDefault(dependency => SemanticValidationContextRuntime.ReadsOccurred(context, dependency.Descriptor));
         return dependency is null ? null : $"rule '{dependency.Name}' reads context.Occurred; add `given clock` so the rendered rule decides deterministically";
     }
@@ -66,6 +70,12 @@ internal static class SemanticOpaqueBodyDependencies
             }
             yield return specification;
         }
+    }
+
+    static bool UsesCommandClock(SemanticApplicationContext context, SemanticSpecification specification)
+    {
+        if (specification.When is not { } action) return false;
+        return context.Commands.TryGetValue(action.Command, out var command) && SemanticCommandClockSupport.Uses(command);
     }
 
     static string RuleName(SemanticApplicationContext context, SemanticTypedContextDescriptor descriptor)

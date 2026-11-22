@@ -45,18 +45,18 @@ internal static class SemanticRuleEvaluation
         var values = specification.When!.Values.ToDictionary(value => value.TargetProperty, value => value.Value);
         foreach (var requirement in command.Requirements)
         {
-            if (!Condition(requirement.Condition, values, reads, dateTypes))
+            if (!Condition(requirement.Condition, values, reads, dateTypes, SemanticRunContext.OccurrenceOf(specification)))
             {
                 yield return new(requirement.Message ?? "Command requirement was not met.", requirement.Severity);
             }
         }
     }
 
-    internal static bool Condition(SemanticCondition condition, IReadOnlyDictionary<SemanticId, SemanticValue> values, IReadOnlyDictionary<string, IReadOnlyDictionary<SemanticId, SemanticValue>>? reads = null, IReadOnlyDictionary<SemanticId, SemanticPrimitiveType>? dateTypes = null) => condition switch
+    internal static bool Condition(SemanticCondition condition, IReadOnlyDictionary<SemanticId, SemanticValue> values, IReadOnlyDictionary<string, IReadOnlyDictionary<SemanticId, SemanticValue>>? reads = null, IReadOnlyDictionary<SemanticId, SemanticPrimitiveType>? dateTypes = null, DateTimeOffset? occurrence = null) => condition switch
     {
-        SemanticLogicalCondition { Operator: SemanticLogicalOperator.And } logical => Condition(logical.Left, values, reads, dateTypes) && Condition(logical.Right, values, reads, dateTypes),
-        SemanticLogicalCondition { Operator: SemanticLogicalOperator.Or } logical => Condition(logical.Left, values, reads, dateTypes) || Condition(logical.Right, values, reads, dateTypes),
-        SemanticComparison comparison => Compare(comparison, values, reads, dateTypes),
+        SemanticLogicalCondition { Operator: SemanticLogicalOperator.And } logical => Condition(logical.Left, values, reads, dateTypes, occurrence) && Condition(logical.Right, values, reads, dateTypes, occurrence),
+        SemanticLogicalCondition { Operator: SemanticLogicalOperator.Or } logical => Condition(logical.Left, values, reads, dateTypes, occurrence) || Condition(logical.Right, values, reads, dateTypes, occurrence),
+        SemanticComparison comparison => Compare(comparison, values, reads, dateTypes, occurrence),
         _ => throw new UnsupportedSemanticMapping()
     };
 
@@ -121,27 +121,34 @@ internal static class SemanticRuleEvaluation
                 : SemanticConceptValues.Validate(property.Type, values[property.Id], run));
     }
 
-    static bool Compare(SemanticComparison comparison, IReadOnlyDictionary<SemanticId, SemanticValue> values, IReadOnlyDictionary<string, IReadOnlyDictionary<SemanticId, SemanticValue>>? reads, IReadOnlyDictionary<SemanticId, SemanticPrimitiveType>? dateTypes)
+    static bool Compare(SemanticComparison comparison, IReadOnlyDictionary<SemanticId, SemanticValue> values, IReadOnlyDictionary<string, IReadOnlyDictionary<SemanticId, SemanticValue>>? reads, IReadOnlyDictionary<SemanticId, SemanticPrimitiveType>? dateTypes, DateTimeOffset? occurrence)
     {
+        if (SemanticUtcNow.Uses(comparison)) return SemanticUtcNow.Compare(comparison, values, occurrence);
         if (dateTypes?.ContainsKey(comparison.Left.Property) == true)
         {
             return SemanticConditionEvaluator.Evaluate(comparison, values, dateTypes, reads);
         }
 
-        var left = Operand(comparison.Left, values, reads);
-        var right = Operand(comparison.Right, values, reads);
-        if (comparison.Operator == SemanticComparisonOperator.Equal) return SemanticExpectationComparer.AreEqual(left, right);
-        if (comparison.Operator == SemanticComparisonOperator.NotEqual) return !SemanticExpectationComparer.AreEqual(left, right);
-        if (left is not SemanticNumberValue a || right is not SemanticNumberValue b) throw new UnsupportedSemanticMapping();
-        return comparison.Operator switch
-        {
-            SemanticComparisonOperator.GreaterThan => a.Value > b.Value,
-            SemanticComparisonOperator.GreaterThanOrEqual => a.Value >= b.Value,
-            SemanticComparisonOperator.LessThan => a.Value < b.Value,
-            SemanticComparisonOperator.LessThanOrEqual => a.Value <= b.Value,
-            _ => throw new UnsupportedSemanticMapping()
-        };
+        return CompareValues(comparison.Operator, Operand(comparison.Left, values, reads), Operand(comparison.Right, values, reads));
     }
+
+    static bool CompareValues(SemanticComparisonOperator comparison, SemanticValue left, SemanticValue right)
+    {
+        if (comparison == SemanticComparisonOperator.Equal) return SemanticExpectationComparer.AreEqual(left, right);
+        if (comparison == SemanticComparisonOperator.NotEqual) return !SemanticExpectationComparer.AreEqual(left, right);
+        return CompareNumbers(comparison, Number(left), Number(right));
+    }
+
+    static bool CompareNumbers(SemanticComparisonOperator comparison, decimal left, decimal right) => comparison switch
+    {
+        SemanticComparisonOperator.GreaterThan => left > right,
+        SemanticComparisonOperator.GreaterThanOrEqual => left >= right,
+        SemanticComparisonOperator.LessThan => left < right,
+        SemanticComparisonOperator.LessThanOrEqual => left <= right,
+        _ => throw new UnsupportedSemanticMapping()
+    };
+
+    static decimal Number(SemanticValue value) => value is SemanticNumberValue number ? number.Value : throw new UnsupportedSemanticMapping();
 
     static SemanticValue Operand(SemanticConditionOperand operand, IReadOnlyDictionary<SemanticId, SemanticValue> values, IReadOnlyDictionary<string, IReadOnlyDictionary<SemanticId, SemanticValue>>? reads) => operand switch
     {

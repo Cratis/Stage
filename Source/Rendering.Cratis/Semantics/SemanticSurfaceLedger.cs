@@ -89,8 +89,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticApplication", rendered, "Concepts Id Modules Name Types Policies EventSources");
 
         // Screenplay 5.3.1 exposes clock operands and calendar/time-zone metadata in newer ESM pairs.
-        // ESM v37 and later audit the pair but not these members: STAGE-ESM-016 refuses each owning command or specification
-        // (and generated-app rendering refuses the model). This pin update does not implement clock behavior (Cratis/Stage#957).
+        // Keep these members gated: SemanticCommandClockAdmission removes only audited default-UTC now condition shapes
+        // per owning command. Calendars, today/date-of, clock validations and unknown positions still refuse (Cratis/Stage#957).
         var clock = rejected("STAGE-ESM-016");
         Add(entries, "SemanticApplication", clock, "TimeZone ContextMembers");
 

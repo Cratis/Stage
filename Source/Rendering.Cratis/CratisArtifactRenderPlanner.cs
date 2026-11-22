@@ -517,6 +517,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
     {
         if (refusals.IsDefault) refusals = [];
 
+        artifacts = artifacts.Concat(SemanticExclusionComments.For(request));
         var (planned, gaps) = AddPerformerGaps(request, artifacts, diagnostics);
 
         // Successful diagnostics (and their digests) are unchanged. The contract owns sorting.

@@ -3,6 +3,8 @@
 
 using System.Globalization;
 using System.Security;
+using Cratis.Screenplay.Diagnostics;
+using Cratis.Screenplay.Semantics;
 
 namespace Cratis.Stage.Contracts.Rendering;
 
@@ -10,18 +12,59 @@ static class ArtifactRenderMarkdown
 {
     internal static string Write(ArtifactRenderPlan plan)
     {
-        var inventory = plan.Inventory!;
         var lines = new List<string> { "# Unsupported constructs", string.Empty, "Selected scopes:" };
         foreach (var scope in ArtifactRenderReports.Scopes(plan)) lines.Add($"- {scope.Kind} `{scope.Artifact}`");
         lines.Add(string.Empty);
+        WriteInventory(lines, plan);
+        WriteExclusions(lines, plan.Exclusions);
+        return string.Join('\n', lines).TrimEnd('\n') + "\n";
+    }
+
+    static void WriteInventory(List<string> lines, ArtifactRenderPlan plan)
+    {
+        if (plan.Inventory is not { } inventory)
+        {
+            lines.Add($"Outcome: {plan.Outcome.ToCanonicalName()}.");
+            return;
+        }
         var score = inventory.Score.BasisPoints is { } value ? $"{value.ToString(CultureInfo.InvariantCulture)} bp" : "not applicable";
         lines.Add($"Outcome: {plan.Outcome.ToCanonicalName()}. Owners: {inventory.Score.Counts.Total.ToString(CultureInfo.InvariantCulture)}. Score: {score}.");
         lines.Add(string.Empty);
         var unresolved = inventory.Constructs.Where(construct => construct.Outcome != ArtifactRenderOutcome.Rendered).ToArray();
-        if (unresolved.Length == 0) lines.Add("No degraded or refused constructs in this selection.");
+        if (unresolved.Length == 0 && plan.Exclusions.IsEmpty) lines.Add("No degraded or refused constructs in this selection.");
         foreach (var construct in unresolved) WriteConstruct(lines, construct);
-        return string.Join('\n', lines).TrimEnd('\n') + "\n";
     }
+
+    static void WriteExclusions(List<string> lines, IEnumerable<SemanticExclusion> exclusions)
+    {
+        var values = exclusions.ToArray();
+        if (values.Length == 0) return;
+        lines.Add(string.Empty);
+        lines.Add("## Excluded from the executable model");
+        lines.Add("These declarations were excluded before rendering. They are not inventory owners and do not affect the completeness score.");
+        foreach (var exclusion in values) WriteExclusion(lines, exclusion);
+    }
+
+    static void WriteExclusion(List<string> lines, SemanticExclusion exclusion)
+    {
+        lines.Add(string.Empty);
+        lines.Add($"### {exclusion.Kind}: {ExclusionText(exclusion.Address)}");
+        lines.Add($"Source: {Location(exclusion.Location)}. Cause: {exclusion.Cause}.");
+        lines.Add(ArtifactRenderExclusions.Remedy);
+        if (!string.IsNullOrWhiteSpace(exclusion.Reason)) lines.Add($"Reason: {ExclusionText(exclusion.Reason)}");
+        if (!exclusion.DependsOn.IsEmpty) lines.Add("Depends on: " + string.Join(", ", exclusion.DependsOn.Select(dependency => $"{dependency.Kind}: {ExclusionText(dependency.Address)}")));
+        foreach (var diagnostic in exclusion.Diagnostics)
+            lines.Add($"- {ExclusionText(diagnostic.Code)}: {ExclusionText(diagnostic.Message)} ({Location(diagnostic.Location)})");
+    }
+
+    static string Location(SourceLocation location) => $"{ExclusionText(string.IsNullOrWhiteSpace(location.Path) ? "Source unavailable" : location.Path)}:{location.Line.ToString(CultureInfo.InvariantCulture)}:{location.Column.ToString(CultureInfo.InvariantCulture)}";
+
+    static string ExclusionText(string text) => Safe(text).Replace("\u0085", "<br>", StringComparison.Ordinal)
+        .Replace("\u2028", "<br>", StringComparison.Ordinal).Replace("\u2029", "<br>", StringComparison.Ordinal)
+        .Replace("\\", "&#92;", StringComparison.Ordinal)
+        .Replace("[", "&#91;", StringComparison.Ordinal).Replace("]", "&#93;", StringComparison.Ordinal)
+        .Replace("*", "&#42;", StringComparison.Ordinal).Replace("_", "&#95;", StringComparison.Ordinal)
+        .Replace("|", "&#124;", StringComparison.Ordinal);
 
     static void WriteConstruct(List<string> lines, ArtifactRenderConstruct construct)
     {

@@ -34,5 +34,6 @@ public class and_replacing_plan_evidence : for_DeclarativeArtifactRenderPlanner.
     [Fact] void should_keep_the_typed_exclusion_after_inventory_and_provenance() => _plan.Exclusions.Single().Kind.ShouldEqual(SemanticExclusionKind.Trigger);
     [Fact] void should_own_the_exclusion_on_the_application() => _plan.PlanEvidence.Single(evidence => evidence.Diagnostic.Message.Contains("RemovedTrigger", StringComparison.Ordinal)).Diagnostic.Artifact.ShouldEqual(_plan.Scope.Artifact);
     [Fact] void should_keep_the_shared_report() => _report.Contains("Trigger: RemovedTrigger", StringComparison.Ordinal).ShouldBeTrue();
-    [Fact] void should_fail_strict_acceptance_but_allow_publication() => (_plan.WithAcceptance(_plan.Degradations, strict: true).Success == false && _plan.WithAcceptance(_plan.Degradations, strict: true).CanPublishArtifacts).ShouldBeTrue();
+    [Fact] void should_fail_strict_acceptance() => _plan.WithAcceptance(_plan.Degradations, strict: true).Success.ShouldBeFalse();
+    [Fact] void should_allow_publication_when_strict() => _plan.WithAcceptance(_plan.Degradations, strict: true).CanPublishArtifacts.ShouldBeTrue();
 }

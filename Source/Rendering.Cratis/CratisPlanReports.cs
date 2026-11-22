@@ -16,9 +16,9 @@ static class CratisPlanReports
         CratisRenderingOptions options,
         IReadOnlyDictionary<SemanticId, ImmutableArray<SemanticId>>? omissionCauses = null)
     {
-        if (request.IdentityCatalog is null && request.SemanticIdentities.IsDefaultOrEmpty) return plan;
         if (!plan.CanPublishArtifacts) return plan;
-        if (!plan.ImplementationGaps.IsEmpty && plan.Degradations.IsEmpty) return plan;
+        if (request.IdentityCatalog is null && request.SemanticIdentities.IsDefaultOrEmpty) return WithUnsupported(request, plan);
+        if (!plan.ImplementationGaps.IsEmpty && plan.Degradations.IsEmpty) return WithUnsupported(request, plan);
         plan = plan.WithInventory(CratisSemanticInventory.Create(request, plan, options, omissionCauses));
         var context = new ArtifactRenderReportContext(plan.InputVersions!, Support(plan), [new(request.Profile.Renderer, request.Profile.RendererVersion)]);
         var reports = ArtifactRenderReports.Create(plan, context);
@@ -26,6 +26,16 @@ static class CratisPlanReports
         var original = plan.WithAcceptance(plan.Degradations);
         return ArtifactRenderPlan.Create(request, [.. plan.Artifacts, .. placedReports], original.Diagnostics, plan.ImplementationGaps, plan.Refusals, plan.RequiredRemovals)
             .WithInventory(plan.Inventory!).WithPlanEvidence(plan.PlanEvidence).WithAcceptance(plan.Degradations, plan.Strict)
+            .WithInlineCodeFingerprint(plan.InlineCodeFingerprint);
+    }
+
+    static ArtifactRenderPlan WithUnsupported(ArtifactRenderRequest request, ArtifactRenderPlan plan)
+    {
+        if (plan.Exclusions.IsEmpty) return plan;
+        var report = ServiceLayout.Apply(request.Profile, [ArtifactRenderReports.CreateUnsupported(plan)]);
+        var original = plan.WithAcceptance(plan.Degradations);
+        return ArtifactRenderPlan.Create(request, [.. plan.Artifacts, .. report], original.Diagnostics, plan.ImplementationGaps, plan.Refusals, plan.RequiredRemovals)
+            .WithPlanEvidence(plan.PlanEvidence).WithAcceptance(plan.Degradations, plan.Strict)
             .WithInlineCodeFingerprint(plan.InlineCodeFingerprint);
     }
 

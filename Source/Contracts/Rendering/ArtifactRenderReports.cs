@@ -31,7 +31,16 @@ public sealed record ArtifactRenderReports(PlannedArtifact Completeness, Planned
         var sources = Scopes(plan).Select(scope => scope.Artifact).Distinct().ToImmutableArray();
         return new(
             PlannedArtifact.CreateText(".stage/completeness.json", System.Text.Encoding.UTF8.GetString(ArtifactRenderReportWriter.Bytes(plan, normalized)), sources),
-            PlannedArtifact.CreateText("UNSUPPORTED.md", ArtifactRenderMarkdown.Write(plan), sources));
+            CreateUnsupported(plan));
+    }
+
+    /// <summary>Creates the human report, including compiler exclusions, without requiring a selected semantic inventory.</summary>
+    /// <param name="plan">The validated plan. Exclusions describe pre-render binding failures, not scored owners.</param>
+    /// <returns>A deterministic UTF-8 managed UNSUPPORTED.md artifact owned by the selected scopes.</returns>
+    public static PlannedArtifact CreateUnsupported(ArtifactRenderPlan plan)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        return PlannedArtifact.CreateText("UNSUPPORTED.md", ArtifactRenderMarkdown.Write(plan), [.. Scopes(plan).Select(scope => scope.Artifact).Distinct()]);
     }
 
     internal static IEnumerable<ArtifactRenderScope> Scopes(ArtifactRenderPlan plan) => new[] { plan.Scope }.Concat(plan.AdditionalScopes)

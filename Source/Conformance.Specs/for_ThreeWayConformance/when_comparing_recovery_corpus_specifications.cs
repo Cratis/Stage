@@ -27,7 +27,7 @@ public class when_comparing_recovery_corpus_specifications : Specification
         plan.Specifications.Values.Select(specification => specification.Name).ShouldContainOnly(["RedeliveryCascade", "FilteredRedelivery", "NothingFollowsAppend"]);
         plan.Specifications.Count.ShouldEqual(corpus.SpecificationExpectations.Length);
 
-        // These unmodified members omit given sources; the reference establishes them at the null destination and so does Stage.
+        // The reference keeps these null destinations; Stage and the renderer refuse their observable missing sources.
         string[] sourcelessGivens = ["RedeliveryCascade", "FilteredRedelivery"];
         plan.Specifications.Values.Where(specification => specification.GivenEvents.Any(given => given.EventSource is null))
             .Select(specification => specification.Name).ShouldContainOnly(sourcelessGivens);
@@ -39,10 +39,9 @@ public class when_comparing_recovery_corpus_specifications : Specification
             Assert.True(reference.Passed, $"{specification.Name}: {string.Join(';', reference.Failures)}");
             reference.Execution.Kind.ShouldEqual(expectation.Outcome);
             reference.Execution.World.Facts.Length.ShouldEqual(expectation.WorldFactCount!.Value);
-            Assert.True(stage.Outcome == SemanticSpecificationOutcome.Passed, $"{specification.Name}: {stage.Unsupported?.Details} {string.Join(';', stage.Failures)}");
-            var accepted = (SemanticAccepted)reference.Execution;
-            Assert.Equal(accepted.Facts.Select(fact => fact.EventContract.ToString()), stage.Trace!.Facts.Select(fact => fact.EventContract));
-            Assert.Equal(accepted.Facts.Select(fact => fact.Route), stage.Trace.Facts.Select(fact => fact.Route));
+            var hasObservableSourcelessGiven = sourcelessGivens.Contains(specification.Name);
+            if (hasObservableSourcelessGiven) AssertSourceRefusal(stage);
+            else AssertMatchingExecution((SemanticAccepted)reference.Execution, stage, specification.Name);
 
             // Every member runs on the reference and has a tested executor outcome and render refusal.
             var selected = a_recovery_plan.WithSpecification(model, specification);
@@ -51,7 +50,6 @@ public class when_comparing_recovery_corpus_specifications : Specification
             rendered.Outcome.ShouldEqual(ArtifactRenderOutcome.Complete);
             rendered.Refusals.Single().Artifact.ShouldEqual(specification.Id);
             rendered.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(specification.Id);
-            var hasObservableSourcelessGiven = sourcelessGivens.Contains(specification.Name);
             var code = hasObservableSourcelessGiven ? "STAGE-ESM-051" : "STAGE-ESM-011";
             var refusal = rendered.Diagnostics.Single(diagnostic => diagnostic.Code == code && diagnostic.Artifact == specification.Id);
             refusal.Severity.ShouldEqual(ArtifactRenderDiagnosticSeverity.Warning);
@@ -76,6 +74,23 @@ public class when_comparing_recovery_corpus_specifications : Specification
         byte[] expected = [.. corpus.EsmBytes];
         byte[] actual = [.. SemanticModelSerializer.Serialize(compiled.Value.Model)];
         Assert.Equal(expected, actual);
+    }
+
+    static void AssertSourceRefusal(SemanticSpecificationRunRecord stage)
+    {
+        stage.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
+        Assert.NotNull(stage.Unsupported);
+        Assert.StartsWith("STAGE-ESM-051:", stage.Unsupported.Details, StringComparison.Ordinal);
+        stage.Unsupported.Details.ShouldContain("Cratis/Stage#960");
+        Assert.Null(stage.Trace);
+        stage.Failures.ShouldBeEmpty();
+    }
+
+    static void AssertMatchingExecution(SemanticAccepted reference, SemanticSpecificationRunRecord stage, string name)
+    {
+        Assert.True(stage.Outcome == SemanticSpecificationOutcome.Passed, $"{name}: {stage.Unsupported?.Details} {string.Join(';', stage.Failures)}");
+        Assert.Equal(reference.Facts.Select(fact => fact.EventContract.ToString()), stage.Trace!.Facts.Select(fact => fact.EventContract));
+        Assert.Equal(reference.Facts.Select(fact => fact.Route), stage.Trace.Facts.Select(fact => fact.Route));
     }
 }
 #endif

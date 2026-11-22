@@ -100,6 +100,8 @@ public static partial class SemanticRunAdmission
         {
             if (!check.Plan.Events.TryGetValue(given.EventContract, out var contract)) return Block(StageExecutionCapability.PlanIssue, given.EventContract, "The Given event is not in the plan.");
             if (EventValueRefusal(check.Plan, contract, given.Values) is { } refusal) return Block(StageExecutionCapability.Command, given.EventContract, refusal);
+            if (SemanticSourcelessGivens.MissingObservableSource(check.Plan.Model.Application, given))
+                return Block(StageExecutionCapability.Specification, given.EventContract, $"{SemanticSourcelessGivens.Code}: {SemanticSourcelessGivens.Reason}");
         }
 
         return null;

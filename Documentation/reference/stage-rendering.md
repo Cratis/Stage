@@ -374,6 +374,12 @@ implementation-envelope errors, and `STAGE-ESM-024` attached to a reaction, trig
 capture, or slice. Specification admission guards, including the constraint-target guard,
 remain unchanged; skipping a specification does not prove that it passes.
 
+`STAGE-ESM-051` identifies a sourceless given whose event source is observable and
+names Cratis/Stage#960. The reference runner retains a null destination for that
+fact, while Chronicle requires an event-source id to seed it. Stage refuses the
+specification rather than inventing an observable identity. A given with an explicit
+source, or a sourceless given whose source is unobserved, keeps its existing admission.
+
 Event-triggered native reaction specifications can run the rendered reactor through Chronicle's
 reactor scenario helper, for both inline C# and file bodies. The generated tests await the handler
 and assert returned event counts, types, payloads and destinations on the explicit triggering

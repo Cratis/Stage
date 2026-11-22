@@ -31,7 +31,7 @@ internal static partial class SemanticSpecificationAdmission
         (!specification.ThenEvents.IsEmpty || !specification.ThenReadModels.IsEmpty || !specification.ThenAbsentReadModels.IsEmpty || !specification.ThenQueries.IsEmpty);
 
     static bool MissingObservableSource(SemanticApplicationContext context, SemanticSpecificationEvent fact) =>
-        fact.EventSource is null && SemanticSpecificationEventSources.RequiresSource(context, fact.EventContract, fact.Route is not null);
+        SemanticSourcelessGivens.MissingObservableSource(context.Application, fact);
 
     // A sourceless given fact has its own code so it is not lost in the generic STAGE-ESM-011 bucket.
     static ArtifactRenderDiagnostic RefusalDiagnostic(SemanticApplicationContext context, SemanticSpecification specification, string reason)

@@ -53,8 +53,9 @@ public class when_admitting_utc_now
             ? property with { Type = property.Type with { IsOptional = !collection, IsCollection = collection } }
             : property).ToImmutableArray();
         var application = Replace(model.Application, command with { Properties = properties });
-        var changed = ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, application);
-        SemanticRunAdmission.RunStanding(changed, new HashSet<SemanticId>()).UnknownMembers.ShouldNotBeEmpty();
+        SemanticCommandClockSupport.Supports(application, Command(application)).ShouldBeFalse();
+        var rejection = Assert.Throws<InvalidSemanticContract>(() => ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, application));
+        rejection.Message.ShouldEqual("Clock comparisons require required scalar command properties.");
     }
 
     [Theory]
@@ -83,7 +84,7 @@ public class when_admitting_utc_now
     {
         "nonUtc" => application with { TimeZone = new("Europe/Oslo", false) },
         "configurable" => application with { TimeZone = new("UTC", true) },
-        "context" => application with { ContextMembers = [default!] },
+        "context" => application with { ContextMembers = ["tenant"] },
         "calendar" => Replace(application, Command(application) with { Calendar = new("UTC", null) }),
         _ => throw new InvalidOperationException()
     };

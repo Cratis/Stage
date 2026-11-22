@@ -54,8 +54,18 @@ internal static class SemanticCommandClockAdmission
     /// <summary>
     /// Follows the property/index grammar emitted by SemanticUnknownMembers.Walker; no identity-based search or reflection fallback.
     /// </summary>
+    /// <param name="segments">The dot-separated segments of the finding path.</param>
+    /// <param name="suffix">The expected leaf segment after <c>Clock</c>, or empty when the finding is the clock itself.</param>
     sealed class FindingPath(string[] segments, string suffix)
     {
+        static bool Index(string segment, string name, out int index)
+        {
+            index = 0;
+            if (!segment.StartsWith(name + "[", StringComparison.Ordinal) || !segment.EndsWith(']')) return false;
+            var digits = segment.AsSpan(name.Length + 1, segment.Length - name.Length - 2);
+            return int.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out index) && (digits.Length == 1 || digits[0] != '0');
+        }
+
         internal CommandOwner? Resolve(SemanticApplication application)
         {
             if (!Has(0, "Application")) return null;
@@ -109,14 +119,16 @@ internal static class SemanticCommandClockAdmission
             return segments.Length == position + 2 && Has(position + 1, suffix);
         }
 
-        T? Side<T>(T left, T right, int position) where T : class => Segment(position) switch
+        T? Side<T>(T left, T right, int position)
+            where T : class => Segment(position) switch
         {
             "Left" => left,
             "Right" => right,
             _ => null
         };
 
-        T? At<T>(ImmutableArray<T> values, int position, string name) where T : class
+        T? At<T>(ImmutableArray<T> values, int position, string name)
+            where T : class
         {
             if (values.IsDefaultOrEmpty || position >= segments.Length) return null;
             return Index(segments[position], name, out var index) && index < values.Length ? values[index] : null;
@@ -125,13 +137,5 @@ internal static class SemanticCommandClockAdmission
         bool Has(int position, string value) => string.Equals(Segment(position), value, StringComparison.Ordinal);
 
         string? Segment(int position) => position < segments.Length ? segments[position] : null;
-
-        static bool Index(string segment, string name, out int index)
-        {
-            index = 0;
-            if (!segment.StartsWith(name + "[", StringComparison.Ordinal) || !segment.EndsWith(']')) return false;
-            var digits = segment.AsSpan(name.Length + 1, segment.Length - name.Length - 2);
-            return int.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out index) && (digits.Length == 1 || digits[0] != '0');
-        }
     }
 }

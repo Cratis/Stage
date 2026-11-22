@@ -201,7 +201,12 @@ public class when_running_a_lifecycle_on_the_silo
             var deadline = DateTimeOffset.UtcNow.AddSeconds(45);
             while (!await condition())
             {
-                Assert.True(DateTimeOffset.UtcNow < deadline, $"Timed out. Facts: {string.Join(", ", log.Facts.Select(fact => plan.Events[fact.EventContract].Name))}. Runs: {string.Join(" | ", (await Effects.Runs("Collect")).Select(run => $"{run.Status}: {string.Join(", ", run.Nodes)}"))}");
+                // Build the message only on timeout: the facts are appended concurrently while the silo runs.
+                if (DateTimeOffset.UtcNow >= deadline)
+                {
+                    Assert.Fail($"Timed out. Facts: {string.Join(", ", log.Facts.Select(fact => plan.Events[fact.EventContract].Name))}. Runs: {string.Join(" | ", (await Effects.Runs("Collect")).Select(run => $"{run.Status}: {string.Join(", ", run.Nodes)}"))}");
+                }
+
                 await Task.Delay(100);
                 await driver.Pump();
             }

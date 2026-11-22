@@ -16,5 +16,16 @@ public sealed partial class ArtifactRenderPlan
 
     ImmutableArray<ArtifactRenderDegradation> ExclusionEvidence { get; init; } = [];
 
+    static (ImmutableArray<SemanticExclusion> Exclusions, ImmutableArray<ArtifactRenderDegradation> Evidence) PrepareExclusions(
+        ArtifactRenderRequest request,
+        ref ImmutableArray<ArtifactRenderDiagnostic> diagnostics)
+    {
+        var exclusions = ArtifactRenderExclusions.Normalize(request);
+        var evidence = ArtifactRenderExclusions.Evidence(exclusions, request.Model.Application);
+        var original = diagnostics;
+        diagnostics = [.. original, .. evidence.Select(entry => entry.Diagnostic).Where(diagnostic => !original.Contains(diagnostic))];
+        return (exclusions, evidence);
+    }
+
     string ExclusionsDigest(string original) => ArtifactRenderExclusions.Digest(original, Exclusions);
 }

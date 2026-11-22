@@ -466,23 +466,8 @@ public sealed partial class ArtifactRenderPlan
             throw new InvalidArtifactRenderContract("An artifact render plan contains malformed request, artifact, or diagnostic data.");
         }
 
-        var exclusions = ArtifactRenderExclusions.Normalize(request);
-        var exclusionEvidence = ArtifactRenderExclusions.Evidence(exclusions, request.Model.Application);
-        diagnostics = [.. diagnostics, .. exclusionEvidence.Select(evidence => evidence.Diagnostic).Where(diagnostic => !diagnostics.Contains(diagnostic))];
-
-        var normalized = artifacts
-            .Select(artifact => PlannedArtifact.Create(artifact.Kind, artifact.RelativePath, artifact.Bytes).WithSources(artifact.Sources).CopyFileHeaderFrom(artifact))
-            .OrderBy(_ => _.RelativePath, StringComparer.Ordinal)
-            .ToImmutableArray();
-        if (normalized.Select(_ => _.RelativePath).Distinct(StringComparer.Ordinal).Count() != normalized.Length)
-        {
-            throw new InvalidArtifactRenderContract("An artifact render plan contains a duplicate relative path.");
-        }
-
-        if (normalized.Select(_ => _.RelativePath).Distinct(StringComparer.OrdinalIgnoreCase).Count() != normalized.Length)
-        {
-            throw new InvalidArtifactRenderContract("An artifact render plan contains paths that collide on a case-insensitive file system.");
-        }
+        var (exclusions, exclusionEvidence) = PrepareExclusions(request, ref diagnostics);
+        var normalized = NormalizeArtifacts(artifacts);
 
         var header = ArtifactFileHeader.Apply(request.Profile, normalized, request.CommentSyntaxes, request.Model.Application.Id);
         normalized = header.Artifacts;
@@ -635,6 +620,24 @@ public sealed partial class ArtifactRenderPlan
         writer.Flush();
 
         return Convert.ToHexString(SHA256.HashData(stream.ToArray())).ToLowerInvariant();
+    }
+
+    static ImmutableArray<PlannedArtifact> NormalizeArtifacts(ImmutableArray<PlannedArtifact> artifacts)
+    {
+        var normalized = artifacts
+            .Select(artifact => PlannedArtifact.Create(artifact.Kind, artifact.RelativePath, artifact.Bytes).WithSources(artifact.Sources).CopyFileHeaderFrom(artifact))
+            .OrderBy(_ => _.RelativePath, StringComparer.Ordinal)
+            .ToImmutableArray();
+        if (normalized.Select(_ => _.RelativePath).Distinct(StringComparer.Ordinal).Count() != normalized.Length)
+        {
+            throw new InvalidArtifactRenderContract("An artifact render plan contains a duplicate relative path.");
+        }
+
+        if (normalized.Select(_ => _.RelativePath).Distinct(StringComparer.OrdinalIgnoreCase).Count() != normalized.Length)
+        {
+            throw new InvalidArtifactRenderContract("An artifact render plan contains paths that collide on a case-insensitive file system.");
+        }
+        return normalized;
     }
 
     static ImmutableArray<ArtifactImplementationGap> ValidateImplementationGaps(

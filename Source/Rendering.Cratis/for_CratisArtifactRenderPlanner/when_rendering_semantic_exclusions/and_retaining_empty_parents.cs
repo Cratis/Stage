@@ -17,7 +17,7 @@ public class and_retaining_empty_parents : given.an_excluded_feature
         var nested = _feature with { Id = nestedId, Name = "Nested", Slices = [], Features = [] };
         var feature = _feature with { Slices = [], Features = [nested] };
         var application = _model.Application with { Modules = [_module with { Features = [feature] }] };
-        var model = ExecutableSemanticModel.Create(_model.Language, _model.Semantics, application);
+        var model = ExecutableSemanticModel.Create(_model.LanguageVersion, _model.SemanticVersion, application);
         _request = _request with
         {
             Model = model,

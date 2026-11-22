@@ -56,8 +56,8 @@ public class when_running_command_clock_conditions : Specification
         var report = await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new() { Clock = new UnexpectedClock() });
         var result = report.Results.Single();
         Assert.True(result.Outcome == SemanticSpecificationOutcome.Passed, $"{result.Outcome}: {result.Unsupported?.Details} {string.Join(';', result.Failures)}");
-        result.ExecutionKind.ShouldEqual(reference.Execution.Outcome.ToString());
-        if (name == "MissingClock") result.Trace!.RejectionCategory.ShouldEqual(SemanticRejectionCategory.Contract.ToString());
+        result.ExecutionKind.ShouldEqual(reference.Execution.Kind.ToString());
+        if (name == "MissingClock") result.Trace!.RejectionCategory.ShouldEqual(nameof(SemanticRejectionCategory.Contract));
     }
 
     sealed class UnexpectedClock : TimeProvider

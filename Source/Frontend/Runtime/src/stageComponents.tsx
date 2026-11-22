@@ -16,7 +16,8 @@ import { DialogSlice, useStageScreens } from './stageStructure';
 import { sliceDialogScreenOf } from './stageSliceDialogScreen';
 import { StageCommandForm, StageDialogContext, StageDialogFooterContext, carriedBy, identifiersAwaitingSelection, selectedIdentifier, suppliedWithoutAsking } from './StageCommandForm';
 import { useScreenRows, useScreenRowMenuActions } from './stageScreenTables';
-import { rowMenuColumnCount, StageActionPresentation, StageRowMenuCell, StageRowMenuHeader, StageActionTrigger, useRowMenuSelection } from './stageRowMenuActions';
+import { rowMenuColumnCount, StageActionPresentation, StageRowMenuCell, StageRowMenuHeader, StageActionTrigger, rowMenuLabel } from './stageRowMenuActions';
+import { useRowMenuDialogFocus } from './stageRowMenuContext';
 import { type ActionSubject, actionCreatesEntity, actionSubjectOf, awaitsSubjectRow, itemSubjectElement, subjectActionProperties, subjectRowOf } from './stageActionSubject';
 import { actionVariant } from './humanize';
 import { readableValue } from './readableValue';
@@ -224,7 +225,7 @@ export function StageTable({ element, slots }: RegisteredProps) {
                                     select(row);
                                 }}>
                                 {columns.map(column => <td key={column.property}>{tableValue(row[column.property], column.options, column.optionValues)}</td>)}
-                                <StageRowMenuCell row={row} actions={rowMenuActions} renderAction={action => <StageAction key={action.id} element={action} slots={{}} />} />
+                                <StageRowMenuCell row={row} label={rowMenuLabel(row, columns)} actions={rowMenuActions} renderAction={action => <StageAction key={action.id} element={action} slots={{}} />} />
                             </tr>
                         );
                     })}
@@ -271,8 +272,7 @@ function useCommandAction(input: ExternalComponent) {
     const properties = useMemo(() => schemaPropertiesOf(schema ?? '', identitySchema), [schema, identitySchema]);
     const subject = actionSubjectOf(input);
     const creates = actionCreatesEntity(input, schema);
-    const { selectableRows, selectedRows: screenSelection } = useScreenRows();
-    const selectedRows = useRowMenuSelection(screenSelection);
+    const { selectableRows, selectedRows } = useScreenRows();
     const auto = text(input, 'generationMode').toLowerCase() !== 'manual';
     const rowAction = infersRowAction(input, subject, creates, auto);
     const fields = auto ? autoActionFields(input, schema, properties, parameters, subject, creates ? [] : selectableRows) : {};
@@ -370,6 +370,7 @@ function followsEarlierAction(host: HTMLElement | null): boolean {
 function StageCommandDialog({ element, label }: { element: ExternalComponent; label: string }) {
     const [generation, setGeneration] = useState(0);
     const [visible, setVisible] = useState(false);
+    useRowMenuDialogFocus(visible);
     const [followsAction, setFollowsAction] = useState(false);
     const host = useRef<HTMLDivElement>(null);
     useLayoutEffect(() => setFollowsAction(followsEarlierAction(host.current)));

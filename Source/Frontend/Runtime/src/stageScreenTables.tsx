@@ -8,6 +8,8 @@ import { selectableRowsOf, selectedRowsOf } from './StageCommandForm';
 import { useStageData } from './stageData';
 import { isBoardComponent } from './stageBoardSelection';
 import { isRowMenuAction } from './stageRowMenuActions';
+import { ScreenRowMenuActionsContext, useRowMenuSubject } from './stageRowMenuContext';
+export { useScreenRowMenuActions } from './stageRowMenuContext';
 
 /**
  * The row-source scopes of one screen, including tables and board card queries nested in its slots. An outlet belongs to another screen, so its children are not visited.
@@ -36,22 +38,17 @@ function rowScopesOf(component: ExternalComponent): string[] {
 }
 
 const ScreenTablesContext = createContext<ReadonlySet<string> | undefined>(undefined);
-const ScreenRowMenuActionsContext = createContext<ExternalComponent[]>([]);
-
-/** Collects opted-in actions in this screen only; outlet screens have their own action scope. */
+/** Groups actions only when their row source is unambiguous; otherwise preserves the inline fallback. */
 export function screenRowMenuActionsOf(element: SceneElement): ExternalComponent[] {
-    const component = element as ExternalComponent;
-    if (component.componentName === 'core:slot') return [];
-    const actions = isRowMenuAction(element) ? [element] : [];
-    for (const children of Object.values(component.slots ?? {})) {
-        actions.push(...children.flatMap(screenRowMenuActionsOf));
-    }
-    return actions;
+    const components = screenComponentsOf(element);
+    if (components.filter(component => component.componentName === 'core:table').length !== 1) return [];
+    return components.filter(isRowMenuAction);
 }
 
-/** The item actions explicitly presented as menus by the nearest screen. */
-export function useScreenRowMenuActions(): ExternalComponent[] {
-    return useContext(ScreenRowMenuActionsContext);
+function screenComponentsOf(element: SceneElement): ExternalComponent[] {
+    const component = element as ExternalComponent;
+    if (component.componentName === 'core:slot') return [];
+    return [component, ...Object.values(component.slots ?? {}).flatMap(children => children.flatMap(screenComponentsOf))];
 }
 
 /** Limits action selection and hidden form identifiers to the tables and boards of this screen, independently of other screens on the page. */
@@ -74,9 +71,11 @@ export function StagePageRows({ children }: { children: ReactNode }) {
 export function useScreenRows(): { selectableRows: Record<string, unknown>[]; selectedRows: Record<string, unknown>[] } {
     const tables = useContext(ScreenTablesContext);
     const { queries, selections } = useStageData();
+    const row = useRowMenuSubject();
     return useMemo(() => {
+        if (row) return { selectableRows: [row], selectedRows: [row] };
         const scopedQueries = tables ? Object.fromEntries(Object.entries(queries).filter(([scope]) => tables.has(scope))) : queries;
         const scopedSelections = tables ? Object.fromEntries(Object.entries(selections).filter(([scope]) => tables.has(scope))) : selections;
         return { selectableRows: selectableRowsOf(scopedQueries), selectedRows: selectedRowsOf(scopedSelections, scopedQueries) };
-    }, [queries, selections, tables]);
+    }, [queries, selections, tables, row]);
 }

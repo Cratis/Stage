@@ -35,23 +35,40 @@ async function read<T>(endpoint: string, signal: AbortSignal, selected: boolean)
     throw new Error(`The Stage returned ${response.status}.`);
 }
 
-/** Reads the live world on selection or refresh; cancellation prevents older requests from replacing it. */
+function errorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : 'Could not read the session\'s read models.';
+}
+
+/** Loads summaries on mount or refresh and cancels superseded detail reads independently. */
 export function useBrowser() {
-    const [state, setState] = useState<BrowserState>({ loading: true });
+    const [state, setState] = useState<Omit<BrowserState, 'detail'>>({ loading: true });
+    const [detailState, setDetailState] = useState<Pick<BrowserState, 'detail' | 'message'>>({});
     const [selectedId, setSelectedId] = useState<string>();
     const [revision, setRevision] = useState(0);
 
     useEffect(() => {
         const controller = new AbortController();
         const load = async () => {
-            let readModels: Summary[] | undefined;
             try {
                 const list = await read<{ readModels: Summary[] }>(endpoints.readModels, controller.signal, false);
-                readModels = list.readModels;
-                const detail = selectedId ? await read<Detail>(endpoints.readModel(selectedId), controller.signal, true) : undefined;
-                if (!controller.signal.aborted) setState({ loading: false, readModels: list.readModels, detail });
+                if (!controller.signal.aborted) setState({ loading: false, readModels: list.readModels });
             } catch (error) {
-                if (!controller.signal.aborted) setState({ loading: false, readModels, message: error instanceof Error ? error.message : 'Could not read the session\'s read models.' });
+                if (!controller.signal.aborted) setState({ loading: false, message: errorMessage(error) });
+            }
+        };
+        void load();
+        return () => controller.abort();
+    }, [revision]);
+
+    useEffect(() => {
+        if (!selectedId) return;
+        const controller = new AbortController();
+        const load = async () => {
+            try {
+                const detail = await read<Detail>(endpoints.readModel(selectedId), controller.signal, true);
+                if (!controller.signal.aborted) setDetailState({ detail });
+            } catch (error) {
+                if (!controller.signal.aborted) setDetailState({ message: errorMessage(error) });
             }
         };
         void load();
@@ -60,14 +77,17 @@ export function useBrowser() {
 
     return {
         ...state,
+        detail: state.readModels ? detailState.detail : undefined,
+        message: state.message ?? detailState.message,
         selectedId,
         select: (id: string) => {
             if (id === selectedId) return;
-            setState({ loading: true });
+            setDetailState({});
             setSelectedId(id);
         },
         refresh: () => {
             setState({ loading: true });
+            setDetailState({});
             setRevision(previous => previous + 1);
         },
     };

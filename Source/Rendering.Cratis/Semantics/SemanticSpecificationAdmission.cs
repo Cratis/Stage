@@ -16,8 +16,8 @@ internal static partial class SemanticSpecificationAdmission
     /// <summary>
     /// The code that refuses a specification whose given or appended event has an observable missing source.
     /// </summary>
-    internal const string SourcelessGivenCode = "STAGE-ESM-051";
-    const string SourcelessGivenReason = "A sourceless given fact has a null destination in the reference world; Chronicle scenario events require an event source id.";
+    internal const string SourcelessGivenCode = SemanticSourcelessGivens.Code;
+    const string SourcelessGivenReason = SemanticSourcelessGivens.Reason;
 
     /// <summary>
     /// Validates the specifications declared by one slice.

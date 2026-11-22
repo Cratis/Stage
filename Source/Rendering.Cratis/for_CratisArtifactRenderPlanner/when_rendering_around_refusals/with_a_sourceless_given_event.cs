@@ -22,4 +22,5 @@ public class with_a_sourceless_given_event : given.a_refused_specification
     [Fact] void should_render_a_complete_plan() => _plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Complete);
     [Fact] void should_list_the_sourceless_refusal() => _plan.Refusals.ShouldContain(refusal => refusal.Artifact == _refused && refusal.Codes.Contains("STAGE-ESM-051"));
     [Fact] void should_omit_the_refused_specification() => _plan.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(_refused);
+    [Fact] void should_name_the_owning_issue() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Message.Contains("Cratis/Stage#960", StringComparison.Ordinal));
 }

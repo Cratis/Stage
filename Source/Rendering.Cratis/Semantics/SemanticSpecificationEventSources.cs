@@ -11,10 +11,7 @@ internal static class SemanticSpecificationEventSources
     internal const string Placeholder = "when-append";
 
     internal static bool RequiresSource(SemanticApplicationContext context, SemanticId contract, bool routed = false) =>
-        routed || context.Reducers.Any(reducer => reducer.Transitions.Any(transition => transition.EventContract == contract)) ||
-        SemanticSpecificationAdmission.IsReactionConstraintTarget(context, contract) ||
-        ReactionObservesSource(context, contract) || RoutedProductionObservesSource(context, contract) ||
-        context.Projections.Values.Any(projection => SemanticSourcelessGivens.ProjectionRequiresSource(projection, contract));
+        SemanticSourcelessGivens.RequiresSource(context.Application, contract, routed);
 
     internal static string Expression(SemanticApplicationContext context, SemanticTypeSystem types, SemanticSpecificationEvent fact)
     {
@@ -30,14 +27,4 @@ internal static class SemanticSpecificationEventSources
         // A transport fixture only, never an authored identity or a guessed payload property.
         return CSharpCodeBuilder.StringLiteral(Placeholder);
     }
-
-    static bool ReactionObservesSource(SemanticApplicationContext context, SemanticId contract) =>
-        SemanticVersionFeatures.Slices(context.Request.Model.Application)
-            .SelectMany(slice => slice.Reactions)
-            .SelectMany(reaction => reaction.Triggers)
-            .Any(trigger => trigger.Kind == SemanticReactionTriggerKind.Event && trigger.Source == contract);
-
-    static bool RoutedProductionObservesSource(SemanticApplicationContext context, SemanticId contract) =>
-        context.Commands.Values.Any(command => command.Produces.Any(produced => produced.EventContract == contract &&
-            (command.Route is not null || produced.Route is not null)));
 }

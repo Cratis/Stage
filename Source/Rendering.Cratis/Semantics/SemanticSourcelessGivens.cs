@@ -10,9 +10,29 @@ internal static class SemanticSourcelessGivens
     internal const string Code = "STAGE-ESM-051";
     internal const string Reason = "A sourceless given fact has a null destination in the reference world; Chronicle scenario events require an event source id. Tracked by Cratis/Stage#960.";
 
+    internal static bool MissingObservableSource(SemanticApplication application, SemanticSpecificationEvent fact) =>
+        fact.EventSource is null && RequiresSource(application, fact.EventContract, fact.Route is not null);
+
+    internal static bool RequiresSource(SemanticApplication application, SemanticId contract, bool routed = false) =>
+        routed || SemanticVersionFeatures.Slices(application).Any(slice => SliceRequiresSource(slice, contract));
+
     internal static bool ProjectionRequiresSource(SemanticProjection projection, SemanticId contract) => projection.Scope is { } scope
         ? ObservesSource(scope, contract, false)
         : projection.Transitions.Any(transition => transition.EventContract == contract);
+
+    static bool SliceRequiresSource(SemanticSlice slice, SemanticId contract) =>
+        slice.Constraints.Any(constraint => ConstraintRequiresSource(constraint, contract)) ||
+        slice.Reducers.Any(reducer => reducer.Transitions.Any(transition => transition.EventContract == contract)) ||
+        slice.Reactions.Any(reaction => reaction.Triggers.Any(trigger => trigger.Kind == SemanticReactionTriggerKind.Event && trigger.Source == contract)) ||
+        slice.Commands.Any(command => CommandObservesRoute(command, contract)) ||
+        slice.Projections.Any(projection => ProjectionRequiresSource(projection, contract));
+
+    static bool ConstraintRequiresSource(SemanticConstraint constraint, SemanticId contract) =>
+        constraint.Targets.Any(target => target.EventContract == contract) || constraint.ReleasedBy.Contains(contract);
+
+    static bool CommandObservesRoute(SemanticCommand command, SemanticId contract) =>
+        command.Produces.Any(produced => produced.EventContract == contract &&
+            (command.Route is not null || produced.Route is not null));
 
     static bool ObservesSource(SemanticProjectionScope scope, SemanticId contract, bool child) =>
         EveryObservesSource(scope, contract) ||

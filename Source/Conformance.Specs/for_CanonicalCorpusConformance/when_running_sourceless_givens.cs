@@ -25,7 +25,7 @@ public class when_running_sourceless_givens : Specification
     async Task Because() => _report = await new SemanticSpecificationExecutor().Run(_plan, new([.. _plan.Specifications.Keys]), new());
 
     [Fact] void should_report_every_specification() => _report.Results.Count.ShouldEqual(_plan.Specifications.Count);
-    [Fact] void should_refuse_the_two_source_observing_projections() => Refused().Length.ShouldEqual(2);
+    [Fact] void should_refuse_all_five_source_observing_specifications() => Refused().Length.ShouldEqual(5);
     [Fact] void should_name_the_typed_code() => Assert.All(Refused(), result => Assert.StartsWith("STAGE-ESM-051:", result.Unsupported.Details));
     [Fact] void should_name_the_owning_issue() => Assert.All(Refused(), result => Assert.Contains("Cratis/Stage#960", result.Unsupported.Details));
     [Fact] void should_keep_the_other_specifications_supported() => Assert.All(_report.Results.Except(Refused()), result => Assert.Equal(SemanticSpecificationOutcome.Passed, result.Outcome));

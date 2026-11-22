@@ -16,6 +16,7 @@ import { sessionIdentities } from './stageSession';
 import { useStageCommandExecutor } from './commandExecutor';
 import { navigateToScreen } from './stageNavigation';
 import { screenplayGuardBinding } from './screenplayGuard';
+import { useQueryRegistry } from './queryRegistry';
 
 const DATA_CHANGED = 'cratis.stage.data-changed';
 const AwaitingQueryContext = createContext<() => () => void>(() => () => undefined);
@@ -187,7 +188,7 @@ export interface StageDataState {
      * source is a data-context path.
      */
     resolveArgument: (source: string | undefined) => unknown;
-    registerQueryResult: (scope: string, state: QueryState | undefined) => void;
+    registerQueryResult: (scope: string, state: QueryState | undefined, owner?: symbol) => void;
     refreshVersion: number;
     refreshQueryName?: string;
 }
@@ -241,7 +242,7 @@ export interface StageDataProviderProps {
 const noParameters: Record<string, string> = {};
 
 export function StageDataProvider({ routes, routesReady = true, parameters: addressParameters = noParameters, locale, locales, screen, children }: StageDataProviderProps) {
-    const [queries, setQueries] = useState<Record<string, QueryState>>({});
+    const { queries, registerQueryResult } = useQueryRegistry<QueryState>();
     const [sessionVersion, setSessionVersion] = useState(0);
     const [selections, setSelections] = useState<Record<string, Record<string, unknown> | undefined>>({});
     const [activeSelection, setActiveSelection] = useState<string>();
@@ -252,17 +253,6 @@ export function StageDataProvider({ routes, routesReady = true, parameters: addr
 
     // What every rendered tree published, as one: the screen's selected row and a dialog's search box resolve side by side.
     const publishedOutputs = useMemo(() => mergedOutputs(outputContributions), [outputContributions]);
-
-    const registerQueryResult = useCallback((scope: string, state: QueryState | undefined) => {
-        setQueries(current => {
-            if (!state) {
-                const { [scope]: _, ...remaining } = current;
-                return remaining;
-            }
-
-            return { ...current, [scope]: state };
-        });
-    }, []);
 
     // The address's parameters stay the address's: a session identity reaches only what reads the session on purpose (see `session`).
     const parameters = addressParameters;
@@ -435,9 +425,11 @@ export function useStageQuery(request: StageQueryRequest): StageQueryResult {
     const { refreshQueryName, refreshVersion, registerQueryResult, settling } = useStageData();
     const arc = useContext(ArcContext);
     const publish = request.publish !== false;
+    // This instance's identity in the registry: its withdrawals only remove what it still owns.
+    const owner = useRef(Symbol('stage-query-publisher')).current;
     const publishResult = useCallback((scope: string, state: QueryState | undefined) => {
-        if (publish) registerQueryResult(scope, state);
-    }, [publish, registerQueryResult]);
+        if (publish) registerQueryResult(scope, state, owner);
+    }, [owner, publish, registerQueryResult]);
     const ready = request.ready ?? true;
     const active = hasQuerySource(request) && ready;
     const [rows, setRows] = useState<Record<string, unknown>[]>([]);
@@ -538,6 +530,9 @@ export function useStageQuery(request: StageQueryRequest): StageQueryResult {
         if (liveOpen.current) return;
         setLocalRefresh(current => current + 1);
     }, [refreshQueryName, refreshVersion, request.name, request.scope]);
+
+    // Withdraws what this instance published when it unmounts, changes scope or stops publishing.
+    useEffect(() => () => publishResult(request.scope, undefined), [publishResult, request.scope]);
 
     useEffect(() => {
         if (!active) {

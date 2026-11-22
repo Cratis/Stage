@@ -58,12 +58,23 @@ class WorkflowProvenanceTests(unittest.TestCase):
                 self.assertIn(f"CI_TOOLS_COMMAND: {command}", selection)
                 self.assertEqual(shell("routing", "Select routing tools"), shell(job, "Select routing tools"))
                 self.assertNotIn("${{", shell(job, "Select routing tools"))
-                before_selection = JOBS[job].split("      - name: Select routing tools", 1)[0]
+                first_trusted_step = "Resolve default-branch routing revision" if job == "routing" else "Select routing tools"
+                before_selection = JOBS[job].split(f"      - name: {first_trusted_step}", 1)[0]
                 self.assertNotIn("run:", before_selection)
                 self.assertIn(f'python3 -I "$CI_ROUTING_SCRIPT" {command}', JOBS[job])
         self.assertIn("fetch-depth: 0", step("routing", "Checkout merge-base history"))
         self.assertNotIn("working-directory:", JOBS["routing"])
         self.assertIn(f"actions/checkout@{PIN}", step("build", "Checkout code"))
+
+    def test_default_revision_is_resolved_once_and_shared_with_every_decision_job(self):
+        self.assertEqual(1, WORKFLOW.count(" ls-remote "))
+        self.assertIn("default-tools-revision: ${{ steps.default-tools.outputs.revision }}", JOBS["routing"])
+        for job in DECISION_JOBS:
+            source = "steps.default-tools.outputs.revision" if job == "routing" else "needs.routing.outputs.default-tools-revision"
+            with self.subTest(job=job):
+                self.assertIn(f"CI_DEFAULT_SHA: ${{{{ {source} }}}}", step(job, "Select routing tools"))
+                self.assertNotIn("ls-remote", shell(job, "Select routing tools"))
+        self.assertIn("fetch --depth=1 --no-tags", shell("routing", "Select routing tools"))
 
     def test_no_checkout_places_routing_tools_in_the_workspace(self):
         for job in DECISION_JOBS:
@@ -98,6 +109,9 @@ class RoutingToolSelectionTests(unittest.TestCase):
         self.git("init", "--bare", "--initial-branch=main", str(self.root / "origin"))
         self.git("remote", "add", "origin", str(self.root / "origin"))
         self.empty_base = self.publish("Initial policy")
+        self.default_branch = "main"
+        self.default_revision = None
+        self.output_file = self.root / "outputs"
 
     def git(self, *arguments):
         result = subprocess.run(["git", "-c", "user.name=CI specs", "-c", "user.email=ci@example.invalid",
@@ -138,12 +152,24 @@ class RoutingToolSelectionTests(unittest.TestCase):
         (self.directory / "gate-tools").symlink_to(".")
         return self.commit("Head inputs")
 
+    def resolve_default(self):
+        self.output_file.write_text("")
+        result = run_shell(shell("routing", "Resolve default-branch routing revision"), self.directory,
+                           CI_DEFAULT_BRANCH=self.default_branch, GITHUB_OUTPUT=str(self.output_file))
+        if result.returncode == 0:
+            self.default_revision = self.output_file.read_text().strip().split("=", 1)[1]
+        return result
+
     def select(self, job, base, event="pull_request"):
+        if self.default_revision is None:
+            resolution = self.resolve_default()
+            self.assertEqual(0, resolution.returncode, resolution.stderr)
         self.environment_file.write_text("")
         return run_shell(shell(job, "Select routing tools"), self.directory,
                          GITHUB_EVENT_NAME=event, GITHUB_ENV=str(self.environment_file),
                          GITHUB_WORKSPACE=str(self.directory), RUNNER_TEMP=str(self.runner_temp),
-                         CI_BASE_SHA=base, CI_DEFAULT_BRANCH="main", CI_TOOLS_COMMAND=DECISION_COMMANDS[job])
+                         CI_BASE_SHA=base, CI_DEFAULT_BRANCH=self.default_branch,
+                         CI_DEFAULT_SHA=self.default_revision, CI_TOOLS_COMMAND=DECISION_COMMANDS[job])
 
     def selected_script(self, job, base, revision, event="pull_request"):
         result = self.select(job, base, event)
@@ -188,6 +214,7 @@ class RoutingToolSelectionTests(unittest.TestCase):
         self.git("clone", "--depth=1", "--branch=pull-inputs", (self.root / "origin").as_uri(), str(shallow))
         self.directory = shallow
         self.assert_policy(base, base, "base policy")
+        self.assertEqual("1", self.git("rev-list", "--count", base))
 
     def test_default_branch_current_head_is_resolved_from_origin(self):
         self.publish_tools("initial default policy")
@@ -199,6 +226,72 @@ class RoutingToolSelectionTests(unittest.TestCase):
         default = self.publish_tools("current default policy")
         self.directory = workspace
         self.assert_policy(self.empty_base, default, "current default policy")
+
+    def test_unusual_default_ref_does_not_select_suffix_matching_branch_or_tag(self):
+        default = self.publish_tools("default policy")
+        self.default_branch = "release/'$policy;topic"
+        self.git("push", "origin", f"{default}:refs/heads/{self.default_branch}")
+        other = self.publish_tools("other policy")
+        self.git("push", "origin", f"{other}:refs/heads/shadow/refs/heads/{self.default_branch}")
+        self.git("push", "origin", f"{other}:refs/tags/refs/heads/{self.default_branch}")
+        self.create_head()
+        self.assert_policy(self.empty_base, default, "default policy")
+
+    def test_jobs_keep_the_resolved_revision_when_default_branch_advances(self):
+        default = self.publish_tools("pinned default policy")
+        self.assertEqual(0, self.resolve_default().returncode)
+        self.publish_tools("later default policy")
+        self.create_head()
+        self.assert_policy(self.empty_base, default, "pinned default policy")
+
+    def test_missing_exact_default_ref_fails_closed_even_with_suffix_match(self):
+        self.publish_tools("default policy")
+        self.default_branch = "missing"
+        self.git("push", "origin", "HEAD:refs/heads/shadow/refs/heads/missing")
+        result = self.resolve_default()
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("::error::No default-branch revision", result.stdout)
+        self.assertEqual("", self.output_file.read_text())
+
+    def test_hostile_attributes_cannot_omit_filter_or_convert_tooling_blobs(self):
+        self.publish_tools("base policy")
+        script = self.directory / ".github/ci-routing.py"
+        script.write_text(script.read_text() + "# $Format:%H$\n")
+        expected = script.read_bytes()
+        attributes = ".github/* export-ignore export-subst filter=hostile text eol=crlf\npolicy.txt export-ignore\n"
+        (self.directory / ".gitattributes").write_text(attributes)
+        base = self.publish("Trusted policy with attributes")
+        self.create_head()
+        (self.directory / ".git/info/attributes").write_text(attributes)
+        self.git("config", "filter.hostile.smudge", "touch filter-executed; cat")
+        self.git("config", "filter.hostile.required", "true")
+        self.assert_policy(base, base, "base policy")
+        selected = self.selected_script("routing", base, base)
+        self.assertEqual(expected, selected.read_bytes())
+        self.assertFalse((self.directory / "filter-executed").exists())
+
+    def test_unusual_policy_paths_are_extracted_as_raw_blobs(self):
+        default = self.publish_tools("default policy")
+        name = "-policy folder/quote' $dollar;tab\tline\n.txt"
+        policy = self.directory / name
+        policy.parent.mkdir()
+        policy.write_bytes(b"raw policy\r\n")
+        base = self.commit("Unusual policy path")
+        self.create_head()
+        selected = self.selected_script("routing", base, base)
+        self.assertEqual(b"raw policy\r\n", (selected.parent.parent / name).read_bytes())
+        self.assertNotEqual(default, base)
+
+    def test_invalid_pinned_default_revision_fails_closed_without_using_head(self):
+        self.create_head()
+        self.default_revision = "main;not-a-sha"
+        for job in DECISION_JOBS:
+            with self.subTest(job=job):
+                result = self.select(job, self.empty_base)
+                self.assertNotEqual(0, result.returncode)
+                self.assertIn("::error::No default-branch revision provides .github/ci-routing.py", result.stdout)
+                self.assertEqual("", self.environment_file.read_text())
+                self.assertFalse((self.directory / "head-executed").exists())
 
     def test_base_without_script_uses_default_branch_tools(self):
         default = self.publish_tools("default policy")

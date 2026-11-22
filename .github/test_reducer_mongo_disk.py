@@ -195,10 +195,10 @@ class DiskTests(unittest.TestCase):
     def test_nuget_resolves_all_default_or_override_paths_and_refuses_missing_or_relative(self):
         for base in (self.root / "defaults", self.root / "overrides"):
             output = "\n".join(f"{name}: {base / name}" for name in ("global-packages", "http-cache", "temp", "plugins-cache"))
-            with patch.dict(DISK["nuget_locations"].__globals__, {"checked": lambda command: output}):
+            with patch.dict(DISK["nuget_locations"].__globals__, {"checked": lambda command, **kwargs: output}):
                 self.assertEqual(4, len(DISK["nuget_locations"]()))
         for output in ("", "global-packages: relative", "global-packages: /a\nglobal-packages: /b"):
-            with patch.dict(DISK["nuget_locations"].__globals__, {"checked": lambda command: output}), self.assertRaises(RuntimeError):
+            with patch.dict(DISK["nuget_locations"].__globals__, {"checked": lambda command, **kwargs: output}), self.assertRaises(RuntimeError):
                 DISK["nuget_locations"]()
 
     def test_container_mount_or_symlink_mapping_change_is_rejected_even_on_same_filesystem(self):
@@ -319,44 +319,70 @@ class DiskTests(unittest.TestCase):
         DISK["cleanup"](self.env)
         self.assertFalse(self.scratch.exists())
 
-    def test_dotnet_probe_executes_real_source_and_rejects_bad_resolver_or_write(self):
+    def dotnet_probe_execution(self, mode):
         actual_checked = DISK["checked"]
         caches = {name: str(self.root / name) for name in ("global-packages", "http-cache", "temp", "plugins-cache")}
-        for mode in ("pass", "escape", "failure"):
-            project = self.scratch / "dotnet-probe"
-            if project.exists():
-                # Remove only the two known tiny test-owned source files, never real build output.
-                for name in ("Probe.csproj", "Program.cs"):
-                    (project / name).unlink()
-                project.rmdir()
-            def execute(command, **kwargs):
-                if command[:2] == ["dotnet", "run"]:
-                    source = (project / "Program.cs").read_text()
-                    self.assertIn("Path.GetTempPath()", source)
-                    self.assertIn("FileMode.CreateNew", source)
-                    self.assertIn("file.Flush(true)", source)
-                    self.assertEqual(self.env, kwargs["env"])
-                    if mode == "failure":
-                        raise RuntimeError(".NET write failed")
-                    Path(command[-1]).write_text(str(self.scratch if mode == "pass" else self.root))
-                    return "dotnet probe output"
-                if command[0] == "dotnet":
-                    return "\n".join(f"{name}: {path}" for name, path in caches.items())
-                if command[0] in ("stat", "realpath"):
-                    return self.stat(command)
-                return actual_checked(command, **kwargs)
-            with patch.dict(DISK["probe_dotnet"].__globals__, {"checked": execute}):
-                if mode == "pass":
-                    DISK["probe_dotnet"](self.env)
-                    self.assertTrue((self.scratch / "nuget-paths.json").is_file())
-                    DISK["runtime_locations"](self.env)
-                    (self.scratch / "nuget-paths.json").write_text("{}")
-                    with self.assertRaisesRegex(RuntimeError, "mappings changed"):
-                        DISK["runtime_locations"](self.env)
-                else:
-                    with self.assertRaisesRegex(RuntimeError, "escaped|write failed"):
-                        DISK["probe_dotnet"](self.env)
-                self.assertTrue((self.scratch / "dotnet-probe.log").is_file())
+
+        def execute(command, **kwargs):
+            if command[:2] == ["dotnet", "run"]:
+                source = (self.scratch / "dotnet-probe/Program.cs").read_text()
+                self.assertIn("Path.GetTempPath()", source)
+                self.assertIn("FileMode.CreateNew", source)
+                self.assertIn("file.Flush(true)", source)
+                self.assertEqual(self.env, kwargs["env"])
+                if mode == "failure":
+                    raise RuntimeError(".NET write failed")
+                Path(command[-1]).write_text(str(self.scratch if mode == "pass" else self.root))
+                return "dotnet probe output"
+            if command[0] == "dotnet":
+                return "\n".join(f"{name}: {path}" for name, path in caches.items())
+            if command[0] in ("stat", "realpath"):
+                return self.stat(command)
+            return actual_checked(command, **kwargs)
+        return execute
+
+    def test_dotnet_probe_executes_real_source_and_rejects_changed_mapping(self):
+        with patch.dict(DISK["probe_dotnet"].__globals__, {"checked": self.dotnet_probe_execution("pass")}):
+            DISK["probe_dotnet"](self.env)
+            self.assertTrue((self.scratch / "nuget-paths.json").is_file())
+            DISK["runtime_locations"](self.env)
+            (self.scratch / "nuget-paths.json").write_text("{}")
+            with self.assertRaisesRegex(RuntimeError, "mappings changed"):
+                DISK["runtime_locations"](self.env)
+        self.assertTrue((self.scratch / "dotnet-probe.log").is_file())
+
+    def test_dotnet_probe_rejects_bad_resolver(self):
+        with patch.dict(DISK["probe_dotnet"].__globals__, {"checked": self.dotnet_probe_execution("escape")}):
+            with self.assertRaisesRegex(RuntimeError, "escaped"):
+                DISK["probe_dotnet"](self.env)
+        self.assertTrue((self.scratch / "dotnet-probe.log").is_file())
+
+    def test_dotnet_probe_rejects_failed_write(self):
+        with patch.dict(DISK["probe_dotnet"].__globals__, {"checked": self.dotnet_probe_execution("failure")}):
+            with self.assertRaisesRegex(RuntimeError, "write failed"):
+                DISK["probe_dotnet"](self.env)
+        self.assertTrue((self.scratch / "dotnet-probe.log").is_file())
+
+    def test_nuget_probe_allows_a_bounded_cold_sdk_start(self):
+        caches = {name: str(self.root / name) for name in ("global-packages", "http-cache", "temp", "plugins-cache")}
+        output = "\n".join(f"{name}: {path}" for name, path in caches.items())
+
+        def cold_sdk(command, **kwargs):
+            self.assertEqual(["dotnet", "nuget", "locals", "all", "--list", "--force-english-output"], command)
+            if kwargs["timeout"] < 60:
+                raise subprocess.TimeoutExpired(command, kwargs["timeout"])
+            return subprocess.CompletedProcess(command, 0, output, "")
+
+        with patch("subprocess.run", side_effect=cold_sdk) as probe:
+            self.assertEqual(caches, DISK["nuget_locations"]())
+        self.assertEqual(1, probe.call_count)
+
+    def test_nuget_probe_still_fails_closed_after_sixty_seconds(self):
+        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("dotnet", 60)) as probe:
+            with self.assertRaisesRegex(RuntimeError, "Filesystem probe timed out after 60s"):
+                DISK["nuget_locations"]()
+        self.assertEqual(1, probe.call_count)
+        self.assertEqual(60, probe.call_args.kwargs["timeout"])
 
     def test_bootstrap_precedes_checkout_setup_and_cache_and_exports_all_temp_variables(self):
         self.assertLess(JOB.index("Bootstrap private runner scratch"), JOB.index("uses: actions/checkout"))

@@ -130,10 +130,21 @@ public class when_rendering_model_bound_running_totals
     const string RunningTotalsVersionThree = "2DC00066DA4B0058FAF2414ACC94417FBC727085C913B5627F78A5185C682A99";
     const string RunningTotalsClassic = "2DC00066DA4B0058FAF2414ACC94417FBC727085C913B5627F78A5185C682A99";
 
+    // The flat fixture has identical retained v3/v4 emission: only admission differs, and both admit it.
+    const string FlatVersionFour = "DAF094A1C17783C132B9E44011D39E4E9ED7901FE346D1C065B75457079CAFF4";
+
+    // Captured with the renderer restored byte-for-byte to base a0d3b9be3 and all v5 helper files excluded.
+    const string RunningTotalsVersionFour = "3825FE3882C374127027AC06CB2487AC36EE4337D4553697AEFD1D0BFB8835D6";
+
     internal static ArtifactRenderProfile VersionThree() =>
         CratisRendering.WithReducerConvention(
             CratisRendering.CreateProfile("Projects", new("Projects", "Projects")),
             ReducerConventionInput.Read("Projects", /* lang=json */ "{\"version\":3,\"application\":\"Projects\",\"reducerConvention\":\"self\",\"projectionConvention\":\"model-bound\"}"));
+
+    internal static ArtifactRenderProfile VersionFour() =>
+        CratisRendering.WithReducerConvention(
+            CratisRendering.CreateProfile("Projects", new("Projects", "Projects")),
+            ReducerConventionInput.Read("Projects", /* lang=json */ "{\"version\":4,\"application\":\"Projects\",\"reducerConvention\":\"self\",\"projectionConvention\":\"model-bound\"}"));
 
     internal static string Shelf(ArtifactRenderPlan plan)
     {
@@ -155,7 +166,7 @@ public class when_rendering_model_bound_running_totals
     [Fact]
     public void should_render_running_totals_and_clears_as_attributes()
     {
-        var code = Projection(when_rendering_model_bound_projections.Plan(Source, true));
+        var code = Projection(when_rendering_model_bound_projections.Plan(Source, VersionFour()));
         Assert.DoesNotContain("#pragma", code, StringComparison.Ordinal);
         Assert.DoesNotContain("IProjectionFor<ShelfFigures>", code, StringComparison.Ordinal);
         Assert.DoesNotContain("NoAutoMap()", code, StringComparison.Ordinal);
@@ -191,7 +202,7 @@ public class when_rendering_model_bound_running_totals
                 .Replace("          clear lastBatch\n", "          clear lastBatch\n          clear note\n", StringComparison.Ordinal)
         };
         Assert.NotEqual(Source, source);
-        var code = Projection(when_rendering_model_bound_projections.Plan(source, true));
+        var code = Projection(when_rendering_model_bound_projections.Plan(source, VersionFour()));
         Assert.Contains("IProjectionFor<ShelfFigures>", code, StringComparison.Ordinal);
     }
 
@@ -205,6 +216,19 @@ public class when_rendering_model_bound_running_totals
     public void should_keep_version_three_bytes_for_flat_projections()
     {
         Assert.Equal(FlatVersionThree, Hash(when_rendering_model_bound_projections.Code(when_rendering_model_bound_projections.Plan(when_rendering_model_bound_projections.Source, VersionThree()))));
+    }
+
+    [Fact]
+    public void should_keep_version_four_bytes_for_flat_projections()
+    {
+        Assert.Equal(FlatVersionFour, Hash(when_rendering_model_bound_projections.Code(when_rendering_model_bound_projections.Plan(when_rendering_model_bound_projections.Source, VersionFour()))));
+    }
+
+    [Fact]
+    public void should_keep_version_four_bytes_for_running_totals()
+    {
+        var actual = Hash(Shelf(when_rendering_model_bound_projections.Plan(Source, VersionFour())));
+        Assert.Equal(RunningTotalsVersionFour, actual);
     }
 
     [Fact]

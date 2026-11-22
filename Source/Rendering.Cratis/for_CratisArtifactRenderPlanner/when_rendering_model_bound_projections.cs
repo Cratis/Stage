@@ -143,7 +143,7 @@ public class when_rendering_model_bound_projections
             "unmapped" => Source.Replace("        name ProjectName\n      query ProjectById", "        name ProjectName\n        label ProjectName?\n      query ProjectById", StringComparison.Ordinal),
             _ => Source + "\n        from ProjectRegistered key projectId\n          name = name"
         };
-        var code = Code(Plan(source, true));
+        var code = Code(Plan(source, when_rendering_model_bound_running_totals.VersionThree()));
         Assert.Contains("IProjectionFor<ProjectSummary>", code, StringComparison.Ordinal);
     }
 

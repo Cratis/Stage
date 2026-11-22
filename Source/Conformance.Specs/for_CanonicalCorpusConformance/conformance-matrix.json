@@ -165,6 +165,7 @@
     "EsmGoldenVectors.V1": {
       "loader": { "outcome": "supported" },
       "executor": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-ESM-051", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000032", "issue": 960 },
         { "code": "STAGE-PLAN-004", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 554 },
         { "code": "STAGE-PLAN-004", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 },
         { "code": "capability:Projection[a-composite-or-collection-value]", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 721 },
@@ -177,7 +178,7 @@
         { "code": "STAGE-PLAN-004", "kind": "query", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000058c", "issue": 551 },
         { "code": "STAGE-PLAN-004", "kind": "readModel", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000046", "issue": 551 },
         { "code": "STAGE-PLAN-004", "kind": "readModel", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000015e", "issue": 551 },
-        { "code": "STAGE-PLAN-004", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005f", "issue": 501 },
+        { "code": "STAGE-ESM-051", "kind": "specification", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005f", "issue": 960 },
         { "code": "STAGE-PLAN-004", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000060", "issue": 554 },
         { "code": "STAGE-PLAN-004", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000061", "issue": 554 },
         { "code": "STAGE-PLAN-004", "kind": "specification", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000062", "issue": 554 },
@@ -3093,8 +3094,11 @@
     },
     "RecoverySpecificationsCorpus.V17": {
       "loader": { "outcome": "supported" },
-      "executor": { "outcome": "supported" },
-      "host": { "outcome": "supported" },
+      "executor": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-ESM-051", "artifact": "sem1:bb1e88497f494cf492fe87d3a7cd72fbce5dd29c11e6854ee925a84ab1ac48bd", "issue": 960 } ] },
+      "host": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-ESM-051", "kind": "specification", "artifact": "sem1:77ba8e17b420e8e23334f05fb36964b94169ccd61308a014fa15a720ebe2cb8e", "issue": 960 },
+        { "code": "STAGE-ESM-051", "kind": "specification", "artifact": "sem1:8f059b9ec51acef2f7d26718ae0d829fb86fbf3951ca071108ad8e6cd41b7f4f", "issue": 960 } ] },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-011", "artifact": "sem1:f6ed0e654a53441cf0b0bf9ede9852e05eedc396d7d834c0636153d22e0d55ec", "issue": 14 },
         { "code": "STAGE-ESM-051", "artifact": "sem1:77ba8e17b420e8e23334f05fb36964b94169ccd61308a014fa15a720ebe2cb8e", "issue": 652 },
@@ -3122,16 +3126,21 @@
     },
     "SourcelessGivensCorpus.V2": {
       "loader": { "outcome": "supported" },
-      "executor": { "outcome": "expected-refusal" },
+      "executor": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-ESM-051", "artifact": "sem1:17902cada294511d66380eec42e60d9e8480d4dcd9b8d4c07618490e860c93df", "issue": 960 },
+        { "code": "STAGE-ESM-051", "artifact": "sem1:c872367820834316ce5946919c9d5994bf860e7be14a74de60645ea638c7d437", "issue": 960 } ] },
       "host": { "outcome": "refused", "refusals": [
-        { "code": "capability:Projection[a-scoped-event-source-key]", "kind": "specification", "artifact": "sem1:1b08d1d0a5daf55b4f519cac1d4d0953dae08ecde03c4aee8b73035756482fa3", "issue": 635 },
-        { "code": "capability:Projection[a-scoped-event-source-key]", "kind": "specification", "artifact": "sem1:3c7c890ec6ca1640d84591e6964b246ed36aba952e7d5b5ad49946bce3cc8d53", "issue": 635 } ] },
+        { "code": "STAGE-ESM-051", "kind": "specification", "artifact": "sem1:1b08d1d0a5daf55b4f519cac1d4d0953dae08ecde03c4aee8b73035756482fa3", "issue": 960 },
+        { "code": "STAGE-ESM-051", "kind": "specification", "artifact": "sem1:3c7c890ec6ca1640d84591e6964b246ed36aba952e7d5b5ad49946bce3cc8d53", "issue": 960 },
+        { "code": "STAGE-ESM-051", "kind": "specification", "artifact": "sem1:720bc552e398dcb0280a9b099f71e602e20f0d85379df0dd5a5587ca6c2884b6", "issue": 960 },
+        { "code": "STAGE-ESM-051", "kind": "specification", "artifact": "sem1:92f778ee890b29cf4df278c18c7e6be6257d67418eb9e8437b05bf242be29ed6", "issue": 960 },
+        { "code": "STAGE-ESM-051", "kind": "specification", "artifact": "sem1:ae9161725b66dba5f44cb7d352714ccb5528860c3e4c4c5c1df81d56e184421b", "issue": 960 } ] },
       "renderer": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-051", "artifact": "sem1:1b08d1d0a5daf55b4f519cac1d4d0953dae08ecde03c4aee8b73035756482fa3", "issue": 635 },
-        { "code": "STAGE-ESM-051", "artifact": "sem1:3c7c890ec6ca1640d84591e6964b246ed36aba952e7d5b5ad49946bce3cc8d53", "issue": 635 },
-        { "code": "STAGE-ESM-051", "artifact": "sem1:720bc552e398dcb0280a9b099f71e602e20f0d85379df0dd5a5587ca6c2884b6", "issue": 635 },
-        { "code": "STAGE-ESM-051", "artifact": "sem1:92f778ee890b29cf4df278c18c7e6be6257d67418eb9e8437b05bf242be29ed6", "issue": 635 },
-        { "code": "STAGE-ESM-051", "artifact": "sem1:ae9161725b66dba5f44cb7d352714ccb5528860c3e4c4c5c1df81d56e184421b", "issue": 635 } ] }
+        { "code": "STAGE-ESM-051", "artifact": "sem1:1b08d1d0a5daf55b4f519cac1d4d0953dae08ecde03c4aee8b73035756482fa3", "issue": 960 },
+        { "code": "STAGE-ESM-051", "artifact": "sem1:3c7c890ec6ca1640d84591e6964b246ed36aba952e7d5b5ad49946bce3cc8d53", "issue": 960 },
+        { "code": "STAGE-ESM-051", "artifact": "sem1:720bc552e398dcb0280a9b099f71e602e20f0d85379df0dd5a5587ca6c2884b6", "issue": 960 },
+        { "code": "STAGE-ESM-051", "artifact": "sem1:92f778ee890b29cf4df278c18c7e6be6257d67418eb9e8437b05bf242be29ed6", "issue": 960 },
+        { "code": "STAGE-ESM-051", "artifact": "sem1:ae9161725b66dba5f44cb7d352714ccb5528860c3e4c4c5c1df81d56e184421b", "issue": 960 } ] }
     },
     "StoredEventNamesCorpus.V16": {
       "loader": { "outcome": "supported" },

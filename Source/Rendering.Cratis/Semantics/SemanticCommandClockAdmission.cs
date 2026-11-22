@@ -55,23 +55,23 @@ internal static class SemanticCommandClockAdmission
     /// Follows the property/index grammar emitted by SemanticUnknownMembers.Walker; no identity-based search or reflection fallback.
     /// </summary>
     /// <param name="segments">The dot-separated segments of the finding path.</param>
-    /// <param name="suffix">The expected leaf segment after <c>Clock</c>, or empty when the finding is the clock itself.</param>
+    /// <param name="suffix">The expected leaf segment after the Clock segment, or empty when the finding is the clock itself.</param>
     sealed class FindingPath(string[] segments, string suffix)
     {
-        static bool Index(string segment, string name, out int index)
-        {
-            index = 0;
-            if (!segment.StartsWith(name + "[", StringComparison.Ordinal) || !segment.EndsWith(']')) return false;
-            var digits = segment.AsSpan(name.Length + 1, segment.Length - name.Length - 2);
-            return int.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out index) && (digits.Length == 1 || digits[0] != '0');
-        }
-
         internal CommandOwner? Resolve(SemanticApplication application)
         {
             if (!Has(0, "Application")) return null;
             var module = At(application.Modules, 1, "Modules");
             var feature = module is null ? null : At(module.Features, 2, "Features");
             return feature is null ? null : InFeature(feature, 3);
+        }
+
+        static bool Index(string segment, string name, out int index)
+        {
+            index = 0;
+            if (!segment.StartsWith(name + "[", StringComparison.Ordinal) || !segment.EndsWith(']')) return false;
+            var digits = segment.AsSpan(name.Length + 1, segment.Length - name.Length - 2);
+            return int.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out index) && (digits.Length == 1 || digits[0] != '0');
         }
 
         CommandOwner? InFeature(SemanticFeature feature, int position)

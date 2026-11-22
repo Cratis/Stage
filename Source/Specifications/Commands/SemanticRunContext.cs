@@ -197,7 +197,7 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
         return true;
     }
 
-    internal bool Holds(SemanticProducedEvent produced) => produced.When is null || SemanticRuleEvaluation.Condition(produced.When, Inputs(), Reads.Values, SemanticDateComparisons.Participants(Plan.Model.Application, Command));
+    internal bool Holds(SemanticProducedEvent produced) => produced.When is null || SemanticRuleEvaluation.Condition(produced.When, Inputs(), Reads.Values, SemanticDateComparisons.Participants(Plan.Model.Application, Command), AuthoredOccurrence);
 
     internal (SemanticSpecificationEvent Fact, SemanticValue Destination) Produce(SemanticProducedEvent produced)
     {

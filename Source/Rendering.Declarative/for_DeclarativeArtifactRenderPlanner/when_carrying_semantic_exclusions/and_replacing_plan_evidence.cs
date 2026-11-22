@@ -20,7 +20,11 @@ public class and_replacing_plan_evidence : for_DeclarativeArtifactRenderPlanner.
         var files = KitFiles();
         files["templates/index.sbn"] = Bytes("{{ gap 'disabled_specification' 'Missing index' 'model.unknown' }}");
         var request = Request(Profile(Archive(files)));
-        var exclusion = new SemanticExclusion(SemanticExclusionKind.Trigger, "RemovedTrigger", null, new(3, 1, "model.play"),
+        var exclusion = new SemanticExclusion(
+            SemanticExclusionKind.Trigger,
+            "RemovedTrigger",
+            null,
+            new(3, 1, "model.play"),
             [Diagnostic.Error("PLAY0053", "Unknown trigger.", new(3, 1, "model.play"))]);
         _plan = Planner().Plan(request with { Exclusions = [exclusion] });
         _report = Encoding.UTF8.GetString(ArtifactRenderReports.CreateUnsupported(_plan).Bytes.AsSpan());

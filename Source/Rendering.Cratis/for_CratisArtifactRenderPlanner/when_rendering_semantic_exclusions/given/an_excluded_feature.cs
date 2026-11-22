@@ -14,7 +14,11 @@ public class an_excluded_feature : for_CratisArtifactRenderPlanner.given.a_regis
 
     void Establish()
     {
-        _exclusion = new(SemanticExclusionKind.Slice, "Projects/Registration/Broken", _feature.Id, new(4, 2, "model.play"),
+        _exclusion = new(
+            SemanticExclusionKind.Slice,
+            "Projects/Registration/Broken",
+            _feature.Id,
+            new(4, 2, "model.play"),
             [Diagnostic.Error("PLAY0053", "Unknown event.", new(6, 3, "model.play"))]);
         _request = _request with { Exclusions = [_exclusion] };
     }

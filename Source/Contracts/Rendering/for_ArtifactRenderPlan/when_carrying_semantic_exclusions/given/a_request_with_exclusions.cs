@@ -21,9 +21,17 @@ public class a_request_with_exclusions : for_ArtifactRenderPlan.given.an_artifac
         var model = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([source], catalog)).Value!.Model;
         _request = _request with { Model = model, ExecutionPlan = SemanticExecutionPlan.Compile(model).Plan, Scope = new(ArtifactRenderScopeKind.Application, model.Application.Id) };
         var parent = model.Application.Modules[0].Features[0].Id;
-        _slice = new(SemanticExclusionKind.Slice, "Projects/Registration/Broken", parent, new(4, 2, "model.play"),
+        _slice = new(
+            SemanticExclusionKind.Slice,
+            "Projects/Registration/Broken",
+            parent,
+            new(4, 2, "model.play"),
             [Diagnostic.Error("PLAY0053", "Unknown event.", new(6, 3, "model.play")), Diagnostic.Error("PLAY0070", "Missing read model.", new(7, 3, "model.play"))]);
-        _specification = new(SemanticExclusionKind.Specification, "Projects/Registration/Kept/Example", parent, new(12, 1),
+        _specification = new(
+            SemanticExclusionKind.Specification,
+            "Projects/Registration/Kept/Example",
+            parent,
+            new(12, 1),
             [Diagnostic.Error("PLAY0053", "Unknown example.", new(12, 1))]) { Cause = SemanticExclusionCause.Dependent, Reason = "Needs the excluded slice.", DependsOn = [new(_slice.Kind, _slice.Address)] };
         _request = _request with { Exclusions = [_slice, _specification] };
     }

@@ -29,10 +29,13 @@ static class ArtifactRenderExclusions
         exclusion.ParentId is { IsSet: true } parent ? parent : application.Id;
 
     internal static ImmutableArray<ArtifactRenderDegradation> Evidence(ImmutableArray<SemanticExclusion> exclusions, SemanticApplication application) =>
-        [.. exclusions.Select(exclusion => new ArtifactRenderDegradation(new(
-            ArtifactRenderDegradationCodes.UnsupportedConstruct, ArtifactRenderDiagnosticSeverity.Warning,
-            $"{exclusion.Kind} '{exclusion.Address}' excluded from the executable model ({string.Join(", ", exclusion.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().Order(StringComparer.Ordinal))}).",
-            Parent(exclusion, application)), Remedy))];
+        [.. exclusions.Select(exclusion => new ArtifactRenderDegradation(
+            new(
+                ArtifactRenderDegradationCodes.UnsupportedConstruct,
+                ArtifactRenderDiagnosticSeverity.Warning,
+                $"{exclusion.Kind} '{exclusion.Address}' excluded from the executable model ({string.Join(", ", exclusion.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().Order(StringComparer.Ordinal))}).",
+                Parent(exclusion, application)),
+            Remedy))];
 
     internal static string Digest(string original, ImmutableArray<SemanticExclusion> exclusions)
     {

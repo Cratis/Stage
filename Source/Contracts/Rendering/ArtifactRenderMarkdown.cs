@@ -64,7 +64,7 @@ static class ArtifactRenderMarkdown
         .Replace("\\", "&#92;", StringComparison.Ordinal)
         .Replace("[", "&#91;", StringComparison.Ordinal).Replace("]", "&#93;", StringComparison.Ordinal)
         .Replace("*", "&#42;", StringComparison.Ordinal).Replace("_", "&#95;", StringComparison.Ordinal)
-        .Replace("#", "&#35;", StringComparison.Ordinal).Replace("|", "&#124;", StringComparison.Ordinal);
+        .Replace("|", "&#124;", StringComparison.Ordinal);
 
     static void WriteConstruct(List<string> lines, ArtifactRenderConstruct construct)
     {

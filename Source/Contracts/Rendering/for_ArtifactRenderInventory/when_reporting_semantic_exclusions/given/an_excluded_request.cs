@@ -14,7 +14,11 @@ public class an_excluded_request : for_ArtifactRenderInventory.given.an_inventor
 
     void Establish()
     {
-        var exclusion = new SemanticExclusion(SemanticExclusionKind.Slice, "Orders/<Broken> [link] `unit`", null, new(4, 2, "model/orders.play"),
+        var exclusion = new SemanticExclusion(
+            SemanticExclusionKind.Slice,
+            "Orders/<Broken> [link] `unit`",
+            null,
+            new(4, 2, "model/orders.play"),
             [Diagnostic.Error("PLAY0053", "Unknown <event> & `name`\r\nnext", new(6, 3, "model/orders.play"))])
         {
             Cause = SemanticExclusionCause.Dependent,

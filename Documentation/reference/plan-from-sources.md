@@ -161,7 +161,7 @@ that do not pass the input continue to render classic models.
 
 ### Model-bound scoped projections
 
-New applications select version `4`. Version `3` renders a From-only scoped projection
+New applications select version `5`. Version `3` renders a From-only scoped projection
 with flat property or event-source-id assignments as `[FromEvent<T>]`, `[NoAutoMap]`, and
 explicit `[SetFrom<T>]` or `[SetFromContext<T>]` attributes on its read model instead of a
 separate `IProjectionFor<T>` class. Version `4` adds running totals and clears to that
@@ -179,16 +179,47 @@ values, literal assignments, constant keys and a `clear` of a property nothing e
 the fluent renderer in version `4`. Selecting this convention does not turn projections
 into reducers.
 
+Version `5` expands flat scopes using the model-bound attribute API in the pinned
+Chronicle **19.162.0** package. It admits the whole projection or leaves the whole
+projection fluent; it never drops an unrepresentable mapping. Versions `1`–`4` retain
+their existing output and observer identities.
+
+| Flat shape in version `5` | Output or reason for retaining fluent output |
+| --- | --- |
+| Ordinary payload sets, including dotted source paths | `[SetFrom<T>]`; dotted CLR paths are strings, not dotted `nameof` expressions. Dotted **targets** remain structural and fluent. |
+| Event context, including explicit context assignments | `[SetFromContext<T>]`. |
+| Text, whole-number and Boolean literals | `[SetValue<T>]` with a primitive compile-time constant, including for matching `ConceptAs<T>` targets. Nullable targets can receive a null constant when another mapping supplies their source. |
+| Other literals | Fluent: decimal, UUID, date/time, closed concepts and structured values cannot be passed as the required primitive attribute constant without changing their conversion contract. |
+| Set once from a payload property | `[SetFrom<T>(SetOnce = true)]`. Literal set-once stays fluent: `SetValue<T>` has no set-once switch. Context set-once also stays fluent: the pinned classic pipeline leaves an `Occurred` assignment unset in the differential execution vector, so equivalent initialization cannot be promised. |
+| Text constant `from` key | `[FromEvent<T>(ConstantKey = "...")]`, with a literal identity assignment; counters also carry `ConstantKey` so different event sources route to the same instance. |
+| Payload keys | `[FromEvent<T>]` constructor paths, including dotted payload paths. Parent keys are admitted only inside child scopes by Stage's existing semantic guard; those shared-type structural scopes remain fluent. A parent key on a root scope is refused before target selection. |
+| Add/subtract by a product of two event values | The existing serialized derived event member is retained and selected by `[AddFrom<T>]` or `[SubtractFrom<T>]`. No multiplication is moved to query time. |
+| Root removal | `[RemovedWith<T>]` with default/payload key. Parent paths belong to child scopes and stay fluent. Constant/composite removal keys stay fluent: the removal attributes do not expose a constant/composite-key slot. |
+| Removal through a join | Stage's existing semantic guard permits this only inside a children scope, which remains fluent. A root join-removal is refused before target selection; v5 does not relax that guard. |
+| Disjoint flat join with the default event-source-id key | Property-level `[Join<T>(on: ..., eventPropertyName: ...)]`. Its on-property must have a source. |
+| Join with a custom payload/constant key, dotted target, or competing local/every write | Fluent: `Join<T>` has no event-key override, and competing writes need the fluent join precedence and CHR0042 behavior. Joins are not rewritten as `FromEvent` subscriptions. |
+| Context/event-source-id `every` and `all` | Property-level `[FromEvery(contextProperty: ...)]` / `[FromAll(contextProperty: ...)]`; `all` retains event-source identity initialization and `[NotRewindable]`. No new payload-every semantic form is invented. |
+| Literal-every, exclude-children every, composite keys, duplicate same-event `from` blocks | Fluent: their scope/key behavior has no equivalent in the pinned attribute API. |
+| Standalone clear, zero start, or otherwise unmapped non-key property | Fluent unless every non-key property has another real source (from, join or every/all). A clear/null/zero start does not manufacture a source; Stage does not add `[NotProjected]` to bypass the source guard. |
+| Removal-only or every/all-only scope | Fluent: source/subscription equivalence without an ordinary `from` is not established. |
+| Nested objects and children, including ordered, nested and joined children | Fluent: Stage emits one shared composite CLR type, while these mappings are occurrence-local. Annotating the shared type would mix scopes; specializing the CLR type would change the generated contract. The same limitation covers nested target paths. |
+| Several keys, or a competing reducer for the read model | Fluent: a model-bound flat projection needs one identifier and an unambiguous projection source. |
+
+The attribute contract is described in Chronicle's
+[model-bound projection documentation](https://www.cratis.io/chronicle/projections/model-bound/).
+A capability in that API is not permission to change a shared Screenplay type's contract.
+
 Existing applications can opt in by editing `.cratis/stage/rendering.json`: set
-`version` to `3` (flat assignments) or `4` (also running totals and clears), add
-`"projectionConvention":"model-bound"`, and keep their existing `reducerConvention` and any
-`readModels` overrides. Moving from version `3` to `4` changes the identity of the newly
-eligible projections just as moving from `1` or `2` does. This changes eligible projections'
-observer identity from the fluent projection type to the read model's full type name.
-Plan a rebuild/replay and remove obsolete generated fluent projection files before
-using the new output; Stage does not migrate projection observer state or remove those
-files automatically. Keep version `1`, `2` or `3` to preserve existing projection identity.
-Older Stage versions refuse version `3` configuration rather than silently ignoring it.
+`version` to `3` (flat assignments), `4` (also running totals and clears), or `5`
+(the flat capability table above), add `"projectionConvention":"model-bound"`, and
+keep the existing `reducerConvention` and any `readModels` overrides. Moving to a newer
+version changes newly eligible projections' observer identity from the fluent projection
+type to the read model's full type name, just as opting in from `1` or `2` does. Plan a
+rebuild/replay and remove obsolete generated fluent projection files before using the
+new output; Stage does not migrate projection observer state or remove those files
+automatically. Keep an existing version `1`–`4` to preserve that version's output and
+identities. Older Stage versions refuse newer configuration rather than silently
+ignoring it. Selecting this convention does not turn projections into reducers.
 
 ### Migrating a classic read model
 

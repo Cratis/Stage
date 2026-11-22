@@ -23,7 +23,35 @@ internal static class SemanticModelBoundProjectionRenderer
     /// <param name="readModel">The projected read model.</param>
     /// <param name="context">The semantic application.</param>
     /// <returns>Whether the projection renders as model-bound attributes.</returns>
-    public static bool Expresses(SemanticProjection projection, SemanticReadModel readModel, SemanticApplicationContext context)
+    public static bool Expresses(SemanticProjection projection, SemanticReadModel readModel, SemanticApplicationContext context) =>
+        context.ReducerConvention.ModelBoundFlatScopes
+            ? SemanticFlatModelBoundProjectionRenderer.Expresses(projection, readModel, context)
+            : ExpressesRetained(projection, readModel, context);
+
+    /// <summary>
+    /// Gets the attributes that go on the read model type, in scope order.
+    /// </summary>
+    /// <param name="projection">The projection.</param>
+    /// <param name="context">The semantic application.</param>
+    /// <returns>The attribute texts without brackets.</returns>
+    public static IEnumerable<string> ClassAttributes(SemanticProjection projection, SemanticApplicationContext context) =>
+        context.ReducerConvention.ModelBoundFlatScopes
+            ? SemanticFlatModelBoundProjectionRenderer.ClassAttributes(projection, context)
+            : RetainedClassAttributes(projection, context);
+
+    /// <summary>
+    /// Gets the attribute prefix for one record parameter.
+    /// </summary>
+    /// <param name="projection">The projection.</param>
+    /// <param name="property">The read model property.</param>
+    /// <param name="context">The semantic application.</param>
+    /// <returns>The bracketed attributes followed by a space, or an empty string.</returns>
+    public static string ParameterAttributes(SemanticProjection projection, SemanticProperty property, SemanticApplicationContext context) =>
+        context.ReducerConvention.ModelBoundFlatScopes
+            ? SemanticFlatModelBoundProjectionRenderer.ParameterAttributes(projection, property, context)
+            : RetainedParameterAttributes(projection, property, context);
+
+    static bool ExpressesRetained(SemanticProjection projection, SemanticReadModel readModel, SemanticApplicationContext context)
     {
         if (!context.ReducerConvention.ModelBoundProjections || projection.Scope is not { } scope)
         {
@@ -45,6 +73,11 @@ internal static class SemanticModelBoundProjectionRenderer
             return ExpressesWithOperations(scope, readModel, context);
         }
 
+        return ExpressesSetOnly(scope, readModel);
+    }
+
+    static bool ExpressesSetOnly(SemanticProjectionScope scope, SemanticReadModel readModel)
+    {
         if (!scope.From.All(ExpressesSetFrom))
         {
             return false;
@@ -54,13 +87,7 @@ internal static class SemanticModelBoundProjectionRenderer
         return readModel.Properties.All(property => property.IsIdentifier || mapped.Contains(property.Id));
     }
 
-    /// <summary>
-    /// Gets the attributes that go on the read model type, in scope order.
-    /// </summary>
-    /// <param name="projection">The projection.</param>
-    /// <param name="context">The semantic application.</param>
-    /// <returns>The attribute texts without brackets.</returns>
-    public static IEnumerable<string> ClassAttributes(SemanticProjection projection, SemanticApplicationContext context)
+    static IEnumerable<string> RetainedClassAttributes(SemanticProjection projection, SemanticApplicationContext context)
     {
         var types = new SemanticTypeSystem(context);
         foreach (var from in projection.Scope!.From)
@@ -76,14 +103,7 @@ internal static class SemanticModelBoundProjectionRenderer
         yield return "global::Cratis.Chronicle.Projections.NoAutoMapAttribute";
     }
 
-    /// <summary>
-    /// Gets the attribute prefix for one record parameter.
-    /// </summary>
-    /// <param name="projection">The projection.</param>
-    /// <param name="property">The read model property.</param>
-    /// <param name="context">The semantic application.</param>
-    /// <returns>The bracketed attributes followed by a space, or an empty string.</returns>
-    public static string ParameterAttributes(SemanticProjection projection, SemanticProperty property, SemanticApplicationContext context)
+    static string RetainedParameterAttributes(SemanticProjection projection, SemanticProperty property, SemanticApplicationContext context)
     {
         var types = new SemanticTypeSystem(context);
         var attributes = new List<string>();

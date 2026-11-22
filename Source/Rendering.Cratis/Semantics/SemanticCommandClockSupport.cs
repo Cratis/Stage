@@ -20,8 +20,11 @@ internal static class SemanticCommandClockSupport
         _ => false
     };
 
+    internal static bool DefaultUtc(SemanticApplication application) =>
+        (application.TimeZone is null || (string.Equals(application.TimeZone.Id, "UTC", StringComparison.Ordinal) && !application.TimeZone.Configurable)) && application.ContextMembers.IsEmpty;
+
     internal static bool Supports(SemanticApplication application, SemanticCommand command) =>
-        (application.TimeZone is null || (string.Equals(application.TimeZone.Id, "UTC", StringComparison.Ordinal) && !application.TimeZone.Configurable)) && application.ContextMembers.IsEmpty && command.Calendar is null &&
+        DefaultUtc(application) && command.Calendar is null &&
         command.Validations.All(rule => rule.ClockOperand is null) &&
         Conditions(command).All(condition => Supports(condition, command.Properties, application));
 

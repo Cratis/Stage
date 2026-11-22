@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
+using System.Globalization;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
@@ -51,12 +53,11 @@ public class when_rendering_utc_now
     }
 
     [Fact]
-    public void should_keep_the_standing_refusal_until_activation()
+    public void should_admit_the_audited_utc_now_condition()
     {
         var context = Context("at >= now");
         var plan = invoice_model.Plan(context.Request.Model);
-        plan.Success.ShouldBeFalse();
-        plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-ESM-016").ShouldBeTrue();
+        Assert.True(plan.Success, string.Join(';', plan.Diagnostics));
     }
 
     [Fact]
@@ -72,7 +73,10 @@ public class when_rendering_utc_now
         code.ShouldContain("var stageClock = CommandReceiptTime.InstantAtReceipt(operation)");
         code.ShouldContain("RootContextData[\"Cratis.Stage.CommandReceipt\"] = CommandReceiptTime.InstantAtReceipt(operation)");
         code.Split("CommandReceiptTime.InstantAtReceipt(operation)", StringSplitOptions.None).Length.ShouldEqual(3);
-        code.ShouldContain("FromUnixTimeMilliseconds(stageClock.ToUnixTimeMilliseconds())");
+        code.ShouldContain("var occurred = stageClock;");
+        code.ShouldNotContain("FromUnixTimeMilliseconds");
+        code.ShouldContain("CommandReceiptTime.ValidatedInstant(validation.RootContextData)");
+        code.ShouldNotContain("(DateTimeOffset)validation.RootContextData");
         code.ShouldEqual(SemanticStateChangeArtifactRenderer.Render(slice, context).Content);
         code.ShouldNotContain("TimeProvider");
         code.ShouldNotContain("UtcNow");
@@ -86,6 +90,78 @@ public class when_rendering_utc_now
         var context = Context("at >= now");
         var application = context.Application with { TimeZone = context.Application.TimeZone! with { Id = zone, Configurable = configurable } };
         SemanticCommandClockSupport.Supports(application, context.Commands.Values.Single()).ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData("at == now", "2026-01-01T19:00:00.0000000-05:00", true)]
+    [InlineData("at >= now", "2026-01-01T23:59:59.9999999Z", false)]
+    [InlineData("at < now", "2026-01-01T23:59:59.9999999Z", true)]
+    [InlineData("now < at", "2026-01-02T00:00:00.0000001Z", true)]
+    [InlineData("at >= now and at < now + 1 minute", "2026-01-02T00:00:59.9999999Z", true)]
+    [InlineData("at < now or at > now + 1 hour", "2026-01-02T01:00:00.0000000Z", false)]
+    [InlineData("at <= now - 1 day", "2026-01-01T00:00:00.0000000Z", true)]
+    [InlineData("at > now + 1 minute", "2026-01-02T00:01:00.0000001Z", true)]
+    public void should_select_conditional_productions_at_the_authored_instant(string condition, string at, bool taken)
+    {
+        var context = Context(condition);
+        var command = Conditional(context);
+        var specification = Fixture(command, at);
+        SemanticProductionSelection.Taken(context.Application, command, specification).Length.ShouldEqual(taken ? 1 : 0);
+    }
+
+    [Theory]
+    [InlineData(-1, false)]
+    [InlineData(0, true)]
+    [InlineData(1, false)]
+    public void should_not_round_tick_precision_comparisons(int difference, bool equal)
+    {
+        var context = Context("at == now");
+        var command = context.Commands.Values.Single();
+        var clock = new DateTimeOffset(2026, 1, 2, 0, 0, 0, TimeSpan.Zero).AddTicks(1);
+        var values = Fixture(command, clock.AddTicks(difference).ToString("O", CultureInfo.InvariantCulture)).When!.Values.ToDictionary(value => value.TargetProperty, value => value.Value);
+        SemanticProductionComparison.Compare((SemanticComparison)command.Requirements[0].Condition, values, (static () => new InvalidOperationException(), static () => new InvalidOperationException()), clock: clock).ShouldEqual(equal);
+    }
+
+    [Fact]
+    public void should_not_select_a_clock_branch_using_an_implicit_clock()
+    {
+        var context = Context("at >= now");
+        var command = Conditional(context);
+        var specification = Fixture(command, "2026-01-02T00:00:00.0000000Z") with { GivenClock = null };
+        SemanticProductionSelection.Taken(context.Application, command, specification).ShouldEqual(command.Produces);
+        SemanticOpaqueBodyDependencies.Rejection(context, specification)!.ShouldContain("given clock");
+    }
+
+    [Fact]
+    public void should_fail_closed_for_a_missing_or_wrong_validation_receipt()
+    {
+        var code = CommandReceiptTimeRendering.Render("InvoiceApp").Content;
+        code.ShouldContain("TryGetValue(\"Cratis.Stage.CommandReceipt\"");
+        code.ShouldContain("instant != default");
+        code.ShouldContain("throw new CommandReceiptTimeUnavailable()");
+        code.ShouldNotContain("UtcNow");
+    }
+
+    [Fact]
+    public void should_preserve_ticks_for_an_unconditional_clock_commands_occurrence()
+    {
+        var context = Context("at >= now");
+        var code = SemanticStateChangeArtifactRenderer.Render(context.SelectedSlices().Single(), context).Content;
+        code.ShouldContain("CommandReceiptTime.InstantAtReceipt(operation)");
+        code.ShouldNotContain("CommandReceiptTime.OccurredAtReceipt");
+        code.ShouldNotContain("FromUnixTimeMilliseconds");
+    }
+
+    static SemanticCommand Conditional(SemanticApplicationContext context)
+    {
+        var command = context.Commands.Values.Single();
+        return command with { Produces = [command.Produces[0] with { When = command.Requirements[0].Condition }] };
+    }
+
+    static SemanticSpecification Fixture(SemanticCommand command, string at)
+    {
+        var values = command.Properties.Select(property => new SemanticPropertyValue(property.Id, SemanticValue.Text(property.Name == "id" ? "window" : at))).ToImmutableArray();
+        return new(default, "Clock", [], [], new(command.Id, values), [], [], [], []) { GivenClock = "2026-01-02T00:00:00.0000000Z" };
     }
 
     static SemanticApplicationContext Context(string condition)

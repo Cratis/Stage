@@ -116,7 +116,7 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
     string? Clock() => SemanticCommandClockSupport.Uses(command) ? locals.Name("stageClock") : null;
 
     string Occurrence() => Clock() is { } clock
-        ? $"global::System.DateTimeOffset.FromUnixTimeMilliseconds({clock}.ToUnixTimeMilliseconds())"
+        ? clock
         : $"global::{context.RootNamespace}.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt({locals.Name("operation")})";
 
     void RenderCheckedHandle(CSharpCodeBuilder builder, ResultExpression result, Action? renderEvents = null)

@@ -215,7 +215,7 @@ internal static class SemanticStateChangeArtifactRenderer
                 SemanticCommandHandlerRendering.Prepare(builder, command, context, locals);
                 if (hasOccurrence)
                 {
-                    builder.Line($"var {locals.Name("occurred")} = global::{context.RootNamespace}.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt({locals.Name("operation")});");
+                    builder.Line($"var {locals.Name("occurred")} = {SemanticCommandClockRendering.Occurrence(context, command, locals.Name("operation"))};");
                 }
                 var events = command.Produces.Length == 1 ? WrappedEvent(command.Produces[0]) : $"new global::Cratis.Chronicle.EventSequences.EventForEventSourceId[] {{ {string.Join(", ", command.Produces.Select(WrappedEvent))} }}";
                 builder.Line($"return {result}.FromT0({events});").EndBlock();
@@ -255,10 +255,9 @@ internal static class SemanticStateChangeArtifactRenderer
             {
                 var result = command.Produces.Length == 1 ? "global::Cratis.Chronicle.EventSequences.EventForEventSourceId" : "global::System.Collections.Generic.IEnumerable<global::Cratis.Chronicle.EventSequences.EventForEventSourceId>";
 
-                // Chronicle's MongoDB event context retains UTC milliseconds. Normalize the payload
-                // and append context together so a stored replay sees identical occurrence values.
+                // Clock commands preserve the reference instant; other commands keep their normalized receipt.
                 builder.OpenBlock($"public {result} Handle(global::Cratis.Arc.IOperationContextAccessor {locals.Name("operation")})")
-                    .Line($"var {locals.Name("occurred")} = global::{context.RootNamespace}.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt({locals.Name("operation")});")
+                    .Line($"var {locals.Name("occurred")} = {SemanticCommandClockRendering.Occurrence(context, command, locals.Name("operation"))};")
                     .Line($"return {(command.Produces.Length == 1 ? WrappedEvent(command.Produces[0]) : $"[{string.Join(", ", command.Produces.Select(WrappedEvent))}]")};")
                     .EndBlock();
             }
@@ -399,7 +398,7 @@ internal static class SemanticStateChangeArtifactRenderer
 
         foreach (var requirement in requirements)
         {
-            var clock = SemanticCommandClockSupport.Uses(command) ? SemanticCommandClockRendering.ValidationInstant : null;
+            var clock = SemanticCommandClockSupport.Uses(command) ? SemanticCommandClockRendering.ValidationInstant(context) : null;
             SemanticRequirementRendering.Render(builder, requirement, command, context, clock);
         }
 

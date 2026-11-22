@@ -13,13 +13,17 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 internal static class SemanticCommandClockRendering
 {
     // ValidationContext belongs to one validation invocation; never cache a receipt in a reusable validator instance.
-    internal const string ValidationInstant = "((global::System.DateTimeOffset)validation.RootContextData[\"Cratis.Stage.CommandReceipt\"])";
+    internal static string ValidationInstant(SemanticApplicationContext application) =>
+        $"global::{application.RootNamespace}.GeneratedCommands.CommandReceiptTime.ValidatedInstant(validation.RootContextData)";
 
     internal static void RenderValidationReceipt(CSharpCodeBuilder builder, SemanticApplicationContext application) =>
         builder.Line($"RuleFor(_ => _).Custom((_, validation) => validation.RootContextData[\"Cratis.Stage.CommandReceipt\"] = {Instant(application, "operation")});");
 
     internal static string Instant(SemanticApplicationContext application, string operation) =>
         $"global::{application.RootNamespace}.GeneratedCommands.CommandReceiptTime.InstantAtReceipt({operation})";
+
+    internal static string Occurrence(SemanticApplicationContext application, SemanticCommand command, string operation) =>
+        SemanticCommandClockSupport.Uses(command) ? Instant(application, operation) : $"global::{application.RootNamespace}.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt({operation})";
 
     internal static string Operand(SemanticClockOperand clock, string instant)
     {

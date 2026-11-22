@@ -19,8 +19,12 @@ internal static class SemanticProductionComparison
             [SemanticComparisonOperator.LessThanOrEqual] = (left, right) => left <= right
         };
 
-    internal static bool Compare(SemanticComparison comparison, IReadOnlyDictionary<SemanticId, SemanticValue> values, (Func<Exception> Nonnumeric, Func<Exception> Unknown) errors, IReadOnlyDictionary<SemanticId, SemanticPrimitiveType>? dateTypes = null)
+    internal static bool Compare(SemanticComparison comparison, IReadOnlyDictionary<SemanticId, SemanticValue> values, (Func<Exception> Nonnumeric, Func<Exception> Unknown) errors, IReadOnlyDictionary<SemanticId, SemanticPrimitiveType>? dateTypes = null, DateTimeOffset? clock = null)
     {
+        if (comparison.Left.Clock is not null || comparison.Right.Clock is not null)
+        {
+            return CompareValues(comparison.Operator, ClockValue(comparison.Left, values, clock, errors.Unknown), ClockValue(comparison.Right, values, clock, errors.Unknown), errors);
+        }
         if (dateTypes?.ContainsKey(comparison.Left.Property) == true)
         {
             return SemanticConditionEvaluator.Evaluate(comparison, values, dateTypes);
@@ -29,13 +33,38 @@ internal static class SemanticProductionComparison
         var left = Operand(comparison.Left, values);
         var right = Operand(comparison.Right, values);
 
-        return comparison.Operator switch
+        return CompareValues(comparison.Operator, left, right, errors);
+    }
+
+    static bool CompareValues(SemanticComparisonOperator operation, SemanticValue? left, SemanticValue? right, (Func<Exception> Nonnumeric, Func<Exception> Unknown) errors) =>
+        operation switch
         {
             SemanticComparisonOperator.Equal => Equals(left, right),
             SemanticComparisonOperator.NotEqual => !Equals(left, right),
-            _ => CompareNumbers(comparison.Operator, left, right, errors)
+            _ => CompareNumbers(operation, left, right, errors)
+        };
+
+    static SemanticValue ClockValue(SemanticConditionOperand operand, IReadOnlyDictionary<SemanticId, SemanticValue> values, DateTimeOffset? occurrence, Func<Exception> error)
+    {
+        if (operand.Read is not null || operand.DateOf) throw error();
+        var instant = operand.Clock is { } clock ? ClockInstant(clock, occurrence ?? throw error(), error) : ParseInstant(Operand(operand, values), error);
+        return SemanticValue.Number(instant.UtcTicks);
+    }
+
+    static DateTimeOffset ClockInstant(SemanticClockOperand clock, DateTimeOffset occurrence, Func<Exception> error)
+    {
+        if (clock.Kind != SemanticClockKind.Now || clock.DateOf) throw error();
+        return clock.Unit switch
+        {
+            SemanticClockUnit.Day => occurrence.AddHours(24d * clock.Amount),
+            SemanticClockUnit.Hour => occurrence.AddHours(clock.Amount),
+            SemanticClockUnit.Minute => occurrence.AddMinutes(clock.Amount),
+            _ => throw error()
         };
     }
+
+    static DateTimeOffset ParseInstant(SemanticValue? value, Func<Exception> error) =>
+        value is SemanticTextValue text && SemanticDateComparisons.TryParseInstant(text.Value, out var instant) ? instant : throw error();
 
     static SemanticValue? Operand(SemanticConditionOperand operand, IReadOnlyDictionary<SemanticId, SemanticValue> values) =>
         operand.Property.IsSet ? values[operand.Property] : operand.Value;

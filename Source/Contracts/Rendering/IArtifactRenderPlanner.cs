@@ -82,6 +82,13 @@ public sealed record ArtifactRenderRequest(
     /// <summary>Gets actual typed semantic address assignments from the source compilation. Empty means unavailable, never inferred.</summary>
     public ImmutableArray<SemanticIdentityAssignment> SemanticIdentities { get; init; } = [];
 
+    /// <summary>
+    /// Gets compiler exclusions removed before this request's executable model was built. Excluded units have no leaf identity
+    /// and are not inventory owners. Stage retains all supplied entries as parent-owned plan evidence and does not discover
+    /// exclusions itself. Empty preserves existing behavior; default or malformed metadata is rejected.
+    /// </summary>
+    public ImmutableArray<SemanticExclusion> Exclusions { get; init; } = [];
+
     /// <summary>Gets the original compiler catalog when available; null leaves direct ESM inventory unavailable.</summary>
     public SemanticIdentityCatalog? IdentityCatalog { get; init; }
 

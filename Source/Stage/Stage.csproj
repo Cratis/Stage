@@ -68,6 +68,7 @@
         <Compile Include="../Rendering.Cratis/Semantics/EsmSupportStanding.cs" Link="Semantics/Admission/EsmSupportStanding.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/EsmRangeSurface.cs" Link="Semantics/Admission/EsmRangeSurface.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticSpecificationClock.cs" Link="Semantics/Admission/SemanticSpecificationClock.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/SemanticSourcelessGivens.cs" Link="Semantics/Admission/SemanticSourcelessGivens.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticGenerationShapes.cs" Link="Semantics/Admission/SemanticGenerationShapes.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticPatternShape.cs" Link="Semantics/Admission/SemanticPatternShape.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticProductionComparison.cs" Link="Semantics/Admission/SemanticProductionComparison.cs" />

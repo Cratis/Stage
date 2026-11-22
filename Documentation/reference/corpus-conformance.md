@@ -10,6 +10,13 @@ columns. The renderer column includes a Debug C# compilation of the anonymous ou
 and its specification sources; it does not substitute for a generated application or
 kernel run.
 
+`SourcelessGivensCorpus.V2` retains the corpus's `expected-refusal` executor outcome.
+Source-observing projections refuse sourceless givens with `STAGE-ESM-051` on the
+executor and host; the renderer uses the same code when a source is observable.
+These refusals name Cratis/Stage#960, which owns the host and renderer matrix records.
+A guessed event-source id would change the reference runner's null identity, so the
+surfaces do not synthesize one for an observable source.
+
 ## What each column measures
 
 | Column | What runs | Cell is `supported` when |

@@ -24,7 +24,8 @@ public static partial class SemanticRunAdmission
         if (plan.IsolatedSlice is null && plan.SliceOf(specification.Id) is { } owner) plan = plan.IsolatedTo(owner);
         var check = new RunCheck(plan, specification, bodies);
 
-        return StructuralRefusal(check) ?? SemanticImplementationReach.ForSpecification(plan, specification, bodies) ?? BehaviorRefusal(check);
+        var refusal = StructuralRefusal(check) ?? SemanticImplementationReach.ForSpecification(plan, specification, bodies) ?? BehaviorRefusal(check);
+        return SourcelessGivenRefusal(check, refusal) ?? refusal;
     }
 
     static SemanticUnsupportedCapability? StructuralRefusal(RunCheck check) => VersionRefusal(check) ?? RuntimeNameRefusal(check);
@@ -103,6 +104,15 @@ public static partial class SemanticRunAdmission
         }
 
         return null;
+    }
+
+    static SemanticUnsupportedCapability? SourcelessGivenRefusal(RunCheck check, SemanticUnsupportedCapability? refusal)
+    {
+        if (refusal is not { Capability: StageExecutionCapability.Projection }) return null;
+        var projection = check.Plan.Projections.Values.FirstOrDefault(projection => projection.Id.ToString() == refusal.Construct);
+        return projection is not null && check.Specification.GivenEvents.Any(fact => fact.EventSource is null && SemanticSourcelessGivens.ProjectionRequiresSource(projection, fact.EventContract))
+            ? refusal with { Details = $"{SemanticSourcelessGivens.Code}: {SemanticSourcelessGivens.Reason}" }
+            : null;
     }
 
     static SemanticUnsupportedCapability? ActionRefusal(RunCheck check)

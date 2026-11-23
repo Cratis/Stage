@@ -1354,14 +1354,6 @@
     },
     {
       "fixture": "EsmGoldenVectors.V30",
-      "change": "changed",
-      "path": "/application/modules[Shipping]/features[Dispatch]/slices[Dispatching]/kind",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3550"
-    },
-    {
-      "fixture": "EsmGoldenVectors.V30",
       "change": "missing",
       "path": "/application/modules[Shipping]/features[Dispatch]/slices[Dispatching]/specifications[ConfirmingAnOrderCreatesAShipment]",
       "direction": "adapter",

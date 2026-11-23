@@ -18,7 +18,6 @@ namespace Cratis.Stage.Conformance.Specs.for_CanonicalCorpusConformance.given;
 public static partial class conformance_outcomes
 {
     const string Supported = "supported";
-    const string NoSpecifications = "n/a:no-specifications";
     const string NotLoaded = "n/a:not-loaded";
     const string ExpectedRefusal = "expected-refusal";
 
@@ -74,12 +73,7 @@ public static partial class conformance_outcomes
         if (plan.Specifications.Count == 0)
         {
             // A model without slice specifications can still carry the specifications of its state machines and workflows, which the executor runs.
-            return conformance_observation.WithoutRefusals(report.Results.Count switch
-            {
-                0 => NoSpecifications,
-                _ when report.Results.All(result => result.Outcome == SemanticSpecificationOutcome.Passed) => Supported,
-                _ => "gap:lifecycle-specifications-failed"
-            });
+            return conformance_observation.WithoutRefusals(lifecycle_outcomes.Observe(vector, report.Results));
         }
 
         problems.UnionWith(executor_result_ids.Problems(

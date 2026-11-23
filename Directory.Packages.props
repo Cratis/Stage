@@ -62,6 +62,7 @@
     <PackageVersion Include="Cratis.Screenplay.Matching" Version="$(CratisScreenplayVersion)" />
     <!-- Spec-only: the released conformance corpus consumed by the Cratis renderer's planner fixtures, at the Screenplay version the renderer compiles with. -->
     <PackageVersion Include="Cratis.Screenplay.CanonicalCorpus" Version="$(CratisScreenplayVersion)" />
+    <PackageVersion Include="Cratis.Screenplay.Conformance" Version="$(CratisScreenplayVersion)-preview" />
     <PackageVersion Include="Cratis.Templates" Version="1.8.3" />
     <PackageVersion Include="Scriban" Version="[7.5.3]" />
     <!-- Microsoft -->

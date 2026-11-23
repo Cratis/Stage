@@ -4,6 +4,7 @@
 #if DEBUG
 using System.Collections.Immutable;
 using System.Text;
+using System.Xml.Linq;
 using Cratis.Arc.Screenplay;
 using Cratis.Screenplay.Conformance;
 using Cratis.Screenplay.Semantics;
@@ -26,7 +27,14 @@ internal static class arc_round_trip
         Assert.True(plan.Success, $"{fixture.Name} did not plan:{Environment.NewLine}{string.Join(Environment.NewLine, plan.Diagnostics)}");
         var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs" && !artifact.RelativePath.StartsWith("Frontend/", StringComparison.Ordinal))
             .Select(artifact => new RenderedFile(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
-        var compilation = ClientOnly(RenderedOutput.CreateCompilation(files));
+        var properties = plan.Artifacts.Single(artifact => artifact.RelativePath == "Directory.Build.props");
+        var readProtection = XDocument.Parse(Encoding.UTF8.GetString(properties.Bytes.AsSpan())).Descendants("CratisReadProtection").Single().Value;
+        Assert.Contains(readProtection, new[] { "Off", "Measure", "On" });
+
+        // Raw Roslyn compilation bypasses Cratis.Arc.Core.targets, which emits this project policy as assembly metadata.
+        var assemblyInfo = new RenderedFile("GeneratedReadProtection.AssemblyInfo.g.cs",
+            $"[assembly: global::Cratis.Arc.Commands.ReadProtectionAttribute(global::Cratis.Arc.Commands.ReadProtectionMode.{readProtection})]");
+        var compilation = ClientOnly(RenderedOutput.CreateCompilation(files.Append(assemblyInfo)));
         var errors = compilation.GetDiagnostics().Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ToArray();
         Assert.True(errors.Length == 0, $"{fixture.Name} rendered a compilation with errors:{Environment.NewLine}{string.Join(Environment.NewLine, errors.Take(5))}");
 

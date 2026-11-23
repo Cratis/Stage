@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { useCallback, useContext, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useContext, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import type { ExternalComponent, SceneElement } from '@cratis/scene.model';
 import type { InteractionHandlers } from '@cratis/scene.react';
@@ -39,7 +39,9 @@ export function StageActionPresentation({ element, children }: { element: Extern
 /** Names the row's control by the value in its first displayed column. */
 export function rowMenuLabel(row: Record<string, unknown>, columns: readonly { property: string }[]): string {
     const property = columns[0]?.property ?? '';
-    return `Actions for ${readableValue(row[property]) || 'row'}`;
+    const value = row[property];
+    const label = readableValue(value) ?? String(value ?? '');
+    return `Actions for ${label || 'row'}`;
 }
 
 /** The extra table column exists only for opted-in item actions. */
@@ -57,6 +59,22 @@ export function StageRowMenuCell(props: RowMenuProps) {
     return props.actions.length > 0 ? <td><StageRowMenu {...props} /></td> : null;
 }
 
+function openWithArrowDown(event: KeyboardEvent<HTMLButtonElement>): void {
+    if (event.key !== 'ArrowDown' || event.currentTarget.getAttribute('aria-expanded') === 'true') return;
+    // PrimeReact's trigger opens on click; use that same path for the menu-button ArrowDown convention.
+    event.preventDefault();
+    event.currentTarget.click();
+}
+
+function returnFocusAfterMenuClose(restoreFocus: () => void, menuTarget: HTMLDivElement | null): void {
+    requestAnimationFrame(() => {
+        const current = document.activeElement;
+        const inClosingMenu = menuTarget !== null && (menuTarget.contains(current) || current?.contains(menuTarget));
+        // Opening focus can arrive after Escape; restore only from this popup or body, never from the new command dialog.
+        if (current === document.body || inClosingMenu) restoreFocus();
+    });
+}
+
 /** Controllers stay mounted outside the popup so closing it cannot unmount their command dialog. */
 export function StageRowMenu({ row, label, actions, renderAction }: RowMenuProps) {
     const [target, setTarget] = useState<HTMLDivElement | null>(null);
@@ -65,8 +83,11 @@ export function StageRowMenu({ row, label, actions, renderAction }: RowMenuProps
     const restoreFocus = useCallback(() => { host.current?.querySelector<HTMLButtonElement>('button')?.focus(); }, []);
     if (actions.length === 0) return null;
     return <span ref={host} onClick={event => event.stopPropagation()} onDoubleClick={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()}>
-        <Menu.Root onOpenChange={(event: MenuRootOpenChangeEvent) => { if (event.value) setActivated(true); }}>
-            <Menu.Trigger aria-label={label} aria-haspopup='menu'>…</Menu.Trigger>
+        <Menu.Root composite={false} onOpenChange={(event: MenuRootOpenChangeEvent) => {
+            if (event.value) setActivated(true);
+            else returnFocusAfterMenuClose(restoreFocus, target);
+        }}>
+            <Menu.Trigger aria-label={label} aria-haspopup='menu' onKeyDown={openWithArrowDown}>…</Menu.Trigger>
             <Menu.Portal><Menu.Positioner><Menu.Popup><Menu.List aria-label={label}><div ref={setTarget} /></Menu.List></Menu.Popup></Menu.Positioner></Menu.Portal>
             <RowMenuContext.Provider value={{ row, target, restoreFocus }}>{activated && actions.map(renderAction)}</RowMenuContext.Provider>
         </Menu.Root>

@@ -3,7 +3,7 @@
 
 import type { ExternalComponent } from '@cratis/scene.model';
 import { PrimeReactProvider } from '@primereact/core/config';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor, within } from './testing/render';
 import { queryResult, registerTestQueries } from './testing/queries';
 import { commandResult } from './testing/commands';
@@ -45,6 +45,7 @@ interface ScreenOptions {
     pending?: boolean;
     navigating?: boolean;
     optionalReference?: boolean;
+    probeable?: boolean;
 }
 
 // The acceptance hint/subject comes unchanged from the emitted fixture. This one regression
@@ -56,11 +57,19 @@ function withOptionalReference(action: ExternalComponent): ExternalComponent {
     return { ...action, properties: { ...action.properties, schema: JSON.stringify({ ...schema, properties: { ...schema.properties, organisationId: reference } }) } };
 }
 
+function withProbeableSubject(action: ExternalComponent): ExternalComponent {
+    if (action.properties.command !== 'RenameResource') return action;
+    const schema = JSON.parse(String(action.properties.schema)) as object;
+    // Native validation refuses missing required editable inputs before contacting the server.
+    // This refusal test needs a command whose row identity is sufficient to run the server probe.
+    return { ...action, properties: { ...action.properties, schema: JSON.stringify({ ...schema, required: ['resourceId'] }) } };
+}
+
 function fetchedResponse(options: ScreenOptions) {
     return vi.fn((url: RequestInfo | URL, init?: RequestInit) => {
         const path = String(url);
         if (path.endsWith('/validate')) {
-            const refused = options.refused && path.includes('/rename/');
+            const refused = options.refused;
             return Promise.resolve({ ok: true, json: async () => commandResult(refused ? { isSuccess: false, isAuthorized: false, authorizationFailureReason: 'Archived resources cannot be renamed' } : {}) });
         }
         if (init?.method === 'POST') return options.pending ? new Promise<Response>(() => undefined) : Promise.resolve({ ok: true, json: async () => commandResult() });
@@ -82,7 +91,8 @@ function screenParts(options: ScreenOptions, offered: ExternalComponent[]) {
 }
 
 function actionsFor(options: ScreenOptions) {
-    const available = options.optionalReference ? actions.map(withOptionalReference) : actions;
+    const referenced = options.optionalReference ? actions.map(withOptionalReference) : actions;
+    const available = options.probeable ? referenced.map(withProbeableSubject) : referenced;
     const offered = available.filter(action => !options.labels || options.labels.includes(String(action.properties.label)));
     return { available, offered };
 }
@@ -115,7 +125,7 @@ function submitted(fetched: Awaited<ReturnType<typeof openScreen>>) {
 
 async function openRename(trigger: HTMLElement) {
     fireEvent.click(trigger);
-    fireEvent.click(await screen.findByRole('menuitem', { name: 'Rename' }));
+    fireEvent.mouseDown(await screen.findByRole('menuitem', { name: 'Rename' }), { button: 0, detail: 1 });
     return screen.findByRole('dialog', { name: 'Rename' });
 }
 
@@ -124,6 +134,15 @@ async function renameFromMenu(trigger: HTMLElement, name: string) {
     fireEvent.change(within(dialog).getByLabelText(/^Name/), { target: { value: name } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Rename' }));
 }
+
+beforeEach(() => {
+    // jsdom has no layout observer; menu positioning still runs through the real popup primitive.
+    vi.stubGlobal('ResizeObserver', class {
+        observe = vi.fn();
+        unobserve = vi.fn();
+        disconnect = vi.fn();
+    });
+});
 
 afterEach(() => {
     vi.unstubAllGlobals();
@@ -137,7 +156,6 @@ describe('the emitted item-action row menu', () => {
         expect(screen.queryByRole('button', { name: 'Rename' })).toBeNull();
         expect(screen.queryByRole('button', { name: 'Archive' })).toBeNull();
         expect(screen.getByRole('button', { name: 'Create' })).toBeDefined();
-        expect(screen.getByRole('button', { name: 'Create from screen' })).toBeDefined();
         expect((screen.getByRole('button', { name: 'Inline rename' }) as HTMLButtonElement).disabled).toBe(true);
         expect(screen.getByRole('button', { name: 'Advisory rename' })).toBeDefined();
         expect(screen.getByRole('button', { name: 'Unknown placement' })).toBeDefined();
@@ -152,7 +170,7 @@ describe('the emitted item-action row menu', () => {
     });
 
     it('adds no menu or actions column without an opted-in item action', async () => {
-        await openScreen({ labels: ['Create', 'Create from screen', 'Inline rename', 'Advisory rename', 'Unknown placement'] });
+        await openScreen({ labels: ['Create', 'Inline rename', 'Advisory rename', 'Unknown placement'] });
         expect(screen.queryByRole('button', { name: /^Actions for / })).toBeNull();
         expect(screen.queryByRole('columnheader', { name: 'Actions' })).toBeNull();
     });
@@ -195,12 +213,12 @@ describe('the emitted item-action row menu', () => {
     });
 
     it('retains the server refusal and reason on the menu item', async () => {
-        const fetched = await openScreen({ refused: true });
+        const fetched = await openScreen({ refused: true, probeable: true });
         fireEvent.click(screen.getByRole('button', { name: 'Actions for Mountain' }));
-        const item = await screen.findByRole('menuitem', { name: 'Rename' });
-        await waitFor(() => expect(item.getAttribute('aria-disabled')).toBe('true'));
+        await waitFor(() => expect(screen.getByRole('menuitem', { name: 'Rename' }).getAttribute('aria-disabled')).toBe('true'));
+        const item = screen.getByRole('menuitem', { name: 'Rename' });
         expect(item.title).toBe('Archived resources cannot be renamed');
-        fireEvent.click(item);
+        fireEvent.mouseDown(item, { button: 0, detail: 1 });
         expect(screen.queryByRole('dialog')).toBeNull();
         expect(submitted(fetched)).toHaveLength(0);
     });

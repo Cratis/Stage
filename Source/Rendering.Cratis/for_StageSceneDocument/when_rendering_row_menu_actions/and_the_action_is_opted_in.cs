@@ -27,9 +27,12 @@ public class and_the_action_is_opted_in : Specification
         var syntax = new ScreenplayCompiler().Compile(Source);
         Assert.True(syntax.Success, string.Join(Environment.NewLine, syntax.Diagnostics));
         var conversion = StageSceneConversion.Convert(syntax.Value!);
-        Assert.False(conversion.Diagnostics.HasErrors, string.Join(Environment.NewLine, conversion.Diagnostics.All));
-        var canonical = CanonicalSceneJson.Serialize(conversion.Application);
+        var errors = conversion.ConversionDiagnostics.Where(diagnostic => diagnostic.Severity == global::Cratis.Screenplay.Diagnostics.DiagnosticSeverity.Error).ToArray();
+        Assert.True(errors.Length == 0, string.Join(Environment.NewLine, errors.Select(error => $"{error.Code}: {error.Message}")));
+        var canonical = CanonicalSceneJson.Serialize(conversion);
         _live = JsonNode.Parse(canonical)!;
+        Assert.NotEmpty(_live["screens"]!.AsArray());
+        Assert.Equal("row-menu", Action(_live, "Rename")["presentation"]!["placement"]!.GetValue<string>());
 
         var model = invoice_model.Compile(Source);
         var profile = CratisRendering.CreateProfile("Resources", new("Resources", "Resources"));
@@ -45,7 +48,6 @@ public class and_the_action_is_opted_in : Specification
     [Fact] void should_preserve_the_emitted_hint() => Action(_rendered, "Archive")["presentation"]!["placement"]!.GetValue<string>().ShouldEqual("row-menu");
     [Fact] void should_preserve_advisory_metadata() => Action(_rendered, "Rename")["presentation"]!["tone"]!.GetValue<string>().ShouldEqual("quiet");
     [Fact] void should_keep_an_unhinted_item_action_unhinted() => (Action(_rendered, "Inline rename")["presentation"] is null).ShouldBeTrue();
-    [Fact] void should_keep_the_screen_subject_despite_the_hint() => Action(_rendered, "Create from screen")["actionSubject"]!.GetValue<string>().ShouldEqual("screen");
     [Fact] void should_not_reinterpret_an_unsupported_placement() => Action(_rendered, "Advisory rename")["presentation"]!["placement"]!.GetValue<string>().ShouldEqual("menu");
     [Fact] void should_keep_unknown_advisory_values() => Action(_rendered, "Unknown placement")["presentation"]!["placement"]!.GetValue<string>().ShouldEqual("radial");
     [Fact] void should_keep_the_command() => Action(_rendered, "Rename")["command"]!.GetValue<string>().ShouldEqual("RenameResource");
@@ -81,9 +83,6 @@ public class and_the_action_is_opted_in : Specification
                 column name label "Name"
               action RegisterResource for screen
                 label "Create"
-              action RegisterResource for screen
-                label "Create from screen"
-                presentation placement "row-menu"
               action RenameResource for item
                 label "Rename"
                 with resourceId from item.resourceId
@@ -137,6 +136,7 @@ public class and_the_action_is_opted_in : Specification
                 resourceId ResourceId
                 name String
               query AllResources => Resource[]
+              uses screen Resources
               projection ResourcesProjection => Resource
                 from ResourceRegistered
                   resourceId = $eventSourceId

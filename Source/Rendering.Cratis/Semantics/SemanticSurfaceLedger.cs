@@ -35,6 +35,17 @@ internal static class SemanticSurfaceLedger
     public static IReadOnlyDictionary<string, SemanticSurfaceDisposition> Entries { get; } = Build();
 
     /// <summary>
+    /// Gets source-only metadata handled by the Scene bridge, outside the executable model and its dependency index.
+    /// </summary>
+    public static IReadOnlyDictionary<string, SemanticSurfaceDisposition> RetainedSyntaxEntries { get; } =
+        new Dictionary<string, SemanticSurfaceDisposition>(StringComparer.Ordinal)
+        {
+            ["ScreenActionSyntax.Presentation"] = new(
+                SemanticSurfaceDispositionKind.Ignored,
+                "Presentation is retained-source UI metadata passed through the Screenplay-to-Scene bridge; it changes no backend behavior.")
+        };
+
+    /// <summary>
     /// Gets the query shape matrix. Snapshot and live optional lookups require an identifier key; snapshot and live collections may be keyed or unkeyed.
     /// Other cardinality/delivery/key combinations fail STAGE-ESM-010 before rendering.
     /// </summary>
@@ -109,6 +120,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticProvidedValue", rendered, "Name Source Type ReadModel Optional Collection");
         Add(entries, "SemanticProvideSource", rendered, "$type");
         Add(entries, "SemanticHostProvideSource", rendered, "$type");
+        Add(entries, "SemanticCodeProvideSource", rejected(SemanticProvidedValueRendering.UnsupportedSource), "Implementation");
         Add(entries, "SemanticQueryProvideSource", rendered, "Query By");
         Add(entries, "SemanticValueProvideSource", rendered, "Value");
         Add(entries, "SemanticContextOperand", rendered, "Path Value");
@@ -544,7 +556,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticInvocation", abilityInvocation, "System Ability Inputs Branches");
         Add(entries, "SemanticInvocationBranch", abilityInvocation, "Selector Produces");
         Add(entries, "SemanticAbilityAnswer", abilityInvocation, "System Ability Kind Outcome Reason Values");
-        Add(entries, "SemanticAbilityAnswerKind", abilityInvocation, "Returned Outcome Failed");
+        Add(entries, "SemanticAbilityAnswerKind", abilityInvocation, "Returned Outcome Failed Pending");
         Add(entries, "SemanticAbilityFieldValue", abilityInvocation, "Name Value");
         Add(entries, "SemanticInvocationRefusal", rendered, "Selector Constraint Produces");
         Add(entries, "SemanticReaction", rendered, "Id Name Triggers");

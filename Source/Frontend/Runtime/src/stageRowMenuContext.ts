@@ -28,7 +28,11 @@ export function useRowMenuDialogFocus(visible: boolean): void {
     const restoreFocus = useContext(RowMenuContext)?.restoreFocus;
     const wasVisible = useRef(visible);
     useEffect(() => {
-        if (wasVisible.current && !visible) restoreFocus?.();
+        const closed = wasVisible.current && !visible;
         wasVisible.current = visible;
+        if (!closed || !restoreFocus) return;
+        // React Aria restores the dialog's old popup opener during unmount; return to the surviving row trigger afterwards.
+        const frame = requestAnimationFrame(restoreFocus);
+        return () => cancelAnimationFrame(frame);
     }, [visible, restoreFocus]);
 }

@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Screenplay.Syntax;
 using Cratis.Specifications;
 using Xunit;
 
@@ -41,6 +42,15 @@ public class when_auditing_the_executable_model : given.the_executable_surface
             $"Audited {_count} semantic members. Missing ({_missing.Length}): {string.Join(", ", _missing)}; " +
             $"Stale ({_stale.Length}): {string.Join(", ", _stale)}; Invalid ({_invalid.Length}): {string.Join(", ", _invalid)}");
 
+    [Fact]
+    public void should_keep_code_provided_values_refused() =>
+        _ledger["SemanticCodeProvideSource.Implementation"].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, SemanticProvidedValueRendering.UnsupportedSource));
+
+    [Fact]
+    public void should_pass_action_presentation_through_the_scene_bridge_without_backend_behavior() =>
+        SemanticSurfaceLedger.RetainedSyntaxEntries[$"{nameof(ScreenActionSyntax)}.{nameof(ScreenActionSyntax.Presentation)}"].ShouldEqual(new(SemanticSurfaceDispositionKind.Ignored,
+            "Presentation is retained-source UI metadata passed through the Screenplay-to-Scene bridge; it changes no backend behavior."));
+
     [Theory]
     [InlineData("SemanticApplication.TimeZone")]
     [InlineData("SemanticTimeZone.Configurable")]
@@ -73,6 +83,7 @@ public class when_auditing_the_executable_model : given.the_executable_surface
     [InlineData("SemanticInvocationBranch.Produces")]
     [InlineData("SemanticAbilityAnswer.Outcome")]
     [InlineData("SemanticAbilityAnswerKind.Returned")]
+    [InlineData("SemanticAbilityAnswerKind.Pending")]
     [InlineData("SemanticAbilityFieldValue.Value")]
     [InlineData("SemanticSpecification.GivenAbilityAnswers")]
     [InlineData("SemanticStateEntry.RequirementId")]

@@ -97,6 +97,13 @@ export const stageCatalog: PackageCatalog = {
     [stageBaselinePackage]: cratisComponentsPackageManifest.components,
 };
 
+/** Looks up an optional library widget without assembling the full rendering registry. Later libraries win, as in stageRegistry. */
+export function stageLibraryComponent(name: string): ComponentRegistry[string] | undefined {
+    let component: ComponentRegistry[string] | undefined;
+    for (const library of loadedLibraries.values()) component = library.components[name] ?? component;
+    return component;
+}
+
 /** Every component the Stage can render: Scene's core, the Cratis component library, the libraries a profile opted in to, the default blueprint's shell, and the template wrapper the shared composition places screens in. */
 export function stageRegistry(overrides: ComponentRegistry): ComponentRegistry {
     const libraries = [...loadedLibraries.values()].reduce<ComponentRegistry>((all, library) => ({ ...all, ...library.components }), {});

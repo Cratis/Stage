@@ -3,13 +3,15 @@
 
 import { primeReactComponents, primeReactPackageManifest } from '@cratis/scene.primereact';
 import type { StageLibrary } from './blueprint';
+import { PrimeReactRowMenu } from './primeReactRowMenu';
+import { stageRowMenuComponent } from './stageRowMenuContext';
 
 /**
  * The entry a profile that lists `PrimeReact` opts in to (`@cratis/stage.runtime/primereact`): the PrimeReact widgets and what
  * the package declares. The host imports it and registers it with `registerStageLibrary`; the runtime never does.
  */
 export const primeReactLibrary: StageLibrary = {
-    components: primeReactComponents,
+    components: { ...primeReactComponents, [stageRowMenuComponent]: PrimeReactRowMenu },
     declared: primeReactPackageManifest.components,
 };
 

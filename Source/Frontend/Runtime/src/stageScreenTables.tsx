@@ -7,6 +7,9 @@ import type { ExternalComponent, SceneElement } from '@cratis/scene.model';
 import { selectableRowsOf, selectedRowsOf } from './StageCommandForm';
 import { useStageData } from './stageData';
 import { isBoardComponent } from './stageBoardSelection';
+import { isRowMenuAction } from './stageRowMenuActions';
+import { ScreenRowMenuActionsContext, useRowMenuSubject } from './stageRowMenuContext';
+export { useScreenRowMenuActions } from './stageRowMenuContext';
 
 /**
  * The row-source scopes of one screen, including tables and board card queries nested in its slots. An outlet belongs to another screen, so its children are not visited.
@@ -35,16 +38,29 @@ function rowScopesOf(component: ExternalComponent): string[] {
 }
 
 const ScreenTablesContext = createContext<ReadonlySet<string> | undefined>(undefined);
+/** Groups actions only when their row source is unambiguous; otherwise preserves the inline fallback. */
+export function screenRowMenuActionsOf(element: SceneElement): ExternalComponent[] {
+    const components = screenComponentsOf(element);
+    if (components.filter(component => component.componentName === 'core:table').length !== 1) return [];
+    return components.filter(isRowMenuAction);
+}
+
+function screenComponentsOf(element: SceneElement): ExternalComponent[] {
+    const component = element as ExternalComponent;
+    if (component.componentName === 'core:slot') return [];
+    return [component, ...Object.values(component.slots ?? {}).flatMap(children => children.flatMap(screenComponentsOf))];
+}
 
 /** Limits action selection and hidden form identifiers to the tables and boards of this screen, independently of other screens on the page. */
 export function StageScreenTables({ element, outputScope, children }: { element: SceneElement; outputScope?: string; children: ReactNode }) {
     const tables = useMemo(() => new Set(screenTablesOf(element).flatMap(source => outputScope ? [source, `${outputScope}:${source}`] : [source])), [element, outputScope]);
-    return <ScreenTablesContext.Provider value={tables}>{children}</ScreenTablesContext.Provider>;
+    const actions = useMemo(() => screenRowMenuActionsOf(element), [element]);
+    return <ScreenTablesContext.Provider value={tables}><ScreenRowMenuActionsContext.Provider value={actions}>{children}</ScreenRowMenuActionsContext.Provider></ScreenTablesContext.Provider>;
 }
 
 /** Preserves the page-wide selection of a confirmation decision and its form after leaving the list screen. */
 export function StagePageRows({ children }: { children: ReactNode }) {
-    return <ScreenTablesContext.Provider value={undefined}>{children}</ScreenTablesContext.Provider>;
+    return <ScreenTablesContext.Provider value={undefined}><ScreenRowMenuActionsContext.Provider value={[]}>{children}</ScreenRowMenuActionsContext.Provider></ScreenTablesContext.Provider>;
 }
 
 /**
@@ -55,9 +71,11 @@ export function StagePageRows({ children }: { children: ReactNode }) {
 export function useScreenRows(): { selectableRows: Record<string, unknown>[]; selectedRows: Record<string, unknown>[] } {
     const tables = useContext(ScreenTablesContext);
     const { queries, selections } = useStageData();
+    const row = useRowMenuSubject();
     return useMemo(() => {
+        if (row) return { selectableRows: [row], selectedRows: [row] };
         const scopedQueries = tables ? Object.fromEntries(Object.entries(queries).filter(([scope]) => tables.has(scope))) : queries;
         const scopedSelections = tables ? Object.fromEntries(Object.entries(selections).filter(([scope]) => tables.has(scope))) : selections;
         return { selectableRows: selectableRowsOf(scopedQueries), selectedRows: selectedRowsOf(scopedSelections, scopedQueries) };
-    }, [queries, selections, tables]);
+    }, [queries, selections, tables, row]);
 }

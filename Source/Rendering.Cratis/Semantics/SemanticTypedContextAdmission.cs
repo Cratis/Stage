@@ -47,6 +47,9 @@ internal static class SemanticTypedContextAdmission
 
     internal static bool IsDescriptorExempt(SemanticImplementationRole role) => _descriptorExemptRoles.Contains(role);
 
+    // Provided-value bodies are not rendered; they must not acquire an untyped fallback.
+    internal static bool IsRefusedRole(SemanticImplementationRole role) => role == SemanticImplementationRole.ProvideValue;
+
     internal static ImmutableArray<ArtifactRenderDiagnostic> Verify(ArtifactRenderRequest request) => Verify(request, out _);
 
     internal static ImmutableArray<ArtifactRenderDiagnostic> Verify(ArtifactRenderRequest request, out ImmutableArray<SemanticTypedContextDescriptor> admitted)

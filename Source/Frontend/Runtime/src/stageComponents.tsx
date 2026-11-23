@@ -15,7 +15,9 @@ import { useStageData, useStageQuery } from './stageData';
 import { DialogSlice, useStageScreens } from './stageStructure';
 import { sliceDialogScreenOf } from './stageSliceDialogScreen';
 import { StageCommandForm, StageDialogContext, StageDialogFooterContext, carriedBy, identifiersAwaitingSelection, selectedIdentifier, suppliedWithoutAsking } from './StageCommandForm';
-import { useScreenRows } from './stageScreenTables';
+import { useScreenRows, useScreenRowMenuActions } from './stageScreenTables';
+import { rowMenuColumnCount, StageActionPresentation, StageRowMenuCell, StageRowMenuHeader, StageActionTrigger, rowMenuLabel } from './stageRowMenuActions';
+import { useRowMenuDialogFocus } from './stageRowMenuContext';
 import { type ActionSubject, actionCreatesEntity, actionSubjectOf, awaitsSubjectRow, itemSubjectElement, subjectActionProperties, subjectRowOf } from './stageActionSubject';
 import { actionVariant } from './humanize';
 import { readableValue } from './readableValue';
@@ -134,6 +136,8 @@ export function StageTable({ element, slots }: RegisteredProps) {
     }, [data, element, filters]);
     const { rows, error, loading, awaitingCommand } = useStageQuery({ scope: element.id, name: queryName, route: route || undefined, arguments: queryArguments.values, ready: queryArguments.ready });
     const columns = columnsFor(element, rows);
+    const rowMenuActions = useScreenRowMenuActions();
+    const columnCount = columns.length + rowMenuColumnCount(rowMenuActions);
     const navigateTo = text(element, 'navigateOnRowClickToScreen');
     const navigateBy = text(element, 'navigateOnRowClickByParameter');
     const dataKey = text(element, 'dataKey') || navigateBy || 'id';
@@ -203,7 +207,7 @@ export function StageTable({ element, slots }: RegisteredProps) {
             {selected && <Button type='button' size='small' onClick={clear}>Clear selection</Button>}
             <table aria-label={text(element, 'label', text(element, 'typeName', 'Results'))}>
                 <thead>
-                    <tr>{columns.map(column => <th key={column.property} scope='col'>{column.label}</th>)}</tr>
+                    <tr>{columns.map(column => <th key={column.property} scope='col'>{column.label}</th>)}<StageRowMenuHeader actions={rowMenuActions} /></tr>
                 </thead>
                 <tbody>
                     {rows.map((row, index) => {
@@ -221,10 +225,11 @@ export function StageTable({ element, slots }: RegisteredProps) {
                                     select(row);
                                 }}>
                                 {columns.map(column => <td key={column.property}>{tableValue(row[column.property], column.options, column.optionValues)}</td>)}
+                                <StageRowMenuCell row={row} label={rowMenuLabel(row, columns)} actions={rowMenuActions} renderAction={action => <StageAction key={action.id} element={action} slots={{}} />} />
                             </tr>
                         );
                     })}
-                    <EmptyTableRows rowCount={rows.length} columnCount={columns.length} loading={loading} awaitingCommand={awaitingCommand} />
+                    <EmptyTableRows rowCount={rows.length} columnCount={columnCount} loading={loading} awaitingCommand={awaitingCommand} />
                 </tbody>
             </table>
         </section>
@@ -250,9 +255,9 @@ export { StageCommandForm };
 
 /** Executes a modeled command against the route the Stage registered for it. */
 export function StageAction({ element, interactions, slots }: RegisteredProps) {
-    return isGuardedAction(element)
+    return <StageActionPresentation element={element}>{isGuardedAction(element)
         ? <StageGuardedAction element={element} interactions={interactions} />
-        : <StageCommandAction element={element} interactions={interactions} slots={slots} />;
+        : <StageCommandAction element={element} interactions={interactions} slots={slots} />}</StageActionPresentation>;
 }
 
 /**
@@ -304,17 +309,17 @@ function StageCommandAction({ element: input, interactions }: RegisteredProps) {
     const availability = useCommandAvailability(command, { ...parameters, ...(isRecord(subjectValues) ? subjectValues : {}) }, queryResults);
 
     if (!command) {
-        return <Button type='button' data-scene-id={element.id} disabled title='This command is not exposed as an API yet' {...interactions}>{label}</Button>;
+        return <StageActionTrigger id={element.id} sceneId={element.id} label={label} disabled title='This command is not exposed as an API yet' interactions={interactions} />;
     }
 
     // An explicit `for item` acts on exactly one selected row, even when the screen has no table to select from.
     if (awaiting.length > 0 || awaitsSubjectRow(subject, row)) {
-        return <Button type='button' data-scene-id={element.id} disabled title='Select a row first' {...interactions}>{label}</Button>;
+        return <StageActionTrigger id={element.id} sceneId={element.id} label={label} disabled title='Select a row first' interactions={interactions} />;
     }
 
     // The server refused it for the data on the screen, such as the plan of this asset: offered as unavailable, with the reason on hover.
     if (availability.unavailable) {
-        return <Button type='button' data-scene-id={element.id} data-stage-availability='unavailable' disabled title={availability.reason || 'Not available for this data'} {...interactions}>{label}</Button>;
+        return <StageActionTrigger id={element.id} sceneId={element.id} label={label} unavailable disabled title={availability.reason || 'Not available for this data'} interactions={interactions} />;
     }
 
     return <StageCommandDialog element={row ? itemSubjectElement(element, properties, row) : element} label={label} />;
@@ -365,6 +370,7 @@ function followsEarlierAction(host: HTMLElement | null): boolean {
 function StageCommandDialog({ element, label }: { element: ExternalComponent; label: string }) {
     const [generation, setGeneration] = useState(0);
     const [visible, setVisible] = useState(false);
+    useRowMenuDialogFocus(visible);
     const [followsAction, setFollowsAction] = useState(false);
     const host = useRef<HTMLDivElement>(null);
     useLayoutEffect(() => setFollowsAction(followsEarlierAction(host.current)));
@@ -376,7 +382,7 @@ function StageCommandDialog({ element, label }: { element: ExternalComponent; la
 
     return (
         <div className='stage-action' data-scene-id={element.id} ref={host}>
-            <Button type='button' variant={actionVariant(text(element, 'emphasis'), followsAction)} onClick={() => setVisible(true)}>{label}</Button>
+            <StageActionTrigger id={element.id} label={label} variant={actionVariant(text(element, 'emphasis'), followsAction)} onClick={() => setVisible(true)} />
             <Dialog title={label} visible={visible} onClose={() => setVisible(false)} buttons={null} dismissable dismissOnOutsideClick={false}>{content}</Dialog>
         </div>
     );

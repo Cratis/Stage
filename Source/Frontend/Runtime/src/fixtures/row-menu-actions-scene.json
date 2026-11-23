@@ -1,0 +1,432 @@
+{
+  "dialogTemplates": [],
+  "layouts": [],
+  "responseContracts": {
+    "commandInputs": {
+      "ArchiveResource": {
+        "reason": {
+          "kind": "string"
+        },
+        "resourceId": {
+          "kind": "string"
+        }
+      },
+      "RegisterResource": {
+        "name": {
+          "kind": "string"
+        },
+        "resourceId": {
+          "kind": "string"
+        }
+      },
+      "RenameResource": {
+        "name": {
+          "kind": "string"
+        },
+        "resourceId": {
+          "kind": "string"
+        }
+      }
+    },
+    "commands": {
+      "ArchiveResource": {
+        "kind": "void"
+      },
+      "RegisterResource": {
+        "kind": "void"
+      },
+      "RenameResource": {
+        "kind": "void"
+      }
+    },
+    "screenInputs": {
+      "Resources": {}
+    }
+  },
+  "screenTemplates": [],
+  "screens": [
+    {
+      "behaviors": [],
+      "contributions": [],
+      "forms": [],
+      "layout": "",
+      "name": "Resources",
+      "owner": "Business.Inventory.Resources",
+      "path": [
+        "Business",
+        "Inventory"
+      ],
+      "slotContent": {
+        "content": [
+          {
+            "behaviors": [],
+            "componentName": "core:table",
+            "horizontalAlignment": "Stretch",
+            "id": "Resources.0-table",
+            "isEnabled": true,
+            "margin": {
+              "bottom": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0
+            },
+            "maximumSize": {},
+            "minimumSize": {},
+            "name": "Resources.0-table",
+            "opacity": 1,
+            "properties": {
+              "navigateOnRowClickByParameter": null,
+              "navigateOnRowClickToScreen": null,
+              "typeName": "Resource as AllResources"
+            },
+            "size": {},
+            "slots": {
+              "columns": [
+                {
+                  "behaviors": [],
+                  "componentName": "core:column",
+                  "horizontalAlignment": "Stretch",
+                  "id": "Resources.0-table.0-column",
+                  "isEnabled": true,
+                  "margin": {
+                    "bottom": 0,
+                    "left": 0,
+                    "right": 0,
+                    "top": 0
+                  },
+                  "maximumSize": {},
+                  "minimumSize": {},
+                  "name": "Resources.0-table.0-column",
+                  "opacity": 1,
+                  "properties": {
+                    "label": "Name",
+                    "property": "name"
+                  },
+                  "size": {},
+                  "slots": {},
+                  "verticalAlignment": "Stretch",
+                  "visibility": "Visible",
+                  "zIndex": 0
+                }
+              ]
+            },
+            "verticalAlignment": "Stretch",
+            "visibility": "Visible",
+            "zIndex": 0
+          },
+          {
+            "behaviors": [],
+            "componentName": "core:action",
+            "horizontalAlignment": "Stretch",
+            "id": "Resources.1-action",
+            "isEnabled": true,
+            "margin": {
+              "bottom": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0
+            },
+            "maximumSize": {},
+            "minimumSize": {},
+            "name": "Resources.1-action",
+            "opacity": 1,
+            "properties": {
+              "actionSubject": "screen",
+              "command": "RegisterResource",
+              "createsEntity": true,
+              "destination": null,
+              "fields": [
+                {
+                  "label": "Resource Id",
+                  "name": "resourceId"
+                },
+                {
+                  "label": "Name",
+                  "name": "name"
+                }
+              ],
+              "label": "Create",
+              "metadataStatus": "available",
+              "navigateByParameter": null,
+              "navigateToScreen": null,
+              "parameterless": false,
+              "schema": "{\u0022type\u0022:\u0022object\u0022,\u0022properties\u0022:{\u0022resourceId\u0022:{\u0022type\u0022:\u0022string\u0022,\u0022format\u0022:\u0022uuid\u0022,\u0022x-concept\u0022:\u0022ResourceId\u0022},\u0022name\u0022:{\u0022type\u0022:\u0022string\u0022}},\u0022required\u0022:[\u0022resourceId\u0022,\u0022name\u0022],\u0022x-creates\u0022:true}"
+            },
+            "size": {},
+            "slots": {},
+            "verticalAlignment": "Stretch",
+            "visibility": "Visible",
+            "zIndex": 0
+          },
+          {
+            "behaviors": [],
+            "componentName": "core:action",
+            "horizontalAlignment": "Stretch",
+            "id": "Resources.2-action",
+            "isEnabled": true,
+            "margin": {
+              "bottom": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0
+            },
+            "maximumSize": {},
+            "minimumSize": {},
+            "name": "Resources.2-action",
+            "opacity": 1,
+            "properties": {
+              "actionSubject": "item",
+              "command": "RenameResource",
+              "createsEntity": false,
+              "destination": {
+                "routeParameterBindings": {
+                  "resourceId": {
+                    "path": "resourceId"
+                  }
+                },
+                "screen": "Resources"
+              },
+              "fields": [
+                {
+                  "label": "Resource Id",
+                  "name": "resourceId"
+                },
+                {
+                  "label": "Name",
+                  "name": "name"
+                }
+              ],
+              "label": "Rename",
+              "metadataStatus": "available",
+              "navigateByParameter": "resourceId",
+              "navigateToScreen": "Resources",
+              "parameterless": false,
+              "presentation": {
+                "placement": "row-menu",
+                "tone": "quiet"
+              },
+              "schema": "{\u0022type\u0022:\u0022object\u0022,\u0022properties\u0022:{\u0022resourceId\u0022:{\u0022type\u0022:\u0022string\u0022,\u0022format\u0022:\u0022uuid\u0022,\u0022x-concept\u0022:\u0022ResourceId\u0022},\u0022name\u0022:{\u0022type\u0022:\u0022string\u0022}},\u0022required\u0022:[\u0022resourceId\u0022,\u0022name\u0022]}",
+              "subjectInputs": {
+                "resourceId": {
+                  "subject": "item.resourceId"
+                }
+              }
+            },
+            "size": {},
+            "slots": {},
+            "verticalAlignment": "Stretch",
+            "visibility": "Visible",
+            "zIndex": 0
+          },
+          {
+            "behaviors": [],
+            "componentName": "core:action",
+            "horizontalAlignment": "Stretch",
+            "id": "Resources.3-action",
+            "isEnabled": true,
+            "margin": {
+              "bottom": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0
+            },
+            "maximumSize": {},
+            "minimumSize": {},
+            "name": "Resources.3-action",
+            "opacity": 1,
+            "properties": {
+              "actionSubject": "item",
+              "command": "ArchiveResource",
+              "createsEntity": false,
+              "destination": null,
+              "fields": [
+                {
+                  "label": "Resource Id",
+                  "name": "resourceId"
+                },
+                {
+                  "label": "Reason",
+                  "name": "reason"
+                }
+              ],
+              "label": "Archive",
+              "metadataStatus": "available",
+              "navigateByParameter": null,
+              "navigateToScreen": null,
+              "parameterless": false,
+              "presentation": {
+                "placement": "row-menu"
+              },
+              "schema": "{\u0022type\u0022:\u0022object\u0022,\u0022properties\u0022:{\u0022resourceId\u0022:{\u0022type\u0022:\u0022string\u0022,\u0022format\u0022:\u0022uuid\u0022,\u0022x-concept\u0022:\u0022ResourceId\u0022},\u0022reason\u0022:{\u0022type\u0022:\u0022string\u0022}},\u0022required\u0022:[\u0022resourceId\u0022,\u0022reason\u0022]}",
+              "subjectInputs": {
+                "resourceId": {
+                  "subject": "item.resourceId"
+                }
+              }
+            },
+            "size": {},
+            "slots": {},
+            "verticalAlignment": "Stretch",
+            "visibility": "Visible",
+            "zIndex": 0
+          },
+          {
+            "behaviors": [],
+            "componentName": "core:action",
+            "horizontalAlignment": "Stretch",
+            "id": "Resources.4-action",
+            "isEnabled": true,
+            "margin": {
+              "bottom": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0
+            },
+            "maximumSize": {},
+            "minimumSize": {},
+            "name": "Resources.4-action",
+            "opacity": 1,
+            "properties": {
+              "actionSubject": "item",
+              "command": "RenameResource",
+              "createsEntity": false,
+              "destination": null,
+              "fields": [
+                {
+                  "label": "Resource Id",
+                  "name": "resourceId"
+                },
+                {
+                  "label": "Name",
+                  "name": "name"
+                }
+              ],
+              "label": "Inline rename",
+              "metadataStatus": "available",
+              "navigateByParameter": null,
+              "navigateToScreen": null,
+              "parameterless": false,
+              "schema": "{\u0022type\u0022:\u0022object\u0022,\u0022properties\u0022:{\u0022resourceId\u0022:{\u0022type\u0022:\u0022string\u0022,\u0022format\u0022:\u0022uuid\u0022,\u0022x-concept\u0022:\u0022ResourceId\u0022},\u0022name\u0022:{\u0022type\u0022:\u0022string\u0022}},\u0022required\u0022:[\u0022resourceId\u0022,\u0022name\u0022]}",
+              "subjectInputs": {
+                "resourceId": {
+                  "subject": "item.resourceId"
+                }
+              }
+            },
+            "size": {},
+            "slots": {},
+            "verticalAlignment": "Stretch",
+            "visibility": "Visible",
+            "zIndex": 0
+          },
+          {
+            "behaviors": [],
+            "componentName": "core:action",
+            "horizontalAlignment": "Stretch",
+            "id": "Resources.5-action",
+            "isEnabled": true,
+            "margin": {
+              "bottom": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0
+            },
+            "maximumSize": {},
+            "minimumSize": {},
+            "name": "Resources.5-action",
+            "opacity": 1,
+            "properties": {
+              "actionSubject": "item",
+              "command": "RenameResource",
+              "createsEntity": false,
+              "destination": null,
+              "fields": [
+                {
+                  "label": "Resource Id",
+                  "name": "resourceId"
+                },
+                {
+                  "label": "Name",
+                  "name": "name"
+                }
+              ],
+              "label": "Advisory rename",
+              "metadataStatus": "available",
+              "navigateByParameter": null,
+              "navigateToScreen": null,
+              "parameterless": false,
+              "presentation": {
+                "placement": "menu"
+              },
+              "schema": "{\u0022type\u0022:\u0022object\u0022,\u0022properties\u0022:{\u0022resourceId\u0022:{\u0022type\u0022:\u0022string\u0022,\u0022format\u0022:\u0022uuid\u0022,\u0022x-concept\u0022:\u0022ResourceId\u0022},\u0022name\u0022:{\u0022type\u0022:\u0022string\u0022}},\u0022required\u0022:[\u0022resourceId\u0022,\u0022name\u0022]}",
+              "subjectInputs": {
+                "resourceId": {
+                  "subject": "item.resourceId"
+                }
+              }
+            },
+            "size": {},
+            "slots": {},
+            "verticalAlignment": "Stretch",
+            "visibility": "Visible",
+            "zIndex": 0
+          },
+          {
+            "behaviors": [],
+            "componentName": "core:action",
+            "horizontalAlignment": "Stretch",
+            "id": "Resources.6-action",
+            "isEnabled": true,
+            "margin": {
+              "bottom": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0
+            },
+            "maximumSize": {},
+            "minimumSize": {},
+            "name": "Resources.6-action",
+            "opacity": 1,
+            "properties": {
+              "actionSubject": "item",
+              "command": "RenameResource",
+              "createsEntity": false,
+              "destination": null,
+              "fields": [
+                {
+                  "label": "Resource Id",
+                  "name": "resourceId"
+                },
+                {
+                  "label": "Name",
+                  "name": "name"
+                }
+              ],
+              "label": "Unknown placement",
+              "metadataStatus": "available",
+              "navigateByParameter": null,
+              "navigateToScreen": null,
+              "parameterless": false,
+              "presentation": {
+                "placement": "radial"
+              },
+              "schema": "{\u0022type\u0022:\u0022object\u0022,\u0022properties\u0022:{\u0022resourceId\u0022:{\u0022type\u0022:\u0022string\u0022,\u0022format\u0022:\u0022uuid\u0022,\u0022x-concept\u0022:\u0022ResourceId\u0022},\u0022name\u0022:{\u0022type\u0022:\u0022string\u0022}},\u0022required\u0022:[\u0022resourceId\u0022,\u0022name\u0022]}",
+              "subjectInputs": {
+                "resourceId": {
+                  "subject": "item.resourceId"
+                }
+              }
+            },
+            "size": {},
+            "slots": {},
+            "verticalAlignment": "Stretch",
+            "visibility": "Visible",
+            "zIndex": 0
+          }
+        ]
+      }
+    }
+  ],
+  "themes": [],
+  "uiProfiles": []
+}

@@ -4,13 +4,13 @@
 import { actionCreatesEntity, subjectFormOf, type ScreenRows } from './stageActionSubject';
 import { createContext, useContext, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { ComponentProps, CSSProperties, ReactNode } from 'react';
+import type { ComponentProps, CSSProperties, ReactNode, RefObject } from 'react';
 import type { CommandFormLayout, ExternalComponent, FormColumn, FormField, FormFieldPlacement, FormWidth } from '@cratis/scene.model';
 import { FormGenerationMode, FormWidthUnit } from '@cratis/scene.model';
 import { ArcContext } from '@cratis/arc.react';
 import { DateOnly } from '@cratis/fundamentals';
 import { registeredCommand, commandOutcome, withHostedBasePath } from './commandExecutor';
-import { CommandForm as NativeCommandForm, withCommandFormFieldBinding } from '@cratis/arc.react/commands';
+import { CommandForm as NativeCommandForm, useIsCommandExecuting, withCommandFormFieldBinding } from '@cratis/arc.react/commands';
 import { Button } from '@cratis/components/Common';
 import { CheckboxField, InputTextField, NumberField, CalendarField, DropdownField } from '@cratis/components/CommandForm';
 import { navigateToScreen } from './stageNavigation';
@@ -145,12 +145,20 @@ export function StageCommandForm({ element, cancellable }: StageCommandFormProps
                 {messages.map(message => <p key={message} role='alert' className='stage-form-error'>{message}</p>)}
                 {footer
                     // In a dialog the submit sits in the footer beside Cancel; it submits the form it belongs to.
-                    ? createPortal(<Button type='button' className='scene-slice-dialog-submit' onClick={() => section.current?.querySelector('form')?.requestSubmit()}>{submitLabel}</Button>, footer)
+                    ? <DialogFormSubmit target={footer} section={section} label={submitLabel} />
                     : <FormActions submitLabel={submitLabel} cancellable={cancellable} />}
             </NativeCommandForm>
             </FormShowsMessage.Provider>
         </section>
     );
+}
+
+/** The portalled footer follows Arc's command execution state without changing native form submission. */
+function DialogFormSubmit({ target, section, label }: { target: HTMLElement; section: RefObject<HTMLElement | null>; label: string }) {
+    const executing = useIsCommandExecuting();
+    return createPortal(<Button type='button' className='scene-slice-dialog-submit' disabled={executing} loading={executing} onClick={() => {
+        if (!executing) section.current?.querySelector('form')?.requestSubmit();
+    }}>{label}</Button>, target);
 }
 
 /**
@@ -176,9 +184,10 @@ function submitLabelOf(element: ExternalComponent, form: NativeFormProperties | 
 /** The submit button, with Cancel beside it when the form asks for one and a dialog around it can be closed. */
 function FormActions({ submitLabel, cancellable }: { submitLabel: string; cancellable?: boolean }) {
     const closeDialog = useContext(StageDialogContext);
+    const executing = useIsCommandExecuting();
     return (
         <div className='stage-command-form__actions'>
-            <Button type='submit'>{submitLabel}</Button>
+            <Button type='submit' disabled={executing} loading={executing}>{submitLabel}</Button>
             {cancellable && closeDialog && <Button type='button' variant='outline' onClick={closeDialog}>Cancel</Button>}
         </div>
     );

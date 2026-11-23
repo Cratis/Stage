@@ -22,8 +22,8 @@ public class when_matching_lifecycle_dispositions : Specification
     {
         _vector = canonical_corpus_vectors.All.Single(vector => vector.Name == "EsmGoldenVectors.V36");
         var plan = SemanticExecutionPlan.Compile(_vector.Model).Plan!;
-        _results = new SemanticSpecificationExecutor().Run(plan, new([]), new()).GetAwaiter().GetResult().Results.ToArray();
-        _dispositions = EsmGoldenVectors.LifecycleDispositions.Where(entry => entry.VectorId == _vector.Name).ToArray();
+        _results = [.. new SemanticSpecificationExecutor().Run(plan, new([]), new()).GetAwaiter().GetResult().Results];
+        _dispositions = [.. EsmGoldenVectors.LifecycleDispositions.Where(entry => entry.VectorId == _vector.Name)];
     }
 
     [Fact]
@@ -84,7 +84,7 @@ public class when_matching_lifecycle_dispositions : Specification
         EsmLifecycleVectorDisposition[] entries = [_dispositions[0] with { ExpectedFailures = [.. messages] }, .. _dispositions.Skip(1)];
         var results = _results.Select(result => result.Name == entries[0].Specification ? result with { Failures = messages } : result).ToArray();
         lifecycle_outcomes.Observe(_vector, results, entries).ShouldEqual("expected-failure");
-        var reversed = results.Select(result => result.Name == entries[0].Specification ? result with { Failures = messages.Reverse().ToArray() } : result).ToArray();
+        var reversed = results.Select(result => result.Name == entries[0].Specification ? result with { Failures = [.. messages.Reverse()] } : result).ToArray();
         lifecycle_outcomes.Observe(_vector, reversed, entries).ShouldEqual("gap:lifecycle-specifications-failed");
     }
 }

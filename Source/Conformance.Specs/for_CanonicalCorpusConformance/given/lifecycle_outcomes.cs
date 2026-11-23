@@ -12,7 +12,7 @@ public static class lifecycle_outcomes
     const string Gap = "gap:lifecycle-specifications-failed";
 
     public static string Observe(conformance_vector vector, IReadOnlyList<SemanticSpecificationRunRecord> results) =>
-        Observe(vector, results, EsmGoldenVectors.LifecycleDispositions.Where(entry => entry.VectorId == vector.Name).ToArray());
+        Observe(vector, results, [.. EsmGoldenVectors.LifecycleDispositions.Where(entry => entry.VectorId == vector.Name)]);
 
     public static string Observe(
         conformance_vector vector,

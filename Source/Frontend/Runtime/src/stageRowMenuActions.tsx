@@ -7,7 +7,7 @@ import type { ExternalComponent, SceneElement } from '@cratis/scene.model';
 import type { InteractionHandlers } from '@cratis/scene.react';
 import { Button } from '@cratis/components/Common';
 import { externalComponent } from '@cratis/scene.blueprint.default';
-import { stageRegistry } from './blueprint';
+import { stageLibraryComponent } from './blueprint';
 import { actionSubjectOf } from './stageActionSubject';
 import type { actionVariant } from './humanize';
 import { readableValue } from './readableValue';
@@ -63,7 +63,7 @@ export function StageRowMenuCell(props: RowMenuProps) {
 /** Uses the registered library's popup, or the native action buttons when no library supplies one. */
 export function StageRowMenu(props: RowMenuProps) {
     if (props.actions.length === 0) return null;
-    const Menu = stageRegistry({})[stageRowMenuComponent];
+    const Menu = stageLibraryComponent(stageRowMenuComponent);
     if (Menu) {
         const element = externalComponent('row-menu', stageRowMenuComponent, { ...props });
         return <Menu element={element} slots={{}} />;

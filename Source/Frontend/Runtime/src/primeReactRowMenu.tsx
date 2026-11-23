@@ -18,7 +18,8 @@ function returnFocusAfterMenuClose(restoreFocus: () => void, menuTarget: HTMLDiv
     requestAnimationFrame(() => {
         const current = document.activeElement;
         const inClosingMenu = menuTarget !== null && (menuTarget.contains(current) || current?.contains(menuTarget));
-        // Opening focus can arrive after Escape; restore only from this popup or body, never from the new command dialog.
+        // The leave callback runs before PrimeReact unmounts the popup; wait until that teardown has committed.
+        // Restore only from this popup or body, never from the new command dialog.
         if (current === document.body || inClosingMenu) restoreFocus();
     });
 }
@@ -40,10 +41,9 @@ export function PrimeReactRowMenu({ element }: RegisteredComponentProps) {
     return <span ref={host} onClick={event => event.stopPropagation()} onDoubleClick={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()}>
         <Menu.Root composite={false} onOpenChange={(event: MenuRootOpenChangeEvent) => {
             if (event.value) setActivated(true);
-            else returnFocusAfterMenuClose(restoreFocus, target);
         }}>
             <Menu.Trigger aria-label={label} aria-haspopup='menu' onKeyDown={openWithArrowDown}>…</Menu.Trigger>
-            <Menu.Portal><Menu.Positioner><Menu.Popup><Menu.List aria-label={label}><div ref={setTarget} /></Menu.List></Menu.Popup></Menu.Positioner></Menu.Portal>
+            <Menu.Portal><Menu.Positioner><Menu.Popup motionProps={{ onAfterLeave: () => returnFocusAfterMenuClose(restoreFocus, target) }}><Menu.List aria-label={label}><div ref={setTarget} /></Menu.List></Menu.Popup></Menu.Positioner></Menu.Portal>
             <RowMenuContext.Provider value={{ row, target, restoreFocus, Item: PrimeReactRowMenuItem }}>{activated && actions.map(renderAction)}</RowMenuContext.Provider>
         </Menu.Root>
     </span>;

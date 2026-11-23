@@ -40,7 +40,7 @@ internal static class arc_round_trip
 
         var application = fixture.Model.Application;
         var module = application.Modules.FirstOrDefault()?.Name ?? application.Name;
-        var generated = new ScreenplayGenerator().Generate(compilation, new() { Domain = module, Module = module, AuthoringOnlyConstructs = true, SegmentsToSkip = 1 });
+        var generated = new ScreenplayGenerator().Generate(compilation, new() { Domain = module, Module = module, AuthoringOnlyConstructs = false, SegmentsToSkip = 1 });
         foreach (var diagnostic in generated.Diagnostics)
         {
             Console.WriteLine($"{fixture.Name}: {diagnostic.Code} {diagnostic.Severity}: {diagnostic.Message}");

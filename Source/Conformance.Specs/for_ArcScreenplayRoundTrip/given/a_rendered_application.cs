@@ -49,13 +49,13 @@ public abstract class a_rendered_application : Specification
 
     protected void Generate()
     {
-        GenerateSource();
+        GenerateSource(authoringOnlyConstructs: false);
         _recovered = Compile(_result.Source);
     }
 
     protected void GenerateAuthoring()
     {
-        GenerateSource();
+        GenerateSource(authoringOnlyConstructs: true);
         var compilation = new ScreenplayCompiler().Compile(_result.Source);
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
         _recoveredAuthoring = compilation.Value;
@@ -95,7 +95,7 @@ public abstract class a_rendered_application : Specification
 
     protected static string StoredNames(string sourceId, string streamId) => round_trip_fixtures.StoredNames(sourceId, streamId);
 
-    void GenerateSource() => _result = new ScreenplayGenerator().Generate(_compilation, new() { Domain = "Banking", Module = "Banking", AuthoringOnlyConstructs = true });
+    void GenerateSource(bool authoringOnlyConstructs) => _result = new ScreenplayGenerator().Generate(_compilation, new() { Domain = "Banking", Module = "Banking", AuthoringOnlyConstructs = authoringOnlyConstructs });
 
     static ExecutableSemanticModel Compile(string source)
     {

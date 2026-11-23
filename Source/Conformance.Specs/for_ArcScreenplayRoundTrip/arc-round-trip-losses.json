@@ -884,14 +884,6 @@
     {
       "fixture": "ReadModelAbsenceCorpus.V5",
       "change": "missing",
-      "path": "/application/modules[Billing]/features[Invoices]/slices[InvoiceLookup]/queries[InvoiceById]",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3557"
-    },
-    {
-      "fixture": "ReadModelAbsenceCorpus.V5",
-      "change": "missing",
       "path": "/application/modules[Billing]/features[Invoices]/slices[InvoiceLookup]/specifications[RemovingOneOfTwoInvoices]",
       "direction": "adapter",
       "diagnostics": [],
@@ -936,14 +928,6 @@
       "direction": "adapter",
       "diagnostics": [],
       "issue": "Cratis/Arc#3552"
-    },
-    {
-      "fixture": "RegisterProjectCorpus.LegacyV1",
-      "change": "missing",
-      "path": "/application/modules[Projects]/features[Registration]/slices[ProjectLookup]/queries[ProjectById]",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3557"
     },
     {
       "fixture": "RegisterProjectCorpus.LegacyV1",
@@ -1287,14 +1271,6 @@
       "direction": "adapter",
       "diagnostics": [],
       "issue": "Cratis/Arc#3554"
-    },
-    {
-      "fixture": "EsmGoldenVectors.V28",
-      "change": "missing",
-      "path": "/application/modules[M]/features[F]/slices[Lookup]/queries[Get]",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3557"
     },
     {
       "fixture": "EsmGoldenVectors.V28",

@@ -10,8 +10,8 @@ pin	Cratis.Choreography.Chronicle	2.9.0
 pin	Cratis.Chronicle	19.162.0
 pin	Cratis.Chronicle.AspNetCore	19.162.0
 pin	Cratis.Chronicle.Testing	19.162.0
-pin	Cratis.Screenplay	6.33.0
-pin	Cratis.Screenplay.Matching	6.33.0
+pin	Cratis.Screenplay	6.38.1
+pin	Cratis.Screenplay.Matching	6.38.1
 pin	Cratis.Specifications	5.2.3
 pin	Cratis.Specifications.XUnit	5.2.3
 pin	Microsoft.NET.Test.Sdk	18.11.0
@@ -50,9 +50,9 @@ package	AS	Cratis.Chronicle.Testing	19.162.0
 package	AS	Cratis.Fundamentals	7.34.0
 package	AS	Cratis.Metrics.Roslyn	7.34.0
 package	AS	Cratis.Observability.SourceGenerators	7.34.0
-package	AS	Cratis.Screenplay	6.33.0
-package	AS	Cratis.Screenplay.Contexts	6.33.0
-package	AS	Cratis.Screenplay.Matching	6.33.0
+package	AS	Cratis.Screenplay	6.38.1
+package	AS	Cratis.Screenplay.Contexts	6.38.1
+package	AS	Cratis.Screenplay.Matching	6.38.1
 package	AS	Cratis.Specifications	5.2.3
 package	AS	Cratis.Specifications.XUnit	5.2.3
 package	AS	DnsClient	1.8.0
@@ -5827,6 +5827,7 @@ type	AS	Cratis.Screenplay.Semantics	EsmSchemaV53Support	static
 type	AS	Cratis.Screenplay.Semantics	EsmSchemaV54Support	static
 type	AS	Cratis.Screenplay.Semantics	EsmSchemaV55Support	static
 type	AS	Cratis.Screenplay.Semantics	EsmSchemaV56Support	static
+type	AS	Cratis.Screenplay.Semantics	EsmSchemaV57Support	static
 type	AS	Cratis.Screenplay.Semantics	EsmSchemaV5Support	static
 type	AS	Cratis.Screenplay.Semantics	EsmSchemaV6Support	static
 type	AS	Cratis.Screenplay.Semantics	EsmSchemaV7Support	static
@@ -5928,6 +5929,7 @@ type	AS	Cratis.Screenplay.Semantics	SemanticClaimTargetKind	enum
 type	AS	Cratis.Screenplay.Semantics	SemanticClockKind	enum
 type	AS	Cratis.Screenplay.Semantics	SemanticClockOperand	class
 type	AS	Cratis.Screenplay.Semantics	SemanticClockUnit	enum
+type	AS	Cratis.Screenplay.Semantics	SemanticCodeProvideSource	class
 type	AS	Cratis.Screenplay.Semantics	SemanticCodeValidation	class
 type	AS	Cratis.Screenplay.Semantics	SemanticCommand	class
 type	AS	Cratis.Screenplay.Semantics	SemanticCommandCalendar	class
@@ -6211,11 +6213,14 @@ type	AS	Cratis.Screenplay.Semantics	SemanticWorkflowTriggerKind	enum
 type	AS	Cratis.Screenplay.Semantics	StreamIdFormatFailure	enum
 type	AS	Cratis.Screenplay.Semantics	StreamIdScalarKind	enum
 type	AS	Cratis.Screenplay.Semantics	TextRuleVersion	static
+type	AS	Cratis.Screenplay.Semantics.Execution	ISemanticAbilityInvoker	interface
 type	AS	Cratis.Screenplay.Semantics.Execution	ISemanticBodyExecutionProvider	interface
 type	AS	Cratis.Screenplay.Semantics.Execution	ISemanticBodyExecutionProviderFactory	interface
 type	AS	Cratis.Screenplay.Semantics.Execution	ISemanticEvaluator	interface
 type	AS	Cratis.Screenplay.Semantics.Execution	ISemanticSpecificationRunner	interface
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticAbilityAnswerMissing	class
+type	AS	Cratis.Screenplay.Semantics.Execution	SemanticAbilityInvocationContext	class
+type	AS	Cratis.Screenplay.Semantics.Execution	SemanticAbilityInvocationIdentity	class
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticAccepted	class
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticAvailability	enum
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticBodyExecutionResult	class
@@ -6251,6 +6256,7 @@ type	AS	Cratis.Screenplay.Semantics.Execution	SemanticGraphSpecificationResult	c
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticImplementationBody	class
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticLifecycleRunner	static
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticLifecycleSpecificationResult	class
+type	AS	Cratis.Screenplay.Semantics.Execution	SemanticPendingAbilityInvocation	class
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticPerformerBodyResult	class
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticPerformerContext	class
 type	AS	Cratis.Screenplay.Semantics.Execution	SemanticPlanIssue	class
@@ -6836,6 +6842,7 @@ type	AS	Cratis.Screenplay.Ui	UiLayout	class
 type	AS	Cratis.Screenplay.Ui	UiNavigation	class
 type	AS	Cratis.Screenplay.Ui	UiRegion	class
 type	AS	Cratis.Screenplay.Ui	UiScene	class
+type	AS	Cratis.Screenplay.Ui	UiSceneAction	class
 type	AS	Cratis.Screenplay.Ui	UiSceneButton	class
 type	AS	Cratis.Screenplay.Ui	UiSceneComponent	class
 type	AS	Cratis.Screenplay.Ui	UiSceneOutlet	class
@@ -16540,7 +16547,7 @@ base	AS	Cratis.Screenplay.Syntax.ScalarCommandResponseSyntax	Cratis.Screenplay.S
 base	AS	Cratis.Screenplay.Syntax.ScheduleTriggerSourceSyntax	Cratis.Screenplay.Syntax.TriggerSourceSyntax	DayOfMonth DayOfWeek Deconstruct EqualityContract Equals GetHashCode PrintMembers Time ToString	-
 base	AS	Cratis.Screenplay.Syntax.ScreenActionAlternativeSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Arguments Command Condition Deconstruct EqualityContract Equals GetHashCode PrintMembers ToString	-
 base	AS	Cratis.Screenplay.Syntax.ScreenActionOtherwiseSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Arguments Command Deconstruct EqualityContract Equals GetHashCode Outcome PrintMembers ToString	-
-base	AS	Cratis.Screenplay.Syntax.ScreenActionSyntax	Cratis.Screenplay.Syntax.ScreenDirectiveSyntax	Command Deconstruct EqualityContract Equals GetHashCode Inputs Label Navigate PrintMembers Subject ToString	-
+base	AS	Cratis.Screenplay.Syntax.ScreenActionSyntax	Cratis.Screenplay.Syntax.ScreenDirectiveSyntax	Command Deconstruct EqualityContract Equals GetHashCode Inputs Label Navigate Presentation PrintMembers Subject ToString	-
 base	AS	Cratis.Screenplay.Syntax.ScreenBehaviorSyntax	Cratis.Screenplay.Syntax.ScreenDirectiveSyntax	Behavior Deconstruct EqualityContract Equals GetHashCode PrintMembers ToString	-
 base	AS	Cratis.Screenplay.Syntax.ScreenCodeSyntax	Cratis.Screenplay.Syntax.ScreenDirectiveSyntax	Code Deconstruct EqualityContract Equals GetHashCode PrintMembers ToString	-
 base	AS	Cratis.Screenplay.Syntax.ScreenColumnSyntax	Cratis.Screenplay.Syntax.SyntaxNode	Deconstruct EqualityContract Equals GetHashCode Label PrintMembers Property ToString	-

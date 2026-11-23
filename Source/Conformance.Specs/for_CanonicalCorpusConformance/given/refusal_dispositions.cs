@@ -34,13 +34,13 @@ public static class refusal_dispositions
         // ESM v29 add/subtract by a product whose factors are not both properties of the event: Chronicle's projection engine adds one event property.
         (["EsmGoldenVectors.V29"], conformance_surface.Renderer, [new("STAGE-ESM-050", null, "sem1:569083a6f62ce80edfc569cac4c7b0cfa3985680155539e45d7e1cfc180f5016")]),
 
-        // ESM v36 golden vector: state machines and workflows whose trigger, join or schedule shape Stage does not render.
-        (["EsmGoldenVectors.V36"], conformance_surface.Host,
+        // Original and replacement ESM v36 vectors retain trigger, join or schedule shapes Stage does not render.
+        (["EsmGoldenVectors.V36", "EsmGoldenVectors.LifecycleV36R2"], conformance_surface.Host,
         [
             new("STAGE-LIFECYCLE-001", "stateMachine", "InvoiceLifecycle"),
             new("STAGE-LIFECYCLE-001", "workflow", "Collect")
         ]),
-        (["EsmGoldenVectors.V36"], conformance_surface.Renderer,
+        (["EsmGoldenVectors.V36", "EsmGoldenVectors.LifecycleV36R2"], conformance_surface.Renderer,
         [
             new("STAGE-LIFECYCLE-001", null, "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6"),
             new("STAGE-LIFECYCLE-005", null, "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6"),

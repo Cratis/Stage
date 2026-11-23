@@ -4,6 +4,7 @@
 #if DEBUG
 using System.Collections.Immutable;
 using System.Reflection;
+using System.Security.Cryptography;
 using Cratis.Screenplay.CanonicalCorpus;
 using Cratis.Screenplay.Semantics.Serialization;
 
@@ -54,6 +55,11 @@ public static class canonical_corpus_vectors
     }
 
     static conformance_vector Golden(string name, EsmGoldenVector golden) =>
-        new(name, nameof(EsmGoldenVectors), SemanticModelSerializer.Deserialize(golden.Bytes.AsSpan()), null);
+        new(
+            name,
+            nameof(EsmGoldenVectors),
+            SemanticModelSerializer.Deserialize(golden.Bytes.AsSpan()),
+            null,
+            Convert.ToHexStringLower(SHA256.HashData(golden.Bytes.AsSpan())));
 }
 #endif

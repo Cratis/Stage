@@ -53,7 +53,8 @@ public class when_admitting_implementation_roles : Specification
         {
             var required = SemanticTypedContextAdmission.RequiresDescriptor(role);
             var exempt = SemanticTypedContextAdmission.IsDescriptorExempt(role);
-            (required ^ exempt).ShouldBeTrue();
+            var refused = SemanticTypedContextAdmission.IsRefusedRole(role);
+            new[] { required, exempt, refused }.Count(value => value).ShouldEqual(1);
         }
     }
 
@@ -76,14 +77,16 @@ public class when_admitting_implementation_roles : Specification
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    void should_refuse_an_unknown_role_even_without_descriptors(bool includeDescriptors)
+    [InlineData(false, (SemanticImplementationRole)int.MaxValue)]
+    [InlineData(true, (SemanticImplementationRole)int.MaxValue)]
+    [InlineData(false, SemanticImplementationRole.ProvideValue)]
+    [InlineData(true, SemanticImplementationRole.ProvideValue)]
+    void should_refuse_an_unsupported_role_even_without_descriptors(bool includeDescriptors, SemanticImplementationRole role)
     {
         _request.TypedContextDescriptors.ShouldNotBeEmpty();
         var unknown = _request.ImplementationRequirements.Single() with
         {
-            Role = (SemanticImplementationRole)int.MaxValue,
+            Role = role,
             RequirementId = "unknown-role"
         };
         var request = _request with

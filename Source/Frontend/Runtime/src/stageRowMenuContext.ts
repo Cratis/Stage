@@ -1,13 +1,27 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { createContext, useContext, useEffect, useRef } from 'react';
+import { createContext, useContext, useEffect, useRef, type ComponentType } from 'react';
 import type { ExternalComponent } from '@cratis/scene.model';
+
+/** The optional library widget that groups a row's actions; without one, Stage draws its native action buttons. */
+export const stageRowMenuComponent = 'Stage:rowMenu';
+
+/** The action presentation supplied by the optional popup widget. */
+export interface RowMenuItemProps {
+    id: string;
+    label: string;
+    disabled?: boolean;
+    title?: string;
+    unavailable?: boolean;
+    onClick?: () => void;
+}
 
 interface RowMenuSubject {
     row: Record<string, unknown>;
     target: HTMLDivElement | null;
-    restoreFocus: () => void;
+    restoreFocus?: () => void;
+    Item?: ComponentType<RowMenuItemProps>;
 }
 
 export const RowMenuContext = createContext<RowMenuSubject | undefined>(undefined);

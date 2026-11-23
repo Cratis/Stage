@@ -12,6 +12,8 @@ import { StageDataProvider } from './stageData';
 import { StageScreenTables, screenRowMenuActionsOf } from './stageScreenTables';
 import { stageComponents } from './stageComponents';
 import { stageTheme } from './stageTheme';
+import { registerStageLibrary } from './blueprint';
+import { primeReactLibrary } from './primereact';
 import { element } from './testElements';
 import { isRowMenuAction } from './stageRowMenuActions';
 import emitted from './fixtures/row-menu-actions-scene.json';
@@ -136,6 +138,7 @@ async function renameFromMenu(trigger: HTMLElement, name: string) {
 }
 
 beforeEach(() => {
+    registerStageLibrary('PrimeReact', primeReactLibrary);
     // jsdom has no layout observer; menu positioning still runs through the real popup primitive.
     vi.stubGlobal('ResizeObserver', class {
         observe = vi.fn();

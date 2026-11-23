@@ -24,6 +24,6 @@ it('combines core, Cratis.Components, default and preview components before host
 it('adds the PrimeReact components once the host has registered the library', () => {
     registerStageLibrary('PrimeReact', primeReactLibrary);
     const combined = stageRegistry({ [key]: override });
-    expect(combined).toEqual({ ...coreComponents, ...cratisComponents, ...primeReactComponents, ...defaultBlueprintComponents, ...previewComponents, [key]: override });
+    expect(combined).toEqual({ ...coreComponents, ...cratisComponents, ...primeReactLibrary.components, ...defaultBlueprintComponents, ...previewComponents, [key]: override });
     expect(combined[key]).toBe(override);
 });

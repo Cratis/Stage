@@ -1,16 +1,17 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { useCallback, useContext, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useContext, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import type { ExternalComponent, SceneElement } from '@cratis/scene.model';
 import type { InteractionHandlers } from '@cratis/scene.react';
 import { Button } from '@cratis/components/Common';
-import { Menu, type MenuItemSelectEvent, type MenuRootOpenChangeEvent } from '@primereact/ui/menu';
+import { externalComponent } from '@cratis/scene.blueprint.default';
+import { stageRegistry } from './blueprint';
 import { actionSubjectOf } from './stageActionSubject';
 import type { actionVariant } from './humanize';
 import { readableValue } from './readableValue';
-import { RowMenuContext, useRowMenuSubject, useScreenRowMenuActions } from './stageRowMenuContext';
+import { RowMenuContext, stageRowMenuComponent, useRowMenuSubject, useScreenRowMenuActions } from './stageRowMenuContext';
 
 /** Presentation is opt-in and case-sensitive; it never changes an action's subject. */
 export function isRowMenuAction(element: SceneElement): element is ExternalComponent {
@@ -22,7 +23,7 @@ export function isRowMenuAction(element: SceneElement): element is ExternalCompo
         'placement' in presentation && presentation.placement === 'row-menu';
 }
 
-interface RowMenuProps {
+export interface RowMenuProps {
     row: Record<string, unknown>;
     label: string;
     actions: ExternalComponent[];
@@ -59,38 +60,16 @@ export function StageRowMenuCell(props: RowMenuProps) {
     return props.actions.length > 0 ? <td><StageRowMenu {...props} /></td> : null;
 }
 
-function openWithArrowDown(event: KeyboardEvent<HTMLButtonElement>): void {
-    if (event.key !== 'ArrowDown' || event.currentTarget.getAttribute('aria-expanded') === 'true') return;
-    // PrimeReact's trigger opens on click; use that same path for the menu-button ArrowDown convention.
-    event.preventDefault();
-    event.currentTarget.click();
-}
-
-function returnFocusAfterMenuClose(restoreFocus: () => void, menuTarget: HTMLDivElement | null): void {
-    requestAnimationFrame(() => {
-        const current = document.activeElement;
-        const inClosingMenu = menuTarget !== null && (menuTarget.contains(current) || current?.contains(menuTarget));
-        // Opening focus can arrive after Escape; restore only from this popup or body, never from the new command dialog.
-        if (current === document.body || inClosingMenu) restoreFocus();
-    });
-}
-
-/** Controllers stay mounted outside the popup so closing it cannot unmount their command dialog. */
-export function StageRowMenu({ row, label, actions, renderAction }: RowMenuProps) {
-    const [target, setTarget] = useState<HTMLDivElement | null>(null);
-    const [activated, setActivated] = useState(false);
-    const host = useRef<HTMLSpanElement>(null);
-    const restoreFocus = useCallback(() => { host.current?.querySelector<HTMLButtonElement>('button')?.focus(); }, []);
-    if (actions.length === 0) return null;
-    return <span ref={host} onClick={event => event.stopPropagation()} onDoubleClick={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()}>
-        <Menu.Root composite={false} onOpenChange={(event: MenuRootOpenChangeEvent) => {
-            if (event.value) setActivated(true);
-            else returnFocusAfterMenuClose(restoreFocus, target);
-        }}>
-            <Menu.Trigger aria-label={label} aria-haspopup='menu' onKeyDown={openWithArrowDown}>…</Menu.Trigger>
-            <Menu.Portal><Menu.Positioner><Menu.Popup><Menu.List aria-label={label}><div ref={setTarget} /></Menu.List></Menu.Popup></Menu.Positioner></Menu.Portal>
-            <RowMenuContext.Provider value={{ row, target, restoreFocus }}>{activated && actions.map(renderAction)}</RowMenuContext.Provider>
-        </Menu.Root>
+/** Uses the registered library's popup, or the native action buttons when no library supplies one. */
+export function StageRowMenu(props: RowMenuProps) {
+    if (props.actions.length === 0) return null;
+    const Menu = stageRegistry({})[stageRowMenuComponent];
+    if (Menu) {
+        const element = externalComponent('row-menu', stageRowMenuComponent, { ...props });
+        return <Menu element={element} slots={{}} />;
+    }
+    return <span onClick={event => event.stopPropagation()} onDoubleClick={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()}>
+        <RowMenuContext.Provider value={{ row: props.row, target: null }}>{props.actions.map(props.renderAction)}</RowMenuContext.Provider>
     </span>;
 }
 
@@ -110,10 +89,8 @@ interface ActionTriggerProps {
 /** The same availability and command-dialog controller supplies both inline and popup triggers. */
 export function StageActionTrigger({ id, sceneId, label, disabled, title, unavailable, loading, onClick, interactions, variant }: ActionTriggerProps) {
     const menu = useContext(RowMenuContext);
-    if (!menu) return <Button type='button' data-scene-id={sceneId} data-stage-availability={unavailable ? 'unavailable' : undefined} disabled={disabled} title={title} loading={loading} variant={variant} onClick={onClick} {...interactions}>{label}</Button>;
+    if (!menu?.Item) return <Button type='button' data-scene-id={sceneId} data-stage-availability={unavailable ? 'unavailable' : undefined} disabled={disabled} title={title} loading={loading} variant={variant} onClick={onClick} {...interactions}>{label}</Button>;
     if (!menu.target) return null;
-    return createPortal(<Menu.Item value={id} data-scene-id={id} data-stage-availability={unavailable ? 'unavailable' : undefined} disabled={disabled || loading} title={title} onSelect={(event: MenuItemSelectEvent) => {
-        event.originalEvent.stopPropagation();
-        onClick?.();
-    }}>{label}</Menu.Item>, menu.target);
+    const Item = menu.Item;
+    return createPortal(<Item id={id} label={label} disabled={disabled || loading} title={title} unavailable={unavailable} onClick={onClick} />, menu.target);
 }

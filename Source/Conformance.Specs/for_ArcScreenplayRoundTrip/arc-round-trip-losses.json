@@ -1,10 +1,10 @@
 {
   "schema": "cratis.screenplay.loss-ledger/v1",
   "target": "cratis-arc",
-  "corpusVersion": "4.249.0",
+  "corpusVersion": "6.33.0",
   "minimumFixtureCount": 29,
   "budget": {
-    "maximumEntries": 233,
+    "maximumEntries": 195,
     "maximumByDesign": 0,
     "maximumExclusions": 2
   },
@@ -13,14 +13,6 @@
     "EventRoutesCorpus.CompositesV8": "Rendered output does not compile (CS0246), Cratis/Stage#823"
   },
   "losses": [
-    {
-      "fixture": "AcmeSecondAdmissionsCorpus.V30",
-      "change": "changed",
-      "path": "/application/modules[Shipping]/features[Dispatch]/slices[Dispatching]/kind",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3550"
-    },
     {
       "fixture": "AcmeSecondAdmissionsCorpus.V30",
       "change": "missing",
@@ -318,30 +310,6 @@
       "issue": "Cratis/Arc#3559"
     },
     {
-      "fixture": "EnumMemberNumbersCorpus.V12",
-      "change": "missing",
-      "path": "/application/modules[Invoices]/features[Lifecycle]/slices[Record]/specifications[CancelledStatus]",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3547"
-    },
-    {
-      "fixture": "EnumMemberNumbersCorpus.V12",
-      "change": "missing",
-      "path": "/application/modules[Invoices]/features[Lifecycle]/slices[Record]/specifications[DraftStatus]",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3547"
-    },
-    {
-      "fixture": "EnumMemberNumbersCorpus.V12",
-      "change": "missing",
-      "path": "/application/modules[Invoices]/features[Lifecycle]/slices[Record]/specifications[IssuedStatus]",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3547"
-    },
-    {
       "fixture": "EventRoutesCorpus.V8",
       "change": "missing",
       "path": "/application/eventSources",
@@ -364,38 +332,6 @@
       "direction": "adapter",
       "diagnostics": [],
       "issue": "Cratis/Arc#3553"
-    },
-    {
-      "fixture": "EventRoutesCorpus.V8",
-      "change": "changed",
-      "path": "/application/policies[AccountantOnly]/condition/kind",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3555"
-    },
-    {
-      "fixture": "EventRoutesCorpus.V8",
-      "change": "missing",
-      "path": "/application/policies[AccountantOnly]/condition/left",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3555"
-    },
-    {
-      "fixture": "EventRoutesCorpus.V8",
-      "change": "missing",
-      "path": "/application/policies[AccountantOnly]/condition/operator",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3555"
-    },
-    {
-      "fixture": "EventRoutesCorpus.V8",
-      "change": "missing",
-      "path": "/application/policies[AccountantOnly]/condition/right",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3555"
     },
     {
       "fixture": "EventRoutesCorpus.V8",
@@ -508,13 +444,6 @@
       "direction": "adapter",
       "diagnostics": [],
       "issue": "Cratis/Arc#3553"
-    },
-    {
-      "fixture": "GeneratedValuesCorpus.V15",
-      "change": "uncompilable",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3558"
     },
     {
       "fixture": "GenerationSupportCorpus.V21",
@@ -835,14 +764,6 @@
     },
     {
       "fixture": "ReactionIdentityCorpus.V10",
-      "change": "changed",
-      "path": "/application/modules[Work]/features[Completion]/slices[CompleteWork]/kind",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3550"
-    },
-    {
-      "fixture": "ReactionIdentityCorpus.V10",
       "change": "missing",
       "path": "/application/modules[Work]/features[Completion]/slices[CompleteWork]/specifications[DeclaredIdentityAllows]",
       "direction": "adapter",
@@ -856,30 +777,6 @@
       "direction": "adapter",
       "diagnostics": [],
       "issue": "Cratis/Arc#3547"
-    },
-    {
-      "fixture": "ReactionIdentityCorpus.V10",
-      "change": "changed",
-      "path": "/application/policies[CanComplete]/condition/kind",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3555"
-    },
-    {
-      "fixture": "ReactionIdentityCorpus.V10",
-      "change": "missing",
-      "path": "/application/policies[CanComplete]/condition/role",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3555"
-    },
-    {
-      "fixture": "ReadModelAbsenceCorpus.V5",
-      "change": "unexpected",
-      "path": "/application/concepts[EventSourceId]",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3554"
     },
     {
       "fixture": "ReadModelAbsenceCorpus.V5",
@@ -932,14 +829,6 @@
     {
       "fixture": "RegisterProjectCorpus.LegacyV1",
       "change": "missing",
-      "path": "/application/modules[Projects]/features[Registration]/slices[RegisterProject]/commands[RegisterProject]/validations[0]",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3549"
-    },
-    {
-      "fixture": "RegisterProjectCorpus.LegacyV1",
-      "change": "missing",
       "path": "/application/modules[Projects]/features[Registration]/slices[RegisterProject]/specifications[RegisteringAProject]",
       "direction": "adapter",
       "diagnostics": [],
@@ -952,38 +841,6 @@
       "direction": "adapter",
       "diagnostics": [],
       "issue": "Cratis/Arc#3547"
-    },
-    {
-      "fixture": "RegisterProjectCorpus.V7",
-      "change": "missing",
-      "path": "/application/modules[Projects]/features[Registration]/slices[RegisterProject]/commands[RegisterProject]/destination",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3548"
-    },
-    {
-      "fixture": "RegisterProjectCorpus.V7",
-      "change": "changed",
-      "path": "/application/modules[Projects]/features[Registration]/slices[RegisterProject]/commands[RegisterProject]/produces[0]/destination",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3548"
-    },
-    {
-      "fixture": "RegisterProjectCorpus.V7",
-      "change": "changed",
-      "path": "/application/modules[Projects]/features[Registration]/slices[RegisterProject]/commands[RegisterProject]/properties[projectId]/identifier",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3548"
-    },
-    {
-      "fixture": "RegisterProjectCorpus.V7",
-      "change": "missing",
-      "path": "/application/modules[Projects]/features[Registration]/slices[RegisterProject]/commands[RegisterProject]/response",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3549"
     },
     {
       "fixture": "RegisterProjectCorpus.V7",
@@ -1170,13 +1027,6 @@
       "issue": "Cratis/Arc#3559"
     },
     {
-      "fixture": "EsmGoldenVectors.V25",
-      "change": "uncompilable",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3558"
-    },
-    {
       "fixture": "EsmGoldenVectors.V26",
       "change": "missing",
       "path": "/application/modules[Scheduling]/features[Windows]/slices[KeepWindow]/commands[KeepWindow]/destination",
@@ -1259,22 +1109,6 @@
     {
       "fixture": "EsmGoldenVectors.V28",
       "change": "missing",
-      "path": "/application/commandReadMode",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Stage#515"
-    },
-    {
-      "fixture": "EsmGoldenVectors.V28",
-      "change": "unexpected",
-      "path": "/application/concepts[EventSourceId]",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3554"
-    },
-    {
-      "fixture": "EsmGoldenVectors.V28",
-      "change": "missing",
       "path": "/application/modules[M]/features[F]/slices[Write]/commands[Update]/destination",
       "direction": "adapter",
       "diagnostics": [],
@@ -1311,14 +1145,6 @@
       "direction": "adapter",
       "diagnostics": [],
       "issue": "Cratis/Arc#3548"
-    },
-    {
-      "fixture": "EsmGoldenVectors.V28",
-      "change": "missing",
-      "path": "/application/modules[M]/features[F]/slices[Write]/commands[Update]/reads",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Stage#515"
     },
     {
       "fixture": "EsmGoldenVectors.V28",
@@ -1482,14 +1308,6 @@
     },
     {
       "fixture": "Inline.FilteredReactor",
-      "change": "changed",
-      "path": "/application/modules[Banking]/features[Deposits]/slices[Forward]/kind",
-      "direction": "adapter",
-      "issue": "Cratis/Arc#3550",
-      "diagnostics": []
-    },
-    {
-      "fixture": "Inline.FilteredReactor",
       "change": "missing",
       "path": "/application/modules[Banking]/features[Deposits]/slices[Forward]/reactions[Follow]/triggers[0]/produces[0]",
       "direction": "adapter",
@@ -1555,26 +1373,6 @@
       "issue": "Cratis/Arc#3547"
     },
     {
-      "fixture": "EnumMemberNumbersCorpus.V12",
-      "change": "diagnostic",
-      "path": "/diagnostics[SP0039]",
-      "direction": "adapter",
-      "diagnostics": [
-        "SP0039"
-      ],
-      "issue": "Cratis/Arc#3547"
-    },
-    {
-      "fixture": "EventRoutesCorpus.V8",
-      "change": "diagnostic",
-      "path": "/diagnostics[SP0016]",
-      "direction": "adapter",
-      "diagnostics": [
-        "SP0016"
-      ],
-      "issue": "Cratis/Arc#3549"
-    },
-    {
       "fixture": "EventRoutesCorpus.V8",
       "change": "diagnostic",
       "path": "/diagnostics[SP0039]",
@@ -1583,16 +1381,6 @@
         "SP0039"
       ],
       "issue": "Cratis/Arc#3547"
-    },
-    {
-      "fixture": "EventRoutesCorpus.V8",
-      "change": "diagnostic",
-      "path": "/diagnostics[SP0026]",
-      "direction": "adapter",
-      "diagnostics": [
-        "SP0026"
-      ],
-      "issue": "Cratis/Arc#3555"
     },
     {
       "fixture": "EventRoutesCorpus.V8",
@@ -1657,32 +1445,12 @@
     {
       "fixture": "GeneratedValuesCorpus.V15",
       "change": "diagnostic",
-      "path": "/diagnostics[SP0012]",
-      "direction": "adapter",
-      "diagnostics": [
-        "SP0012"
-      ],
-      "issue": "Cratis/Arc#3549"
-    },
-    {
-      "fixture": "GeneratedValuesCorpus.V15",
-      "change": "diagnostic",
       "path": "/diagnostics[SP0039]",
       "direction": "adapter",
       "diagnostics": [
         "SP0039"
       ],
       "issue": "Cratis/Arc#3547"
-    },
-    {
-      "fixture": "GeneratedValuesCorpus.V15",
-      "change": "diagnostic",
-      "path": "/diagnostics[SP0056]",
-      "direction": "adapter",
-      "diagnostics": [
-        "SP0056"
-      ],
-      "issue": "Cratis/Arc#3558"
     },
     {
       "fixture": "GenerationSupportCorpus.V21",
@@ -1715,26 +1483,6 @@
       "issue": "Cratis/Arc#3547"
     },
     {
-      "fixture": "ProtectedCommandReadRaceVectors.Model",
-      "change": "diagnostic",
-      "path": "/diagnostics[SP0056]",
-      "direction": "adapter",
-      "diagnostics": [
-        "SP0056"
-      ],
-      "issue": "Cratis/Stage#515"
-    },
-    {
-      "fixture": "ProtectedCommandReadRaceVectors.ModelV1R2",
-      "change": "diagnostic",
-      "path": "/diagnostics[SP0056]",
-      "direction": "adapter",
-      "diagnostics": [
-        "SP0056"
-      ],
-      "issue": "Cratis/Stage#515"
-    },
-    {
       "fixture": "ProtectedCommandReadsCorpus.V25",
       "change": "diagnostic",
       "path": "/diagnostics[SP0039]",
@@ -1743,16 +1491,6 @@
         "SP0039"
       ],
       "issue": "Cratis/Arc#3547"
-    },
-    {
-      "fixture": "ProtectedCommandReadsCorpus.V25",
-      "change": "diagnostic",
-      "path": "/diagnostics[SP0056]",
-      "direction": "adapter",
-      "diagnostics": [
-        "SP0056"
-      ],
-      "issue": "Cratis/Stage#515"
     },
     {
       "fixture": "PublicEventsCorpus.CapturesFromEventsV9",
@@ -1785,16 +1523,6 @@
       "issue": "Cratis/Arc#3547"
     },
     {
-      "fixture": "ReactionIdentityCorpus.V10",
-      "change": "diagnostic",
-      "path": "/diagnostics[SP0026]",
-      "direction": "adapter",
-      "diagnostics": [
-        "SP0026"
-      ],
-      "issue": "Cratis/Arc#3555"
-    },
-    {
       "fixture": "ReadModelAbsenceCorpus.V5",
       "change": "diagnostic",
       "path": "/diagnostics[SP0039]",
@@ -1803,16 +1531,6 @@
         "SP0039"
       ],
       "issue": "Cratis/Arc#3547"
-    },
-    {
-      "fixture": "RegisterProjectCorpus.LegacyV1",
-      "change": "diagnostic",
-      "path": "/diagnostics[SP0016]",
-      "direction": "adapter",
-      "diagnostics": [
-        "SP0016"
-      ],
-      "issue": "Cratis/Arc#3549"
     },
     {
       "fixture": "RegisterProjectCorpus.LegacyV1",
@@ -1873,16 +1591,6 @@
         "SP0039"
       ],
       "issue": "Cratis/Arc#3547"
-    },
-    {
-      "fixture": "EsmGoldenVectors.V25",
-      "change": "diagnostic",
-      "path": "/diagnostics[SP0056]",
-      "direction": "adapter",
-      "diagnostics": [
-        "SP0056"
-      ],
-      "issue": "Cratis/Arc#3558"
     },
     {
       "fixture": "EsmGoldenVectors.V26",

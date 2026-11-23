@@ -120,7 +120,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticProvidedValue", rendered, "Name Source Type ReadModel Optional Collection");
         Add(entries, "SemanticProvideSource", rendered, "$type");
         Add(entries, "SemanticHostProvideSource", rendered, "$type");
-        Add(entries, "SemanticCodeProvideSource", rejected(SemanticProvidedValueRendering.UnsupportedSource), "Implementation");
+        Add(entries, "SemanticCodeProvideSource", rejected("STAGE-ESM-075"), "Implementation");
         Add(entries, "SemanticQueryProvideSource", rendered, "Query By");
         Add(entries, "SemanticValueProvideSource", rendered, "Value");
         Add(entries, "SemanticContextOperand", rendered, "Path Value");

@@ -2209,8 +2209,7 @@
       "executor": { "outcome": "supported" },
       "host": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-065", "kind": "graph", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 } ] },
-      "renderer": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 957 } ] }
+      "renderer": { "outcome": "supported" }
     },
     "EsmGoldenVectors.V4": {
       "loader": { "outcome": "supported" },
@@ -2266,7 +2265,7 @@
       "host": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-065", "kind": "graph", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 } ] },
       "renderer": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 957 } ] }
+        { "code": "STAGE-ESM-068", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 } ] }
     },
     "EsmGoldenVectors.V41": {
       "loader": { "outcome": "supported" },
@@ -2274,7 +2273,8 @@
       "host": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-065", "kind": "graph", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 } ] },
       "renderer": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 957 } ] }
+        { "code": "STAGE-ESM-062", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 },
+        { "code": "STAGE-ESM-068", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 } ] }
     },
     "EsmGoldenVectors.V42": {
       "loader": { "outcome": "supported" },
@@ -2290,7 +2290,8 @@
       "host": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-065", "kind": "graph", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 } ] },
       "renderer": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 809 } ] }
+        { "code": "STAGE-ESM-062", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 },
+        { "code": "STAGE-ESM-068", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 } ] }
     },
     "EsmGoldenVectors.V44": {
       "loader": { "outcome": "supported" },
@@ -2298,7 +2299,8 @@
       "host": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-065", "kind": "graph", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 } ] },
       "renderer": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 809 } ] }
+        { "code": "STAGE-ESM-062", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 },
+        { "code": "STAGE-ESM-068", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 } ] }
     },
     "EsmGoldenVectors.V45": {
       "loader": { "outcome": "supported" },
@@ -2306,7 +2308,8 @@
       "host": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-065", "kind": "graph", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 } ] },
       "renderer": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 809 } ] }
+        { "code": "STAGE-ESM-062", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 },
+        { "code": "STAGE-ESM-068", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 } ] }
     },
     "EsmGoldenVectors.V46": {
       "loader": { "outcome": "supported" },
@@ -2314,7 +2317,8 @@
       "host": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-065", "kind": "graph", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 } ] },
       "renderer": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 809 } ] }
+        { "code": "STAGE-ESM-062", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 },
+        { "code": "STAGE-ESM-068", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 } ] }
     },
     "EsmGoldenVectors.V47": {
       "loader": { "outcome": "supported" },
@@ -2322,7 +2326,8 @@
       "host": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-065", "kind": "graph", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 } ] },
       "renderer": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 809 } ] }
+        { "code": "STAGE-ESM-062", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 },
+        { "code": "STAGE-ESM-068", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 } ] }
     },
     "EsmGoldenVectors.V48": {
       "loader": { "outcome": "supported" },
@@ -2330,17 +2335,20 @@
       "host": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-065", "kind": "graph", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 } ] },
       "renderer": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 809 } ] }
+        { "code": "STAGE-ESM-005", "artifact": "sem1:b1249edf3e9f8cabcc1a4312f73187a99c50cb8efc019bdabe78d677cf2a7c9a", "issue": 409 },
+        { "code": "STAGE-ESM-062", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 },
+        { "code": "STAGE-ESM-068", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 } ] }
     },
     "EsmGoldenVectors.V49": {
       "loader": { "outcome": "supported" },
-      "executor": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 809 } ] },
+      "executor": { "outcome": "supported" },
       "host": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-016", "kind": "specification", "artifact": "sem1:66f66049eca5fa663300bd7351d84a283b7ba631c9555d6b3220892dbe17beb2", "issue": 1061 },
         { "code": "STAGE-ESM-065", "kind": "graph", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 } ] },
       "renderer": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 809 } ] }
+        { "code": "STAGE-ESM-005", "artifact": "sem1:b1249edf3e9f8cabcc1a4312f73187a99c50cb8efc019bdabe78d677cf2a7c9a", "issue": 409 },
+        { "code": "STAGE-ESM-011", "artifact": "sem1:66f66049eca5fa663300bd7351d84a283b7ba631c9555d6b3220892dbe17beb2", "issue": 14 },
+        { "code": "STAGE-ESM-062", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 },
+        { "code": "STAGE-ESM-068", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 976 } ] }
     },
     "EsmGoldenVectors.V5": {
       "loader": { "outcome": "supported" },

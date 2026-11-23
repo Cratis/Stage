@@ -305,6 +305,11 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         {
             return new(Rejected(slice, expected, dateFailure), collectRefusalDetails ? new("validation", [], dateFailure) : null);
         }
+        if (SemanticCommandClockSupport.Uses(context.Command) && context.AuthoredOccurrence is null)
+        {
+            var rejection = new SemanticRejection(SemanticUtcNow.MissingOccurrence) { Category = SemanticRejectionCategory.Contract };
+            return new(Rejected(slice, expected, rejection, contract: true), collectRefusalDetails ? new("contract", [], rejection.Message) : null);
+        }
         if (SemanticConceptValues.RequestFailure(run.Plan, context.Command, context.Specification.When!.Values) is { } contractFailure) return new(Rejected(slice, expected, contractFailure));
         var failures = context.Reads.Failures(context).ToArray();
         if (failures.Length > 0)

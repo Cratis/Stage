@@ -17,6 +17,8 @@ internal static class SemanticConditionRendering
     {
         SemanticLogicalCondition logical => Enum.IsDefined(logical.Operator) &&
             CanRender(logical.Left, properties, context, numericOrderingOnly, dates, reads) && CanRender(logical.Right, properties, context, numericOrderingOnly, dates, reads),
+        SemanticComparison comparison when SemanticCommandClockSupport.Uses(comparison) =>
+            (!numericOrderingOnly || dates) && SemanticCommandClockSupport.Comparison(comparison, properties, context.Application),
         SemanticComparison comparison => Enum.IsDefined(comparison.Operator) &&
             CanRender(comparison.Left, properties, context, reads) && CanRender(comparison.Right, properties, context, reads) &&
             !ComparesReadDate(comparison, properties, context, reads) &&
@@ -98,6 +100,10 @@ internal static class SemanticConditionRendering
 
     static string Comparison(SemanticComparison comparison, SemanticConditionRenderingContext context)
     {
+        if (SemanticCommandClockSupport.Uses(comparison))
+        {
+            return $"({ClockOperand(comparison.Left, context)}.CompareTo({ClockOperand(comparison.Right, context)}) {ComparisonSymbol(comparison.Operator)} 0)";
+        }
         if (DateComparison(comparison, context.Properties, context.Application) is { } date)
         {
             // DateOnly and DateTimeOffset order calendar dates and UTC instants at tick precision, as the reference evaluator does.
@@ -162,6 +168,10 @@ internal static class SemanticConditionRendering
 
         return primitive is SemanticPrimitiveType.Date or SemanticPrimitiveType.DateTime ? primitive : null;
     }
+
+    static string ClockOperand(SemanticConditionOperand operand, SemanticConditionRenderingContext context) => operand.Clock is { } clock
+        ? SemanticCommandClockRendering.Operand(clock, context.Clock ?? throw UnsupportedSemanticRendering.For(nameof(SemanticClockOperand), clock.Kind))
+        : Operand(operand, context);
 
     static string DateOperand(SemanticConditionOperand operand, SemanticPrimitiveType primitive, SemanticConditionRenderingContext context)
     {

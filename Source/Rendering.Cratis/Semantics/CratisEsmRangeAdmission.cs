@@ -18,7 +18,7 @@ internal static class CratisEsmRangeAdmission
         var excluded = context.AllSlices.Select(located => located.Slice.Id).Where(id => !selected.Contains(id)).ToImmutableHashSet();
         var scope = EsmRangeSurface.Scope(owners, excluded);
         var standing = EsmSupportStanding.Evaluate(CratisEsmSupport.Descriptor, request.Model, EsmRangeSurface.Known, scope);
-        return FromFindings(request, standing);
+        return FromFindings(request, SemanticCommandClockAdmission.Known(standing, request.Model));
     }
 
     internal static CratisEsmRangeVerdict FromFindings(ArtifactRenderRequest request, EsmSupportStanding standing)

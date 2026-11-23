@@ -196,7 +196,8 @@ internal static class SemanticValidationContextRuntime
 
     internal static bool UsesCommandReceiptTime(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices) =>
         GeneratedTypeNames.UsesCommandReceiptTime(slices.SelectMany(located => located.Slice.Commands)) ||
-        Selected(context, slices).Any(descriptor => ReadsOccurred(context, descriptor));
+        Selected(context, slices).Any(descriptor => ReadsOccurred(context, descriptor)) ||
+        slices.SelectMany(located => located.Slice.Commands).Any(SemanticCommandClockSupport.Uses);
 
     internal static bool CommandReadsOccurred(SemanticApplicationContext context, SemanticCommand command) =>
         SemanticOpaqueBodyDependencies.ForCommand(context, command).Any(dependency => ReadsOccurred(context, dependency.Descriptor));

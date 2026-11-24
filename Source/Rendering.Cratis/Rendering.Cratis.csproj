@@ -139,6 +139,8 @@
              WithCulture prevents System.IO.dll from becoming a spurious IO satellite assembly. -->
         <EmbeddedResource Include="$(PkgMicrosoft_NETCore_App_Ref)/ref/net10.0/*.dll" LogicalName="PureTransitionReferences.$(PureTransitionReferencePackVersion).%(Filename)%(Extension)" WithCulture="false" />
         <EmbeddedResource Include="$(PkgCratis_Fundamentals)/lib/net10.0/Cratis.Fundamentals.dll" LogicalName="GenerationReferences.Cratis.Fundamentals.dll" WithCulture="false" />
+        <EmbeddedResource Include="$(PkgCratis_Screenplay_Contexts)/lib/net10.0/Cratis.Screenplay.Contexts.dll" LogicalName="ProvideReferences.net10.0.Cratis.Screenplay.Contexts.dll" WithCulture="false" />
+        <EmbeddedResource Include="$(PkgCratis_Screenplay_Contexts)/lib/net11.0/Cratis.Screenplay.Contexts.dll" LogicalName="ProvideReferences.net11.0.Cratis.Screenplay.Contexts.dll" WithCulture="false" />
         <EmbeddedResource Include="$(PkgCratis_Chronicle)/lib/net10.0/Cratis.Chronicle.dll" LogicalName="GenerationReferences.Cratis.Chronicle.dll" WithCulture="false" />
         <EmbeddedResource Include="$(PkgSystem_Reactive)/ref/net8.0/System.Reactive.dll" LogicalName="GenerationReferences.System.Reactive.dll" WithCulture="false" />
     </ItemGroup>
@@ -172,6 +174,13 @@
         <Compile Include="../Stage/Semantics/SemanticProjectionObservation.cs" Link="Semantics/SemanticProjectionObservation.cs" />
         <ProjectReference Include="../Contracts/Contracts.csproj" />
     </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Cratis.Screenplay.Contexts" GeneratePathProperty="true" ExcludeAssets="analyzers" PrivateAssets="all" />
+    </ItemGroup>
+    <ItemGroup>
+        <Compile Remove="for_CodeProvidedReadModels/Fixtures/**/*.cs" />
+        <Content Include="for_CodeProvidedReadModels/Fixtures/**/*" CopyToOutputDirectory="PreserveNewest" Pack="false" Condition="'$(Configuration)' == 'Debug'" />
+    </ItemGroup>
     <!-- The emitted NuGet pins come from the same evaluated CPM items as Stage's build, in both configurations. -->
     <Target Name="GenerateScaffoldPackageVersions" BeforeTargets="CoreCompile">
         <ItemGroup>
@@ -185,7 +194,8 @@
             <_ScaffoldPackage Include="Cratis.Specifications.XUnit" Constant="SpecificationsXUnit" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Specifications.XUnit')->Metadata('Version'))" />
             <_ScaffoldPackage Include="System.Security.Cryptography.Pkcs" Constant="CryptographyPkcs" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'System.Security.Cryptography.Pkcs')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Microsoft.Identity.Web" Constant="IdentityWeb" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Microsoft.Identity.Web')->Metadata('Version'))" />
-            <_ScaffoldPackage Include="Microsoft.Extensions.Telemetry.Abstractions" Constant="TelemetryAbstractions" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Microsoft.Extensions.Telemetry.Abstractions')->Metadata('Version'))" />
+            <_ScaffoldPackage Include="Microsoft.Extensions.Telemetry.Abstractions/net10.0" Constant="TelemetryAbstractionsNet10" PinVersion="$(TelemetryAbstractionsVersionNet10)" />
+            <_ScaffoldPackage Include="Microsoft.Extensions.Telemetry.Abstractions/net11.0" Constant="TelemetryAbstractionsNet11" PinVersion="$(TelemetryAbstractionsVersionNet11)" />
             <_ScaffoldPackage Include="Microsoft.NET.Test.Sdk" Constant="TestSdk" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Microsoft.NET.Test.Sdk')->Metadata('Version'))" />
             <_ScaffoldPackage Include="NSubstitute" Constant="NSubstitute" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'NSubstitute')->Metadata('Version'))" />
             <_ScaffoldPackage Include="xunit" Constant="Xunit" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'xunit')->Metadata('Version'))" />

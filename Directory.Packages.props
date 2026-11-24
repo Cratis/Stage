@@ -5,6 +5,10 @@
     <CratisScreenplayVersion Condition="'$(CratisScreenplayVersion)' == ''">6.38.1</CratisScreenplayVersion>
     <PureTransitionReferencePackVersion>10.0.12</PureTransitionReferencePackVersion>
     <PureTransitionReferencePackVersion11>11.0.0</PureTransitionReferencePackVersion11>
+    <TelemetryAbstractionsVersionNet10>10.11.1</TelemetryAbstractionsVersionNet10>
+    <TelemetryAbstractionsVersionNet11>11.0.1</TelemetryAbstractionsVersionNet11>
+    <TelemetryAbstractionsVersion>$(TelemetryAbstractionsVersionNet11)</TelemetryAbstractionsVersion>
+    <TelemetryAbstractionsVersion Condition="'$(TargetFramework)' == 'net10.0' Or '$(TargetFramework)' == 'netstandard2.0'">$(TelemetryAbstractionsVersionNet10)</TelemetryAbstractionsVersion>
     <!-- Cratis.Ante.Contracts requires this Chronicle client or later. Only an application rendered with onboarding pins it; every other render stays on the Chronicle pin below. -->
     <AnteContractsChronicleVersion>19.129.0</AnteContractsChronicleVersion>
   </PropertyGroup>
@@ -45,10 +49,10 @@
         Cratis.Chronicle.Testing 19.114.0 bundles Cratis.Chronicle.Core and Cratis.Chronicle.Grpc, which are built against
         Microsoft.Extensions.Telemetry.Abstractions 10.11.0, but the package does not declare that dependency. Without this
         pin the Arc packages resolve 10.10.0 and the in-process kernel fails to load the assembly when a command runs.
-        Arc 23.21.0 brings Microsoft.Extensions.Telemetry 10.11.1, so the pin must be at least 10.11.1.
+        Arc 23.21.0 brings Telemetry 10.11.1 for net10.0 and 11.0.1 for net11.0; the assembly must match the target framework.
         Remove it once Cratis.Chronicle.Testing declares the dependency itself.
     -->
-    <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="10.11.1" />
+    <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="$(TelemetryAbstractionsVersion)" />
     <PackageVersion Include="MongoDB.Driver" Version="3.13.0" />
     <!-- Referenced only by an application rendered with onboarding; Stage itself does not reference them. -->
     <PackageVersion Include="Cratis.Ante.Contracts" Version="1.7.0" />
@@ -60,6 +64,7 @@
     <PackageVersion Include="Cratis.Scene.Model" Version="6.2.0" />
     <PackageVersion Include="Cratis.Scene.Screenplay" Version="6.2.0" />
     <PackageVersion Include="Cratis.Screenplay" Version="$(CratisScreenplayVersion)" />
+    <PackageVersion Include="Cratis.Screenplay.Contexts" Version="$(CratisScreenplayVersion)" />
     <PackageVersion Include="Cratis.Screenplay.Matching" Version="$(CratisScreenplayVersion)" />
     <!-- Spec-only: the released conformance corpus consumed by the Cratis renderer's planner fixtures, at the Screenplay version the renderer compiles with. -->
     <PackageVersion Include="Cratis.Screenplay.CanonicalCorpus" Version="$(CratisScreenplayVersion)" />

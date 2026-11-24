@@ -49,11 +49,11 @@ internal static class SemanticProvidedBodyAdmission
 
     static string? Analyze(SemanticApplicationContext context, SemanticProvidedValue value, string body)
     {
-        var builder = context.CodeBuilder().Namespace($"{context.RootNamespace}.GeneratedProvides").Using(context.CommonNamespace);
+        var builder = context.CodeBuilder().Namespace($"{context.RootNamespace}.GeneratedProvides").Using($"global::{context.CommonNamespace}");
         SemanticProvidedBodyRendering.Render(builder, value, context, body);
         var types = new SemanticTypeSystem(context);
         var models = context.ReadModels.Values.Select(model =>
-            $"namespace {SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(model.Id).Path)} {{ using {context.CommonNamespace}; " +
+            $"namespace {SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(model.Id).Path)} {{ using global::{context.CommonNamespace}; " +
             SemanticStateViewArtifactRenderer.ModelDeclaration(model, types, [], false) + "; }");
         var common = $"namespace {context.CommonNamespace} {{ {string.Join('\n', SemanticBodyDeclarations.CompositeTypes(context))} }}";
         try
@@ -63,7 +63,7 @@ internal static class SemanticProvidedBodyAdmission
                 new[] { SemanticBodyCompilation.ImplicitUsings, builder.ToString(), common }
                     .Concat(models).Concat(SemanticBodyDeclarations.RealConcepts(context))
                     .Select(source => CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(Microsoft.CodeAnalysis.CSharp.LanguageVersion.Latest))),
-                [.. PureTransitionAdmission.AnalysisReferences(context.TargetFramework), SemanticGenerationBodyAdmission.FundamentalsReference, MetadataReference.CreateFromFile(typeof(global::Cratis.Screenplay.Contexts.ProvideContext).Assembly.Location)],
+                [.. PureTransitionAdmission.AnalysisReferences(context.TargetFramework), SemanticGenerationBodyAdmission.FundamentalsReference, SemanticProvidedContextReferences.ForTargetFramework(context.TargetFramework)],
                 "CS1701",
                 "CS1702");
             var error = compilation.GetDiagnostics().FirstOrDefault(SemanticBodyCompilation.IsFailure);

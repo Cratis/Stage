@@ -148,7 +148,7 @@ public class when_creating_the_current_scaffold : a_current_scaffold
             $"Cratis.Screenplay.Matching={Scaffolding.ScaffoldPackageVersions.ScreenplayMatching}",
             $"Cratis.Specifications={_profile.CratisSpecificationsPackageVersion}",
             $"Cratis.Specifications.XUnit={_profile.CratisSpecificationsXUnitPackageVersion}",
-            $"Microsoft.Extensions.Telemetry.Abstractions={Scaffolding.ScaffoldPackageVersions.TelemetryAbstractions}",
+            $"Microsoft.Extensions.Telemetry.Abstractions={Scaffolding.ScaffoldTelemetryVersions.ForTargetFramework(_profile.TargetFramework)}",
             $"Microsoft.Identity.Web={Scaffolding.ScaffoldPackageVersions.IdentityWeb}",
             $"Microsoft.NET.Test.Sdk={_profile.MicrosoftNetTestSdkPackageVersion}",
             $"NSubstitute={_profile.NSubstitutePackageVersion}",

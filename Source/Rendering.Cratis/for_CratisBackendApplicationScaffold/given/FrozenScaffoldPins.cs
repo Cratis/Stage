@@ -18,84 +18,92 @@ internal static class FrozenScaffoldPins
     internal static string Normalize(string path, string text, bool previous = false)
     {
         var profile = CratisBackendApplicationScaffoldProfile.Current;
-        var frontend = profile.FrontendPackageSet;
-        if (path.EndsWith("Directory.Packages.props", StringComparison.Ordinal))
-        {
-            (string Id, string Current, string Baseline)[] pins =
-            [
-                ("Cratis", profile.CratisPackageVersion, previous ? "22.87.0" : TargetVersion),
-                ("Cratis.Arc.MongoDB", profile.CratisArcMongoDBPackageVersion, previous ? "22.87.0" : TargetVersion),
-                ("Cratis.Arc.Chronicle.Testing", profile.CratisArcChronicleTestingPackageVersion, previous ? "22.87.0" : TargetVersion),
-                ("Cratis.Chronicle", profile.CratisChroniclePackageVersion, previous ? "19.55.2" : "19.71.0"),
-                ("Cratis.Chronicle.AspNetCore", profile.CratisChroniclePackageVersion, previous ? "19.55.2" : "19.71.0"),
-                ("Cratis.Chronicle.Testing", profile.CratisChroniclePackageVersion, previous ? "19.55.2" : "19.71.0"),
-                ("Cratis.Choreography", ScaffoldPackageVersions.Choreography, "2.2.0"),
-                ("Cratis.Choreography.Chronicle", ScaffoldPackageVersions.ChoreographyChronicle, "2.2.0"),
-                ("Cratis.Screenplay", ScaffoldPackageVersions.Screenplay, "4.241.0"),
-                ("Cratis.Screenplay.Matching", ScaffoldPackageVersions.ScreenplayMatching, "4.241.0"),
-                ("Cratis.Specifications", profile.CratisSpecificationsPackageVersion, "4.1.1"),
-                ("Cratis.Specifications.XUnit", profile.CratisSpecificationsXUnitPackageVersion, "4.1.1"),
-                ("Microsoft.Identity.Web", ScaffoldPackageVersions.IdentityWeb, "4.16.1"),
-                ("Microsoft.NET.Test.Sdk", profile.MicrosoftNetTestSdkPackageVersion, "18.10.1"),
-                ("NSubstitute", profile.NSubstitutePackageVersion, "6.2.0"),
-                ("System.Security.Cryptography.Pkcs", ScaffoldPackageVersions.CryptographyPkcs, "10.0.13"),
-                ("xunit", profile.XunitPackageVersion, "2.9.3"),
-                ("xunit.runner.visualstudio", profile.XunitRunnerVisualStudioPackageVersion, "4.0.0")
-            ];
-            foreach (var pin in pins)
-            {
-                text = text.Replace($"Include=\"{pin.Id}\" Version=\"{pin.Current}\"", $"Include=\"{pin.Id}\" Version=\"{pin.Baseline}\"", StringComparison.Ordinal);
-            }
-        }
-
-        if (path.EndsWith("package.json", StringComparison.Ordinal))
-        {
-            (string Id, string Current, string Baseline)[] pins =
-            [
-                ("arc", frontend.ArcPackageVersion, "22.58.2"),
-                ("arc.react", frontend.ArcReactPackageVersion, "22.58.2"),
-                ("arc.vite", frontend.ArcVitePackageVersion, "22.58.2"),
-                ("fundamentals", frontend.FundamentalsPackageVersion, "7.22.8"),
-                ("components", frontend.ComponentsPackageVersion, "4.26.2"),
-                ("scene.blueprint.default", frontend.ScenePackageVersion, previous ? "4.22.1" : "4.67.0"),
-                ("scene.components", frontend.ScenePackageVersion, previous ? "4.22.1" : "4.67.0"),
-                ("scene.engine", frontend.ScenePackageVersion, previous ? "4.22.1" : "4.67.0"),
-                ("scene.model", frontend.ScenePackageVersion, previous ? "4.22.1" : "4.67.0"),
-                ("scene.primereact", frontend.ScenePackageVersion, previous ? "4.22.1" : "4.67.0"),
-                ("scene.react", frontend.ScenePackageVersion, previous ? "4.22.1" : "4.67.0"),
-                ("stage.runtime", ScaffoldPackageVersions.StageRuntime, "1.0.0")
-            ];
-            foreach (var pin in pins)
-            {
-                text = text.Replace($"\"@cratis/{pin.Id}\": \"{pin.Current}\"", $"\"@cratis/{pin.Id}\": \"{pin.Baseline}\"", StringComparison.Ordinal);
-            }
-
-            // The frozen shell predates the extension contract, so its dependency is not part of the freeze.
-            text = string.Join('\n', text.Split('\n').Where(line => !line.Contains("\"@cratis/scene.extensions\"", StringComparison.Ordinal)));
-
-            (string Id, string Current, string Baseline)[] externalPins =
-            [
-                ("@primereact/core", frontend.PrimeReactPackageVersion, "11.2.0"),
-                ("@primereact/headless", frontend.PrimeReactPackageVersion, "11.2.0"),
-                ("@primereact/hooks", frontend.PrimeReactPackageVersion, "11.2.0"),
-                ("@primereact/styles", frontend.PrimeReactPackageVersion, "11.2.0"),
-                ("@primereact/types", frontend.PrimeReactPackageVersion, "11.2.0"),
-                ("@primereact/ui", frontend.PrimeReactPackageVersion, "11.2.0"),
-                ("primereact", frontend.PrimeReactPackageVersion, "11.2.0"),
-                ("react", frontend.ReactPackageVersion, "19.3.0"),
-                ("react-dom", frontend.ReactDomPackageVersion, "19.3.0"),
-                ("@types/node", frontend.TypesNodePackageVersion, "26.6.4"),
-                ("@vitejs/plugin-react", frontend.VitePluginReactPackageVersion, "6.1.1")
-            ];
-            foreach (var pin in externalPins)
-            {
-                text = text.Replace($"\"{pin.Id}\": \"{pin.Current}\"", $"\"{pin.Id}\": \"{pin.Baseline}\"", StringComparison.Ordinal);
-            }
-        }
-
+        if (path.EndsWith("Directory.Packages.props", StringComparison.Ordinal)) text = NormalizeNugetPins(text, profile, previous);
+        if (path.EndsWith("package.json", StringComparison.Ordinal)) text = NormalizeFrontendPins(text, profile.FrontendPackageSet, previous);
         text = WithoutYarnChanges(text, previous);
-
         return text.Replace($"cratis/chronicle:{profile.ChronicleImageVersion}-development", $"cratis/chronicle:{(previous ? "19.55.2" : "19.71.0")}-development", StringComparison.Ordinal);
+    }
+
+    static string NormalizeNugetPins(string text, CratisBackendApplicationScaffoldProfile profile, bool previous)
+    {
+        var cratis = previous ? "22.87.0" : TargetVersion;
+        var chronicle = previous ? "19.55.2" : "19.71.0";
+        (string Id, string Current, string Baseline)[] pins =
+        [
+            ("Cratis", profile.CratisPackageVersion, cratis),
+            ("Cratis.Arc.MongoDB", profile.CratisArcMongoDBPackageVersion, cratis),
+            ("Cratis.Arc.Chronicle.Testing", profile.CratisArcChronicleTestingPackageVersion, cratis),
+            ("Cratis.Chronicle", profile.CratisChroniclePackageVersion, chronicle),
+            ("Cratis.Chronicle.AspNetCore", profile.CratisChroniclePackageVersion, chronicle),
+            ("Cratis.Chronicle.Testing", profile.CratisChroniclePackageVersion, chronicle),
+            ("Cratis.Choreography", ScaffoldPackageVersions.Choreography, "2.2.0"),
+            ("Cratis.Choreography.Chronicle", ScaffoldPackageVersions.ChoreographyChronicle, "2.2.0"),
+            ("Cratis.Screenplay", ScaffoldPackageVersions.Screenplay, "4.241.0"),
+            ("Cratis.Screenplay.Matching", ScaffoldPackageVersions.ScreenplayMatching, "4.241.0"),
+            ("Cratis.Specifications", profile.CratisSpecificationsPackageVersion, "4.1.1"),
+            ("Cratis.Specifications.XUnit", profile.CratisSpecificationsXUnitPackageVersion, "4.1.1"),
+            ("Microsoft.Identity.Web", ScaffoldPackageVersions.IdentityWeb, "4.16.1"),
+            ("Microsoft.Extensions.Telemetry.Abstractions", ScaffoldPackageVersions.TelemetryAbstractionsNet10, "10.11.0"),
+            ("Microsoft.Extensions.Telemetry.Abstractions", ScaffoldPackageVersions.TelemetryAbstractionsNet11, "10.11.0"),
+            ("Microsoft.NET.Test.Sdk", profile.MicrosoftNetTestSdkPackageVersion, "18.10.1"),
+            ("NSubstitute", profile.NSubstitutePackageVersion, "6.2.0"),
+            ("System.Security.Cryptography.Pkcs", ScaffoldPackageVersions.CryptographyPkcs, "10.0.13"),
+            ("xunit", profile.XunitPackageVersion, "2.9.3"),
+            ("xunit.runner.visualstudio", profile.XunitRunnerVisualStudioPackageVersion, "4.0.0")
+        ];
+        foreach (var pin in pins)
+        {
+            text = text.Replace($"Include=\"{pin.Id}\" Version=\"{pin.Current}\"", $"Include=\"{pin.Id}\" Version=\"{pin.Baseline}\"", StringComparison.Ordinal);
+        }
+
+        return text;
+    }
+
+    static string NormalizeFrontendPins(string text, CratisFrontendPackageSet frontend, bool previous)
+    {
+        var scene = previous ? "4.22.1" : "4.67.0";
+        (string Id, string Current, string Baseline)[] pins =
+        [
+            ("arc", frontend.ArcPackageVersion, "22.58.2"),
+            ("arc.react", frontend.ArcReactPackageVersion, "22.58.2"),
+            ("arc.vite", frontend.ArcVitePackageVersion, "22.58.2"),
+            ("fundamentals", frontend.FundamentalsPackageVersion, "7.22.8"),
+            ("components", frontend.ComponentsPackageVersion, "4.26.2"),
+            ("scene.blueprint.default", frontend.ScenePackageVersion, scene),
+            ("scene.components", frontend.ScenePackageVersion, scene),
+            ("scene.engine", frontend.ScenePackageVersion, scene),
+            ("scene.model", frontend.ScenePackageVersion, scene),
+            ("scene.primereact", frontend.ScenePackageVersion, scene),
+            ("scene.react", frontend.ScenePackageVersion, scene),
+            ("stage.runtime", ScaffoldPackageVersions.StageRuntime, "1.0.0")
+        ];
+        foreach (var pin in pins)
+        {
+            text = text.Replace($"\"@cratis/{pin.Id}\": \"{pin.Current}\"", $"\"@cratis/{pin.Id}\": \"{pin.Baseline}\"", StringComparison.Ordinal);
+        }
+
+        // The frozen shell predates the extension contract, so its dependency is not part of the freeze.
+        text = string.Join('\n', text.Split('\n').Where(line => !line.Contains("\"@cratis/scene.extensions\"", StringComparison.Ordinal)));
+        (string Id, string Current, string Baseline)[] externalPins =
+        [
+            ("@primereact/core", frontend.PrimeReactPackageVersion, "11.2.0"),
+            ("@primereact/headless", frontend.PrimeReactPackageVersion, "11.2.0"),
+            ("@primereact/hooks", frontend.PrimeReactPackageVersion, "11.2.0"),
+            ("@primereact/styles", frontend.PrimeReactPackageVersion, "11.2.0"),
+            ("@primereact/types", frontend.PrimeReactPackageVersion, "11.2.0"),
+            ("@primereact/ui", frontend.PrimeReactPackageVersion, "11.2.0"),
+            ("primereact", frontend.PrimeReactPackageVersion, "11.2.0"),
+            ("react", frontend.ReactPackageVersion, "19.3.0"),
+            ("react-dom", frontend.ReactDomPackageVersion, "19.3.0"),
+            ("@types/node", frontend.TypesNodePackageVersion, "26.6.4"),
+            ("@vitejs/plugin-react", frontend.VitePluginReactPackageVersion, "6.1.1")
+        ];
+        foreach (var pin in externalPins)
+        {
+            text = text.Replace($"\"{pin.Id}\": \"{pin.Current}\"", $"\"{pin.Id}\": \"{pin.Baseline}\"", StringComparison.Ordinal);
+        }
+
+        return text;
     }
 
     // Cratis/Stage#734 and #741 intentionally changed the scaffolded Yarn files; the previous frozen plan predates both.

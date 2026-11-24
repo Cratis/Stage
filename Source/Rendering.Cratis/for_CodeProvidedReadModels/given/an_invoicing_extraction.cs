@@ -12,6 +12,8 @@ namespace Cratis.Stage.Rendering.Cratis.for_CodeProvidedReadModels.given;
 /// <summary>Renders the small file-backed extraction, retaining the loader's authenticated envelope.</summary>
 public class an_invoicing_extraction : a_generated_application
 {
+    string? _fixture;
+
     protected override ArtifactRenderPlan CreatePlan()
     {
         var root = FreshFixture();
@@ -34,17 +36,11 @@ public class an_invoicing_extraction : a_generated_application
         return new CratisArtifactRenderPlanner().Plan(request);
     }
 
-    static string FreshFixture()
+    string FreshFixture()
     {
-        DirectoryInfo? repository = new(AppContext.BaseDirectory);
-        while (repository is not null)
-        {
-            if (IsRepository(repository)) break;
-            repository = repository.Parent;
-        }
-
-        var root = repository?.FullName ?? throw new InvalidOperationException("Could not locate the fixture repository root.");
-        var destination = Path.Combine(root, ".ai-work", "1146", "invoicing-fixture-" + Guid.NewGuid().ToString("N"));
+        var destination = Path.Combine(Path.GetTempPath(), $"stage-invoicing-fixture-{Guid.NewGuid():N}");
+        _fixture = destination;
+        Directory.CreateDirectory(destination);
         var source = Path.Combine(AppContext.BaseDirectory, "for_CodeProvidedReadModels", "Fixtures", "Invoicing");
         foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
         {
@@ -56,10 +52,11 @@ public class an_invoicing_extraction : a_generated_application
         return destination;
     }
 
-    static bool IsRepository(DirectoryInfo directory)
+    void Destroy()
     {
-        var git = Path.Combine(directory.FullName, ".git");
-        return File.Exists(git) || Directory.Exists(git);
+        if (_fixture is null) return;
+        if (!Directory.Exists(_fixture)) return;
+        Directory.Delete(_fixture, recursive: true);
     }
 }
 #endif

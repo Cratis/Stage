@@ -22,14 +22,18 @@ internal static class SemanticProvidedContextRendering
                 global::Cratis.Arc.Authorization.ICurrentPrincipalAccessor? principalAccessor,
                 global::System.Threading.CancellationToken cancellationToken)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var tenant = await resolver.Resolve("$context.tenant", cancellationToken);
                 var receipt = await resolver.Resolve("$context.receivedAt", cancellationToken);
                 var user = await resolver.Resolve("$context.identity.user", cancellationToken);
                 var system = await resolver.Resolve("$context.identity.isSystem", cancellationToken);
                 var principal = principalAccessor?.Current ?? new global::System.Security.Claims.ClaimsPrincipal();
-                var claims = global::System.Linq.Enumerable.ToDictionary(
-                    global::System.Linq.Enumerable.GroupBy(principal.Claims, claim => claim.Type),
-                    group => group.Key, group => global::System.Linq.Enumerable.First(group).Value);
+                var arguments = await resolver.Resolve("$context.arguments", cancellationToken);
+                var payload = arguments.Value is global::System.Collections.Generic.IDictionary<string, object?> or global::System.Collections.Generic.IReadOnlyDictionary<string, object?> || arguments.Value is null
+                    ? new ResolverValues(resolver, "$context.arguments.", cancellationToken)
+                    : arguments.Value;
+                var claims = global::System.Linq.Enumerable.ToArray(global::System.Linq.Enumerable.Select(
+                    principal.Claims, claim => new global::Cratis.Screenplay.Contexts.Claim(claim.Type, claim.Value)));
                 var roles = global::System.Linq.Enumerable.ToArray(global::System.Linq.Enumerable.Distinct(
                     global::System.Linq.Enumerable.Select(
                         global::System.Linq.Enumerable.Where(principal.Claims, claim => claim.Type == global::System.Security.Claims.ClaimTypes.Role || claim.Type is "role" or "roles"),
@@ -38,12 +42,19 @@ internal static class SemanticProvidedContextRendering
                     ? PortableTenantValues.Translate(value,
                         global::Cratis.Arc.Tenancy.TenantId.Default.Value, global::Cratis.Arc.Tenancy.TenantId.NotSet.Value)
                     : global::Cratis.Screenplay.Contexts.TenantId.NotSet.Value;
+                var id = user.Value as string ?? string.Empty;
+                var identity = new global::Cratis.Screenplay.Contexts.Identity(
+                    id, principal.Identity?.Name ?? id,
+                    principal.FindFirst(global::System.Security.Claims.ClaimTypes.Name)?.Value ?? id,
+                    principal.Identity?.IsAuthenticated ?? (id.Length > 0 && system.Value is not true), roles, claims);
                 return new global::Cratis.Screenplay.Contexts.ProvideContext(
-                    new ResolverValues(resolver, "$context.", cancellationToken),
+                    payload,
                     new global::Cratis.Screenplay.Contexts.TenantId(portableTenant),
-                    new global::Cratis.Screenplay.Contexts.Identity(user.Value as string, system.Value is true, claims, roles),
-                    receipt.Value is global::System.DateTimeOffset receivedAt ? receivedAt : default,
-                    new ResolverValues(resolver, "$context.arguments.", cancellationToken));
+                    identity,
+                    receipt.Value is global::System.DateTimeOffset receivedAt ? receivedAt : default)
+                {
+                    Values = new ResolverValues(resolver, "$context.", cancellationToken)
+                };
             }
         }
 

@@ -14,7 +14,7 @@ internal static class a_code_provided_model
 {
     internal static string Source(string body, string type = "String") =>
         "provide region " + type + "\n  ```csharp\n" +
-        string.Join('\n', body.Split('\n').Select(line => "  " + line)) + "\n  ```\n" + a_fleet_model.Source;
+        string.Join('\n', body.Split('\n').Select(line => "  " + line)) + "\n  ```\n" + a_fleet_model.Source.Replace("  provide region String from \"Nordics\"\n", string.Empty, StringComparison.Ordinal);
 
     internal static ArtifactRenderRequest Request(string body, string type = "String") => RequestFromSource(Source(body, type));
 

@@ -1,0 +1,68 @@
+// Copyright (c) Cratis. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+// Executable extraction of Samples/Invoicing/invoicing.play at Screenplay v6.34.0.
+// Only the module's creditCeiling and reminderDays declarations and bodies are copied.
+// The small invoice lifecycle and context probes below exercise Stage, not the full sample.
+module Billing
+  provide creditCeiling Int
+    file Provides/CreditCeiling.cs
+  provide reminderDays Int
+    ```csharp
+    return 14;
+    ```
+  provide observedAt String
+    ```csharp
+    return context.Occurred.ToString("O");
+    ```
+  provide boundAmount Int
+    ```csharp
+    return (long)context.Arguments.Amount;
+    ```
+  provide argumentType String
+    ```csharp
+    return context.Arguments.GetType().Name;
+    ```
+  provide tenantName String
+    ```csharp
+    return context.Tenant.Value;
+    ```
+  provide caller String
+    ```csharp
+    return context.Identity.Id + ":" + context.Identity.ClaimValue("scope");
+    ```
+  provide preview Invoice optional
+    ```csharp
+    return new global::Invoicing.Billing.Invoices.ListingInvoices.Invoice(global::System.Guid.Empty, 50000L);
+    ```
+  provide missingOptional Invoice optional
+    ```csharp
+    return null;
+    ```
+  provide missingRequired Invoice
+    ```csharp
+    return null;
+    ```
+
+  feature Invoices
+    slice StateChange IssuingInvoice
+      command IssueInvoice
+        available when $context.arguments.amount <= $context.creditCeiling and $context.reminderDays == 14
+        invoiceId Uuid identifier
+        amount Int
+        produces InvoiceIssued
+          for invoiceId
+          amount = amount
+      event InvoiceIssued
+        amount Int
+
+    slice StateView ListingInvoices
+      query InvoiceByKey => Invoice optional
+        by invoiceId Uuid
+      readmodel Invoice
+        invoiceId Uuid key
+        amount Int
+      projection Invoices => Invoice
+        from InvoiceIssued
+          invoiceId = $eventSourceId
+          amount = amount

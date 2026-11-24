@@ -11,7 +11,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.for_ProvidedValues;
 
 public class when_building_code_provided_values : a_generated_application
 {
-    const string Body = "return context.Values.Dependency + \"|\" + context.Tenant.Value + \"|\" + context.Identity.User + \"|\" + context.Identity.IsSystem + \"|\" + context.Identity.Claims[\"scope\"] + \"|\" + string.Join(\",\", context.Identity.Roles) + \"|\" + context.ReceivedAt.ToString(\"O\") + \"|\" + context.Arguments.Name;";
+    const string Body = "return context.Values.Dependency + \"|\" + context.Tenant.Value + \"|\" + context.Identity.Id + \"|\" + context.Identity.IsAuthenticated + \"|\" + context.Identity.ClaimValue(\"scope\") + \"|\" + string.Join(\",\", context.Identity.Roles) + \"|\" + context.Occurred.ToString(\"O\") + \"|\" + context.Arguments.Name;";
 
     protected override ArtifactRenderPlan CreatePlan()
     {
@@ -70,11 +70,11 @@ public class when_building_code_provided_values : a_generated_application
                 var received = new DateTimeOffset(2026, 11, 23, 10, 0, 0, TimeSpan.Zero);
                 var first = new AvailabilityInvocation(typeof(when_reading_code_values), new ProviderProbe.Arguments("first", "command"), received);
                 var result = await source.ReadForExecution(first, "region", default);
-                result.Value.ShouldEqual("first|tenant-one|alice|False|invoices|editor|2026-11-23T10:00:00.0000000+00:00|command");
+                result.Value.ShouldEqual("first|tenant-one|alice|True|invoices|editor|2026-11-23T10:00:00.0000000+00:00|command");
                 (await source.ReadForExecution(first, "dependency", default)).Value.ShouldEqual("first");
                 ProviderProbe.Calls.ShouldEqual(1);
                 var second = new AvailabilityInvocation(typeof(when_reading_code_values), new Dictionary<string, object?> { ["Seed"] = "second", ["Name"] = "query" }, received.AddMinutes(1));
-                ((string)(await source.ReadForExecution(second, "region", default)).Value!).StartsWith("second|tenant-one|alice|False|invoices|editor|").ShouldBeTrue();
+                ((string)(await source.ReadForExecution(second, "region", default)).Value!).StartsWith("second|tenant-one|alice|True|invoices|editor|").ShouldBeTrue();
                 ProviderProbe.Calls.ShouldEqual(1);
                 await Assert.ThrowsAsync<OperationCanceledException>(async () => await source.ReadForExecution(new AvailabilityInvocation(typeof(when_reading_code_values), first.Arguments, received), "region", new CancellationToken(true)));
             }

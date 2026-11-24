@@ -13,14 +13,14 @@ public class when_admitting_code_provided_values : Specification
 {
     [Theory]
     [InlineData("String", "return context.Tenant.Value;")]
-    [InlineData("String", "return context.Identity.User;")]
-    [InlineData("String", "return context.ReceivedAt.ToString();")]
+    [InlineData("String", "return context.Identity.Id;")]
+    [InlineData("String", "return context.Occurred.ToString();")]
     [InlineData("String", "return context.Arguments.Name;")]
     [InlineData("Boolean", "return true;")]
     [InlineData("Int", "return 42;")]
     [InlineData("Uuid", "return global::System.Guid.Empty;")]
     [InlineData("Vessel optional", "return null;")]
-    [InlineData("Vessel", "return new global::Fleet.Fleet.DataQuality.Vessels.Vessel(global::System.Guid.Empty, \"Aurora\");")]
+    [InlineData("Vessel", "return new global::Fleet.Fleet.Vessels.Vessels.Vessel(global::System.Guid.Empty, \"Aurora\");")]
     void should_admit_a_supported_body(string type, string body) => a_code_provided_model.AssertSuccess(a_code_provided_model.Plan(body, type));
 
     [Theory]

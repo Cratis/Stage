@@ -1,10 +1,10 @@
 {
   "schema": "cratis.screenplay.loss-ledger/v1",
   "target": "cratis-arc",
-  "corpusVersion": "6.38.1",
+  "corpusVersion": "6.40.0",
   "minimumFixtureCount": 29,
   "budget": {
-    "maximumEntries": 214,
+    "maximumEntries": 213,
     "maximumByDesign": 0,
     "maximumExclusions": 2
   },
@@ -1511,14 +1511,6 @@
       "direction": "adapter",
       "diagnostics": [],
       "issue": "Cratis/Arc#3956"
-    },
-    {
-      "fixture": "EsmGoldenVectors.V25",
-      "change": "changed",
-      "path": "/application/modules[M]/features[F]/slices[Write]/commands[Update]/requirements[0]/message",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Stage#1196"
     },
     {
       "fixture": "EsmGoldenVectors.V31",

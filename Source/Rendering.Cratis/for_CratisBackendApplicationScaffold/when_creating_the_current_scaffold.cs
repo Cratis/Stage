@@ -92,6 +92,27 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     [Fact] void should_expose_only_the_required_chronicle_and_mongodb_ports() => ComposePorts().ShouldEqual("27017:27017|35000:35000");
     [Fact] void should_not_emit_wildcard_range_latest_or_random_guid_values() => HasForbiddenValues().ShouldBeFalse();
 
+    [Theory]
+    [InlineData("3", false)]
+    [InlineData("3", true)]
+    [InlineData("4", false)]
+    [InlineData("4", true)]
+    void should_register_availability_once_before_arc_convention_self_bindings(string version, bool repositoryRoot)
+    {
+        var profile = CratisBackendApplicationScaffoldProfile.ForVersion(version)!;
+        var request = new CratisBackendApplicationScaffoldRequest("MyApp", "MyApp", "MyApp", profile);
+        if (repositoryRoot) request = request.WithRepositoryRoot();
+        var inputs = new CratisBackendApplicationScaffold().Create(request);
+        var program = Text(inputs.Single(input => PathOf(input) == "Program.cs"));
+        const string registration = "MyApp.GeneratedAvailability.Registration.Register(builder);";
+        var availability = program.IndexOf(registration, StringComparison.Ordinal);
+        var arc = program.IndexOf("builder.AddCratis(", StringComparison.Ordinal);
+        (availability >= 0).ShouldBeTrue();
+        (arc > availability).ShouldBeTrue();
+        program.Split(registration, StringSplitOptions.None).Length.ShouldEqual(2);
+        program.ShouldContain("Cratis/Arc#3975");
+    }
+
     static IEnumerable<string> PublicStaticProfileMethods() =>
         typeof(CratisBackendApplicationScaffoldProfile)
             .GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)

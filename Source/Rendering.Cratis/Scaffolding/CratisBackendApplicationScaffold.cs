@@ -103,6 +103,9 @@ public sealed partial class CratisBackendApplicationScaffold
         builder.Services.AddHealthChecks();
         builder.Services.AddSingleton<Action<ChronicleTelemetryOptions>>(telemetry => telemetry.EventSourceIdTracing = EventSourceIdTracing.Omitted);
 
+        // Register first to preserve availability options and scoped request context (Cratis/Arc#3975).
+        {{request.RootNamespace}}.GeneratedAvailability.Registration.Register(builder);
+
         // Opt in with Raw, or Hashed with an EventSourceIdHashKey of at least 32 characters from a secret store.
         builder.AddCratis(
             configureArcBuilder: arc => arc.WithMongoDB(),
@@ -122,7 +125,6 @@ public sealed partial class CratisBackendApplicationScaffold
         builder.Services.AddEventSourcedWorkflows();
         {{request.RootNamespace}}.GeneratedPolicies.Registration.Register(builder.Services);
         {{request.RootNamespace}}.GeneratedProvides.Registration.Register(builder.Services);
-        {{request.RootNamespace}}.GeneratedAvailability.Registration.Register(builder);
         {{request.RootNamespace}}.GeneratedAuthentication.Authentication.Add(builder);
         ConfigureServices(builder);
 

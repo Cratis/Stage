@@ -77,12 +77,12 @@ internal static class InvoicingExecutionProof
             {
                 var builder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder();
                 builder.Environment.EnvironmentName = "Testing";
+                global::Invoicing.GeneratedAvailability.Registration.Register(builder);
                 builder.AddCratis(
                     configureArcBuilder: arc => arc.WithMongoDB(),
                     configureChronicleBuilder: chronicle => chronicle.WithCamelCaseNamingPolicy());
                 global::Invoicing.GeneratedPolicies.Registration.Register(builder.Services);
                 global::Invoicing.GeneratedProvides.Registration.Register(builder.Services);
-                global::Invoicing.GeneratedAvailability.Registration.Register(builder);
                 var currentPrincipal = new CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor());
                 principal = currentPrincipal;
                 var reads = Substitute.For<ICurrentPrincipalAccessor>();

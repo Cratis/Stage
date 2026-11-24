@@ -31,7 +31,7 @@ internal static class SemanticRequirementRendering
         // Screenplay defines no semantics for other severities over protected reads; admission refuses them (STAGE-ESM-045).
         if (requirement.Severity != SemanticValidationSeverity.Error) throw UnsupportedSemanticRendering.For(nameof(SemanticValidationSeverity), requirement.Severity);
 
-        var condition = SemanticConditionRendering.Render(requirement.Condition, new(command.Properties, string.Empty, context, property => SemanticCommandResultRendering.PropertyValue(property, context), SemanticDateComparisonAdmission.Raw(context.Application, command), reads, clock));
+        var condition = SemanticConditionRendering.Render(requirement.Condition, new(command.Properties, string.Empty, context, property => SemanticCommandResultRendering.PropertyValue(property, context), Reads: reads, Clock: clock));
         var message = requirement.Message ?? "Command requirement was not met.";
         var error = message.StartsWith("$strings.", StringComparison.Ordinal)
             ? $"global::Cratis.Arc.Validation.ValidationResult.Error(global::{context.RootNamespace}.GeneratedStrings.Resolve({CSharpCodeBuilder.StringLiteral(message)}), state: {CSharpCodeBuilder.StringLiteral(message)})"
@@ -41,7 +41,7 @@ internal static class SemanticRequirementRendering
 
     internal static void Render(CSharpCodeBuilder builder, SemanticRequirement requirement, SemanticCommand command, SemanticApplicationContext context, string? clock = null)
     {
-        var condition = SemanticConditionRendering.Render(requirement.Condition, new(command.Properties, "command", context, property => $"command.{context.MemberNames.Property(property)}", Raw: SemanticDateComparisonAdmission.Raw(context.Application, command), Clock: clock));
+        var condition = SemanticConditionRendering.Render(requirement.Condition, new(command.Properties, "command", context, property => $"command.{context.MemberNames.Property(property)}", Clock: clock));
         var message = requirement.Message ?? "Command requirement was not met.";
         var severitySuffix = SeveritySuffix(requirement.Severity);
         var parameters = clock is null ? "command" : "(command, _, validation)";

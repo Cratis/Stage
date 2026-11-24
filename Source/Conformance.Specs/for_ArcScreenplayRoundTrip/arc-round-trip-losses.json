@@ -4,7 +4,7 @@
   "corpusVersion": "6.38.1",
   "minimumFixtureCount": 29,
   "budget": {
-    "maximumEntries": 275,
+    "maximumEntries": 266,
     "maximumByDesign": 0,
     "maximumExclusions": 2
   },
@@ -167,30 +167,6 @@
     },
     {
       "fixture": "DateComparisonsCorpus.V26",
-      "change": "changed",
-      "path": "/application/modules[Scheduling]/features[Windows]/slices[Compare]/commands[CompareInstant]/properties[at]/type/kind",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3556"
-    },
-    {
-      "fixture": "DateComparisonsCorpus.V26",
-      "change": "changed",
-      "path": "/application/modules[Scheduling]/features[Windows]/slices[Compare]/commands[CompareInstant]/properties[at]/type/primitive",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3556"
-    },
-    {
-      "fixture": "DateComparisonsCorpus.V26",
-      "change": "changed",
-      "path": "/application/modules[Scheduling]/features[Windows]/slices[Compare]/commands[CompareInstant]/properties[at]/type/target",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3556"
-    },
-    {
-      "fixture": "DateComparisonsCorpus.V26",
       "change": "missing",
       "path": "/application/modules[Scheduling]/features[Windows]/slices[Compare]/commands[CompareInstant]/validations[0]",
       "direction": "adapter",
@@ -212,54 +188,6 @@
       "direction": "adapter",
       "diagnostics": [],
       "issue": "Cratis/Arc#3547"
-    },
-    {
-      "fixture": "DateComparisonsCorpus.V26",
-      "change": "changed",
-      "path": "/application/modules[Scheduling]/features[Windows]/slices[Keep]/commands[KeepWindow]/properties[from]/type/kind",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3556"
-    },
-    {
-      "fixture": "DateComparisonsCorpus.V26",
-      "change": "changed",
-      "path": "/application/modules[Scheduling]/features[Windows]/slices[Keep]/commands[KeepWindow]/properties[from]/type/primitive",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3556"
-    },
-    {
-      "fixture": "DateComparisonsCorpus.V26",
-      "change": "changed",
-      "path": "/application/modules[Scheduling]/features[Windows]/slices[Keep]/commands[KeepWindow]/properties[from]/type/target",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3556"
-    },
-    {
-      "fixture": "DateComparisonsCorpus.V26",
-      "change": "changed",
-      "path": "/application/modules[Scheduling]/features[Windows]/slices[Keep]/commands[KeepWindow]/properties[to]/type/kind",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3556"
-    },
-    {
-      "fixture": "DateComparisonsCorpus.V26",
-      "change": "changed",
-      "path": "/application/modules[Scheduling]/features[Windows]/slices[Keep]/commands[KeepWindow]/properties[to]/type/primitive",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3556"
-    },
-    {
-      "fixture": "DateComparisonsCorpus.V26",
-      "change": "changed",
-      "path": "/application/modules[Scheduling]/features[Windows]/slices[Keep]/commands[KeepWindow]/properties[to]/type/target",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3556"
     },
     {
       "fixture": "DateComparisonsCorpus.V26",

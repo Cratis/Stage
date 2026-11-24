@@ -68,7 +68,9 @@ public class when_building_code_provided_values : a_generated_application
                 var principal = new CurrentPrincipalAccessor(Substitute.For<global::Cratis.Arc.Http.IHttpRequestContextAccessor>());
                 using var identity = principal.BeginScope(new ClaimsPrincipal(new ClaimsIdentity(new[] {
                     new Claim(ClaimTypes.NameIdentifier, "alice"), new Claim("scope", "invoices"), new Claim(ClaimTypes.Role, "editor") }, "proof")));
-                var services = new ServiceCollection().AddSingleton<ICurrentPrincipalAccessor>(principal).BuildServiceProvider();
+                var collection = new ServiceCollection().AddSingleton<ICurrentPrincipalAccessor>(principal);
+                global::Fleet.GeneratedProvides.Registration.Register(collection);
+                using var services = collection.BuildServiceProvider();
                 var catalog = global::Fleet.GeneratedProvides.ProvidedValueResolvers.CreateCatalog(services);
                 var subject = Substitute.For<IAvailabilitySubjectProvider>();
                 subject.GetSubject().Returns(new AudienceSubject("tenant-one", "alice"));

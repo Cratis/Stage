@@ -33,7 +33,7 @@ module Billing
     ```
   provide preview Invoice optional
     ```csharp
-    return new global::Invoicing.Billing.Invoices.ListingInvoices.Invoice(string.Empty, 50000L);
+    return new global::Invoicing.Billing.Invoices.ListingInvoices.Invoice(InvoiceId: global::System.Guid.Empty, Amount: 50000L);
     ```
   provide missingOptional Invoice optional
     ```csharp

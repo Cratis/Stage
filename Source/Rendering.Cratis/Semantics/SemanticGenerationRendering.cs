@@ -6,6 +6,9 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming.Imports;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -25,31 +28,83 @@ internal static class SemanticGenerationRendering
 
     internal static string BodyMethod(SemanticConcept concept, SemanticApplicationContext context) => context.InlineNames.GenerationBody(concept);
 
+    internal static bool RenderFactoryBody(CSharpCodeBuilder builder, SemanticConcept concept, SemanticApplicationContext context, string declaration)
+    {
+        if (!IsRule(concept.Generation)) return false;
+        var inline = VerifiedBody(concept, context);
+        if (!CanInline(inline.Code!)) return false;
+
+        // The forwarding string conversion preserves the verified body, including compound returns, verbatim.
+        builder.Using("Cratis.Concepts").OpenBlock(declaration);
+        SpliceBody(builder, inline, context, concept);
+        builder.EndBlock().BlankLine();
+        return true;
+    }
+
     internal static void RenderBody(CSharpCodeBuilder builder, SemanticConcept concept, SemanticApplicationContext context)
     {
         if (!IsRule(concept.Generation)) return;
-        var inline = SemanticInlineCodeRendering.Generation(concept, context);
-        if (inline.Refused)
-        {
-            throw new InvalidArtifactRenderContract(string.Join(Environment.NewLine, inline.Diagnostics.Select(diagnostic => diagnostic.Message)));
-        }
+        var inline = VerifiedBody(concept, context);
 
         // The raw body binds against this namespace in the compile gate, independent of import shortening.
         builder.Using("Cratis.Concepts")
-            .OpenBlock($"static string {BodyMethod(concept, context)}(global::Cratis.Concepts.GenerationContext context)")
-            .Inline(context.RetainInlineInput(inline), inline.Placement, reportDegradation: diagnostic => context.InlineDiagnostics.Add(
-                new(diagnostic.Code, ArtifactRenderDiagnosticSeverity.Warning, diagnostic.Message, concept.Id)))
-            .EndBlock()
-            .BlankLine();
+            .OpenBlock($"static string {BodyMethod(concept, context)}(global::Cratis.Concepts.GenerationContext context)");
+        SpliceBody(builder, inline, context, concept);
+        builder.EndBlock().BlankLine();
     }
 
     internal static string Factory(SemanticConcept concept, string? context, SemanticApplicationContext application, CSharpCodeBuilder? builder = null)
     {
         var generation = concept.Generation ?? new SemanticGeneration("uuid");
         if (IsRule(generation)) return $"{BodyMethod(concept, application)}({context})";
+        if (IsUpperHex(generation)) return Prefixed(generation, UpperHex(generation, builder));
         var value = Strategy(generation, context, builder);
 
         return concept.Primitive is SemanticPrimitiveType.Uuid or SemanticPrimitiveType.WholeNumber ? value : Text(generation, value);
+    }
+
+    static bool IsUpperHex(SemanticGeneration generation) =>
+        string.Equals(generation.Kind, "bytes", StringComparison.Ordinal) &&
+        string.Equals(generation.Encoding, "hex", StringComparison.Ordinal) &&
+        string.Equals(generation.Case, "upper", StringComparison.Ordinal);
+
+    static SemanticInlineCodeResult VerifiedBody(SemanticConcept concept, SemanticApplicationContext context)
+    {
+        var inline = SemanticInlineCodeRendering.Generation(concept, context);
+        if (inline.Refused)
+        {
+            throw new InvalidArtifactRenderContract(string.Join(Environment.NewLine, inline.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        }
+
+        return inline;
+    }
+
+    static void SpliceBody(CSharpCodeBuilder builder, SemanticInlineCodeResult inline, SemanticApplicationContext context, SemanticConcept concept) =>
+        builder.Inline(context.RetainInlineInput(inline), inline.Placement, reportDegradation: diagnostic => context.InlineDiagnostics.Add(
+            new(diagnostic.Code, ArtifactRenderDiagnosticSeverity.Warning, diagnostic.Message, concept.Id)));
+
+    static bool CanInline(InlineCode code)
+    {
+        var body = SyntaxFactory.ParseStatement("{\n" + code.Text + "\n}");
+        return !body.ContainsDirectives && !body.DescendantNodes().Any(RequiresStringHelper);
+    }
+
+    static bool RequiresStringHelper(SyntaxNode node) => node switch
+    {
+        AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax => true,
+        IdentifierNameSyntax name => name.Identifier.ValueText == "dynamic",
+        ReturnStatementSyntax { Expression: { } expression } => HasTargetTypedReturn(expression),
+        _ => false
+    };
+
+    static bool HasTargetTypedReturn(ExpressionSyntax expression) => expression.DescendantNodesAndSelf().Any(node =>
+        node is DefaultExpressionSyntax or ImplicitObjectCreationExpressionSyntax or CollectionExpressionSyntax ||
+        node.IsKind(SyntaxKind.NullLiteralExpression) || node.IsKind(SyntaxKind.DefaultLiteralExpression));
+
+    static string UpperHex(SemanticGeneration generation, CSharpCodeBuilder? builder)
+    {
+        var generator = builder?.Type(new("System.Security.Cryptography", "RandomNumberGenerator", 0, ReferenceContext.Expression)) ?? "global::System.Security.Cryptography.RandomNumberGenerator";
+        return $"{generator}.GetHexString({Number(2 * generation.Count!.Value)}, false)";
     }
 
     static string Strategy(SemanticGeneration generation, string? context, CSharpCodeBuilder? builder)
@@ -61,13 +116,25 @@ internal static class SemanticGenerationRendering
             "uuidv7" => $"{generator}.UuidV7({context})",
             "ulid" => $"{generator}.Ulid({context})",
             "typeid" => $"{generator}.TypeId({Literal(generation.Prefix ?? string.Empty)}, {context})",
+            _ => SizedStrategy(generation, context, builder)
+        };
+    }
+
+    static string SizedStrategy(SemanticGeneration generation, string? context, CSharpCodeBuilder? builder)
+    {
+        var generator = Name(builder, "GenerateValue");
+        return generation.Kind switch
+        {
             "nanoid" => $"{generator}.NanoId({Number(generation.Size ?? 21)}, {(generation.Alphabet is { } alphabet ? Literal(alphabet) : "null")})",
             "bytes" => $"{generator}.Bytes({Number(generation.Count!.Value)}, {Name(builder, "ValueEncoding")}.{Encoding(generation.Encoding)})",
-            "pattern" => $"{generator}.Pattern({Literal(generation.Pattern!)}{(context is null ? string.Empty : $", {context}")}{(generation.Checksum is null ? string.Empty : $", {Name(builder, "Checksum")}.{SemanticChecksumRendering.Algorithm(SemanticValue.Text(generation.Checksum))}")})",
+            "pattern" => Pattern(generation, context, builder),
             "random" => $"{generator}.Integer({generation.Minimum!.Value.ToString(CultureInfo.InvariantCulture)}L, {generation.Maximum!.Value.ToString(CultureInfo.InvariantCulture)}L)",
             _ => throw new InvalidArtifactRenderContract($"Generation strategy '{generation.Kind}' is not admitted.")
         };
     }
+
+    static string Pattern(SemanticGeneration generation, string? context, CSharpCodeBuilder? builder) =>
+        $"{Name(builder, "GenerateValue")}.Pattern({Literal(generation.Pattern!)}{(context is null ? string.Empty : $", {context}")}{(generation.Checksum is null ? string.Empty : $", {Name(builder, "Checksum")}.{SemanticChecksumRendering.Algorithm(SemanticValue.Text(generation.Checksum))}")})";
 
     static string Name(CSharpCodeBuilder? builder, string name)
     {
@@ -78,15 +145,18 @@ internal static class SemanticGenerationRendering
     static string Text(SemanticGeneration generation, string value)
     {
         if (string.Equals(generation.Kind, "uuid", StringComparison.Ordinal) || string.Equals(generation.Kind, "uuidv7", StringComparison.Ordinal)) value += ".ToString(\"D\")";
-        value += generation.Case switch
-        {
-            "upper" => ".ToUpperInvariant()",
-            "lower" => ".ToLowerInvariant()",
-            _ => string.Empty
-        };
-
-        return generation.Kind != "typeid" && generation.Prefix is { Length: > 0 } prefix ? $"{Literal(prefix)} + {value}" : value;
+        return Prefixed(generation, Cased(generation.Case, value));
     }
+
+    static string Cased(string? letterCase, string value) => letterCase switch
+    {
+        "upper" => value + ".ToUpperInvariant()",
+        "lower" => value + ".ToLowerInvariant()",
+        _ => value
+    };
+
+    static string Prefixed(SemanticGeneration generation, string value) =>
+        generation.Kind != "typeid" && generation.Prefix is { Length: > 0 } prefix ? $"{Literal(prefix)} + {value}" : value;
 
     static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);
     static string Literal(string value) => CSharpCodeBuilder.StringLiteral(value);

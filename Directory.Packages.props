@@ -19,7 +19,7 @@
     <PackageVersion Include="Cratis.Arc.MongoDB" Version="23.8.0" />
     <PackageVersion Include="Cratis.Arc.Neo4j" Version="23.8.0" />
     <PackageVersion Include="Cratis.Arc.Neo4j.Chronicle" Version="23.8.0" />
-    <PackageVersion Include="Cratis.Arc.Screenplay" Version="23.16.0" />
+    <PackageVersion Include="Cratis.Arc.Screenplay" Version="23.18.2" />
     <PackageVersion Include="Cratis.Arc.Swagger" Version="23.8.0" />
     <PackageVersion Include="Cratis.Arc.Testing" Version="23.8.0" />
     <PackageVersion Include="Cratis.Showrunner.Notes" Version="1.14.0" />

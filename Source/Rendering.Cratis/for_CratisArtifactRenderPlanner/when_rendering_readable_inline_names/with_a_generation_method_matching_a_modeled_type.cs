@@ -13,7 +13,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_ren
 
 public class with_a_generation_method_matching_a_modeled_type : Specification
 {
-    const string Body = "return \"tenant:fixture\";";
+    const string Body = "return new ConceptAs<string>(context.Tenant);";
     ArtifactRenderPlan _plan = null!;
     string _concept = null!;
 

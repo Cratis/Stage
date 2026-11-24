@@ -93,13 +93,54 @@ internal static class SemanticGenerationRendering
     {
         AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax => true,
         IdentifierNameSyntax name => name.Identifier.ValueText == "dynamic",
-        ReturnStatementSyntax { Expression: { } expression } => HasTargetTypedReturn(expression),
+        ReturnStatementSyntax { Expression: { } expression } => !IsStringExpression(expression),
         _ => false
     };
 
-    static bool HasTargetTypedReturn(ExpressionSyntax expression) => expression.DescendantNodesAndSelf().Any(node =>
-        node is DefaultExpressionSyntax or ImplicitObjectCreationExpressionSyntax or CollectionExpressionSyntax ||
-        node.IsKind(SyntaxKind.NullLiteralExpression) || node.IsKind(SyntaxKind.DefaultLiteralExpression));
+    static bool IsStringExpression(ExpressionSyntax expression) => expression switch
+    {
+        LiteralExpressionSyntax literal => literal.IsKind(SyntaxKind.StringLiteralExpression),
+        InterpolatedStringExpressionSyntax => true,
+        ParenthesizedExpressionSyntax parenthesized => IsStringExpression(parenthesized.Expression),
+        BinaryExpressionSyntax binary => IsStringConcatenation(binary),
+        InvocationExpressionSyntax invocation => IsStringInvocation(invocation),
+        _ => false
+    };
+
+    static bool IsStringConcatenation(BinaryExpressionSyntax expression) =>
+        expression.IsKind(SyntaxKind.AddExpression) && IsStringExpression(expression.Left) && IsStringExpression(expression.Right);
+
+    static bool IsStringInvocation(InvocationExpressionSyntax invocation) => invocation.Expression switch
+    {
+        IdentifierNameSyntax { Identifier.ValueText: "nameof" } => invocation.ArgumentList.Arguments.Count == 1,
+        MemberAccessExpressionSyntax member => IsStringMemberInvocation(invocation, member),
+        _ => false
+    };
+
+    static bool IsStringMemberInvocation(InvocationExpressionSyntax invocation, MemberAccessExpressionSyntax member)
+    {
+        if (member.Expression is PredefinedTypeSyntax type && type.Keyword.IsKind(SyntaxKind.StringKeyword)) return IsStringFactory(member.Name);
+        return member.Name is IdentifierNameSyntax toString && IsText(toString.Identifier.ValueText, "ToString") && invocation.ArgumentList.Arguments.Count == 0 && IsKnownToStringReceiver(member.Expression);
+    }
+
+    static bool IsStringFactory(SimpleNameSyntax name) => name is IdentifierNameSyntax &&
+        Array.Exists(StringFactories(), factory => IsText(name.Identifier.ValueText, factory));
+
+    static string[] StringFactories() => ["Concat", "Create", "Format", "Intern", "Join"];
+
+    static bool IsText(string actual, string expected) => string.Equals(actual, expected, StringComparison.Ordinal);
+
+    static bool IsKnownToStringReceiver(ExpressionSyntax expression) =>
+        IsStringExpression(expression) || IsPrimitiveLiteral(expression) || IsContextTenant(expression);
+
+    static bool IsPrimitiveLiteral(ExpressionSyntax expression) => expression.Kind() is
+        SyntaxKind.NumericLiteralExpression or SyntaxKind.CharacterLiteralExpression or SyntaxKind.TrueLiteralExpression or SyntaxKind.FalseLiteralExpression;
+
+    static bool IsContextTenant(ExpressionSyntax expression) => expression is MemberAccessExpressionSyntax
+    {
+        Expression: IdentifierNameSyntax receiver,
+        Name: IdentifierNameSyntax property
+    } && IsText(receiver.Identifier.ValueText, "context") && IsText(property.Identifier.ValueText, "Tenant");
 
     static string UpperHex(SemanticGeneration generation, CSharpCodeBuilder? builder)
     {

@@ -16,10 +16,20 @@ public class when_inlining_generation_rule_bodies
 {
     [Theory]
     [InlineData("return context.Tenant.ToString();", true)]
-    [InlineData("var value = context.Tenant.ToString();\nreturn value;", true)]
+    [InlineData("return \"tenant\";", true)]
+    [InlineData("return $\"tenant:{context.Tenant}\";", true)]
+    [InlineData("return \"tenant:\" + context.Tenant.ToString();", true)]
+    [InlineData("return string.Concat(\"tenant:\", context.Tenant);", true)]
+    [InlineData("return nameof(context.Tenant);", true)]
+    [InlineData("if (context.Tenant.ToString().Length == 0) return \"empty\";\nreturn context.Tenant.ToString();", true)]
+    [InlineData("var value = context.Tenant.ToString();\nreturn value;", false)]
     [InlineData("return new('x', 3);", false)]
     [InlineData("return default(string)!;", false)]
-    void should_preserve_verified_bodies_and_use_the_helper_only_when_string_target_typing_is_required(string body, bool inline)
+    [InlineData("return new ConceptAs<string>(context.Tenant);", false)]
+    [InlineData("var value = new ConceptAs<string>(context.Tenant);\nreturn value;", false)]
+    [InlineData("return (ConceptAs<string>)new ConceptAs<string>(context.Tenant);", false)]
+    [InlineData("return new ConceptAs<ConceptAs<string>>(new ConceptAs<string>(context.Tenant)).Value;", false)]
+    void should_preserve_verified_bodies_and_use_the_helper_unless_every_return_is_provably_string(string body, bool inline)
     {
         var context = declared_generation.Context(body);
         var concept = context.Application.Concepts.Single(concept => concept.Name == "TenantOrderId");

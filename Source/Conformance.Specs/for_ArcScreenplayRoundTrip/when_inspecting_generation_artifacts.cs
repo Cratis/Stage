@@ -9,7 +9,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip;
 
 public class when_inspecting_generation_artifacts
 {
-    // This probe deliberately does not reconcile the ledger: it retains the renderer output and adapter source before a fix.
+    // Retain renderer output and adapter source without reconciling the ledger.
     [Fact]
     void should_compile_and_recover_all_three_generation_fixtures()
     {

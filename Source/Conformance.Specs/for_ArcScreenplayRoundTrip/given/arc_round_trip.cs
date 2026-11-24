@@ -23,6 +23,7 @@ internal static class arc_round_trip
 {
     public static RoundTripObservation Run(round_trip_fixture fixture)
     {
+        round_trip_model_profile.EnsureCovered(fixture.Model);
         var plan = fixture.Plan;
         Assert.True(plan.Success, $"{fixture.Name} did not plan:{Environment.NewLine}{string.Join(Environment.NewLine, plan.Diagnostics)}");
         var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs" && !artifact.RelativePath.StartsWith("Frontend/", StringComparison.Ordinal))
@@ -50,7 +51,7 @@ internal static class arc_round_trip
 
         return new(
             fixture.Name,
-            recovered.Model is null ? null : SemanticModelEquivalence.Compare(fixture.Model, recovered.Model),
+            recovered.Model is null ? null : round_trip_model_comparison.Compare(fixture.Model, recovered.Model),
             [.. plan.Diagnostics.Select(Render), .. generated.Diagnostics.Select(Adapter)],
             recovered.Errors);
     }

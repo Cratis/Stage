@@ -49,7 +49,7 @@ public class when_rendering_secret_scopes_without_details : compliance_concepts
     [Fact] void should_keep_subject_scope_bare() => _files["SubjectSecret"].Content.ShouldContain("[Encrypted]\n[NotAudited]");
     [Fact] void should_keep_unspecified_scope_bare() => _files["BareSecret"].Content.ShouldContain("[Encrypted]\n[NotAudited]");
     [Fact] void should_keep_reason_only_secret_bare() => _files["ReasonSecret"].Content.ShouldContain("[Encrypted]\n[NotAudited]");
-    [Fact] void should_keep_personal_data_marked_pii() => _bothWithScope.Content.ShouldContain("[PII]");
+    [Fact] void should_keep_personal_data_marked_pii() => _bothWithScope.Content.ShouldContain("[PII(OperationalSecret = true)]");
     [Fact] void should_ignore_secret_scope_on_personal_data() => _bothWithScope.Content.ShouldEqual(_files["PersonalSecret"].Content);
     [Fact] void should_not_encrypt_personal_data_as_a_secret() => _bothWithScope.Content.ShouldNotContain("Encrypted");
     [Fact] void should_resolve_scope_only_attributes_against_the_pinned_client() => RenderedOutput.Errors(_files.Values).ShouldBeEmpty();

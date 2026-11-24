@@ -79,9 +79,9 @@ internal sealed class SemanticEventContracts
         return new(events, closure.Concepts, closure.Types);
     }
 
-    // A secret-only value is also kept out of the causation chain, which takes an Arc attribute the contracts project does not reference.
-    // A personal classification takes precedence and renders only the PII attribute.
-    static bool NeedsApplicationMetadata(SemanticConcept concept) => concept.Compliance is { Personal: null, Secret: not null };
+    // Secret values, including personal secrets, carry NotAudited to stay out of the causation chain.
+    // The contracts project cannot reference this Arc attribute, regardless of the value's protection handler.
+    static bool NeedsApplicationMetadata(SemanticConcept concept) => concept.Compliance is { Secret: not null };
 
     static SemanticTypeClosure Close(SemanticApplicationContext context, IEnumerable<SemanticEventContract> events)
     {

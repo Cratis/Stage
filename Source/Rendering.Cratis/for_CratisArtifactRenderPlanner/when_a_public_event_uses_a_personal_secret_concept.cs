@@ -6,14 +6,15 @@ using System.Text;
 using Cratis.Screenplay.CanonicalCorpus;
 using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
+using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
-// The personal classification takes precedence over the secret one and renders only the PII attribute, with no NotAudited,
-// so a concept that is both personal and secret needs nothing the contracts project cannot reference.
+// Personal secrets retain PII protection but carry Arc's NotAudited metadata.
+// Like secret-only concepts, they cannot move into the Arc-free public event contracts project.
 public class when_a_public_event_uses_a_personal_secret_concept : a_translation_application
 {
     string _concept = string.Empty;
@@ -28,12 +29,16 @@ public class when_a_public_event_uses_a_personal_secret_concept : a_translation_
         {
             Concepts = [.. _model.Application.Concepts.Select(concept => concept.Id == target ? concept with { Compliance = compliance } : concept)]
         });
-        Render();
-        _concept = Encoding.UTF8.GetString(_plan.Artifacts.Single(artifact => artifact.RelativePath.StartsWith("Contracts.Events.Contracts/", StringComparison.Ordinal) && artifact.RelativePath.EndsWith($"/{_model.Application.Concepts.Single(candidate => candidate.Id == target).Name}.cs", StringComparison.Ordinal)).Bytes.AsSpan());
+        _plan = Plan(_model);
+        var name = _model.Application.Concepts.Single(candidate => candidate.Id == target).Name;
+        _concept = Encoding.UTF8.GetString(_plan.Artifacts.Single(artifact => artifact.RelativePath == $"Common/{name}.cs").Bytes.AsSpan());
     }
 
-    [Fact] void should_keep_the_concept_in_the_contracts_project() => _concept.ShouldContain("[global::Cratis.Chronicle.Compliance.GDPR.PIIAttribute]");
-    [Fact] void should_not_render_the_arc_metadata() => _concept.ShouldNotContain("NotAudited");
-    [Fact] void should_compile_without_errors() => RenderedOutput.Errors(_sources).ShouldBeEmpty();
+    [Fact] void should_keep_the_concept_out_of_the_contracts_project() => _plan.Artifacts.ShouldNotContain(artifact => artifact.RelativePath.StartsWith("Contracts.Events.Contracts/", StringComparison.Ordinal));
+    [Fact] void should_report_the_public_event_contract_blocker() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Message.Contains("carries Arc metadata (NotAudited) the contracts project cannot reference", StringComparison.Ordinal));
+    [Fact] void should_preserve_both_classifications_with_pii_protection() => _concept.ShouldContain("[PII(OperationalSecret = true)]");
+    [Fact] void should_render_the_arc_metadata() => _concept.ShouldContain("[NotAudited]");
+    [Fact] void should_not_add_another_protection_handler() => _concept.ShouldNotContain("Encrypted");
+    [Fact] void should_compile_the_concept_without_errors() => RenderedOutput.Errors([new RenderedFile("PersonalSecret.cs", _concept)]).ShouldBeEmpty();
 }
 #endif

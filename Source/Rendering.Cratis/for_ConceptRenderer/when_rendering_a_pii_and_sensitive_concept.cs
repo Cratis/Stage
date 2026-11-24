@@ -21,8 +21,8 @@ public class when_rendering_a_pii_and_sensitive_concept : concepts
         _applicationSet,
         "Generated");
 
-    [Fact] void should_preserve_personal_data_protection() => _file.Content.ShouldContain("[PII]");
+    [Fact] void should_preserve_personal_data_protection() => _file.Content.ShouldContain("[PII(OperationalSecret = true)]");
     [Fact] void should_not_combine_pii_with_plain_encryption() => _file.Content.ShouldNotContain("Encrypted");
-    [Fact] void should_rely_on_pii_for_causation_exclusion() => _file.Content.ShouldNotContain("NotAudited");
+    [Fact] void should_exclude_operational_secrets_from_causation() => _file.Content.ShouldContain("[NotAudited]");
     [Fact] void should_compile_the_attributes_on_the_concept() => RenderedOutput.Errors([_file]).ShouldBeEmpty();
 }

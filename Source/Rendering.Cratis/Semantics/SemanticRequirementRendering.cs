@@ -32,7 +32,7 @@ internal static class SemanticRequirementRendering
         if (requirement.Severity != SemanticValidationSeverity.Error) throw UnsupportedSemanticRendering.For(nameof(SemanticValidationSeverity), requirement.Severity);
 
         var condition = SemanticConditionRendering.Render(requirement.Condition, new(command.Properties, string.Empty, context, property => SemanticCommandResultRendering.PropertyValue(property, context), Reads: reads, Clock: clock));
-        var message = requirement.Message ?? "Command requirement was not met.";
+        var message = requirement.Message ?? SemanticRequirement.DefaultMessage;
         var error = message.StartsWith("$strings.", StringComparison.Ordinal)
             ? $"global::Cratis.Arc.Validation.ValidationResult.Error(global::{context.RootNamespace}.GeneratedStrings.Resolve({CSharpCodeBuilder.StringLiteral(message)}), state: {CSharpCodeBuilder.StringLiteral(message)})"
             : $"global::Cratis.Arc.Validation.ValidationResult.Error({CSharpCodeBuilder.StringLiteral(message)})";
@@ -42,7 +42,7 @@ internal static class SemanticRequirementRendering
     internal static void Render(CSharpCodeBuilder builder, SemanticRequirement requirement, SemanticCommand command, SemanticApplicationContext context, string? clock = null)
     {
         var condition = SemanticConditionRendering.Render(requirement.Condition, new(command.Properties, "command", context, property => $"command.{context.MemberNames.Property(property)}", Clock: clock));
-        var message = requirement.Message ?? "Command requirement was not met.";
+        var message = requirement.Message ?? SemanticRequirement.DefaultMessage;
         var severitySuffix = SeveritySuffix(requirement.Severity);
         var parameters = clock is null ? "command" : "(command, _, validation)";
         if (message.StartsWith("$strings.", StringComparison.Ordinal))

@@ -50,7 +50,7 @@ internal static class arc_round_trip
 
         return new(
             fixture.Name,
-            recovered.Model is null ? null : SemanticModelEquivalence.Compare(fixture.Model, recovered.Model),
+            recovered.Model is null ? null : SemanticModelEquivalence.Compare(requirement_message_comparison.Project(fixture.Model), requirement_message_comparison.Project(recovered.Model)),
             [.. plan.Diagnostics.Select(Render), .. generated.Diagnostics.Select(Adapter)],
             recovered.Errors);
     }

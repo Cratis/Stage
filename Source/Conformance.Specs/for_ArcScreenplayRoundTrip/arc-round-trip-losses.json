@@ -4,7 +4,7 @@
   "corpusVersion": "6.38.1",
   "minimumFixtureCount": 29,
   "budget": {
-    "maximumEntries": 266,
+    "maximumEntries": 265,
     "maximumByDesign": 0,
     "maximumExclusions": 2
   },
@@ -2205,16 +2205,6 @@
         "SP0039"
       ],
       "issue": "Cratis/Arc#3547"
-    },
-    {
-      "fixture": "EsmGoldenVectors.V38",
-      "change": "diagnostic",
-      "path": "/diagnostics[STAGE-DEGRADE-002]",
-      "direction": "render",
-      "diagnostics": [
-        "STAGE-DEGRADE-002"
-      ],
-      "issue": "Cratis/Stage#1200"
     }
   ]
 }

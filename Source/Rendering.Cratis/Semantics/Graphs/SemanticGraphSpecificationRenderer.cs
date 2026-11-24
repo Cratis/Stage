@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
@@ -39,6 +40,7 @@ internal static class SemanticGraphSpecificationRenderer
             builder.Line($"{ElementType(elements[index].Graph, elements[index].Element, context)}? _element{index};");
         }
 
+        RenderSeeds(builder, specification, graphs, types);
         builder.BlankLine().OpenBlock("async global::System.Threading.Tasks.Task Because()");
         foreach (var fact in specification.Given.Concat(specification.WhenAppended is null ? [] : [specification.WhenAppended]))
         {
@@ -59,6 +61,70 @@ internal static class SemanticGraphSpecificationRenderer
         builder.Line("/// <inheritdoc/>").Line("public void Dispose() => _scenario.Dispose();").EndBlock();
         var path = Path.Combine([.. context.Domain, "Graphs", "Specifications", SemanticGraphNaming.FileName(specification)]);
         return new(path, types.SpecificationContent(builder)) { Sources = [context.Application.Id] };
+    }
+
+    static void RenderSeeds(CSharpCodeBuilder builder, SemanticGraphSpecification specification, Dictionary<string, SemanticGraph> graphs, SemanticTypeSystem types)
+    {
+        if (specification.GivenGraphs.IsDefaultOrEmpty) return;
+        builder.BlankLine().OpenBlock("async global::System.Threading.Tasks.Task Establish()");
+        foreach (var step in specification.GivenGraphs)
+        {
+            var graph = graphs[step.Graph];
+            foreach (var element in step.Elements)
+            {
+                builder.Line($"await {Seed(graph, element, types)};");
+            }
+        }
+
+        builder.EndBlock();
+    }
+
+    static string Seed(SemanticGraph graph, SemanticGraphElementStep element, SemanticTypeSystem types)
+    {
+        if (element.IsNode)
+        {
+            var node = Node(graph, element.Name);
+            return $"_scenario.SeedNode({CSharpCodeBuilder.StringLiteral(node.Label)}, {KeyValue(element.Key, SemanticGraphArtifactRenderer.KeyOf(node).Type, types)}, {SeedProperties(element, node.Properties, types, SemanticGraphArtifactRenderer.KeyOf(node).Name)})";
+        }
+
+        var edge = Edge(graph, element.Name);
+        var source = KeyValue(element.Key, SemanticGraphArtifactRenderer.KeyOf(Node(graph, edge.Source)).Type, types);
+        var target = KeyValue(element.Target!, SemanticGraphArtifactRenderer.KeyOf(Node(graph, edge.Target)).Type, types);
+        var identity = element.Identity is null ? "null" : KeyValue(element.Identity, edge.Properties.Single(property => string.Equals(property.Name, edge.IdentifiedBy, StringComparison.Ordinal)).Type, types);
+        return $"_scenario.SeedEdge({CSharpCodeBuilder.StringLiteral(edge.Type)}, {source}, {target}, {identity}, {SeedProperties(element, edge.Properties, types, edge.IdentifiedBy)})";
+    }
+
+    static string SeedProperties(SemanticGraphElementStep element, ImmutableArray<SemanticGraphProperty> properties, SemanticTypeSystem types, string? keyProperty)
+    {
+        var values = element.Values.Select(value => (value.Property, value.Value));
+        if (keyProperty is not null)
+        {
+            values = values.Where(value => !string.Equals(value.Property, keyProperty, StringComparison.Ordinal))
+                .Prepend((keyProperty, element.IsNode ? element.Key : element.Identity!));
+        }
+
+        var entries = values.Select(value =>
+        {
+            var property = properties.Single(candidate => string.Equals(candidate.Name, value.Property, StringComparison.Ordinal));
+            var member = SemanticGraphNaming.Property(property.Name);
+            var name = member.Length > 1 && char.IsUpper(member[1]) ? member : Identifiers.ToCamelCase(member);
+            return $"[{CSharpCodeBuilder.StringLiteral(name)}] = {SeedValue(value.Value, property.Type, types)}";
+        });
+        return $"new global::System.Collections.Generic.Dictionary<string, object?> {{ {string.Join(", ", entries)} }}";
+    }
+
+    static string SeedValue(SemanticValue value, SemanticTypeReference type, SemanticTypeSystem types)
+    {
+        if (type.IsCollection && value is SemanticArrayValue array)
+        {
+            var elementType = type with { IsCollection = false, IsOptional = false };
+            return $"new object?[] {{ {string.Join(", ", array.Values.Select(element => SeedValue(element, elementType, types)))} }}";
+        }
+
+        var primitive = type.Kind == SemanticTypeReferenceKind.Concept
+            ? type with { Kind = SemanticTypeReferenceKind.Primitive, Primitive = types.ConceptPrimitive(type) }
+            : type;
+        return types.Value(value, primitive);
     }
 
     static string NewEvent(SemanticSpecificationEvent fact, SemanticApplicationContext context, SemanticTypeSystem types)

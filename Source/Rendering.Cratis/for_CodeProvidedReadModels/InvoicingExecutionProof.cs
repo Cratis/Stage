@@ -11,7 +11,9 @@ internal static class InvoicingExecutionProof
         using System.Security.Claims;
         using Cratis.Arc.Authorization;
         using Cratis.Arc.Availability;
+        using Cratis.Arc.MongoDB;
         using Cratis.Choreography.Availability.Audiences;
+        using Cratis.Chronicle;
         using Cratis.Specifications;
         using Microsoft.Extensions.DependencyInjection;
         using Microsoft.Extensions.Hosting;
@@ -33,8 +35,8 @@ internal static class InvoicingExecutionProof
                 var gate = (IAvailabilityExecutionGate)services.GetRequiredService<IAvailabilityGate>();
                 var source = (Cratis.Arc.Contexts.IExecutionContextValueSource)services.GetRequiredService<Cratis.Arc.Contexts.IContextValueSource>();
                 var occurred = new DateTimeOffset(2026, 11, 24, 10, 0, 0, TimeSpan.Zero);
-                var allowed = new AvailabilityInvocation(typeof(IssueInvoice), new IssueInvoice { InvoiceId = Guid.Empty, Amount = 42000L }, occurred);
-                var refused = new AvailabilityInvocation(typeof(IssueInvoice), new IssueInvoice { InvoiceId = Guid.Empty, Amount = 50001L }, occurred.AddMinutes(1));
+                var allowed = new AvailabilityInvocation(typeof(IssueInvoice), new IssueInvoice(InvoiceId: Guid.Empty, Amount: 42000L), occurred);
+                var refused = new AvailabilityInvocation(typeof(IssueInvoice), new IssueInvoice(InvoiceId: Guid.Empty, Amount: 50001L), occurred.AddMinutes(1));
                 gate.IsGated(typeof(IssueInvoice)).ShouldBeTrue();
                 (await gate.Decide(allowed, services, default)).Verdict.ShouldEqual(AvailabilityVerdict.Available);
                 _ = reads.Received(2).Current;
@@ -62,7 +64,7 @@ internal static class InvoicingExecutionProof
             {
                 using var services = Services(out _);
                 var source = (Cratis.Arc.Contexts.IExecutionContextValueSource)services.GetRequiredService<Cratis.Arc.Contexts.IContextValueSource>();
-                var invocation = new AvailabilityInvocation(typeof(IssueInvoice), new IssueInvoice { InvoiceId = Guid.Empty, Amount = 1L }, new DateTimeOffset(2026, 11, 24, 10, 0, 0, TimeSpan.Zero));
+                var invocation = new AvailabilityInvocation(typeof(IssueInvoice), new IssueInvoice(InvoiceId: Guid.Empty, Amount: 1L), new DateTimeOffset(2026, 11, 24, 10, 0, 0, TimeSpan.Zero));
                 var preview = await source.ReadForExecution(invocation, "preview", default);
                 preview.IsPresent.ShouldBeTrue();
                 ((Invoice)preview.Value!).Amount.ShouldEqual(50000L);
@@ -73,10 +75,15 @@ internal static class InvoicingExecutionProof
 
             static ServiceProvider Services(out CurrentPrincipalAccessor principal)
             {
-                var builder = Host.CreateApplicationBuilder();
+                var builder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder();
                 builder.Environment.EnvironmentName = "Testing";
-                builder.AddBackend();
-                var currentPrincipal = new CurrentPrincipalAccessor(Substitute.For<global::Cratis.Arc.Http.IHttpRequestContextAccessor>());
+                builder.AddCratis(
+                    configureArcBuilder: arc => arc.WithMongoDB(),
+                    configureChronicleBuilder: chronicle => chronicle.WithCamelCaseNamingPolicy());
+                global::Invoicing.GeneratedPolicies.Registration.Register(builder.Services);
+                global::Invoicing.GeneratedProvides.Registration.Register(builder.Services);
+                global::Invoicing.GeneratedAvailability.Registration.Register(builder);
+                var currentPrincipal = new CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor());
                 principal = currentPrincipal;
                 var reads = Substitute.For<ICurrentPrincipalAccessor>();
                 reads.Current.Returns(_ => currentPrincipal.Current);

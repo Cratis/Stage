@@ -105,7 +105,7 @@ internal static class SemanticProvidedValueRendering
 
     static string Provider(SemanticProvidedValue provided, SemanticTypeSystem types, SemanticApplicationContext context) => provided.Source switch
     {
-        SemanticCodeProvideSource => $"new {Choreography}.Providers.CodeContextValueProvider(async (resolver, cancellationToken) => {Choreography}.ContextValueOutcome.Present({SemanticProvidedBodyRendering.Name(provided)}.Provide(await StageProvideContext.Create(resolver, principalAccessor, cancellationToken))))",
+        SemanticCodeProvideSource => $"new {Choreography}.Providers.CodeContextValueProvider(async (resolver, cancellationToken) => {SemanticProvidedBodyRendering.Name(provided)}.Provide(await StageProvideContext.Create(resolver, principalAccessor, cancellationToken)))",
         SemanticHostProvideSource => $"new {Choreography}.Providers.HostContextValueProvider(global::Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<{Choreography}.Providers.IHostContextValues>(services), {CSharpCodeBuilder.StringLiteral(provided.Name)})",
         SemanticValueProvideSource { Value.Path: { } path } => $"new {Choreography}.Providers.ExpressionContextValueProvider({CSharpCodeBuilder.StringLiteral(path)})",
         SemanticValueProvideSource { Value.Value: { } value } => $"new {Choreography}.Providers.LiteralContextValueProvider({Literal(value, provided, types)})",
@@ -170,18 +170,20 @@ internal static class SemanticProvidedValueRendering
     static string? QueryRefusal(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices, SemanticProvidedValue provided, SemanticQueryProvideSource source)
     {
         if (!context.Queries.TryGetValue(source.Query, out var query)) return "reads a query that is not generated";
-        if (provided.ReadModel != query.ReadModel) return "reads a query whose result is not the declared read model";
-        if (source.By is not { Length: 1 } || source.By[0].Path is null) return "must key its query by exactly one $context value";
-        if (!IsKeyedSnapshot(query))
-        {
-            return "must read a keyed snapshot query by a Uuid or String key";
-        }
+        if (QueryShapeRefusal(provided, source, query) is { } shape) return shape;
 
         if (query.Authorization is not null || query.Narrowing is not null) return "reads a protected query; an in-process read would bypass its authorization";
         if (HasUnsupportedQueryFeatures(context, query)) return "reads a query with filters, composite keys or a performer";
         var located = context.DeclaringSlice(query.Id);
         if (context.DeclaringSlice(query.ReadModel).Slice.Id != located.Slice.Id) return "reads a query declared apart from its read model";
         return slices.Any(selected => selected.Slice.Id == located.Slice.Id) ? null : "reads a query of a slice this render does not select";
+    }
+
+    static string? QueryShapeRefusal(SemanticProvidedValue provided, SemanticQueryProvideSource source, SemanticKeyedQuery query)
+    {
+        if (provided.ReadModel != query.ReadModel) return "reads a query whose result is not the declared read model";
+        if (source.By is not { Length: 1 } || source.By[0].Path is null) return "must key its query by exactly one $context value";
+        return IsKeyedSnapshot(query) ? null : "must read a keyed snapshot query by a Uuid or String key";
     }
 
     static bool IsKeyedSnapshot(SemanticKeyedQuery query) =>

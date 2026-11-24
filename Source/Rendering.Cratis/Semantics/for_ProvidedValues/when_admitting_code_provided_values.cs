@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #if DEBUG
+using System.Text;
 using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.Semantics.for_ProvidedValues.given;
@@ -34,6 +35,18 @@ public class when_admitting_code_provided_values : Specification
         plan.Success.ShouldBeFalse();
         plan.Artifacts.ShouldBeEmpty();
         plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-ESM-075").ShouldBeTrue();
+    }
+
+    [Fact]
+    void should_leave_outcome_wrapping_to_the_code_provider()
+    {
+        var plan = a_code_provided_model.Plan("return \"Nordics\";");
+        a_code_provided_model.AssertSuccess(plan);
+        var artifact = plan.Artifacts.Single(item => item.RelativePath.EndsWith("ProvidedValues.cs", StringComparison.Ordinal));
+        var source = Encoding.UTF8.GetString(artifact.Bytes.AsSpan());
+        var provider = source.Split('\n').Single(line => line.Contains("CodeContextValueProvider(async", StringComparison.Ordinal));
+        Assert.Contains("StageProvide_", provider, StringComparison.Ordinal);
+        Assert.DoesNotContain("ContextValueOutcome", provider, StringComparison.Ordinal);
     }
 
     [Fact]

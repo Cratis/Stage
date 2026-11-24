@@ -65,7 +65,7 @@ public class when_building_code_provided_values : a_generated_application
             async Task should_share_dependencies_only_within_one_invocation_and_preserve_the_context()
             {
                 ProviderProbe.Calls = 0;
-                var principal = new CurrentPrincipalAccessor(Substitute.For<global::Cratis.Arc.Http.IHttpRequestContextAccessor>());
+                var principal = new CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor());
                 using var identity = principal.BeginScope(new ClaimsPrincipal(new ClaimsIdentity(new[] {
                     new Claim(ClaimTypes.NameIdentifier, "alice"), new Claim("scope", "invoices"), new Claim(ClaimTypes.Role, "editor") }, "proof")));
                 var collection = new ServiceCollection().AddSingleton<ICurrentPrincipalAccessor>(principal);

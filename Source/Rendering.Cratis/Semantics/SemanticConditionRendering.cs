@@ -252,7 +252,7 @@ internal static class SemanticConditionRendering
     {
         var value = context.Accessor is null ? $"{context.Receiver}.{context.Application.MemberNames.Property(property)}" : context.Accessor(property);
 
-        return property.Type.Kind == SemanticTypeReferenceKind.Concept && context.Raw?.Contains(property.Id) != true && context.Application.Concepts[property.Type.Target].Values.IsEmpty ? $"{value}.Value" : value;
+        return property.Type.Kind == SemanticTypeReferenceKind.Concept && context.Application.Concepts[property.Type.Target].Values.IsEmpty ? $"{value}.Value" : value;
     }
 
     static string LiteralOperand(SemanticValue? value) => value switch

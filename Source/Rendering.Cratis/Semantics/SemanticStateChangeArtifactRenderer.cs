@@ -169,7 +169,7 @@ internal static class SemanticStateChangeArtifactRenderer
                 if (mapping.Source is SemanticValueExpression value) return types.Value(value.Value, property.Type);
                 if (mapping.Source is SemanticReadPathExpression readPath) return results.Reads.ReadPath(readPath);
                 var commandProperty = command.Properties.Single(_ => _.Id == ((SemanticResolvedExpression)mapping.Source).Target);
-                var expression = EventPropertyValue(commandProperty, property, command, context);
+                var expression = EventPropertyValue(commandProperty, property, context);
                 return ReducerCollection(@event, property, context) ? ImmutableSnapshot(expression, commandProperty.Type.IsOptional) : expression;
             });
             return $"new {types.EventType(@event)}({string.Join(", ", arguments)})";
@@ -234,7 +234,7 @@ internal static class SemanticStateChangeArtifactRenderer
                     if (mapping.Source is SemanticValueExpression value) return types.Value(value.Value, property.Type);
                     var source = (SemanticResolvedExpression)mapping.Source;
                     var commandProperty = command.Properties.Single(_ => _.Id == source.Target);
-                    var expression = EventPropertyValue(commandProperty, property, command, context);
+                    var expression = EventPropertyValue(commandProperty, property, context);
                     return ReducerCollection(@event, property, context) ? ImmutableSnapshot(expression, commandProperty.Type.IsOptional) : expression;
                 });
                 builder.ExpressionMember($"public {types.EventType(@event)} Handle()", $"new({string.Join(", ", arguments)})");
@@ -268,7 +268,7 @@ internal static class SemanticStateChangeArtifactRenderer
         results.RenderResponseType(builder);
     }
 
-    static string EventPropertyValue(SemanticProperty source, SemanticProperty target, SemanticCommand command, SemanticApplicationContext context)
+    static string EventPropertyValue(SemanticProperty source, SemanticProperty target, SemanticApplicationContext context)
     {
         var expression = SemanticCommandResultRendering.PropertyValue(source, context);
         if (source.Type is not { Kind: SemanticTypeReferenceKind.Concept, IsOptional: false, IsCollection: false } ||
@@ -285,11 +285,6 @@ internal static class SemanticStateChangeArtifactRenderer
         var sourceConcept = context.Concepts[source.Type.Target];
         var targetConcept = context.Concepts[target.Type.Target];
         if (!sourceConcept.Values.IsEmpty || !targetConcept.Values.IsEmpty)
-        {
-            return expression;
-        }
-
-        if (SemanticDateComparisonAdmission.Raw(context.Application, command).Contains(source.Id))
         {
             return expression;
         }
@@ -365,13 +360,12 @@ internal static class SemanticStateChangeArtifactRenderer
         {
             builder.Line($"RuleFor(_ => _).Must(_ => false).WithMessage({CSharpCodeBuilder.StringLiteral(SemanticDeniedValidations.Message(command, denial))});");
         }
-        var raw = SemanticDateComparisonAdmission.Raw(context.Application, command);
         var hasBodies = !command.CodeValidations.IsEmpty;
         foreach (var rule in command.Validations)
         {
             var property = command.Properties.Single(_ => _.Id == rule.Property);
             var primitive = SemanticValidationRendering.UnderlyingPrimitive(property.Type, context);
-            var wrapped = property.Type.Kind == SemanticTypeReferenceKind.Concept && !raw.Contains(property.Id);
+            var wrapped = property.Type.Kind == SemanticTypeReferenceKind.Concept;
             if (SemanticValidationContextRuntime.IsBody(rule))
             {
                 hasBodies = true;
@@ -458,7 +452,7 @@ internal static class SemanticStateChangeArtifactRenderer
         var types = new SemanticTypeSystem(context);
         var primitive = SemanticValidationRendering.UnderlyingPrimitive(property.Type, context);
         var optionalType = property.Type is { Kind: SemanticTypeReferenceKind.Concept, IsOptional: true, IsCollection: false } &&
-            primitive is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber or SemanticPrimitiveType.Boolean or SemanticPrimitiveType.Date
+            primitive is SemanticPrimitiveType.WholeNumber or SemanticPrimitiveType.DecimalNumber or SemanticPrimitiveType.Boolean or SemanticPrimitiveType.Date or SemanticPrimitiveType.DateTime
                 ? types.Type(property.Type)
                 : null;
         var enumOperand = property.Type.Kind == SemanticTypeReferenceKind.Concept && !context.Concepts[property.Type.Target].Values.IsEmpty

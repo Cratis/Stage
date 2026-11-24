@@ -28,7 +28,7 @@ public class and_semantic_payload_changes : Specification
     [Fact]
     void should_preserve_response_field_order()
     {
-        var model = comparison_profile_models.Golden(7);
+        var model = comparison_profile_models.Calendar(comparison_profile_models.Golden(7));
         var application = comparison_profile_models.Commands(model.Application, command => command.Response is SemanticRecordCommandResponse response
             ? command with { Response = response with { Fields = [.. response.Fields.Reverse()] } } : command);
         var changed = ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, application);

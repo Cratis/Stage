@@ -14,7 +14,7 @@ public class and_conversion_cannot_validate : Specification
     [Fact]
     void should_convert_a_graph_free_model_to_the_common_profile()
     {
-        var converted = round_trip_model_profile.Convert(comparison_profile_models.Legacy);
+        var converted = round_trip_model_profile.Convert(comparison_profile_models.Migratable);
 
         converted.LanguageVersion.ShouldEqual(LanguageVersion.V48);
         converted.SemanticVersion.ShouldEqual(SemanticVersion.V48);
@@ -27,7 +27,7 @@ public class and_conversion_cannot_validate : Specification
     [InlineData(true)]
     void should_convert_v38_and_graph_free_models_without_concealing_the_missing_graph(bool reverse)
     {
-        var legacy = comparison_profile_models.Legacy;
+        var legacy = comparison_profile_models.Migratable;
         var graph = comparison_profile_models.Golden(38);
         var converted = round_trip_model_profile.Convert(graph);
         var comparison = reverse ? round_trip_model_comparison.Compare(graph, legacy) : round_trip_model_comparison.Compare(legacy, graph);
@@ -42,7 +42,7 @@ public class and_conversion_cannot_validate : Specification
     [InlineData(true)]
     void should_fail_instead_of_returning_an_observation_that_could_escape_fixture_errors(bool reverse)
     {
-        var legacy = comparison_profile_models.Legacy;
+        var legacy = comparison_profile_models.Migratable;
         var invalidApplication = legacy.Application with { Modules = [legacy.Application.Modules[0], legacy.Application.Modules[0]] };
         var invalid = comparison_profile_models.Unchecked(legacy, legacy.LanguageVersion, legacy.SemanticVersion, invalidApplication);
         var expected = Assert.Throws<InvalidSemanticContract>(() => ExecutableSemanticModel.Create(legacy.LanguageVersion, legacy.SemanticVersion, invalidApplication));
@@ -51,7 +51,7 @@ public class and_conversion_cannot_validate : Specification
             ? round_trip_model_comparison.Compare(invalid, legacy)
             : round_trip_model_comparison.Compare(legacy, invalid));
 
-        Assert.Contains("48.0", exception.Message, StringComparison.Ordinal);
+        Assert.Contains(legacy.SemanticVersion.ToString(), exception.Message, StringComparison.Ordinal);
         Assert.Contains(expected.Message, exception.Message, StringComparison.Ordinal);
     }
 
@@ -93,7 +93,7 @@ public class and_conversion_cannot_validate : Specification
     [InlineData(true)]
     void should_refuse_a_valid_source_above_the_common_profile_instead_of_downgrading_it(bool reverse)
     {
-        var legacy = comparison_profile_models.Legacy;
+        var legacy = comparison_profile_models.Migratable;
         var newer = comparison_profile_models.Golden(49);
         var exception = Assert.Throws<InvalidSemanticContract>(() => reverse
             ? round_trip_model_comparison.Compare(newer, legacy)

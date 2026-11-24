@@ -14,11 +14,12 @@ public class and_an_explicit_destination_changes : Specification
     [Fact]
     void should_not_fill_in_a_missing_destination_already_declared_at_the_common_profile()
     {
-        var legacy = comparison_profile_models.Legacy;
+        var legacy = comparison_profile_models.Migratable;
         var profile = round_trip_model_profile.Common;
-        var higher = ExecutableSemanticModel.Create(profile.Language, profile.Semantic, comparison_profile_models.Calendar(legacy).Application);
+        var application = comparison_profile_models.Commands(comparison_profile_models.Calendar(legacy).Application, command => command with { Destination = null });
+        var higher = ExecutableSemanticModel.Create(profile.Language, profile.Semantic, application);
 
-        legacy.SemanticVersion.ShouldEqual(SemanticVersion.V1);
+        legacy.SemanticVersion.ShouldEqual(SemanticVersion.V7);
         higher.SemanticVersion.ShouldEqual(SemanticVersion.V48);
         Assert.All(comparison_profile_models.Commands(higher), command => Assert.Null(command.Destination));
         var comparison = round_trip_model_comparison.Compare(legacy, higher);
@@ -29,7 +30,7 @@ public class and_an_explicit_destination_changes : Specification
     [Fact]
     void should_preserve_an_explicit_destination()
     {
-        var model = comparison_profile_models.Explicit(comparison_profile_models.Legacy);
+        var model = comparison_profile_models.Migratable;
         var converted = round_trip_model_profile.Convert(model);
 
         comparison_profile_models.Commands(converted).Single().Destination.ShouldEqual(comparison_profile_models.Commands(model).Single().Destination);

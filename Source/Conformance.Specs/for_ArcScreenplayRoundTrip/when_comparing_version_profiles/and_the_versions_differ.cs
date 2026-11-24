@@ -21,22 +21,22 @@ public class and_the_versions_differ : Specification
 
     void Establish()
     {
-        _legacy = comparison_profile_models.Legacy;
-        _explicit = comparison_profile_models.Explicit(_legacy);
+        _legacy = comparison_profile_models.Migratable;
+        _explicit = comparison_profile_models.Calendar(_legacy);
         _original = SemanticModelSerializer.Serialize(_legacy);
     }
 
     void Because() => _comparison = round_trip_model_comparison.Compare(_legacy, _explicit);
 
-    [Fact] void should_compare_the_effective_destination_in_nested_features() => _comparison.IsEquivalent.ShouldBeTrue();
+    [Fact] void should_compare_semantically_safe_response_contracts() => _comparison.IsEquivalent.ShouldBeTrue();
     [Fact] void should_work_with_either_side_as_the_higher_version() => round_trip_model_comparison.Compare(_explicit, _legacy).IsEquivalent.ShouldBeTrue();
     [Fact]
     void should_leave_the_general_comparer_version_strict()
     {
-        _legacy.LanguageVersion.ShouldEqual(LanguageVersion.V1);
-        _legacy.SemanticVersion.ShouldEqual(SemanticVersion.V1);
-        _explicit.LanguageVersion.ShouldEqual(LanguageVersion.V2);
-        _explicit.SemanticVersion.ShouldEqual(SemanticVersion.V2);
+        _legacy.LanguageVersion.ShouldEqual(LanguageVersion.V7);
+        _legacy.SemanticVersion.ShouldEqual(SemanticVersion.V7);
+        _explicit.LanguageVersion.ShouldEqual(LanguageVersion.V37);
+        _explicit.SemanticVersion.ShouldEqual(SemanticVersion.V37);
 
         var comparison = SemanticModelEquivalence.Compare(_legacy, _explicit);
         comparison.IsEquivalent.ShouldBeFalse();
@@ -46,11 +46,14 @@ public class and_the_versions_differ : Specification
     [Fact] void should_leave_the_raw_model_unchanged() => Assert.Equal(_original, SemanticModelSerializer.Serialize(_legacy));
 
     [Fact]
-    void should_compare_historical_projection_and_specification_serialization_defaults()
+    void should_refuse_historical_defaults_when_their_execution_meaning_is_unproven()
     {
         var legacy = SemanticModelSerializer.Deserialize(RegisterProjectCorpus.LegacyV1.EsmBytes.AsSpan());
         var current = comparison_profile_models.Calendar(comparison_profile_models.Explicit(legacy));
-        round_trip_model_comparison.Compare(legacy, current).IsEquivalent.ShouldBeTrue();
+        Assert.Throws<InvalidSemanticContract>(() => round_trip_model_profile.Convert(legacy));
+        var comparison = round_trip_model_comparison.Compare(legacy, current);
+        comparison.IsEquivalent.ShouldBeFalse();
+        Assert.Contains(comparison.Differences, difference => difference.Path.Contains("version-meaning-unproven[V1 occurrence identity/context]", StringComparison.Ordinal));
     }
 
     [Fact]

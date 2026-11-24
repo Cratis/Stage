@@ -20,9 +20,11 @@ public class and_a_source_contract_is_invalid : Specification
     [InlineData("future", true)]
     void should_fail_conversion_on_either_side(string invalidity, bool reverse)
     {
-        var valid = comparison_profile_models.Legacy;
+        var valid = comparison_profile_models.Migratable;
         var application = invalidity == "graph" ? valid.Application with { Modules = [valid.Application.Modules[0], valid.Application.Modules[0]] } : valid.Application;
-        var language = invalidity == "future" ? new LanguageVersion(999, 0) : valid.LanguageVersion;
+        var language = valid.LanguageVersion;
+        if (invalidity == "pair") language = LanguageVersion.V1;
+        if (invalidity == "future") language = new LanguageVersion(999, 0);
         var semantic = invalidity switch { "pair" => SemanticVersion.V2, "future" => new SemanticVersion(999, 0), _ => valid.SemanticVersion };
         var invalid = comparison_profile_models.Unchecked(valid, language, semantic, application);
 

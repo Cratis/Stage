@@ -16,8 +16,8 @@ public class and_the_time_zone_is_implicit : Specification
 
     void Establish()
     {
-        _legacy = comparison_profile_models.Legacy;
-        _utc = comparison_profile_models.Calendar(comparison_profile_models.Explicit(_legacy));
+        _legacy = comparison_profile_models.Migratable;
+        _utc = comparison_profile_models.Calendar(_legacy);
     }
 
     [Fact] void should_equal_the_nonconfigurable_utc_default() => round_trip_model_comparison.Compare(_legacy, _utc).IsEquivalent.ShouldBeTrue();
@@ -26,7 +26,7 @@ public class and_the_time_zone_is_implicit : Specification
     [InlineData("Europe/Oslo", false)]
     [InlineData("UTC", true)]
     void should_not_erase_a_real_zone_or_configurability_change(string zone, bool configurable) =>
-        round_trip_model_comparison.Compare(_legacy, comparison_profile_models.Calendar(comparison_profile_models.Explicit(_legacy), zone, configurable)).IsEquivalent.ShouldBeFalse();
+        round_trip_model_comparison.Compare(_legacy, comparison_profile_models.Calendar(_legacy, zone, configurable)).IsEquivalent.ShouldBeFalse();
 
     [Fact]
     void should_not_erase_context_members()

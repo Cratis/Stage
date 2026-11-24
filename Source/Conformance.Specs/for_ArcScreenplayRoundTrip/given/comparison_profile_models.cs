@@ -35,6 +35,8 @@ internal static class comparison_profile_models
         }
     }
 
+    public static ExecutableSemanticModel Migratable => meaning_gate_models.WithoutEvents(meaning_gate_models.Response());
+
     public static ExecutableSemanticModel Golden(int version) => SemanticModelSerializer.Deserialize(EsmGoldenVectors.Get(version).Bytes.AsSpan());
 
     // Deliberately malformed input for source-revalidation specs only; production conversion must reject it before promotion.

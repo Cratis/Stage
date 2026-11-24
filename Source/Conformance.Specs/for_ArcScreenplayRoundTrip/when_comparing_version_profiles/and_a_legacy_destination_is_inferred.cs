@@ -28,7 +28,7 @@ public class and_a_legacy_destination_is_inferred : Specification
     [Fact]
     void should_preserve_the_generated_identifier_null_production_exception()
     {
-        var original = SemanticModelSerializer.Deserialize(RegisterProjectCorpus.V7.EsmBytes.AsSpan());
+        var original = comparison_profile_models.Calendar(SemanticModelSerializer.Deserialize(RegisterProjectCorpus.V7.EsmBytes.AsSpan()));
         var application = comparison_profile_models.Commands(original.Application, command => command with
         {
             Destination = null,

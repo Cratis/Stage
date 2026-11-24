@@ -56,7 +56,9 @@ public class with_the_default_composition : a_register_project_render_request
     // Recomputed for Cratis/Stage#1147: the Scene 6.0.1 pins of the Stage runtime and the scaffold, and the Screenplay 6.32.0 pins.
     // Recomputed after merging main into the #970 train: the #970 Program.cs change on top of the #1147 pins.
     // Recomputed for Screenplay 6.33.0 (Cratis/Stage#1052): only the Screenplay pins in Directory.Packages.props and the scaffold catalog change.
-    const string Before = "00e3dca2b7ed6a1e634b3f91361041d705c0be02b8828206fc9c4030f208ce46";
+    // Before #1146's dependency sync and Arc#3975: 00e3dca2b7ed6a1e634b3f91361041d705c0be02b8828206fc9c4030f208ce46.
+    // Only the Arc/Fundamentals/Choreography/Chronicle pins, target version, telemetry pin and Program.cs availability order change; no scoped-UI behavior changes.
+    const string Before = "fa5a12629b596ac4cbd5718d2eb5e0f9b6747f6bd19bb427bf462d90c9ea46d7";
 
     ArtifactRenderPlan _plan = null!;
 

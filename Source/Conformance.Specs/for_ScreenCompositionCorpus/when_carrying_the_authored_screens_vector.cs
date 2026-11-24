@@ -138,7 +138,8 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     // Re-frozen for Screenplay 6 and Scene 5: only the scene and the WorkItemList screen fragment change.
     // Re-frozen for Scene 5.1.0: only the scene and the WorkItemList screen fragment change (the icon-only toolbar item).
     // Re-frozen for Cratis/Stage#970: only Program.cs gains the Diagnostics import and defaults event-source id tracing to Omitted.
-    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("f76576fe7db9fd2f8251663cb3be353e71238602983d72c299fd0de889fb17e5");
+    // Before Arc#3975: f76576fe7db9fd2f8251663cb3be353e71238602983d72c299fd0de889fb17e5; only Program.cs moves availability registration before AddCratis.
+    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("2fc2795fcecedf79347132c6020d454559c1cb71514d08386cb7fd82af66dfe2");
 
     // The #209 restoration removed 34 details bytes and 273 list bytes on Scene 4.86.0.
     // Train 11 adds the authored submit navigation: details 9773 -> 9929; list 6402 -> 6555; comments is unchanged.
@@ -149,7 +150,9 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
         Workspaces/Tracking/WorkItemList/Screens.scene.json ae527ba9604dad7cb784ab3fbd63fe05b81290ec07f9058c986224811947edb6 5687
         """);
 
+    // Restore only Arc#3975's exact Program.cs host-order change; the older Common/using-only assertion stays unchanged.
     static IEnumerable<PlannedArtifact> Legacy(IEnumerable<PlannedArtifact> artifacts) => SeparateSpecificationsLayout.RestoreWithLicenseHeader(artifacts, ApplicationName, ApplicationName)
+        .Select(artifact => AvailabilityRegistrationOrder.Restore(artifact, ApplicationName))
         .Select(artifact => artifact.Kind == PlannedArtifactKind.Text
             ? PlannedArtifact.CreateText(
                 artifact.RelativePath,

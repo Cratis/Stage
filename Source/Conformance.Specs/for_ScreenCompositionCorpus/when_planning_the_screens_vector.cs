@@ -38,8 +38,10 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     // Re-frozen for Cratis/Stage#926: the scaffold hosts an Orleans silo (Program.cs, Directory.Packages.props, the project).
     // Re-frozen for Choreography 2.2.0 with Chronicle 19.124.0 and Arc 22.165.2: the scaffold uses the renamed hosting APIs.
     // Re-frozen for Cratis/Stage#970: only Program.cs gains the Diagnostics import and defaults event-source id tracing to Omitted.
-    const string Digest = "d6b8bce04fc560a9874025396f79aa9e02d516a1f13605398ded17610eb3a03a";
+    // Before Arc#3975: d6b8bce04fc560a9874025396f79aa9e02d516a1f13605398ded17610eb3a03a; only Program.cs moves availability registration before AddCratis.
+    const string Digest = "355a5e3b124243dad665aca4898204d43b321e1ff474b7a53b3205fe237e71c0";
 
+    // Arc#3975 changes only Program.cs: before 502d23cf522c85ee2e4bd302bbe604112ed3f65614c814a52f127a251d8456c1, 2183 bytes.
     const string Manifest = """
         .editorconfig 0071ecdc7a762e5966d5f6e6c72cc6b53d96c918c2e32dbe74059ffbc792859f 741
         .frontend/index.css c43098e7d8431ead00fe49644e97b14cbdb4e97a994850e810acb8a801bc24b2 436
@@ -63,7 +65,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         GeneratedPolicyRegistration.cs 7962c40dc5f71ab971cf01ae185b06e584594e03161c3db0fed18363ca166100 593
         GeneratedProvideRegistration.cs 555e9abc6df7e08445cec29299a70dcbad34b5409f9dd28254d1527c918862f3 598
         GlobalUsings.cs 74b2438fda9d5bc192e6fcd6b44837b6129b532faa99555d77013f62f1ec3f8e 137
-        Program.cs 502d23cf522c85ee2e4bd302bbe604112ed3f65614c814a52f127a251d8456c1 2183
+        Program.cs d19bf1f55d094e7975f4795ed0165cc0edfdffdd87d2fa50725197a2b6cf5ff3 2281
         README.md aa64c1ef6846ab9796feb390c9aa112864126aaac54c9c81c0e50fea02d38e74 2392
         Workspaces.csproj 9eb3a11850e8a7c4a6810367e622c7658dfcf7220bf8bb211d20024cfd30ec8b 2992
         Workspaces.slnx f74d3ddcde0097a4bdb2ce376128f76d0ed516c309d01f273f9b92c394ba2166 62
@@ -221,7 +223,9 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
 
     static string[] Pinned(string manifest) => [.. manifest.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(line => line.Trim())];
 
+    // Restore only Arc#3975's exact Program.cs host-order change when proving the older Common/using and runtime-only boundaries.
     static IEnumerable<PlannedArtifact> Legacy(IEnumerable<PlannedArtifact> artifacts) => SeparateSpecificationsLayout.RestoreWithLicenseHeader(artifacts, ApplicationName, ApplicationName)
+        .Select(artifact => AvailabilityRegistrationOrder.Restore(artifact, ApplicationName))
         .Select(artifact => artifact.Kind == PlannedArtifactKind.Text
             ? PlannedArtifact.CreateText(
                 artifact.RelativePath,

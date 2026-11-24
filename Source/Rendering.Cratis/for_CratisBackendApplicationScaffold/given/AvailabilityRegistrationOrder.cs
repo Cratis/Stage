@@ -15,6 +15,10 @@ internal static class AvailabilityRegistrationOrder
             ? CratisArtifactRenderInput.CreateText("Program.cs", input.Version, RestoreProgram(Encoding.UTF8.GetString(input.Bytes.AsSpan()), rootNamespace))
             : input)];
 
+    internal static PlannedArtifact Restore(PlannedArtifact artifact, string rootNamespace) => artifact.RelativePath == "Program.cs"
+        ? PlannedArtifact.CreateText(artifact.RelativePath, RestoreProgram(Encoding.UTF8.GetString(artifact.Bytes.AsSpan()), rootNamespace), artifact.Sources)
+        : artifact;
+
     static string RestoreProgram(string text, string rootNamespace)
     {
         var registration = $"{rootNamespace}.GeneratedAvailability.Registration.Register(builder);\n";

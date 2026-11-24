@@ -2,9 +2,11 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #if DEBUG
+using System.Collections.Immutable;
 using System.Security.Cryptography;
 using System.Text;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
+using Cratis.Stage.Rendering.Cratis.for_CratisBackendApplicationScaffold.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
@@ -79,14 +81,18 @@ public class when_preserving_inventory_fixture_bytes
         var plan = new CratisArtifactRenderPlanner().Plan(request);
         Assert.True(plan.Success, string.Join('\n', plan.Diagnostics));
 
+        // Arc#3975 intentionally moves availability registration before AddCratis in Program.cs. Undo only that exact host change,
+        // retaining every historical C# digest and the inventory-only guarantee rather than accepting unrelated byte changes.
+        var historical = plan.Artifacts.Select(artifact => AvailabilityRegistrationOrder.Restore(artifact, options.RootNamespace)).ToImmutableArray();
+
         // Cratis/Stage#850 made typed-context names readable; restoring the hashed spelling proves the names were the only change.
         var context = new Semantics.SemanticApplicationContext(request, options);
         if (_oldDigests.TryGetValue(name, out var oldDigest))
         {
-            var inverse = SharedValidationBodies.Restore(plan.Artifacts, context);
+            var inverse = SharedValidationBodies.Restore(historical, context);
             Assert.Equal(oldDigest, Digest(HashedHelperNames.Restore(inverse, context)));
         }
-        Assert.Equal(_digests[name], Digest(HashedHelperNames.Restore(plan.Artifacts, context)));
+        Assert.Equal(_digests[name], Digest(HashedHelperNames.Restore(historical, context)));
     }
 
     static string Digest(IEnumerable<Contracts.Rendering.PlannedArtifact> artifacts)

@@ -117,7 +117,7 @@ internal static class SemanticDependencyReferences
         SemanticProjectionJoinRemoval:EventContract Key
         SemanticProjectionValueKey:Value
         SemanticProjectionMapping:Source Target Factor
-        SemanticGraphProjection:Nodes Edges
+        SemanticGraphProjection:Nodes Edges DeclaringSlice
         SemanticGraphElementHandlers:Handlers
         SemanticGraphHandler:Event Mappings Key Source Target Identity ForEach
         SemanticGraphMapping:Source Factor

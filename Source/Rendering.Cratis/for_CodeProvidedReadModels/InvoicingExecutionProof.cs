@@ -76,7 +76,7 @@ internal static class InvoicingExecutionProof
                 var builder = Host.CreateApplicationBuilder();
                 builder.Environment.EnvironmentName = "Testing";
                 builder.AddBackend();
-                var currentPrincipal = new CurrentPrincipalAccessor();
+                var currentPrincipal = new CurrentPrincipalAccessor(Substitute.For<global::Cratis.Arc.Http.IHttpRequestContextAccessor>());
                 principal = currentPrincipal;
                 var reads = Substitute.For<ICurrentPrincipalAccessor>();
                 reads.Current.Returns(_ => currentPrincipal.Current);

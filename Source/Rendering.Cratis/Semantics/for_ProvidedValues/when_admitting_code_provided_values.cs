@@ -20,7 +20,7 @@ public class when_admitting_code_provided_values : Specification
     [InlineData("Int", "return 42;")]
     [InlineData("Uuid", "return global::System.Guid.Empty;")]
     [InlineData("Vessel optional", "return null;")]
-    [InlineData("Vessel", "return new global::Fleet.Fleet.Vessels.Vessels.Vessel(global::System.Guid.Empty, \"Aurora\");")]
+    [InlineData("Vessel", "return new global::Fleet.Fleet.Vessels.Vessels.Vessel(string.Empty, \"Aurora\");")]
     void should_admit_a_supported_body(string type, string body) => a_code_provided_model.AssertSuccess(a_code_provided_model.Plan(body, type));
 
     [Theory]

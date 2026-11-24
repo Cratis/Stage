@@ -4,6 +4,7 @@
 #if DEBUG
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
+using Cratis.Stage.Rendering.Cratis.Scaffolding;
 using Cratis.Stage.Rendering.Cratis.Semantics.for_ProvidedValues.given;
 using Xunit;
 
@@ -21,6 +22,13 @@ public class when_building_code_provided_values : a_generated_application
 
     async Task Because()
     {
+        AddGeneratedHostSupport("Dependencies.props", $"""
+            <Project>
+              <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+                <PackageReference Include="Cratis.Arc.Availability" VersionOverride="{ScaffoldPackageVersions.ArcAvailability}" />
+              </ItemGroup>
+            </Project>
+            """);
         AddGeneratedHostSupport("ProviderProbe.cs", """
             namespace Fleet;
             public static class ProviderProbe
@@ -57,7 +65,7 @@ public class when_building_code_provided_values : a_generated_application
             async Task should_share_dependencies_only_within_one_invocation_and_preserve_the_context()
             {
                 ProviderProbe.Calls = 0;
-                var principal = new CurrentPrincipalAccessor();
+                var principal = new CurrentPrincipalAccessor(Substitute.For<global::Cratis.Arc.Http.IHttpRequestContextAccessor>());
                 using var identity = principal.BeginScope(new ClaimsPrincipal(new ClaimsIdentity(new[] {
                     new Claim(ClaimTypes.NameIdentifier, "alice"), new Claim("scope", "invoices"), new Claim(ClaimTypes.Role, "editor") }, "proof")));
                 var services = new ServiceCollection().AddSingleton<ICurrentPrincipalAccessor>(principal).BuildServiceProvider();

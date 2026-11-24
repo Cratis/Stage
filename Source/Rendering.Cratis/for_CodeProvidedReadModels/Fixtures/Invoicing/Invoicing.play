@@ -33,7 +33,7 @@ module Billing
     ```
   provide preview Invoice optional
     ```csharp
-    return new global::Invoicing.Billing.Invoices.ListingInvoices.Invoice(global::System.Guid.Empty, 50000L);
+    return new global::Invoicing.Billing.Invoices.ListingInvoices.Invoice(string.Empty, 50000L);
     ```
   provide missingOptional Invoice optional
     ```csharp
@@ -47,7 +47,7 @@ module Billing
   feature Invoices
     slice StateChange IssuingInvoice
       command IssueInvoice
-        available when $context.arguments.amount <= $context.creditCeiling and $context.reminderDays == 14
+        available when $context.creditCeiling == 50000 and $context.reminderDays == 14 and $context.arguments.amount <= 50000
         invoiceId Uuid identifier
         amount Int
         produces InvoiceIssued

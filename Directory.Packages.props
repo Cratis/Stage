@@ -10,18 +10,18 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Cratis -->
-    <PackageVersion Include="Cratis" Version="23.8.0" />
-    <PackageVersion Include="Cratis.Fundamentals" Version="7.34.0" />
-    <PackageVersion Include="Cratis.Arc" Version="23.8.0" />
-    <PackageVersion Include="Cratis.Arc.Chronicle" Version="23.8.0" />
-    <PackageVersion Include="Cratis.Arc.Availability" Version="23.8.0" />
-    <PackageVersion Include="Cratis.Arc.Chronicle.Testing" Version="23.8.0" />
-    <PackageVersion Include="Cratis.Arc.MongoDB" Version="23.8.0" />
-    <PackageVersion Include="Cratis.Arc.Neo4j" Version="23.8.0" />
-    <PackageVersion Include="Cratis.Arc.Neo4j.Chronicle" Version="23.8.0" />
-    <PackageVersion Include="Cratis.Arc.Screenplay" Version="23.8.0" />
-    <PackageVersion Include="Cratis.Arc.Swagger" Version="23.8.0" />
-    <PackageVersion Include="Cratis.Arc.Testing" Version="23.8.0" />
+    <PackageVersion Include="Cratis" Version="23.21.0" />
+    <PackageVersion Include="Cratis.Fundamentals" Version="7.34.3" />
+    <PackageVersion Include="Cratis.Arc" Version="23.21.0" />
+    <PackageVersion Include="Cratis.Arc.Chronicle" Version="23.21.0" />
+    <PackageVersion Include="Cratis.Arc.Availability" Version="23.21.0" />
+    <PackageVersion Include="Cratis.Arc.Chronicle.Testing" Version="23.21.0" />
+    <PackageVersion Include="Cratis.Arc.MongoDB" Version="23.21.0" />
+    <PackageVersion Include="Cratis.Arc.Neo4j" Version="23.21.0" />
+    <PackageVersion Include="Cratis.Arc.Neo4j.Chronicle" Version="23.21.0" />
+    <PackageVersion Include="Cratis.Arc.Screenplay" Version="23.21.0" />
+    <PackageVersion Include="Cratis.Arc.Swagger" Version="23.21.0" />
+    <PackageVersion Include="Cratis.Arc.Testing" Version="23.21.0" />
     <PackageVersion Include="Cratis.Showrunner.Notes" Version="1.14.0" />
     <!--
         The Chronicle client packages are pinned here AND referenced directly from Stage and Host - central package
@@ -33,21 +33,22 @@
     -->
     <!-- The Orleans silo hosted by the Stage runtime and by every rendered application. Cratis.Choreography.Chronicle requires the Chronicle client pinned below. -->
     <PackageVersion Include="Grpc.AspNetCore" Version="2.83.0" />
-    <PackageVersion Include="Cratis.Choreography" Version="2.9.0" />
-    <PackageVersion Include="Cratis.Choreography.Chronicle" Version="2.9.0" />
-    <PackageVersion Include="Cratis.Chronicle" Version="19.162.0" />
+    <PackageVersion Include="Cratis.Choreography" Version="2.10.0" />
+    <PackageVersion Include="Cratis.Choreography.Chronicle" Version="2.10.0" />
+    <PackageVersion Include="Cratis.Chronicle" Version="19.182.2" />
     <!-- Only the multi-service repository scaffold emits this pin (Stage references no Aspire package). It matches the Aspire version of Chronicle and Studio. -->
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.6.5" />
-    <PackageVersion Include="Cratis.Chronicle.AspNetCore" Version="19.162.0" />
-    <PackageVersion Include="Cratis.Chronicle.Contracts" Version="19.162.0" />
-    <PackageVersion Include="Cratis.Chronicle.Testing" Version="19.162.0" />
+    <PackageVersion Include="Cratis.Chronicle.AspNetCore" Version="19.182.2" />
+    <PackageVersion Include="Cratis.Chronicle.Contracts" Version="19.182.2" />
+    <PackageVersion Include="Cratis.Chronicle.Testing" Version="19.182.2" />
     <!--
         Cratis.Chronicle.Testing 19.114.0 bundles Cratis.Chronicle.Core and Cratis.Chronicle.Grpc, which are built against
         Microsoft.Extensions.Telemetry.Abstractions 10.11.0, but the package does not declare that dependency. Without this
         pin the Arc packages resolve 10.10.0 and the in-process kernel fails to load the assembly when a command runs.
+        Arc 23.21.0 brings Microsoft.Extensions.Telemetry 10.11.1, so the pin must be at least 10.11.1.
         Remove it once Cratis.Chronicle.Testing declares the dependency itself.
     -->
-    <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="10.11.0" />
+    <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="10.11.1" />
     <PackageVersion Include="MongoDB.Driver" Version="3.13.0" />
     <!-- Referenced only by an application rendered with onboarding; Stage itself does not reference them. -->
     <PackageVersion Include="Cratis.Ante.Contracts" Version="1.7.0" />

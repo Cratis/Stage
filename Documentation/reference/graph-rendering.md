@@ -6,7 +6,7 @@ description: Stage renders Screenplay graph declarations and projections as Chro
 A Screenplay `graph` declares a property graph, and a `projection ... => graph` builds it from events. Stage renders both for the ESM v38 pair as the model-bound graph types of Chronicle's graph projection API, and connects the generated host to Neo4j. This page describes what is rendered, what is refused and why, and the one piece that waits for a Chronicle release.
 
 > [!NOTE]
-> Graph rendering needs a Chronicle client that carries the graph API (`[Node]`, `[Edge]`, `GraphScenario`), which ships from Chronicle 19.129.0. Stage pins that release, so a model that declares a graph renders. A Stage pinned to an older Chronicle refuses it with `STAGE-ESM-063`.
+> Graph rendering needs a Chronicle client that carries the graph API (`[Node]`, `[Edge]`, `GraphScenario`), which ships from Chronicle 19.129.0. Seeding a graph specification also needs `GraphScenario.SeedNode` and `SeedEdge`, available from Chronicle 19.147.0. Stage pins a release that includes both APIs. A Stage pinned to a Chronicle older than 19.129.0 refuses graphs with `STAGE-ESM-063`.
 
 ## What is rendered
 
@@ -23,7 +23,8 @@ For the [Organization sample](https://github.com/Cratis/Screenplay/tree/main/Sam
 | `remove with E source ... target ...` on an edge | `[EdgeRemovedWith<E>(sourceKey: ..., targetKey: ...)]` |
 | `identified by assignmentId` | The identifying property is the edge's `[Key]`, and every handler passes `identity:` |
 | `set`, `add`, `subtract`, `increment`, `decrement` mappings | `[SetFrom<E>]`, `[SetFromContext<E>]`, `[SetValue<E>]`, `[AddFrom<E>]`, `[SubtractFrom<E>]`, `[Increment<E>]` and `[Decrement<E>]` on the property |
-| `then graph` | `Graphs/Specifications/when_<name>_is_graphed.cs`: a specification that appends the events to a `GraphScenario`, reads each node and edge back and asserts it |
+| `given graph` | `SeedNode` and `SeedEdge` calls in the generated specification's `Establish()`, including declared node keys and identified-edge identity properties, before any events are appended |
+| `then graph` | `Graphs/Specifications/when_<name>_is_graphed.cs`: a specification that seeds the initial graph, appends any events to a `GraphScenario`, reads each node and edge back and asserts it |
 
 The attributes are Chronicle's own, so the engine behaves as it does for a hand-written graph. A node's key and an edge's identity are said once by the handler and are not mapped a second time. The fluent `IGraphProjection` is never needed: every construct is either expressible with attributes or refused.
 
@@ -49,7 +50,7 @@ A graph construct that cannot be expressed is refused with a named diagnostic. I
 | --- | --- |
 | `STAGE-ESM-063` | The model declares a graph, graph projection or graph specification, and the pinned Chronicle client does not carry the graph API yet. The whole graph is refused. |
 | `STAGE-ESM-062` | A graph construct Chronicle's model-bound API cannot express: a node label that is not a PascalCase identifier (the label is the record's name), two elements that render to one record, an edge identified by a property it does not declare, a mapping with a factor (`add x by a * b`), a `clear` mapping, a literal that is not a text, boolean or whole-number constant, a key read from something other than an event property, the event source or a literal, an event handled twice by one element, or an element built by two projections. |
-| `STAGE-ESM-064` | A graph specification the generated `GraphScenario` cannot express. A specification that seeds a graph with `given graph` is omitted with this code as a degradation warning (`STAGE-DEGRADE-002`), because the scenario builds a graph only from appended events; a `Strict` plan fails acceptance on it. Other malformed graph specifications are errors. |
+| `STAGE-ESM-064` | A malformed graph specification the generated `GraphScenario` cannot express. Valid `given graph` seeds are rendered, including in `Strict` plans, without a degradation warning. |
 | `STAGE-ESM-065` | The live runtime (Play) registers each graph and its projection with the kernel it runs against, and the kernel's graph sink projects them (Neo4j by default, `Stage__Graph__SinkType=InMemoryGraph` for a kernel with no Neo4j). It does not read a graph back, and reports that as a non-blocking note on admission; graph specifications are decided by Screenplay's reference graph runner. |
 | `STAGE-ESM-066` | A scoped plan leaves out the graphs of the application. Graphs render with the application scope. |
 | `STAGE-ESM-068` | The model declares a query that reads a graph (`query ... graph <Graph>`, ESM v40), or one that collects nested rows (ESM v54). The sandbox runs both, as described in [Graph queries in the sandbox](#graph-queries-in-the-sandbox); the renderer does not render a graph query yet, so rendering refuses the model rather than leave the query without an endpoint. The message says when the query collects. |
@@ -86,7 +87,9 @@ A condition whose argument the caller leaves out is left out of the query, as it
 
 ## Verifying graph specifications
 
-The specification executor runs `given graph` and `then graph` specifications with Screenplay's reference graph runner, which applies the five graph operations (upsert node, set properties, delete node, upsert edge, delete edge) to an in-memory property graph. The results are reported with the slice kind `Graph` and are selected with the slice that owns them, or with any module, feature or application scope that contains it.
+Generated specifications seed `given graph` nodes and edges through Chronicle's `GraphScenario.SeedNode` and `SeedEdge` APIs during `Establish()`. Seeds include the declared key or identity property as well as the other supplied properties. The scenario then appends the given events followed by the `when append` event, if present, and reads back the `then graph` assertions. A specification with no events reads back its seeded state directly.
+
+The specification executor separately runs `given graph` and `then graph` specifications with Screenplay's reference graph runner, which applies the five graph operations (upsert node, set properties, delete node, upsert edge, delete edge) to an in-memory property graph. The results are reported with the slice kind `Graph` and are selected with the slice that owns them, or with any module, feature or application scope that contains it.
 
 ## The Chronicle release gate
 

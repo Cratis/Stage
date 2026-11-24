@@ -32,6 +32,15 @@ public class when_running_seeded_graph_specifications : Specification
     [Fact] void should_keep_the_existing_unconditional_specifications() => _files.Where(file => file.RelativePath.StartsWith("Graphs/Specifications/", StringComparison.Ordinal)).ShouldEachConformTo(file => !file.Content.Contains("#if DEBUG", StringComparison.Ordinal));
     [Fact] async Task should_pass_seeded_and_event_only_assertions() => await Run(_files);
     [Fact] async Task should_pass_the_canonical_v38_assertions() => await Run(Files(new CratisArtifactRenderPlanner().Plan(a_seeded_graph_model.Request())));
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    async Task should_preserve_declared_seed_keys(bool repeatKeys)
+    {
+        var request = a_seeded_graph_model.Request(a_seeded_graph_model.WithDeclaredKeys(repeatKeys));
+        await Run(Files(new CratisArtifactRenderPlanner().Plan(request)));
+    }
+
     [Fact]
     async Task should_fail_when_a_seeded_property_is_changed()
     {

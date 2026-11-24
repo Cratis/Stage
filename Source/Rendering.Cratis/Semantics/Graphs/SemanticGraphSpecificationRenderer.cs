@@ -84,19 +84,26 @@ internal static class SemanticGraphSpecificationRenderer
         if (element.IsNode)
         {
             var node = Node(graph, element.Name);
-            return $"_scenario.SeedNode({CSharpCodeBuilder.StringLiteral(node.Label)}, {KeyValue(element.Key, SemanticGraphArtifactRenderer.KeyOf(node).Type, types)}, {SeedProperties(element, node.Properties, types)})";
+            return $"_scenario.SeedNode({CSharpCodeBuilder.StringLiteral(node.Label)}, {KeyValue(element.Key, SemanticGraphArtifactRenderer.KeyOf(node).Type, types)}, {SeedProperties(element, node.Properties, types, SemanticGraphArtifactRenderer.KeyOf(node).Name)})";
         }
 
         var edge = Edge(graph, element.Name);
         var source = KeyValue(element.Key, SemanticGraphArtifactRenderer.KeyOf(Node(graph, edge.Source)).Type, types);
         var target = KeyValue(element.Target!, SemanticGraphArtifactRenderer.KeyOf(Node(graph, edge.Target)).Type, types);
         var identity = element.Identity is null ? "null" : KeyValue(element.Identity, edge.Properties.Single(property => string.Equals(property.Name, edge.IdentifiedBy, StringComparison.Ordinal)).Type, types);
-        return $"_scenario.SeedEdge({CSharpCodeBuilder.StringLiteral(edge.Type)}, {source}, {target}, {identity}, {SeedProperties(element, edge.Properties, types)})";
+        return $"_scenario.SeedEdge({CSharpCodeBuilder.StringLiteral(edge.Type)}, {source}, {target}, {identity}, {SeedProperties(element, edge.Properties, types, edge.IdentifiedBy)})";
     }
 
-    static string SeedProperties(SemanticGraphElementStep element, ImmutableArray<SemanticGraphProperty> properties, SemanticTypeSystem types)
+    static string SeedProperties(SemanticGraphElementStep element, ImmutableArray<SemanticGraphProperty> properties, SemanticTypeSystem types, string? keyProperty)
     {
-        var entries = element.Values.Select(value =>
+        var values = element.Values.Select(value => (value.Property, value.Value));
+        if (keyProperty is not null)
+        {
+            values = values.Where(value => !string.Equals(value.Property, keyProperty, StringComparison.Ordinal))
+                .Prepend((keyProperty, element.IsNode ? element.Key : element.Identity!));
+        }
+
+        var entries = values.Select(value =>
         {
             var property = properties.Single(candidate => string.Equals(candidate.Name, value.Property, StringComparison.Ordinal));
             var member = SemanticGraphNaming.Property(property.Name);

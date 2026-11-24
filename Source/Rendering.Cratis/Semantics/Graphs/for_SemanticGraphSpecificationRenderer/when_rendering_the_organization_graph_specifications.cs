@@ -16,13 +16,13 @@ public class when_rendering_the_organization_graph_specifications : Specificatio
     void Because()
     {
         var context = an_organization_graph_model.Context();
-        _files = [.. context.Application.GraphSpecifications.Where(specification => !SemanticGraphAdmission.IsSeeded(specification)).Select(specification => SemanticGraphSpecificationRenderer.Render(specification, context))];
+        _files = [.. context.Application.GraphSpecifications.Select(specification => SemanticGraphSpecificationRenderer.Render(specification, context))];
     }
 
     string Content(string name) => _files.Single(file => file.RelativePath.EndsWith($"{name}.cs", StringComparison.Ordinal)).Content;
 
-    [Fact] void should_render_a_specification_per_unseeded_graph_specification() => _files.Length.ShouldEqual(2);
-    [Fact] void should_leave_the_seeded_specification_to_the_degradation() => _files.ShouldEachConformTo(file => !file.RelativePath.Contains("detaches", StringComparison.Ordinal));
+    [Fact] void should_render_a_specification_per_graph_specification() => _files.Length.ShouldEqual(3);
+    [Fact] void should_render_the_seeded_specification() => Content("when_removing_a_person_detaches_their_edges_is_graphed").ShouldContain("await _scenario.SeedNode(");
     [Fact] void should_compile_into_the_application_in_debug_only() => _files.ShouldEachConformTo(file => Path.GetFileName(file.RelativePath).StartsWith("when_", StringComparison.Ordinal));
     [Fact] void should_project_the_events_with_the_graph_scenario() => Content("when_adding_a_member_draws_an_edge_is_graphed").ShouldContain("readonly GraphScenario _scenario = new();");
     [Fact] void should_append_the_given_events_then_the_appended_one() => Content("when_adding_a_member_draws_an_edge_is_graphed").Split("_scenario.Append(", StringSplitOptions.None).Length.ShouldEqual(4);

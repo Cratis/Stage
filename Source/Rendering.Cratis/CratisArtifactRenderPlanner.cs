@@ -271,11 +271,8 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         if (request.Scope.Kind == ArtifactRenderScopeKind.Application && SemanticGraphAdmission.Declares(context.Application) && SemanticGraphAdmission.Check(context, ChronicleGraphSupport.PinnedClientAdmits).IsEmpty)
         {
             artifacts.AddRange(SemanticGraphArtifactRenderer.Render(context)
-                .Concat(context.Application.GraphSpecifications.Where(specification => !SemanticGraphAdmission.IsSeeded(specification)).Select(specification => SemanticGraphSpecificationRenderer.Render(specification, context)))
+                .Concat(context.Application.GraphSpecifications.Select(specification => SemanticGraphSpecificationRenderer.Render(specification, context)))
                 .Select(Artifact));
-            var omitted = SemanticGraphAdmission.Omitted(context);
-            diagnostics.AddRange(omitted.Select(degradation => degradation.Diagnostic));
-            context.Degradations.AddRange(omitted);
         }
 
         artifacts.AddRange(SemanticCratisAdmission.SelectedConstraints(context, slices)

@@ -4,7 +4,7 @@
   "corpusVersion": "6.38.1",
   "minimumFixtureCount": 29,
   "budget": {
-    "maximumEntries": 215,
+    "maximumEntries": 214,
     "maximumByDesign": 0,
     "maximumExclusions": 2
   },
@@ -1677,16 +1677,6 @@
         "SP0039"
       ],
       "issue": "Cratis/Arc#3547"
-    },
-    {
-      "fixture": "EsmGoldenVectors.V38",
-      "change": "diagnostic",
-      "path": "/diagnostics[STAGE-DEGRADE-002]",
-      "direction": "render",
-      "diagnostics": [
-        "STAGE-DEGRADE-002"
-      ],
-      "issue": "Cratis/Stage#1200"
     },
     {
       "fixture": "AcmeSecondAdmissionsCorpus.V30",

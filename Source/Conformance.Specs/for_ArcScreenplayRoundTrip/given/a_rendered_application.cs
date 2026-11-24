@@ -20,21 +20,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip.given;
 
 public abstract class a_rendered_application : Specification
 {
-    protected const string RoutedSource = """
-        concept AccountId : Uuid
-        eventsource Account
-          identifier AccountId
-          stream Transactions
-        module Banking
-          feature Deposits
-            slice StateChange Deposit
-              command Deposit
-                accountId AccountId identifier
-                amount Decimal
-                stream Account.Transactions
-                produces event Deposited
-                  amount Decimal = amount
-        """;
+    protected const string RoutedSource = round_trip_fixtures.RoutedSource;
 
     protected ExecutableSemanticModel _model = null!;
     protected Compilation _compilation = null!;
@@ -63,13 +49,13 @@ public abstract class a_rendered_application : Specification
 
     protected void Generate()
     {
-        GenerateSource();
+        GenerateSource(authoringOnlyConstructs: false);
         _recovered = Compile(_result.Source);
     }
 
     protected void GenerateAuthoring()
     {
-        GenerateSource();
+        GenerateSource(authoringOnlyConstructs: true);
         var compilation = new ScreenplayCompiler().Compile(_result.Source);
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
         _recoveredAuthoring = compilation.Value;
@@ -101,11 +87,15 @@ public abstract class a_rendered_application : Specification
         actual.Streams.Select(stream => (stream.Name, stream.StreamKind)).ShouldEqual(expected.Streams.Select(stream => (stream.Name, stream.StreamKind)));
     }
 
-    protected static string StoredNames(string sourceId, string streamId) => RoutedSource
-        .Replace("eventsource Account\n", $"eventsource Account\n  id \"{sourceId}\"\n", StringComparison.Ordinal)
-        .Replace("  stream Transactions\n", $"  stream Transactions\n    id \"{streamId}\"\n", StringComparison.Ordinal);
+    protected static void AssertRoundTripEquivalent(string fixture)
+    {
+        var verdict = arc_round_trip_ledger.Load().Reconcile([arc_round_trip.Run(round_trip_fixtures.Inline(fixture))], requireCompleteRun: false);
+        Assert.True(verdict.IsClean, arc_round_trip_ledger.Describe(verdict.Findings));
+    }
 
-    void GenerateSource() => _result = new ScreenplayGenerator().Generate(_compilation, new() { Domain = "Banking", Module = "Banking", AuthoringOnlyConstructs = true });
+    protected static string StoredNames(string sourceId, string streamId) => round_trip_fixtures.StoredNames(sourceId, streamId);
+
+    void GenerateSource(bool authoringOnlyConstructs) => _result = new ScreenplayGenerator().Generate(_compilation, new() { Domain = "Banking", Module = "Banking", AuthoringOnlyConstructs = authoringOnlyConstructs });
 
     static ExecutableSemanticModel Compile(string source)
     {

@@ -4,7 +4,7 @@
   "corpusVersion": "6.38.1",
   "minimumFixtureCount": 29,
   "budget": {
-    "maximumEntries": 275,
+    "maximumEntries": 274,
     "maximumByDesign": 0,
     "maximumExclusions": 2
   },

@@ -17,10 +17,13 @@ internal static class SemanticProvidedBodyRendering
     internal static string Name(SemanticProvidedValue value) => "StageProvide_" +
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(((SemanticCodeProvideSource)value.Source).Implementation + ":" + value.Name)))[..16];
 
-    internal static string ResultType(SemanticProvidedValue value, SemanticApplicationContext context) =>
-        (value.ReadModel is { } id
+    internal static string ResultType(SemanticProvidedValue value, SemanticApplicationContext context)
+    {
+        var type = value.ReadModel is { } id
             ? $"global::{SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(id).Path)}.{Identifiers.ToPascalCase(context.ReadModels[id].Name)}"
-            : new SemanticTypeSystem(context).Type(value.Type!)) + "?";
+            : new SemanticTypeSystem(context).Type(value.Type!);
+        return type.EndsWith('?') ? type : type + "?";
+    }
 
     internal static void RenderDeclared(CSharpCodeBuilder builder, IReadOnlyList<SemanticProvidedDeclaration> declarations, SemanticApplicationContext context)
     {

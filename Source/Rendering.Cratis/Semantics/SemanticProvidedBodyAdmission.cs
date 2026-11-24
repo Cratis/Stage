@@ -60,7 +60,13 @@ internal static class SemanticProvidedBodyAdmission
         {
             var compilation = SemanticBodyCompilation.Create(
                 "ProvidedBodyAnalysis",
-                new[] { SemanticBodyCompilation.ImplicitUsings, builder.ToString(), common }
+                new[]
+                {
+                    SemanticBodyCompilation.ImplicitUsings,
+                    builder.ToString(),
+                    common,
+                    $"using global::{context.CommonNamespace};\n{SemanticBodyDeclarations.Commands(context)}"
+                }
                     .Concat(models).Concat(SemanticBodyDeclarations.RealConcepts(context))
                     .Select(source => CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(Microsoft.CodeAnalysis.CSharp.LanguageVersion.Latest))),
                 [.. PureTransitionAdmission.AnalysisReferences(context.TargetFramework), SemanticGenerationBodyAdmission.FundamentalsReference, SemanticGenerationBodyAdmission.ChronicleReference, SemanticProvidedContextReferences.ForTargetFramework(context.TargetFramework)],

@@ -41,8 +41,8 @@ public class when_comparing_requirement_messages : Specification
 
     void Because()
     {
-        _equivalent = SemanticModelEquivalence.Compare(given.requirement_message_comparison.Project(_omitted), given.requirement_message_comparison.Project(_default));
-        _distinct = SemanticModelEquivalence.Compare(given.requirement_message_comparison.Project(_omitted), given.requirement_message_comparison.Project(_authored));
+        _equivalent = given.round_trip_model_comparison.Compare(given.requirement_message_comparison.Project(_omitted), given.requirement_message_comparison.Project(_default));
+        _distinct = given.round_trip_model_comparison.Compare(given.requirement_message_comparison.Project(_omitted), given.requirement_message_comparison.Project(_authored));
     }
 
     [Fact] void should_compare_an_omitted_message_equal_to_the_effective_default() => _equivalent.Differences.ShouldBeEmpty();

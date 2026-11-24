@@ -16,7 +16,7 @@ public class when_admitting_code_provided_values : Specification
     [InlineData("String", "return context.Identity.Id;")]
     [InlineData("String", "return context.Occurred.ToString();")]
     [InlineData("String", "return context.Arguments.Name;")]
-    [InlineData("Boolean", "return true;")]
+    [InlineData("Bool", "return true;")]
     [InlineData("Int", "return 42;")]
     [InlineData("Uuid", "return global::System.Guid.Empty;")]
     [InlineData("Vessel optional", "return null;")]

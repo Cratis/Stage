@@ -14,7 +14,7 @@ public class an_invoicing_extraction : a_generated_application
 {
     protected override ArtifactRenderPlan CreatePlan()
     {
-        var root = Path.Combine(AppContext.BaseDirectory, "for_CodeProvidedReadModels", "Fixtures", "Invoicing");
+        var root = FreshFixture();
         var compiled = SemanticModelLoader.LoadFromPathAsync(root, null, "Invoicing").GetAwaiter().GetResult();
         Assert.Empty(compiled.AttachmentDiagnostics);
         Assert.Contains(compiled.ImplementationContents.Values, body => body.Contains("return 50000;", StringComparison.Ordinal));
@@ -32,6 +32,34 @@ public class an_invoicing_extraction : a_generated_application
             TypedContextDescriptors = compiled.TypedContextDescriptors
         };
         return new CratisArtifactRenderPlanner().Plan(request);
+    }
+
+    static string FreshFixture()
+    {
+        DirectoryInfo? repository = new(AppContext.BaseDirectory);
+        while (repository is not null)
+        {
+            if (IsRepository(repository)) break;
+            repository = repository.Parent;
+        }
+
+        var root = repository?.FullName ?? throw new InvalidOperationException("Could not locate the fixture repository root.");
+        var destination = Path.Combine(root, ".ai-work", "1146", "invoicing-fixture-" + Guid.NewGuid().ToString("N"));
+        var source = Path.Combine(AppContext.BaseDirectory, "for_CodeProvidedReadModels", "Fixtures", "Invoicing");
+        foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
+        {
+            var target = Path.Combine(destination, Path.GetRelativePath(source, file));
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            File.Copy(file, target);
+        }
+
+        return destination;
+    }
+
+    static bool IsRepository(DirectoryInfo directory)
+    {
+        var git = Path.Combine(directory.FullName, ".git");
+        return File.Exists(git) || Directory.Exists(git);
     }
 }
 #endif

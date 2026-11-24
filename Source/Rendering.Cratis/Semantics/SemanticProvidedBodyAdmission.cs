@@ -63,7 +63,7 @@ internal static class SemanticProvidedBodyAdmission
                 new[] { SemanticBodyCompilation.ImplicitUsings, builder.ToString(), common }
                     .Concat(models).Concat(SemanticBodyDeclarations.RealConcepts(context))
                     .Select(source => CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(Microsoft.CodeAnalysis.CSharp.LanguageVersion.Latest))),
-                [.. PureTransitionAdmission.AnalysisReferences(context.TargetFramework), SemanticGenerationBodyAdmission.FundamentalsReference, SemanticProvidedContextReferences.ForTargetFramework(context.TargetFramework)],
+                [.. PureTransitionAdmission.AnalysisReferences(context.TargetFramework), SemanticGenerationBodyAdmission.FundamentalsReference, SemanticGenerationBodyAdmission.ChronicleReference, SemanticProvidedContextReferences.ForTargetFramework(context.TargetFramework)],
                 "CS1701",
                 "CS1702");
             var error = compilation.GetDiagnostics().FirstOrDefault(SemanticBodyCompilation.IsFailure);

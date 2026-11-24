@@ -1,7 +1,7 @@
 {
   "schema": "cratis.screenplay.loss-ledger/v1",
   "target": "cratis-arc",
-  "corpusVersion": "6.33.0",
+  "corpusVersion": "6.38.1",
   "minimumFixtureCount": 29,
   "budget": {
     "maximumEntries": 275,

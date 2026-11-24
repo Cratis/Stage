@@ -40,15 +40,15 @@ internal static class SemanticTypedContextAdmission
         SemanticImplementationRole.PolicyPredicate,
         SemanticImplementationRole.AbilityEffect,
         SemanticImplementationRole.WorkflowCompute,
-        SemanticImplementationRole.StateEntryBody
+        SemanticImplementationRole.StateEntryBody,
+
+        // Screenplay's public ProvideContext is the contract; its catalog does not publish a descriptor for this role.
+        SemanticImplementationRole.ProvideValue
     ];
 
     internal static bool RequiresDescriptor(SemanticImplementationRole role) => _descriptorBackedRoles.Contains(role);
 
     internal static bool IsDescriptorExempt(SemanticImplementationRole role) => _descriptorExemptRoles.Contains(role);
-
-    // Provided-value bodies are not rendered; they must not acquire an untyped fallback.
-    internal static bool IsRefusedRole(SemanticImplementationRole role) => role == SemanticImplementationRole.ProvideValue;
 
     internal static ImmutableArray<ArtifactRenderDiagnostic> Verify(ArtifactRenderRequest request) => Verify(request, out _);
 

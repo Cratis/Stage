@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
@@ -37,6 +38,13 @@ internal static class SemanticProvidedValueRendering
             {
                 diagnostics.Add(Error(UnsupportedType, $"Provided value '{provided.Name}' {type}.", context));
                 continue;
+            }
+
+            if (provided.Source is SemanticCodeProvideSource)
+            {
+                var errors = ImmutableArray.CreateBuilder<ArtifactRenderDiagnostic>();
+                SemanticProvidedBodyAdmission.TryBody(context, declaration, errors, out _);
+                diagnostics.AddRange(errors);
             }
 
             if (SourceRefusal(context, slices, provided) is { } source)
@@ -78,6 +86,7 @@ internal static class SemanticProvidedValueRendering
             .Line("/// <param name=\"services\">The application's services.</param>")
             .Line("/// <returns>The catalog.</returns>")
             .OpenBlock($"public static {Choreography}.ContextValueCatalog CreateCatalog(global::System.IServiceProvider services)")
+            .Line("var principalAccessor = global::Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<global::Cratis.Arc.Authorization.ICurrentPrincipalAccessor>(services);")
             .Line($"var catalog = new {Choreography}.ContextValueCatalog();");
         foreach (var declaration in declarations)
         {
@@ -87,15 +96,16 @@ internal static class SemanticProvidedValueRendering
             builder.Line($"catalog.Declare(new {Choreography}.ContextValueDeclaration({CSharpCodeBuilder.StringLiteral(provided.Name)}, {Provider(provided, types, context)}, {scope}, {(required ? "true" : "false")}));");
         }
 
-        builder.Line("return catalog;")
-            .EndBlock()
-            .EndBlock();
+        builder.Line("return catalog;").EndBlock();
+        SemanticProvidedBodyRendering.RenderDeclared(builder, declarations, context);
+        builder.EndBlock();
         if (queries.Length > 0) RenderQuery(builder, queries, context);
         return new(Path.Combine("GeneratedProvides", "ProvidedValues.cs"), types.SpecificationContent(builder));
     }
 
     static string Provider(SemanticProvidedValue provided, SemanticTypeSystem types, SemanticApplicationContext context) => provided.Source switch
     {
+        SemanticCodeProvideSource => $"new {Choreography}.Providers.CodeContextValueProvider(async (resolver, cancellationToken) => {Choreography}.ContextValueOutcome.Present({SemanticProvidedBodyRendering.Name(provided)}.Provide(await StageProvideContext.Create(resolver, principalAccessor, cancellationToken))))",
         SemanticHostProvideSource => $"new {Choreography}.Providers.HostContextValueProvider(global::Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<{Choreography}.Providers.IHostContextValues>(services), {CSharpCodeBuilder.StringLiteral(provided.Name)})",
         SemanticValueProvideSource { Value.Path: { } path } => $"new {Choreography}.Providers.ExpressionContextValueProvider({CSharpCodeBuilder.StringLiteral(path)})",
         SemanticValueProvideSource { Value.Value: { } value } => $"new {Choreography}.Providers.LiteralContextValueProvider({Literal(value, provided, types)})",
@@ -142,6 +152,7 @@ internal static class SemanticProvidedValueRendering
         switch (provided.Source)
         {
             case SemanticHostProvideSource:
+            case SemanticCodeProvideSource:
                 return null;
             case SemanticValueProvideSource { Value: { Path: null, Value: SemanticArrayValue or SemanticCompositeValue } }:
                 return "takes a literal that is not a scalar";
@@ -161,18 +172,24 @@ internal static class SemanticProvidedValueRendering
         if (!context.Queries.TryGetValue(source.Query, out var query)) return "reads a query that is not generated";
         if (provided.ReadModel != query.ReadModel) return "reads a query whose result is not the declared read model";
         if (source.By is not { Length: 1 } || source.By[0].Path is null) return "must key its query by exactly one $context value";
-        if (query is not { Cardinality: SemanticQueryCardinality.ZeroOrOne, Delivery: SemanticQueryDelivery.Snapshot, Argument: { } argument } ||
-            argument.Type is not { Kind: SemanticTypeReferenceKind.Primitive, Primitive: SemanticPrimitiveType.Uuid or SemanticPrimitiveType.Text, IsCollection: false })
+        if (!IsKeyedSnapshot(query))
         {
             return "must read a keyed snapshot query by a Uuid or String key";
         }
 
         if (query.Authorization is not null || query.Narrowing is not null) return "reads a protected query; an in-process read would bypass its authorization";
-        if (!query.Filters.IsDefaultOrEmpty || !query.KeyParts.IsDefaultOrEmpty || context.PerformedQueries.Contains(query.Id)) return "reads a query with filters, composite keys or a performer";
+        if (HasUnsupportedQueryFeatures(context, query)) return "reads a query with filters, composite keys or a performer";
         var located = context.DeclaringSlice(query.Id);
         if (context.DeclaringSlice(query.ReadModel).Slice.Id != located.Slice.Id) return "reads a query declared apart from its read model";
         return slices.Any(selected => selected.Slice.Id == located.Slice.Id) ? null : "reads a query of a slice this render does not select";
     }
+
+    static bool IsKeyedSnapshot(SemanticKeyedQuery query) =>
+        query is { Cardinality: SemanticQueryCardinality.ZeroOrOne, Delivery: SemanticQueryDelivery.Snapshot, Argument: { } argument } &&
+        argument.Type is { Kind: SemanticTypeReferenceKind.Primitive, Primitive: SemanticPrimitiveType.Uuid or SemanticPrimitiveType.Text, IsCollection: false };
+
+    static bool HasUnsupportedQueryFeatures(SemanticApplicationContext context, SemanticKeyedQuery query) =>
+        !query.Filters.IsDefaultOrEmpty || !query.KeyParts.IsDefaultOrEmpty || context.PerformedQueries.Contains(query.Id);
 
     static ArtifactRenderDiagnostic Error(string code, string message, SemanticApplicationContext context) =>
         new(code, ArtifactRenderDiagnosticSeverity.Error, message, context.Application.Id);

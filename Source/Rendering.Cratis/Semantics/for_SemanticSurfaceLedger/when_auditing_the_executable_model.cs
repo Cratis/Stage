@@ -44,7 +44,7 @@ public class when_auditing_the_executable_model : given.the_executable_surface
 
     [Fact]
     public void should_keep_code_provided_values_refused() =>
-        _ledger["SemanticCodeProvideSource.Implementation"].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, SemanticProvidedValueRendering.UnsupportedSource));
+        _ledger["SemanticCodeProvideSource.Implementation"].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
 
     [Fact]
     public void should_pass_action_presentation_through_the_scene_bridge_without_backend_behavior() =>

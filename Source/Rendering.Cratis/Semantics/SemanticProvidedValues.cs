@@ -11,7 +11,8 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 /// <param name="Scope">The module, feature and slice names above and including the declaring level; empty for the application.</param>
 /// <param name="Value">The provided value.</param>
-internal sealed record SemanticProvidedDeclaration(IReadOnlyList<string> Scope, SemanticProvidedValue Value);
+/// <param name="Owner">The identity of the declaring model element.</param>
+internal sealed record SemanticProvidedDeclaration(IReadOnlyList<string> Scope, SemanticProvidedValue Value, SemanticId Owner);
 
 /// <summary>
 /// Walks the values a model provides to its request context (Cratis/Stage#1116).
@@ -26,10 +27,10 @@ internal static class SemanticProvidedValues
     internal static IReadOnlyList<SemanticProvidedDeclaration> Declared(SemanticApplicationContext context)
     {
         var declarations = new List<SemanticProvidedDeclaration>();
-        Add(declarations, [], context.Application.Provides);
+        Add(declarations, [], context.Application.Provides, context.Application.Id);
         foreach (var module in context.Application.Modules)
         {
-            Add(declarations, [module.Name], module.Provides);
+            Add(declarations, [module.Name], module.Provides, module.Id);
             Walk(declarations, [module.Name], module.Features);
         }
 
@@ -41,15 +42,15 @@ internal static class SemanticProvidedValues
         foreach (var feature in features)
         {
             string[] featureScope = [.. scope, feature.Name];
-            Add(declarations, featureScope, feature.Provides);
-            foreach (var slice in feature.Slices) Add(declarations, [.. featureScope, slice.Name], slice.Provides);
+            Add(declarations, featureScope, feature.Provides, feature.Id);
+            foreach (var slice in feature.Slices) Add(declarations, [.. featureScope, slice.Name], slice.Provides, slice.Id);
             Walk(declarations, featureScope, feature.Features);
         }
     }
 
-    static void Add(List<SemanticProvidedDeclaration> declarations, string[] scope, ImmutableArray<SemanticProvidedValue> provides)
+    static void Add(List<SemanticProvidedDeclaration> declarations, string[] scope, ImmutableArray<SemanticProvidedValue> provides, SemanticId owner)
     {
         if (provides.IsDefault) return;
-        foreach (var provided in provides) declarations.Add(new(scope, provided));
+        foreach (var provided in provides) declarations.Add(new(scope, provided, owner));
     }
 }

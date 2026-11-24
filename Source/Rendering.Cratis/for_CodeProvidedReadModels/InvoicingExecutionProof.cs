@@ -28,6 +28,8 @@ internal static class InvoicingExecutionProof
                 using var services = Services(out var principal);
                 using var identity = principal.BeginScope(new ClaimsPrincipal(new ClaimsIdentity(new[] {
                     new Claim(ClaimTypes.NameIdentifier, "alice"), new Claim("scope", "invoices"), new Claim(ClaimTypes.Role, "editor") }, "proof")));
+                var reads = services.GetRequiredService<ICurrentPrincipalAccessor>();
+                reads.ClearReceivedCalls();
                 var gate = (IAvailabilityExecutionGate)services.GetRequiredService<IAvailabilityGate>();
                 var source = (Cratis.Arc.Contexts.IExecutionContextValueSource)services.GetRequiredService<Cratis.Arc.Contexts.IContextValueSource>();
                 var occurred = new DateTimeOffset(2026, 11, 24, 10, 0, 0, TimeSpan.Zero);
@@ -35,9 +37,14 @@ internal static class InvoicingExecutionProof
                 var refused = new AvailabilityInvocation(typeof(IssueInvoice), new IssueInvoice { InvoiceId = Guid.Empty, Amount = 50001L }, occurred.AddMinutes(1));
                 gate.IsGated(typeof(IssueInvoice)).ShouldBeTrue();
                 (await gate.Decide(allowed, services, default)).Verdict.ShouldEqual(AvailabilityVerdict.Available);
-                (await gate.Decide(refused, services, default)).Verdict.ShouldEqual(AvailabilityVerdict.Unavailable);
+                _ = reads.Received(2).Current;
                 (await source.ReadForExecution(allowed, "creditCeiling", default)).Value.ShouldEqual(50000L);
                 (await source.ReadForExecution(allowed, "reminderDays", default)).Value.ShouldEqual(14L);
+                _ = reads.Received(2).Current;
+                (await gate.Decide(refused, services, default)).Verdict.ShouldEqual(AvailabilityVerdict.Unavailable);
+                (await source.ReadForExecution(refused, "creditCeiling", default)).Value.ShouldEqual(50000L);
+                (await source.ReadForExecution(refused, "reminderDays", default)).Value.ShouldEqual(14L);
+                _ = reads.Received(4).Current;
                 (await source.ReadForExecution(allowed, "boundAmount", default)).Value.ShouldEqual(42000L);
                 (await source.ReadForExecution(refused, "boundAmount", default)).Value.ShouldEqual(50001L);
                 (await source.ReadForExecution(allowed, "observedAt", default)).Value.ShouldEqual(occurred.ToString("O"));
@@ -69,8 +76,11 @@ internal static class InvoicingExecutionProof
                 var builder = Host.CreateApplicationBuilder();
                 builder.Environment.EnvironmentName = "Testing";
                 builder.AddBackend();
-                principal = new CurrentPrincipalAccessor();
-                builder.Services.AddSingleton<ICurrentPrincipalAccessor>(principal);
+                var currentPrincipal = new CurrentPrincipalAccessor();
+                principal = currentPrincipal;
+                var reads = Substitute.For<ICurrentPrincipalAccessor>();
+                reads.Current.Returns(_ => currentPrincipal.Current);
+                builder.Services.AddSingleton(reads);
                 var subject = Substitute.For<IAvailabilitySubjectProvider>();
                 subject.GetSubject().Returns(new AudienceSubject("named-tenant", "alice"));
                 builder.Services.AddSingleton(subject);

@@ -50,5 +50,7 @@ public class when_planning_concept_date_comparisons : Specification
 
     [Fact] void should_render_without_refusals() => _plan.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error);
     [Fact] void should_select_the_optional_date_concept_explicitly_in_its_rule() => _code.ShouldContain("RuleFor<Day?>(_ => _.Day).Must(value => value is null || value.Value.CompareTo(new DateOnly(2026, 1, 1)) > 0)");
-    [Fact] void should_convert_the_raw_bound_response_back_to_its_concept() => _code.ShouldContain("((Moment)At)");
+    [Fact] void should_preserve_the_nominal_input() => _code.ShouldContain("[property: ExplicitOffset] Moment At");
+    [Fact] void should_return_the_nominal_response_directly() => _code.ShouldContain("return (At, new EventForEventSourceId");
+    [Fact] void should_not_cast_the_response_from_a_primitive() => _code.ShouldNotContain("((Moment)At)");
 }

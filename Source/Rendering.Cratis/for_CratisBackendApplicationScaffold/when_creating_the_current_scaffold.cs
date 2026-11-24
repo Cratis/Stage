@@ -100,7 +100,7 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     void should_register_availability_once_before_arc_convention_self_bindings(string version, bool repositoryRoot)
     {
         var profile = CratisBackendApplicationScaffoldProfile.ForVersion(version)!;
-        var request = new CratisBackendApplicationScaffoldRequest("MyApp", "MyApp", "MyApp", profile);
+        var request = CratisBackendApplicationScaffoldRequest.Create("MyApp", "MyApp", "MyApp", profile);
         if (repositoryRoot) request = request.WithRepositoryRoot();
         var inputs = new CratisBackendApplicationScaffold().Create(request);
         var program = Text(inputs.Single(input => PathOf(input) == "Program.cs"));

@@ -25,9 +25,7 @@ internal static class SemanticRuleEvaluation
         foreach (var rule in command.Validations)
         {
             // Opaque predicates always use their worker, including properties in chronological comparisons.
-            var check = rule.Kind != SemanticValidationRuleKind.RulePredicate && dateTypes.TryGetValue(rule.Property, out var primitive)
-                ? SemanticDateComparisons.Check(rule, values[rule.Property], primitive)
-                : CommandCheck(rule, values[rule.Property], run);
+            var check = CheckRule(rule, values[rule.Property], dateTypes, specification, run);
             if (!Satisfied(check))
             {
                 yield return new(rule.Message ?? (rule.Kind == SemanticValidationRuleKind.NotEmpty ? "A required value is empty." : check.Message), rule.Severity);
@@ -102,6 +100,14 @@ internal static class SemanticRuleEvaluation
 
     static UnsupportedSemanticMapping Unsupported(SemanticRuleCheck check) =>
         check.Message.StartsWith("STAGE-", StringComparison.Ordinal) ? new(check.Message) : new();
+
+    static SemanticRuleCheck CheckRule(SemanticValidationRule rule, SemanticValue value, IReadOnlyDictionary<SemanticId, SemanticPrimitiveType> dateTypes, SemanticSpecification specification, SemanticRunContext? run)
+    {
+        if (rule.ClockOperand is not null) return SemanticUtcNow.Check(rule, value, SemanticRunContext.OccurrenceOf(specification));
+        return rule.Kind != SemanticValidationRuleKind.RulePredicate && dateTypes.TryGetValue(rule.Property, out var primitive)
+            ? SemanticDateComparisons.Check(rule, value, primitive)
+            : CommandCheck(rule, value, run);
+    }
 
     static SemanticRuleCheck CommandCheck(SemanticValidationRule rule, SemanticValue value, SemanticRunContext? run)
     {

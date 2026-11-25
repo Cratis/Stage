@@ -8,11 +8,11 @@ using Cratis.Screenplay.Semantics;
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
 /// <summary>
-/// Removes only recognized clock members whose exact path and owner identify an audited UTC command condition.
+/// Removes only recognized clock members whose exact path and owner identify an audited UTC command rule.
 /// </summary>
 internal static class SemanticCommandClockAdmission
 {
-    static readonly Dictionary<string, string> _conditionPaths = new(StringComparer.Ordinal)
+    static readonly Dictionary<string, string> _clockPaths = new(StringComparer.Ordinal)
     {
         ["SemanticClockOperand.Amount"] = "Amount",
         ["SemanticClockOperand.DateOf"] = "DateOf",
@@ -22,7 +22,8 @@ internal static class SemanticCommandClockAdmission
         ["SemanticClockUnit.Day"] = "Unit",
         ["SemanticClockUnit.Hour"] = "Unit",
         ["SemanticClockUnit.Minute"] = "Unit",
-        ["SemanticConditionOperand.Clock"] = string.Empty
+        ["SemanticConditionOperand.Clock"] = string.Empty,
+        ["SemanticValidationRule.ClockOperand"] = string.Empty
     };
 
     static readonly Dictionary<string, string> _applicationPaths = new(StringComparer.Ordinal)
@@ -32,6 +33,13 @@ internal static class SemanticCommandClockAdmission
         ["SemanticTimeZone.Configurable"] = "Application.TimeZone.Configurable"
     };
 
+    enum ClockRoot
+    {
+        Either,
+        Condition,
+        Validation
+    }
+
     internal static EsmSupportStanding Known(EsmSupportStanding standing, ExecutableSemanticModel model) =>
         standing with { UnknownMembers = [.. standing.UnknownMembers.Where(member => !Admits(model, member))] };
 
@@ -39,8 +47,14 @@ internal static class SemanticCommandClockAdmission
     {
         if (string.IsNullOrEmpty(member.Path)) return false;
         if (_applicationPaths.TryGetValue(member.Member, out var applicationPath)) return IsApplicationMember(model.Application, member, applicationPath);
-        if (!_conditionPaths.TryGetValue(member.Member, out var suffix)) return false;
-        var owner = new FindingPath(member.Path.Split('.'), suffix).Resolve(model.Application);
+        if (!_clockPaths.TryGetValue(member.Member, out var suffix)) return false;
+        var root = member.Member switch
+        {
+            "SemanticConditionOperand.Clock" => ClockRoot.Condition,
+            "SemanticValidationRule.ClockOperand" => ClockRoot.Validation,
+            _ => ClockRoot.Either
+        };
+        var owner = new FindingPath(member.Path.Split('.'), suffix, root).Resolve(model.Application);
         return owner is not null && MatchesOwner(owner, member.Owner) && SemanticCommandClockSupport.Supports(model.Application, owner.Command);
     }
 
@@ -55,8 +69,9 @@ internal static class SemanticCommandClockAdmission
     /// Follows the property/index grammar emitted by SemanticUnknownMembers.Walker; no identity-based search or reflection fallback.
     /// </summary>
     /// <param name="segments">The dot-separated segments of the finding path.</param>
-    /// <param name="suffix">The expected leaf segment after the Clock segment, or empty when the finding is the clock itself.</param>
-    sealed class FindingPath(string[] segments, string suffix)
+    /// <param name="suffix">The expected leaf segment after the clock segment, or empty when the finding is the clock itself.</param>
+    /// <param name="root">The positions in which the member can represent a clock.</param>
+    sealed class FindingPath(string[] segments, string suffix, ClockRoot root)
     {
         internal CommandOwner? Resolve(SemanticApplication application)
         {
@@ -86,6 +101,8 @@ internal static class SemanticCommandClockAdmission
         {
             var command = At(slice.Commands, position, "Commands");
             if (command is null) return null;
+            var rule = At(command.Validations, position + 1, "Validations");
+            if (rule is not null) return InValidation(rule, position + 2) ? new(slice, command) : null;
             var condition = Condition(command, position + 1);
             return condition is not null && InCondition(condition, position + 3) ? new(slice, command) : null;
         }
@@ -112,12 +129,15 @@ internal static class SemanticCommandClockAdmission
             return nested is not null && InCondition(nested, position + 1);
         }
 
-        bool Clock(SemanticConditionOperand operand, int position)
-        {
-            if (operand.Clock is null || !Has(position, "Clock")) return false;
-            if (suffix.Length == 0) return segments.Length == position + 1;
-            return segments.Length == position + 2 && Has(position + 1, suffix);
-        }
+        bool InValidation(SemanticValidationRule rule, int position) =>
+            root != ClockRoot.Condition && rule.ClockOperand is not null && Has(position, "ClockOperand") && EndClock(position);
+
+        bool Clock(SemanticConditionOperand operand, int position) =>
+            root != ClockRoot.Validation && operand.Clock is not null && Has(position, "Clock") && EndClock(position);
+
+        bool EndClock(int position) => suffix.Length == 0
+            ? segments.Length == position + 1
+            : segments.Length == position + 2 && Has(position + 1, suffix);
 
         T? Side<T>(T left, T right, int position)
             where T : class => Segment(position) switch

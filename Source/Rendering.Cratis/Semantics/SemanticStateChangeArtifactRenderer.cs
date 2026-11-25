@@ -363,18 +363,7 @@ internal static class SemanticStateChangeArtifactRenderer
         var hasBodies = !command.CodeValidations.IsEmpty;
         foreach (var rule in command.Validations)
         {
-            var property = command.Properties.Single(_ => _.Id == rule.Property);
-            var primitive = SemanticValidationRendering.UnderlyingPrimitive(property.Type, context);
-            var wrapped = property.Type.Kind == SemanticTypeReferenceKind.Concept;
-            if (SemanticValidationContextRuntime.IsBody(rule))
-            {
-                hasBodies = true;
-                SemanticValidationContextRuntime.RenderRule(builder, context, rule, command.Id, property);
-            }
-            else
-            {
-                SemanticValidationRendering.Render(builder, rule, property.Name, primitive, property.Type.IsCollection, false, wrapped, property.Type.IsOptional, context.RootNamespace, CommandConceptRendering(rule, property, context), generatedMember: context.MemberNames.Property(property));
-            }
+            hasBodies |= RenderValidation(builder, command, context, rule);
         }
 
         RenderInlineConceptRules(builder, command, context);
@@ -398,6 +387,25 @@ internal static class SemanticStateChangeArtifactRenderer
 
         builder.EndBlock().EndBlock();
         if (hasBodies) SemanticValidationContextRuntime.RenderOwnerBodies(builder, context, command.Id);
+    }
+
+    static bool RenderValidation(CSharpCodeBuilder builder, SemanticCommand command, SemanticApplicationContext context, SemanticValidationRule rule)
+    {
+        var property = command.Properties.Single(_ => _.Id == rule.Property);
+        if (SemanticValidationContextRuntime.IsBody(rule))
+        {
+            SemanticValidationContextRuntime.RenderRule(builder, context, rule, command.Id, property);
+            return true;
+        }
+        if (rule.ClockOperand is not null)
+        {
+            SemanticCommandClockValidationRendering.Render(builder, rule, property, context);
+            return false;
+        }
+        var primitive = SemanticValidationRendering.UnderlyingPrimitive(property.Type, context);
+        var wrapped = property.Type.Kind == SemanticTypeReferenceKind.Concept;
+        SemanticValidationRendering.Render(builder, rule, property.Name, primitive, property.Type.IsCollection, false, wrapped, property.Type.IsOptional, context.RootNamespace, CommandConceptRendering(rule, property, context), generatedMember: context.MemberNames.Property(property));
+        return false;
     }
 
     static bool RequiresValidator(SemanticCommand command, SemanticApplicationContext context, bool hasRequirements, bool hasConstraints) =>

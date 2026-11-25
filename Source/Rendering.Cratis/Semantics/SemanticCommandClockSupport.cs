@@ -6,7 +6,7 @@ using Cratis.Screenplay.Semantics;
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
 /// <summary>
-/// Classifies the required scalar UTC now condition subset without admitting calendar or validation clocks.
+/// Classifies scalar UTC now command conditions and property validations without admitting calendar clocks.
 /// </summary>
 internal static class SemanticCommandClockSupport
 {
@@ -25,8 +25,13 @@ internal static class SemanticCommandClockSupport
 
     internal static bool Supports(SemanticApplication application, SemanticCommand command) =>
         DefaultUtc(application) && command.Calendar is null &&
-        command.Validations.All(rule => rule.ClockOperand is null) &&
+        command.Validations.All(rule => Validation(rule, command.Properties, application)) &&
         Conditions(command).All(condition => Supports(condition, command.Properties, application));
+
+    internal static bool Validation(SemanticValidationRule rule, IReadOnlyList<SemanticProperty> properties, SemanticApplication application) =>
+        rule.ClockOperand is null ||
+        (Ordered(rule.Kind) && rule.Operand is null && Clock(rule.ClockOperand) &&
+         properties.Any(property => property.Id == rule.Property && !property.IsGenerated && DateTime(property.Type, application)));
 
     internal static bool Supports(SemanticCondition condition, IReadOnlyList<SemanticProperty> properties, SemanticApplication application) => condition switch
     {
@@ -48,18 +53,31 @@ internal static class SemanticCommandClockSupport
     static bool Uses(SemanticConditionOperand operand) => operand.Clock is not null || operand.DateOf;
 
     static bool Clock(SemanticConditionOperand operand) =>
-        operand is { DateOf: false, Read: null, CallerId: false, Clock: { Kind: SemanticClockKind.Now, DateOf: false } clock } &&
-        Enum.IsDefined(clock.Unit);
+        operand is { DateOf: false, Read: null, CallerId: false, Clock: { } clock } && Clock(clock);
+
+    static bool Clock(SemanticClockOperand clock) =>
+        clock is { Kind: SemanticClockKind.Now, DateOf: false } && Enum.IsDefined(clock.Unit);
 
     static bool Property(SemanticConditionOperand operand, IReadOnlyList<SemanticProperty> properties, SemanticApplication application)
     {
         if (operand is not { Clock: null, DateOf: false, Read: null, CallerId: false, Value: null }) return false;
         var type = properties.FirstOrDefault(property => property.Id == operand.Property && !property.IsGenerated)?.Type;
         if (type is null or { IsOptional: true } or { IsCollection: true }) return false;
+        return DateTime(type, application);
+    }
+
+    static bool DateTime(SemanticTypeReference type, SemanticApplication application)
+    {
+        if (type.IsCollection) return false;
         if (type.Kind == SemanticTypeReferenceKind.Primitive) return type.Primitive == SemanticPrimitiveType.DateTime;
         return type.Kind == SemanticTypeReferenceKind.Concept && application.Concepts.Any(concept =>
             concept.Id == type.Target && concept.Primitive == SemanticPrimitiveType.DateTime && concept.Values.IsEmpty && concept.Compliance is null);
     }
+
+    static bool Ordered(SemanticValidationRuleKind kind) => kind is
+        SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual or
+        SemanticValidationRuleKind.LessThan or SemanticValidationRuleKind.LessThanOrEqual or
+        SemanticValidationRuleKind.GreaterThan or SemanticValidationRuleKind.GreaterThanOrEqual;
 
     static bool Ordered(SemanticComparisonOperator operation) => operation is
         SemanticComparisonOperator.Equal or SemanticComparisonOperator.NotEqual or

@@ -11,7 +11,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
 public class when_executing_command_clock_validations : a_generated_application
 {
-    const string Source = """
+    internal const string Source = """
         concept Moment : DateTime
         module Scheduling
           feature Windows
@@ -30,13 +30,13 @@ public class when_executing_command_clock_validations : a_generated_application
                   recordedAt = $context.occurred
               event Kept
                 recordedAt DateTime
-              specification AtTheReceiptWithAbsentOptionalInputs
+              specification AtTheReceiptWithOptionalInputs
                 given clock "2026-01-02T00:00:00.0000000Z"
                 when Keep
                   id = "window"
                   at = "2026-01-02T00:00:00.0000000Z"
-                  optionalAt = null
-                  optionalMoment = null
+                  optionalAt = "2026-01-02T00:00:00.0000000Z"
+                  optionalMoment = "2026-01-02T00:00:00.0000000Z"
                 then Kept
                   recordedAt = "2026-01-02T00:00:00.0000000Z"
               specification BeforeTheReceipt
@@ -44,8 +44,8 @@ public class when_executing_command_clock_validations : a_generated_application
                 when Keep
                   id = "window"
                   at = "2026-01-01T23:59:59.9990000Z"
-                  optionalAt = null
-                  optionalMoment = null
+                  optionalAt = "2026-01-02T00:00:00.0000000Z"
+                  optionalMoment = "2026-01-02T00:00:00.0000000Z"
                 then error "A value must be at least '2026-01-02T00:00:00.0000000Z'."
               specification BeforeTheReceiptInAnOptionalPrimitive
                 given clock "2026-01-02T00:00:00.0000000Z"
@@ -53,14 +53,14 @@ public class when_executing_command_clock_validations : a_generated_application
                   id = "window"
                   at = "2026-01-02T00:00:00.0000000Z"
                   optionalAt = "2026-01-01T23:59:59.9990000Z"
-                  optionalMoment = null
+                  optionalMoment = "2026-01-02T00:00:00.0000000Z"
                 then error "A value must be at least '2026-01-02T00:00:00.0000000Z'."
               specification BeforeTheReceiptInAnOptionalConcept
                 given clock "2026-01-02T00:00:00.0000000Z"
                 when Keep
                   id = "window"
                   at = "2026-01-02T00:00:00.0000000Z"
-                  optionalAt = null
+                  optionalAt = "2026-01-02T00:00:00.0000000Z"
                   optionalMoment = "2026-01-01T23:59:59.9990000Z"
                 then error "A value must be at least '2026-01-02T00:00:00.0000000Z'."
         """;
@@ -82,7 +82,7 @@ public class when_executing_command_clock_validations : a_generated_application
     }
 
     [Fact]
-    void should_execute_the_clock_rules_and_optional_absence_with_the_receipt_instant()
+    void should_execute_the_clock_rules_and_optional_values_with_the_receipt_instant()
     {
         BuildWarnings(_debug).ShouldEqual(string.Empty);
         _tests.ShouldContain("Passed!");

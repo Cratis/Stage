@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Specifications.Semantic;
+using Cratis.Stage.Specifications.Commands;
 
 namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor;
 
@@ -16,8 +17,8 @@ public class when_running_command_clock_validations : Specification
         EquivalentOffset,
         DefaultMessage,
         AuthoredMessage,
-        AbsentOptional,
-        AbsentOptionalConcept,
+        OptionalPrimitive,
+        OptionalConcept,
         MissingClock
     }
 
@@ -27,8 +28,8 @@ public class when_running_command_clock_validations : Specification
     [InlineData(RuleCase.EquivalentOffset)]
     [InlineData(RuleCase.DefaultMessage)]
     [InlineData(RuleCase.AuthoredMessage)]
-    [InlineData(RuleCase.AbsentOptional)]
-    [InlineData(RuleCase.AbsentOptionalConcept)]
+    [InlineData(RuleCase.OptionalPrimitive)]
+    [InlineData(RuleCase.OptionalConcept)]
     [InlineData(RuleCase.MissingClock)]
     public async Task should_agree_with_the_reference_without_reading_an_options_clock(RuleCase scenario)
     {
@@ -42,13 +43,33 @@ public class when_running_command_clock_validations : Specification
         result.ExecutionKind.ShouldEqual(reference.Execution.Kind.ToString());
     }
 
+    [Theory]
+    [InlineData(RuleCase.OptionalPrimitive)]
+    [InlineData(RuleCase.OptionalConcept)]
+    public void should_allow_optional_absence_in_constructed_semantic_inputs(RuleCase scenario)
+    {
+        var plan = Compile(scenario);
+        var command = plan.Commands.Values.Single();
+        var at = command.Properties.Single(property => property.Name == "at").Id;
+        var specification = plan.Specifications.Values.Single();
+        var invocation = specification.When! with
+        {
+            Values = [.. specification.When!.Values.Select(value => value.TargetProperty == at ? value with { Value = SemanticValue.Null } : value)]
+        };
+        var absent = specification with { When = invocation };
+        SemanticRuleEvaluation.Failures(command, absent, plan.Model.Application).ShouldBeEmpty();
+        var instant = new DateTimeOffset(2026, 1, 2, 0, 0, 0, TimeSpan.Zero);
+        var request = SemanticExecutionRequest.Create(command.Id, invocation.Values, []) with { Occurrence = new(instant, "caller", "Caller", "caller") };
+        new SemanticEvaluator().Execute(plan, SemanticWorld.Empty, request).ShouldBeOfExactType<SemanticAccepted>();
+    }
+
     static SemanticExecutionPlan Compile(RuleCase scenario)
     {
         var type = scenario switch
         {
             RuleCase.Concept => "Moment",
-            RuleCase.AbsentOptional => "DateTime optional",
-            RuleCase.AbsentOptionalConcept => "Moment optional",
+            RuleCase.OptionalPrimitive => "DateTime optional",
+            RuleCase.OptionalConcept => "Moment optional",
             _ => "DateTime"
         };
         var input = scenario switch
@@ -58,7 +79,7 @@ public class when_running_command_clock_validations : Specification
             _ => "2026-01-02T00:00:00.0000000Z"
         };
         var clock = scenario == RuleCase.MissingClock ? string.Empty : "        given clock \"2026-01-02T00:00:00.0000000Z\"\n";
-        var value = scenario is RuleCase.AbsentOptional or RuleCase.AbsentOptionalConcept ? "          at = null\n" : $"          at = \"{input}\"\n";
+        var value = $"          at = \"{input}\"\n";
         var message = scenario == RuleCase.AuthoredMessage ? " message \"Choose a future instant.\"" : string.Empty;
         var expected = scenario switch
         {

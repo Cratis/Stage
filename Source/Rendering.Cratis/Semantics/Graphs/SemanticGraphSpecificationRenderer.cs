@@ -182,20 +182,20 @@ internal static class SemanticGraphSpecificationRenderer
         foreach (var value in element.Values)
         {
             var property = properties.Single(candidate => string.Equals(candidate.Name, value.Property, StringComparison.Ordinal));
+            var isIdentity = !element.IsNode && string.Equals(property.Name, Edge(graph, element.Name).IdentifiedBy, StringComparison.Ordinal);
+            var propertyType = SemanticGraphNaming.PropertyType(property, isIdentity, types, context);
             var member = $"{variable}!.{SemanticGraphNaming.Property(property.Name)}";
             var fact = $"should_have_{name}_{index + 1}_{Identifiers.ToSnakeCase(property.Name)}";
-            if (property.Type.IsCollection && value.Value is SemanticArrayValue array)
+            if (propertyType.IsCollection && value.Value is SemanticArrayValue array)
             {
-                var elementType = property.Type with { IsCollection = false, IsOptional = false };
+                var elementType = propertyType with { IsCollection = false, IsOptional = false };
                 var expected = string.Join(", ", array.Values.Select(candidate => types.Value(candidate, elementType)));
                 builder.Line($"{Fact} void {fact}() => global::Xunit.Assert.True(global::System.Linq.Enumerable.SequenceEqual({member}, new {types.Type(elementType)}[] {{ {expected} }}));");
             }
             else
             {
-                builder.Line($"{Fact} void {fact}() => {member}.ShouldEqual({types.Value(value.Value, property.Type)});");
+                builder.Line($"{Fact} void {fact}() => {member}.ShouldEqual({types.Value(value.Value, propertyType)});");
             }
         }
-
-        _ = context;
     }
 }

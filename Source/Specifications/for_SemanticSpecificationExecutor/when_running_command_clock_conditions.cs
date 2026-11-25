@@ -27,9 +27,9 @@ public class when_running_command_clock_conditions : Specification
                       for id
                   command Unsupported
                     id String identifier
-                    at DateTime
+                    at Date
                     validate
-                      at > now
+                      at > today
                     produces Kept
                       for id
                   event Kept

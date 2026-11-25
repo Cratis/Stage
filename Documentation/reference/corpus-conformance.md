@@ -20,6 +20,8 @@ A guessed event-source id would change the reference runner's null identity, so 
 surfaces do not synthesize one for an observable source. Explicitly sourced givens
 and source-unobserved givens retain their existing admission.
 
+`ClockOperandsCorpus.V37` and the ESM v37 calendar golden remain refused on the executor, host and renderer. They declare configurable non-UTC time zones and context members, and include calendars, `today` or `date of`. Admitting UTC `now` command property validation does not admit those vectors or remove their refusal records. The supported command subset and its limits are listed in the [ESM feature matrix](esm-feature-matrix.md).
+
 ## What each column measures
 
 | Column | What runs | Cell is `supported` when |

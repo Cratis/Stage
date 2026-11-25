@@ -116,7 +116,7 @@ public class when_admitting_utc_now
             """;
         if (sibling)
         {
-            source += "\n      command Unsupported\n        id String identifier\n        at DateTime\n        validate\n          at > now\n        produces Kept\n          for id";
+            source += "\n      command Unsupported\n        id String identifier\n        at Date\n        validate\n          at > today\n        produces Kept\n          for id";
         }
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("UtcAdmission"));
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("app"), "app", "application.play", source);

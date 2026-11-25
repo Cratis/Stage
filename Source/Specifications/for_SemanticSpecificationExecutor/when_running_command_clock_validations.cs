@@ -58,7 +58,7 @@ public class when_running_command_clock_validations : Specification
             _ => "2026-01-02T00:00:00.0000000Z"
         };
         var clock = scenario == RuleCase.MissingClock ? string.Empty : "        given clock \"2026-01-02T00:00:00.0000000Z\"\n";
-        var value = scenario is RuleCase.AbsentOptional or RuleCase.AbsentOptionalConcept ? string.Empty : $"          at = \"{input}\"\n";
+        var value = scenario is RuleCase.AbsentOptional or RuleCase.AbsentOptionalConcept ? "          at = null\n" : $"          at = \"{input}\"\n";
         var message = scenario == RuleCase.AuthoredMessage ? " message \"Choose a future instant.\"" : string.Empty;
         var expected = scenario switch
         {

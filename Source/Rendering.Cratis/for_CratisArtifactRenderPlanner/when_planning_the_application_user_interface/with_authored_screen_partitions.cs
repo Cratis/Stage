@@ -55,7 +55,7 @@ public class with_authored_screen_partitions : a_partitioned_screen_plan
     // Recomputed for Cratis/Stage#1147: the Scene 6.0.1 pins of the Stage runtime and the scaffold, and the Screenplay 6.32.0 pins.
     // Recomputed after merging main into the #970 train: the #970 Program.cs change on top of the #1147 pins.
     // Recomputed for Screenplay 6.33.0 (Cratis/Stage#1052): only the Screenplay pins in Directory.Packages.props and the scaffold catalog change.
-    const string Before = "d202c433c82f8632de590a949d103302bd70963c82e1cd05c66c0f79be914351";
+    const string Before = "6008ce3ad3e94332da9a6f7805d5da04760e42a356fb478817db7910ac288ee4";
 
     void Because() => _application = AppPlan(_profile);
 

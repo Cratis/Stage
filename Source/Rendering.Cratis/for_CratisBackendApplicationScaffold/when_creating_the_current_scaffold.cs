@@ -60,7 +60,8 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     [Fact] void should_keep_the_host_active_in_debug() => Content("Program.cs").ShouldNotContain("#if");
     [Fact] void should_disable_reverse_extraction_of_the_authoritative_source_model_in_every_project() => XDocument.Parse(Content("Directory.Build.props")).Root.Element("PropertyGroup").Element("CratisEmbeddedScreenplayEnabled").Value.ShouldEqual("false");
     [Fact] void should_not_duplicate_the_shared_extraction_setting_in_the_host() => Content("MyApp.csproj").ShouldNotContain("CratisEmbeddedScreenplayEnabled");
-    [Fact] void should_not_suppress_the_test_entry_point_warning() => Content("MyApp.csproj").ShouldNotContain("NoWarn");
+    [Fact] void should_suppress_only_the_proxy_generator_downgrade() => Content("MyApp.csproj").Split("NoWarn").Length.ShouldEqual(2);
+    [Fact] void should_suppress_nothing_but_the_downgrade_of_the_proxy_generator() => Content("MyApp.csproj").ShouldContain("Cratis.Arc.ProxyGenerator.Build\" NoWarn=\"NU1605\"");
     [Fact] void should_mark_the_application_as_a_test_project_only_in_debug() => DebugProperty("IsTestProject").ShouldEqual("true");
     [Fact] void should_keep_the_application_entry_point_in_every_configuration() => UnconditionalProperty("GenerateProgramFile").ShouldEqual("false");
     [Fact] void should_remove_specifications_from_release_builds() => ReleaseCompileRemove().ShouldEqual("**/when_*.cs;**/when_*/**;**/for_*/**;**/given/**");
@@ -139,6 +140,7 @@ public class when_creating_the_current_scaffold : a_current_scaffold
             $"Cratis={_profile.CratisPackageVersion}",
             $"Cratis.Arc.Chronicle.Testing={_profile.CratisArcChronicleTestingPackageVersion}",
             $"Cratis.Arc.MongoDB={_profile.CratisArcMongoDBPackageVersion}",
+            $"Cratis.Arc.ProxyGenerator.Build={Scaffolding.ScaffoldPackageVersions.ProxyGenerator}",
             $"Cratis.Chronicle={_profile.CratisChroniclePackageVersion}",
             $"Cratis.Chronicle.AspNetCore={_profile.CratisChroniclePackageVersion}",
             $"Cratis.Chronicle.Testing={_profile.CratisChroniclePackageVersion}",

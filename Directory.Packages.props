@@ -19,6 +19,8 @@
     <PackageVersion Include="Cratis.Arc.MongoDB" Version="24.8.0" />
     <PackageVersion Include="Cratis.Arc.Neo4j" Version="24.8.0" />
     <PackageVersion Include="Cratis.Arc.Neo4j.Chronicle" Version="24.8.0" />
+    <!-- Held at 24.7.0: from 24.8.0 a generated proxy imports PartIdentity from @cratis/arc/reflection, which the Arc 22 frontend packages do not export (Cratis/Stage#1135). -->
+    <PackageVersion Include="Cratis.Arc.ProxyGenerator.Build" Version="24.7.0" />
     <PackageVersion Include="Cratis.Arc.Screenplay" Version="23.16.0" />
     <PackageVersion Include="Cratis.Arc.Swagger" Version="24.8.0" />
     <PackageVersion Include="Cratis.Arc.Testing" Version="24.8.0" />

@@ -56,7 +56,7 @@ public class with_the_default_composition : a_register_project_render_request
     // Recomputed for Cratis/Stage#1147: the Scene 6.0.1 pins of the Stage runtime and the scaffold, and the Screenplay 6.32.0 pins.
     // Recomputed after merging main into the #970 train: the #970 Program.cs change on top of the #1147 pins.
     // Recomputed for Screenplay 6.33.0 (Cratis/Stage#1052): only the Screenplay pins in Directory.Packages.props and the scaffold catalog change.
-    const string Before = "648c287c74597a55cae32aca55d9ae4680ecb0cf9677d2c2f16fa124fcdbe1a6";
+    const string Before = "e7224bd55e8a2071af60a01025b4893ee1a12d7f56b4ca7be3aadd8da1a76820";
 
     ArtifactRenderPlan _plan = null!;
 

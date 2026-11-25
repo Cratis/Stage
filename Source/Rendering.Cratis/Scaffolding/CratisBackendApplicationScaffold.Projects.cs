@@ -65,6 +65,7 @@ public sealed partial class CratisBackendApplicationScaffold
                  and serviced by the ASP.NET Core 10.0.x runtime. -->
             <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="{{ScaffoldPackageVersions.CryptographyPkcs}}" />
             <PackageVersion Include="System.Diagnostics.DiagnosticSource" Version="{{ScaffoldPackageVersions.DiagnosticSource}}" />
+            <PackageVersion Include="Cratis.Arc.ProxyGenerator.Build" Version="{{ScaffoldPackageVersions.ProxyGenerator}}" />
             <PackageVersion Include="xunit" Version="{{profile.XunitPackageVersion}}" />
             <PackageVersion Include="xunit.runner.visualstudio" Version="{{profile.XunitRunnerVisualStudioPackageVersion}}" />
           </ItemGroup>
@@ -116,6 +117,9 @@ public sealed partial class CratisBackendApplicationScaffold
             <PackageReference Include="Cratis.Screenplay.Matching" />
             <PackageReference Include="Cratis" />
             <PackageReference Include="Cratis.Arc.MongoDB" />
+            <!-- The proxy generator is held below the Arc release: from 24.8 a proxy imports PartIdentity from the Arc frontend reflection
+                 module, which the Arc 22 frontend packages this scaffold is frozen with do not export (Cratis/Stage#1135). The reference is a deliberate downgrade of the generator alone. -->
+            <PackageReference Include="Cratis.Arc.ProxyGenerator.Build" NoWarn="NU1605" />
             <PackageReference Include="Cratis.Chronicle" />
             <PackageReference Include="Cratis.Chronicle.AspNetCore" />
             <PackageReference Include="Cratis.Choreography" />

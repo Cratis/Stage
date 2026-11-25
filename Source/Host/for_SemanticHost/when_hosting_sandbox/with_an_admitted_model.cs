@@ -29,7 +29,7 @@ public class with_an_admitted_model : when_hosting_published.given.a_semantic_ho
         "/api/projects/portfolio/registration/project-lookup/all-project-summaries",
         "/api/projects/portfolio/registration/all-project-summaries",
         "/api/projects/portfolio/registration/project-lookup/project-by-id", "/api/projects/portfolio/registration/project-by-id",
-        "/.cratis/queries/health", "/.cratis/identity-details/schema", "/.cratis/users", "/.cratis/tenants", "/.cratis/me",
+        "/.cratis/queries/health", "/.cratis/availability", "/.cratis/identity-details/schema", "/.cratis/users", "/.cratis/tenants", "/.cratis/me",
         "/.cratis/commands", "/.cratis/queries", "/.cratis/queries/ws", "/.cratis/queries/sse",
         "/.cratis/queries/sse/subscribe", "/.cratis/queries/sse/unsubscribe",
         "/scalar/scalar.js", "/scalar/scalar.aspnetcore.js", "/scalar/favicon.svg", "/scalar/{documentName?}"

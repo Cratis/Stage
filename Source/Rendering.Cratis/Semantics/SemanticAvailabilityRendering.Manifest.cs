@@ -77,7 +77,7 @@ internal static partial class SemanticAvailabilityRendering
     static int SliceCount(SemanticAvailabilityGate gate, string target, IEnumerable<string> sliceNamespaces)
     {
         // A screen marker is not a backend slice and must never hide the slice's command/query proxies.
-        if (target.StartsWith("screen:", StringComparison.Ordinal)) return 0;
+        if (target.StartsWith("screen:", StringComparison.Ordinal) || target.StartsWith("element:", StringComparison.Ordinal)) return 0;
         return gate.IsType ? 1 : sliceNamespaces.Count(slice => slice == gate.Key || slice.StartsWith(gate.Key + ".", StringComparison.Ordinal));
     }
 

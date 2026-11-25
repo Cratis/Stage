@@ -24,7 +24,10 @@ internal static partial class SemanticAvailabilityRendering
     /// <summary>The diagnostic for read model queries that need different gates.</summary>
     internal const string MixedQueryGates = "STAGE-ESM-078";
 
-    const string Engine = "global::Cratis.Choreography.Availability";
+    /// <summary>The diagnostic for placements of one command or query on a screen that need different gates.</summary>
+    internal const string ConflictingElementGates = "STAGE-ESM-079";
+
+    const string Engine = "global::Cratis.Arc.Availability";
 
     /// <summary>
     /// Determines whether the model declares an audience, an availability or a gate.
@@ -55,6 +58,11 @@ internal static partial class SemanticAvailabilityRendering
             {
                 Refusal(requirement, $"The gate on {gate.Description}", context, diagnostics);
             }
+        }
+
+        foreach (var conflict in SemanticScreenAvailability.ConflictingElements(context))
+        {
+            diagnostics.Add(Error(ConflictingElementGates, $"The {conflict} is placed more than once with different availability gates; one marker carries one gate, so give every placement the same gate.", context));
         }
 
         foreach (var readModel in context.AllSlices.SelectMany(located => located.Slice.Queries).GroupBy(query => query.ReadModel))
@@ -118,6 +126,8 @@ internal static partial class SemanticAvailabilityRendering
         SemanticScreenAvailability.AppendScopes(builder, context, Engine);
 
         builder.Line("};").BlankLine()
+            .Line("// The model declares gates by namespace and by name, which Arc reads back from the manifest below, not from typed declarations in the application.")
+            .Line("#pragma warning disable CS0618")
             .OpenBlock("static partial void RegisterGenerated(global::Microsoft.Extensions.Hosting.IHostApplicationBuilder builder)")
             .Line("var services = builder.Services;")
             .Line($"var declared = new {Engine}.Audiences.DeclaredAudiences({string.Join(", ", audiences.Select(CSharpCodeBuilder.StringLiteral))});")
@@ -161,7 +171,9 @@ internal static partial class SemanticAvailabilityRendering
             .BlankLine();
         AppendManifest(builder, context);
         builder
-            .EndBlock().BlankLine()
+            .EndBlock()
+            .Line("#pragma warning restore CS0618")
+            .BlankLine()
             .Summary("Gates a command or read model by its full name, and fails loudly when the type is not part of the application instead of leaving it open.")
             .Line("/// <param name=\"options\">The Arc availability options.</param>")
             .Line("/// <param name=\"typeName\">The full name of the part.</param>")

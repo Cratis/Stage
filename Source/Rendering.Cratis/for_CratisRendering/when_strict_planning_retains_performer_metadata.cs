@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using Cratis.Screenplay.Semantics;
+using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Semantics;
 using Xunit;
@@ -96,7 +97,7 @@ public class when_strict_planning_retains_performer_metadata : given.a_source_pl
 
         // Recomputed for Arc 23.5.0 scaffold pins and the availability registration seam (Cratis/Stage#1117).
         // Recomputed for Arc 23.8.0, Chronicle 19.162.0 and Choreography 2.9.0 scaffold pins.
-        Assert.Equal("7b932a764632de8eaf44b636ec830ed0d31a4413543d7ebffb3f8d343ea27f2e", _defaultLegacy.Digest);
+        _defaultLegacy.Digest.ShouldEqual("d37b94f9401b789d7e456b91853c9fd85b9528dca97f830f334d7931f376f491");
         Assert.DoesNotContain(_normal.Plan.Diagnostics, diagnostic => diagnostic.Code.StartsWith("STAGE-DEGRADE-", StringComparison.Ordinal));
         Assert.Equal(ArtifactRenderOutcome.Partial, _normal.Plan.Outcome);
         Assert.Null(_normal.Plan.Inventory);

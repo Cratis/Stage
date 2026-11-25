@@ -4,6 +4,7 @@
 import { useContext, useEffect, useState } from 'react';
 import { ArcContext, type ArcConfiguration } from '@cratis/arc.react';
 import type { Command } from '@cratis/arc/commands';
+import { reasonOf } from './availabilityClient';
 import { apiBasePathFor } from './hostedBasePath';
 
 /** What the server says a caller may do with a command for the data a screen is showing. */
@@ -13,9 +14,15 @@ export interface CommandAvailability {
 
     /** Why the server refused it, when it said. */
     reason?: string;
+
+    /**
+     * What kind of refusal it was. `notAvailable` is a part that is not in the caller's offer and `suspended` one an operator switched off,
+     * both said by the availability engine ahead of authorization; `unauthorized` is the caller not being allowed to use the command.
+     */
+    kind: 'available' | 'notAvailable' | 'suspended' | 'unauthorized';
 }
 
-const offered: CommandAvailability = { unavailable: false };
+const offered: CommandAvailability = { unavailable: false, kind: 'available' };
 
 /**
  * Asks the server whether the command is authorized for the values the screen is showing, without running it. The server decides, so a policy that
@@ -57,7 +64,12 @@ async function probe(commandType: new () => Command, values: Record<string, unkn
         }
 
         const result = await command.validate();
-        return result.isAuthorized === false ? { unavailable: true, reason: result.authorizationFailureReason || undefined } : offered;
+        if (result.isAuthorized !== false) return offered;
+        const reason = result.authorizationFailureReason || undefined;
+        const refusal = reasonOf(reason);
+        if (refusal === 'NotAvailable') return { unavailable: true, reason, kind: 'notAvailable' };
+        if (refusal === 'Suspended') return { unavailable: true, reason, kind: 'suspended' };
+        return { unavailable: true, reason, kind: 'unauthorized' };
     } catch {
         return offered;
     }

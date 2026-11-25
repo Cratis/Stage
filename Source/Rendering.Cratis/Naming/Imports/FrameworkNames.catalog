@@ -7,9 +7,9 @@ pin	Cratis.Arc.Chronicle.Testing	24.8.0
 pin	Cratis.Arc.MongoDB	24.8.0
 pin	Cratis.Choreography	2.11.0
 pin	Cratis.Choreography.Chronicle	2.11.0
-pin	Cratis.Chronicle	19.187.0
-pin	Cratis.Chronicle.AspNetCore	19.187.0
-pin	Cratis.Chronicle.Testing	19.187.0
+pin	Cratis.Chronicle	19.191.0
+pin	Cratis.Chronicle.AspNetCore	19.191.0
+pin	Cratis.Chronicle.Testing	19.191.0
 pin	Cratis.Screenplay	6.43.0
 pin	Cratis.Screenplay.Matching	6.43.0
 pin	Cratis.Specifications	5.2.3
@@ -42,12 +42,12 @@ package	AS	Cratis.Arc.Testing	24.8.0
 package	AS	Cratis.Choreography	2.11.0
 package	AS	Cratis.Choreography.Chronicle	2.11.0
 package	AS	Cratis.Choreography.Storage	2.11.0
-package	AS	Cratis.Choreography.Storage.MongoDB	2.6.1
-package	AS	Cratis.Chronicle	19.187.0
-package	AS	Cratis.Chronicle.AspNetCore	19.187.0
-package	AS	Cratis.Chronicle.CodeAnalysis	19.187.0
-package	AS	Cratis.Chronicle.Connections	19.187.0
-package	AS	Cratis.Chronicle.Testing	19.187.0
+package	AS	Cratis.Choreography.Storage.MongoDB	2.10.1
+package	AS	Cratis.Chronicle	19.191.0
+package	AS	Cratis.Chronicle.AspNetCore	19.191.0
+package	AS	Cratis.Chronicle.CodeAnalysis	19.191.0
+package	AS	Cratis.Chronicle.Connections	19.191.0
+package	AS	Cratis.Chronicle.Testing	19.191.0
 package	AS	Cratis.Fundamentals	7.34.4
 package	AS	Cratis.Metrics.Roslyn	7.34.4
 package	AS	Cratis.Observability.SourceGenerators	7.34.4
@@ -173,8 +173,8 @@ package	AS	Microsoft.Orleans.Serialization.SystemTextJson	10.4.2
 package	AS	Microsoft.Orleans.Server	10.4.2
 package	AS	Microsoft.TestPlatform.ObjectModel	18.11.0
 package	AS	Microsoft.TestPlatform.TestHost	18.11.0
-package	AS	MongoDB.Bson	3.13.0
-package	AS	MongoDB.Driver	3.13.0
+package	AS	MongoDB.Bson	3.14.1
+package	AS	MongoDB.Driver	3.14.1
 package	AS	NSubstitute	6.2.0
 package	AS	Newtonsoft.Json	13.0.4
 package	AS	OneOf	3.0.271
@@ -538,6 +538,7 @@ namespace	AS	Cratis.Chronicle.Concepts.Targets
 namespace	AS	Cratis.Chronicle.Confidentiality
 namespace	AS	Cratis.Chronicle.Configuration
 namespace	AS	Cratis.Chronicle.Connections
+namespace	AS	Cratis.Chronicle.Connections.Multiplexed
 namespace	AS	Cratis.Chronicle.Contracts
 namespace	AS	Cratis.Chronicle.Contracts.Alerts
 namespace	AS	Cratis.Chronicle.Contracts.Auditing
@@ -545,6 +546,8 @@ namespace	AS	Cratis.Chronicle.Contracts.Captures
 namespace	AS	Cratis.Chronicle.Contracts.Clients
 namespace	AS	Cratis.Chronicle.Contracts.Commands
 namespace	AS	Cratis.Chronicle.Contracts.Compliance
+namespace	AS	Cratis.Chronicle.Contracts.Diagnostics
+namespace	AS	Cratis.Chronicle.Contracts.Diagnostics.Load
 namespace	AS	Cratis.Chronicle.Contracts.EventSequences
 namespace	AS	Cratis.Chronicle.Contracts.EventSequences.Concurrency
 namespace	AS	Cratis.Chronicle.Contracts.EventSources
@@ -562,6 +565,7 @@ namespace	AS	Cratis.Chronicle.Contracts.Jobs
 namespace	AS	Cratis.Chronicle.Contracts.Namespaces
 namespace	AS	Cratis.Chronicle.Contracts.Observation
 namespace	AS	Cratis.Chronicle.Contracts.Observation.EventStoreSubscriptions
+namespace	AS	Cratis.Chronicle.Contracts.Observation.Multiplexed
 namespace	AS	Cratis.Chronicle.Contracts.Observation.Reactors
 namespace	AS	Cratis.Chronicle.Contracts.Observation.Reducers
 namespace	AS	Cratis.Chronicle.Contracts.Observation.Webhooks
@@ -587,6 +591,7 @@ namespace	AS	Cratis.Chronicle.Contracts.Validation
 namespace	AS	Cratis.Chronicle.DevelopmentTools
 namespace	AS	Cratis.Chronicle.Diagnostics
 namespace	AS	Cratis.Chronicle.Diagnostics.Identifiers
+namespace	AS	Cratis.Chronicle.Diagnostics.Load
 namespace	AS	Cratis.Chronicle.Diagnostics.OpenTelemetry
 namespace	AS	Cratis.Chronicle.Diagnostics.OpenTelemetry.Tracing
 namespace	AS	Cratis.Chronicle.Discovery
@@ -632,6 +637,7 @@ namespace	AS	Cratis.Chronicle.Observation.Alerts
 namespace	AS	Cratis.Chronicle.Observation.Claims
 namespace	AS	Cratis.Chronicle.Observation.EventStoreSubscriptions
 namespace	AS	Cratis.Chronicle.Observation.Jobs
+namespace	AS	Cratis.Chronicle.Observation.ObserverRouting
 namespace	AS	Cratis.Chronicle.Observation.Placement
 namespace	AS	Cratis.Chronicle.Observation.Reactors
 namespace	AS	Cratis.Chronicle.Observation.Reactors.Clients
@@ -639,6 +645,7 @@ namespace	AS	Cratis.Chronicle.Observation.Reactors.Kernel
 namespace	AS	Cratis.Chronicle.Observation.Reducers
 namespace	AS	Cratis.Chronicle.Observation.Reducers.Clients
 namespace	AS	Cratis.Chronicle.Observation.States
+namespace	AS	Cratis.Chronicle.Observation.Supervisors
 namespace	AS	Cratis.Chronicle.Observation.Webhooks
 namespace	AS	Cratis.Chronicle.Observation.Webhooks.Signing
 namespace	AS	Cratis.Chronicle.Observation.Webhooks.Validation
@@ -697,6 +704,7 @@ namespace	AS	Cratis.Chronicle.Services.Auditing
 namespace	AS	Cratis.Chronicle.Services.Captures
 namespace	AS	Cratis.Chronicle.Services.Clients
 namespace	AS	Cratis.Chronicle.Services.Compliance
+namespace	AS	Cratis.Chronicle.Services.Diagnostics
 namespace	AS	Cratis.Chronicle.Services.EventSequences
 namespace	AS	Cratis.Chronicle.Services.EventSources
 namespace	AS	Cratis.Chronicle.Services.EventStores
@@ -713,6 +721,7 @@ namespace	AS	Cratis.Chronicle.Services.Jobs
 namespace	AS	Cratis.Chronicle.Services.Namespaces
 namespace	AS	Cratis.Chronicle.Services.Observation
 namespace	AS	Cratis.Chronicle.Services.Observation.EventStoreSubscriptions
+namespace	AS	Cratis.Chronicle.Services.Observation.Multiplexed
 namespace	AS	Cratis.Chronicle.Services.Observation.Reactors
 namespace	AS	Cratis.Chronicle.Services.Observation.Reducers
 namespace	AS	Cratis.Chronicle.Services.Observation.Webhooks
@@ -785,6 +794,7 @@ namespace	AS	Cratis.Chronicle.Storage.InMemory.Patterns
 namespace	AS	Cratis.Chronicle.Storage.InMemory.Projections
 namespace	AS	Cratis.Chronicle.Storage.InMemory.ReadModels
 namespace	AS	Cratis.Chronicle.Storage.InMemory.Recommendations
+namespace	AS	Cratis.Chronicle.Storage.InMemory.Registrations
 namespace	AS	Cratis.Chronicle.Storage.InMemory.Security
 namespace	AS	Cratis.Chronicle.Storage.InMemory.Seeding
 namespace	AS	Cratis.Chronicle.Storage.InMemory.SequenceQueries
@@ -804,11 +814,13 @@ namespace	AS	Cratis.Chronicle.Storage.Patterns
 namespace	AS	Cratis.Chronicle.Storage.Projections
 namespace	AS	Cratis.Chronicle.Storage.ReadModels
 namespace	AS	Cratis.Chronicle.Storage.Recommendations
+namespace	AS	Cratis.Chronicle.Storage.Registrations
 namespace	AS	Cratis.Chronicle.Storage.Security
 namespace	AS	Cratis.Chronicle.Storage.Seeding
 namespace	AS	Cratis.Chronicle.Storage.SequenceQueries
 namespace	AS	Cratis.Chronicle.Storage.SingleWriter
 namespace	AS	Cratis.Chronicle.Storage.Sinks
+namespace	AS	Cratis.Chronicle.Supervision
 namespace	AS	Cratis.Chronicle.Sys
 namespace	AS	Cratis.Chronicle.Testing
 namespace	AS	Cratis.Chronicle.Testing.Auditing
@@ -2039,9 +2051,6 @@ namespace	AS	Orleans.Providers.MongoDB.StorageProviders
 namespace	AS	Orleans.Providers.MongoDB.StorageProviders.Serializers
 namespace	AS	Orleans.Providers.MongoDB.StorageProviders.Serializers.BsonSerializationProviders
 namespace	AS	Orleans.Providers.MongoDB.Utils
-namespace	AS	Orleans.Providers.Streams
-namespace	AS	Orleans.Providers.Streams.Common
-namespace	AS	Orleans.Providers.Streams.Generator
 namespace	AS	Orleans.Reminders
 namespace	AS	Orleans.Reminders.Diagnostics
 namespace	AS	Orleans.Runtime
@@ -2092,13 +2101,6 @@ namespace	AS	Orleans.Services
 namespace	AS	Orleans.Statistics
 namespace	AS	Orleans.Storage
 namespace	AS	Orleans.Storage.Internal
-namespace	AS	Orleans.Streaming
-namespace	AS	Orleans.Streaming.Diagnostics
-namespace	AS	Orleans.Streaming.JsonConverters
-namespace	AS	Orleans.Streams
-namespace	AS	Orleans.Streams.Core
-namespace	AS	Orleans.Streams.Filtering
-namespace	AS	Orleans.Streams.PubSub
 namespace	AS	Orleans.Threading
 namespace	AS	Orleans.Timers
 namespace	AS	Orleans.Timers.Internal
@@ -2124,17 +2126,39 @@ namespace	AS	OrleansCodeGen.Cratis.Choreography.Workflows.Sweeping
 namespace	AS	OrleansCodeGen.Cratis.Chronicle
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Alerts
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Captures
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Captures.Engine
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Clients
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Compliance
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Compliance.GDPR
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Concepts
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Concepts.Auditing
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Concepts.Clients
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Concepts.EventSequences
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Concepts.EventSequences.Concurrency
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Concepts.Events
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Concepts.Events.Constraints
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Concepts.Identities
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Concepts.Imports
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Concepts.Keys
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Concepts.Observation
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Concepts.Observation.EventStoreSubscriptions
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Concepts.Observation.Reactors
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Concepts.Observation.Reducers
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Concepts.Observation.Replaying
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Concepts.Observation.Webhooks
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Concepts.Projections
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Concepts.Projections.Definitions
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Concepts.Projections.Generations
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Concepts.Projections.Generations.Enablement
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Concepts.Projections.Graphs
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Concepts.ReadModels
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Concepts.Security
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Concepts.Servers
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Concepts.Sinks
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Concepts.System
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.DevelopmentTools
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.EventSequences
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.EventSequences.Concurrency
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.EventSequences.Copy
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.EventSequences.Migrations
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.EventSequences.Placement
@@ -2151,6 +2175,7 @@ namespace	AS	OrleansCodeGen.Cratis.Chronicle.Observation
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Observation.Alerts
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Observation.EventStoreSubscriptions
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Observation.Jobs
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Observation.ObserverRouting
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Observation.Placement
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Observation.Reactors
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Observation.Reactors.Clients
@@ -2158,6 +2183,7 @@ namespace	AS	OrleansCodeGen.Cratis.Chronicle.Observation.Reactors.Kernel
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Observation.Reducers
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Observation.Reducers.Clients
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Observation.States
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Observation.Supervisors
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Observation.Webhooks
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Observation.Webhooks.Signing
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Occurrences
@@ -2169,9 +2195,19 @@ namespace	AS	OrleansCodeGen.Cratis.Chronicle.Projections.Generations
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Projections.Generations.Deployment
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.ReadModels
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Recommendations
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Registrations
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Security
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Seeding
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Sequences
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Servers
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Setup
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Setup.Serialization
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Storage
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Storage.Imports
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Storage.Observation
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Storage.ReadModels
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Storage.Seeding
+namespace	AS	OrleansCodeGen.Cratis.Chronicle.Storage.Sinks
 namespace	AS	OrleansCodeGen.Cratis.Chronicle.Sys
 namespace	AS	OrleansCodeGen.CratisArcChronicleTesting
 namespace	AS	OrleansCodeGen.CratisChoreography
@@ -2192,7 +2228,6 @@ namespace	AS	OrleansCodeGen.Orleans.Concurrency
 namespace	AS	OrleansCodeGen.Orleans.Core
 namespace	AS	OrleansCodeGen.Orleans.Core.Internal
 namespace	AS	OrleansCodeGen.Orleans.GrainDirectory
-namespace	AS	OrleansCodeGen.Orleans.Hosting
 namespace	AS	OrleansCodeGen.Orleans.LeaseProviders
 namespace	AS	OrleansCodeGen.Orleans.Metadata
 namespace	AS	OrleansCodeGen.Orleans.Networking
@@ -2202,9 +2237,6 @@ namespace	AS	OrleansCodeGen.Orleans.Placement.Rebalancing
 namespace	AS	OrleansCodeGen.Orleans.Placement.Repartitioning
 namespace	AS	OrleansCodeGen.Orleans.Placement.Repartitioning.AcceptExchangeResponse
 namespace	AS	OrleansCodeGen.Orleans.Providers
-namespace	AS	OrleansCodeGen.Orleans.Providers.Streams
-namespace	AS	OrleansCodeGen.Orleans.Providers.Streams.Common
-namespace	AS	OrleansCodeGen.Orleans.Providers.Streams.Generator
 namespace	AS	OrleansCodeGen.Orleans.Runtime
 namespace	AS	OrleansCodeGen.Orleans.Runtime.Development
 namespace	AS	OrleansCodeGen.Orleans.Runtime.GrainDirectory
@@ -2224,8 +2256,6 @@ namespace	AS	OrleansCodeGen.Orleans.Services
 namespace	AS	OrleansCodeGen.Orleans.Statistics
 namespace	AS	OrleansCodeGen.Orleans.Storage
 namespace	AS	OrleansCodeGen.Orleans.Storage.Internal
-namespace	AS	OrleansCodeGen.Orleans.Streams
-namespace	AS	OrleansCodeGen.Orleans.Streams.Core
 namespace	AS	OrleansCodeGen.Orleans.Versions
 namespace	AS	OrleansCodeGen.Orleans.Versions.Compatibility
 namespace	AS	OrleansCodeGen.Orleans.Versions.Selector
@@ -2238,7 +2268,6 @@ namespace	AS	OrleansCodeGen.OrleansReminders
 namespace	AS	OrleansCodeGen.OrleansRuntime
 namespace	AS	OrleansCodeGen.OrleansSerialization
 namespace	AS	OrleansCodeGen.OrleansSerializationSystemTextJson
-namespace	AS	OrleansCodeGen.OrleansStreaming
 namespace	AS	Polly
 namespace	AS	Polly.Bulkhead
 namespace	AS	Polly.Caching
@@ -4441,6 +4470,7 @@ type	AS	Cratis.Chronicle.Compliance.GDPR	PIIAttribute	attribute
 type	AS	Cratis.Chronicle.Compliance.GDPR	PIIManager	class
 type	AS	Cratis.Chronicle.Compliance.GDPR	PIIMetadataProvider	class
 type	AS	Cratis.Chronicle.Compliance.GDPR	PIINotSupportedOnEventSourceId	class
+type	AS	Cratis.Chronicle.Compliance.GDPR	SpecialCategory	enum
 type	AS	Cratis.Chronicle.Concepts.Captures	AppendDefinition	class
 type	AS	Cratis.Chronicle.Concepts.Captures	Capture	class
 type	AS	Cratis.Chronicle.Concepts.Captures	CaptureDeclaration	class
@@ -4548,6 +4578,9 @@ type	AS	Cratis.Chronicle.Connections	UnableToResolveClientUri	class
 type	AS	Cratis.Chronicle.Connections	UnknownClusterType	class
 type	AS	Cratis.Chronicle.Connections	UnknownLoadBalancerStrategy	class
 type	AS	Cratis.Chronicle.Connections	UnsupportedCertificateAuthorityFormat	class
+type	AS	Cratis.Chronicle.Connections.Multiplexed	MultiplexedObservationChannel	class
+type	AS	Cratis.Chronicle.Connections.Multiplexed	MultiplexedReactors	class
+type	AS	Cratis.Chronicle.Connections.Multiplexed	MultiplexedReducers	class
 type	AS	Cratis.Chronicle.Diagnostics	EventSourceIdTracing	enum
 type	AS	Cratis.Chronicle.Diagnostics	IdentifierHasher	class
 type	AS	Cratis.Chronicle.Diagnostics	InvalidIdentifierHashKey	class
@@ -5093,6 +5126,7 @@ type	AS	Cratis.Chronicle.Projections	ProjectionChangeset`1	class
 type	AS	Cratis.Chronicle.Projections	ProjectionHandler	class
 type	AS	Cratis.Chronicle.Projections	ProjectionId	class
 type	AS	Cratis.Chronicle.Projections	ProjectionQueryResult	class
+type	AS	Cratis.Chronicle.Projections	ProjectionRegistrationNotApplied	class
 type	AS	Cratis.Chronicle.Projections	ProjectionResult	class
 type	AS	Cratis.Chronicle.Projections	ProjectionResultRaw	class
 type	AS	Cratis.Chronicle.Projections	ProjectionResult`1	class
@@ -14740,7 +14774,7 @@ extensions	AS	Cratis.Chronicle.Reactors.SideEffects	GetEventSourceId GetEventSou
 extensions	AS	Cratis.Chronicle.ReadModels	AppendMany DeclaredCollectionsAreNeverNull GetDecisionConflicts GetDecisionReads GetReadModelIdentifier IsPassive ToObservableReadModel WithDeclaredCollectionsNeverNull
 extensions	AS	Cratis.Chronicle.Reducers	GetEventSequenceId GetFailedPartitionsFor GetHandlerEventTypes GetHandlerFor GetReadModelType GetReducerId GetStateFor HasExplicitEventSequence HasNonNullableCurrentReadModelParameter HasReducerMethodShape IsActive IsReducerMethod Register Replay WaitForState WaitForStateAndGetState WaitForThereToBeFailedPartitions WaitTillActive WaitTillActiveAndGetState WaitTillReachesEventSequenceNumber WaitTillSubscribed
 extensions	AS	Cratis.Chronicle.Registrations	WaitForRegistration
-extensions	AS	Cratis.Chronicle.Schemas	AddedProtectionMetadataPaths DescribesGeospatialValue DifferingKeywords EnsureComplianceMetadata EnsureSchemaMetadata EnsureSecurityMetadata EqualsIgnoringAnnotations EqualsIgnoringNullableFormatMarkers EqualsIgnoringTitles GetCompensationFor GetComplianceMetadata GetDefaultValue GetFlattenedProperties GetFlattenedPropertiesByExactName GetKeyProperty GetLikelyKeyPropertyName GetSchemaForPropertyPath GetSchemaMetadata GetSchemaPropertyForPropertyPath GetSecurityMetadata GetTargetTypeForJsonSchemaProperty GetTargetTypeForPropertyPath HasCompatibleProtectionMetadata HasComplianceMetadata HasKeyProperty HasSchemaMetadata HasSecurityMetadata HasSubjectIndependentSecurityMetadata IsCompatibleWith IsCompensation IsDynamic IsNullable MarkAsDynamic MorePrecise SetCompensationFor
+extensions	AS	Cratis.Chronicle.Schemas	AddedProtectionMetadataPaths DescribesGeospatialValue DifferingKeywords EnsureComplianceMetadata EnsureSchemaMetadata EnsureSecurityMetadata EqualsIgnoringAnnotations EqualsIgnoringNullableFormatMarkers EqualsIgnoringTitles GetCompensationFor GetComplianceMetadata GetDefaultValue GetFlattenedProperties GetFlattenedPropertiesByExactName GetKeyProperty GetLikelyKeyPropertyName GetSchemaForPropertyPath GetSchemaMetadata GetSchemaPropertyForPropertyPath GetSecurityMetadata GetStructuralKey GetTargetTypeForJsonSchemaProperty GetTargetTypeForPropertyPath HasCompatibleProtectionMetadata HasComplianceMetadata HasKeyProperty HasSchemaMetadata HasSecurityMetadata HasSubjectIndependentSecurityMetadata IsCompatibleWith IsCompensation IsDynamic IsNullable MarkAsDynamic MorePrecise SetCompensationFor
 extensions	AS	Cratis.Chronicle.Seeding	CreateEventSeeding
 extensions	AS	Cratis.Chronicle.Sinks	GetPublishingSequence GetSinkName IsEventTypeTarget IsPublicEventType ValidateAsEventTarget
 extensions	AS	Cratis.Chronicle.Testing	RoundDownTicks
@@ -15806,7 +15840,7 @@ base	AS	Cratis.Chronicle.Changes.ResolvedJoin	Cratis.Chronicle.Changes.Change	Ar
 base	AS	Cratis.Chronicle.ChronicleBuilder	System.Object	ClientArtifactsProvider Configuration CorrelationIdAccessor IdentityProvider NamespaceResolver NamingPolicy Services	-
 base	AS	Cratis.Chronicle.ChronicleClient	System.Object	CausationManager Dispose EvictEventStores Federation FederationPolicies GetEventStore GetEventStores Options	-
 base	AS	Cratis.Chronicle.ChronicleClientOptions	Cratis.Chronicle.ChronicleOptions	EventStore EventStoreNamespaceResolverType	-
-base	AS	Cratis.Chronicle.ChronicleOptions	System.Object	ActivationId ActivationScope ArtifactIdentityDrift Authentication AutoDiscoverAndRegister ClaimsBasedNamespaceResolverClaimType ConcurrencyOptions ConnectTimeout ConnectionString DefaultGraphSinkName DefaultGraphSinkTypeId DefaultSinkName DefaultSinkTypeId EnableEventTypeGenerationValidation EventGenerationDelivery ExplicitArtifacts ForServerless ForShortLivedProcess FromConnectionString FromDevelopmentConnectionString JsonSerializerOptions LifecycleScope LoadBalancerStrategy MaxReceiveMessageSize MaxSendMessageSize ProgramIdentifier Reactors Reducers RegistrationMode RegistrationRetry Serverless SkipCompatibilityCheck SkipKeepAlive SoftwareCommit SoftwareVersion Telemetry Tls UnitOfWorkLifecyclePolicy UseServerless UseShortLivedProcess Validate	-
+base	AS	Cratis.Chronicle.ChronicleOptions	System.Object	ActivationId ActivationScope ArtifactIdentityDrift Authentication AutoDiscoverAndRegister ClaimsBasedNamespaceResolverClaimType ConcurrencyOptions ConnectTimeout ConnectionString DefaultGraphSinkName DefaultGraphSinkTypeId DefaultSinkName DefaultSinkTypeId EnableEventTypeGenerationValidation EventGenerationDelivery ExplicitArtifacts ForServerless ForShortLivedProcess FromConnectionString FromDevelopmentConnectionString JsonSerializerOptions LifecycleScope LoadBalancerStrategy MaxReceiveMessageSize MaxSendMessageSize MultiplexObservation ProgramIdentifier Reactors Reducers RegistrationMode RegistrationRetry Serverless SkipCompatibilityCheck SkipKeepAlive SoftwareCommit SoftwareVersion Telemetry Tls UnitOfWorkLifecyclePolicy UseServerless UseShortLivedProcess Validate	-
 base	AS	Cratis.Chronicle.ChronicleTelemetryOptions	System.Object	EventSourceIdHashKey EventSourceIdTracing SpanNames	-
 base	AS	Cratis.Chronicle.ClaimsBasedNamespaceResolver	System.Object	Resolve	-
 base	AS	Cratis.Chronicle.ClientArtifactActivationFailed	System.Exception	-	-
@@ -16250,6 +16284,7 @@ base	AS	Cratis.Chronicle.Projections.ProjectionChangeset`1	System.Object	Deconst
 base	AS	Cratis.Chronicle.Projections.ProjectionHandler	System.Object	ContainerName GetFailedPartitions GetState Id ReadModelType	-
 base	AS	Cratis.Chronicle.Projections.ProjectionId	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode NotSet PrintMembers	-
 base	AS	Cratis.Chronicle.Projections.ProjectionQueryResult	System.Object	Deconstruct EqualityContract Equals GetHashCode PrintMembers ReadModelEntries ToString	-
+base	AS	Cratis.Chronicle.Projections.ProjectionRegistrationNotApplied	System.Exception	Registrant	-
 base	AS	Cratis.Chronicle.Projections.ProjectionResult	System.Object	Deconstruct EqualityContract Equals GetHashCode LastHandledEventSequenceNumber PrintMembers ProjectedEventsCount ReadModel ToString	-
 base	AS	Cratis.Chronicle.Projections.ProjectionResultRaw	System.Object	Deconstruct EqualityContract Equals GetHashCode LastHandledEventSequenceNumber PrintMembers ProjectedEventsCount ReadModel ToString	-
 base	AS	Cratis.Chronicle.Projections.ProjectionResult`1	System.Object	Deconstruct EqualityContract Equals GetHashCode LastHandledEventSequenceNumber PrintMembers ProjectedEventsCount ReadModel ToString	-

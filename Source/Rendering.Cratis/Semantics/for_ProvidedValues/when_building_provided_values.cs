@@ -31,7 +31,7 @@ public class when_building_provided_values(when_building_provided_values.context
         {
             AddGeneratedSpecification("when_resolving_provided_values.cs", """
                 #if DEBUG
-                using Cratis.Choreography.Availability.Context.Providers;
+                using Cratis.Arc.Availability.Context.Providers;
                 using Cratis.Chronicle.Events;
                 using Cratis.Chronicle.ReadModels;
                 using Cratis.Specifications;

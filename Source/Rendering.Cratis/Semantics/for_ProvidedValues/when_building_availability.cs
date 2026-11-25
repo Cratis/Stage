@@ -31,10 +31,10 @@ public class when_building_availability(when_building_availability.context fixtu
         {
             AddGeneratedSpecification("when_gating_parts_on_audiences.cs", """
                 #if DEBUG
+                #pragma warning disable CS0618
                 using Cratis.Arc.Availability;
-                using Cratis.Choreography.Availability;
-                using Cratis.Choreography.Availability.Audiences;
-                using Cratis.Choreography.Availability.Context;
+                using Cratis.Arc.Availability.Audiences;
+                using Cratis.Arc.Availability.Context;
                 using Cratis.Specifications;
                 using Microsoft.Extensions.DependencyInjection;
                 using Microsoft.Extensions.Hosting;

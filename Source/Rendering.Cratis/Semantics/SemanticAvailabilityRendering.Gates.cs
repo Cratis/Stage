@@ -46,7 +46,7 @@ internal static partial class SemanticAvailabilityRendering
 
         foreach (var part in SemanticScreenAvailability.Parts(context))
         {
-            Add(gates, new(part.Key, true, part.Requirements, $"screen '{part.Name}'"));
+            Add(gates, new(part.Key, true, part.Requirements, part.Target.StartsWith("element:", StringComparison.Ordinal) ? part.Name : $"screen '{part.Name}'"));
         }
 
         return [.. gates.Values];
@@ -60,6 +60,7 @@ internal static partial class SemanticAvailabilityRendering
 
     static string Expression(SemanticAvailabilityRequirement requirement) => requirement switch
     {
+        SemanticAudienceRequirement { Negated: true } audience => $"new {Engine}.AvailableNotAudience({CSharpCodeBuilder.StringLiteral(audience.Audience)})",
         SemanticAudienceRequirement audience => $"{Engine}.AvailabilityExpression.For({CSharpCodeBuilder.StringLiteral(audience.Audience)})",
         SemanticAvailabilityReference reference => $"{Engine}.AvailabilityExpression.With({CSharpCodeBuilder.StringLiteral(reference.Availability)})",
         SemanticConditionRequirement condition => Condition(condition.Condition),

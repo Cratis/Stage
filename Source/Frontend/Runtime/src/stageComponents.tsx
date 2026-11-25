@@ -11,7 +11,7 @@ import type { ComponentType, ReactNode } from 'react';
 import { Button } from '@cratis/components/Common';
 import { Dialog } from '@cratis/components/Dialogs';
 import { Message } from '@cratis/components/Display';
-import { useStageData, useStageQuery } from './stageData';
+import { queryNotAvailable, querySuspended, useStageData, useStageQuery } from './stageData';
 import { DialogSlice, useStageScreens } from './stageStructure';
 import { sliceDialogScreenOf } from './stageSliceDialogScreen';
 import { StageCommandForm, StageDialogContext, StageDialogFooterContext, carriedBy, identifiersAwaitingSelection, selectedIdentifier, suppliedWithoutAsking } from './StageCommandForm';
@@ -24,6 +24,7 @@ import { readableValue } from './readableValue';
 import { createsEntity, humanize, schemaPropertiesOf, type SchemaProperty } from './stageFormSchema';
 import { registeredCommand } from './commandExecutor';
 import { useCommandAvailability } from './commandAvailability';
+import { availabilityOfCommand, combineAvailability, useElementGate } from './elementAvailability';
 import { navigateToScreen } from './stageNavigation';
 import { isGuardedAction, StageSceneGuardedAction as StageGuardedAction } from './stageData';
 import { useRowInteractions } from './stageRowInteractions';
@@ -134,7 +135,9 @@ export function StageTable({ element, slots }: RegisteredProps) {
         const own = queryArgumentsFor(element, data);
         return { ...own, values: { ...filters, ...own.values } };
     }, [data, element, filters]);
-    const { rows, error, loading, awaitingCommand } = useStageQuery({ scope: element.id, name: queryName, route: route || undefined, arguments: queryArguments.values, ready: queryArguments.ready });
+    // The explicit gate of the data element decides before anything is read; the read model's own availability answers through the query, which the server refuses first.
+    const gate = useElementGate('data', text(element, 'query'), queryArguments.values);
+    const { rows, error, loading, awaitingCommand } = useStageQuery({ scope: element.id, name: queryName, route: route || undefined, arguments: queryArguments.values, ready: queryArguments.ready && gate.kind === 'available' });
     const columns = columnsFor(element, rows);
     const rowMenuActions = useScreenRowMenuActions();
     const columnCount = columns.length + rowMenuColumnCount(rowMenuActions);
@@ -190,6 +193,11 @@ export function StageTable({ element, slots }: RegisteredProps) {
         const { [navigateBy]: _, ...remaining } = data.parameters;
         navigateToScreen(data.screen, remaining);
     };
+
+    // A read model that is not in the caller's offer is not rendered; one an operator suspended says so briefly. Both are told apart from a caller who may not read it.
+    const withheld = combineAvailability(gate, error === queryNotAvailable ? { kind: 'notAvailable' } : error === querySuspended ? { kind: 'suspended' } : { kind: 'available' });
+    if (withheld.kind === 'notAvailable' || withheld.kind === 'unknown') return null;
+    if (withheld.kind === 'suspended') return <StageSuspended id={element.id} />;
 
     if (!text(element, 'query') && !route && !registeredQuery(queryName)) {
         return (
@@ -298,6 +306,11 @@ function autoActionFields(input: ExternalComponent, schema: string | undefined, 
     return { fields: ownFields.filter(field => !carried.has(askedProperty(field))), generationMode: 'manual' };
 }
 
+/** What an element an operator suspended shows instead of nothing: a short message that goes away when the suspension is lifted. */
+function StageSuspended({ id }: { id: string }) {
+    return <span className='stage-suspended' role='status' data-scene-id={id}>Back soon</span>;
+}
+
 function StageCommandAction({ element: input, interactions }: RegisteredProps) {
     const { element, subject, properties, selectedRows } = useCommandAction(input);
     const label = text(element, 'label') || humanize(text(element, 'command'));
@@ -306,7 +319,15 @@ function StageCommandAction({ element: input, interactions }: RegisteredProps) {
     const row = subjectRowOf(subject, selectedRows);
     const { parameters, queryResults } = useStageData();
     const subjectValues = row ? itemSubjectElement(element, properties, row).properties.subjectValues : undefined;
-    const availability = useCommandAvailability(command, { ...parameters, ...(isRecord(subjectValues) ? subjectValues : {}) }, queryResults);
+    const values = { ...parameters, ...(isRecord(subjectValues) ? subjectValues : {}) };
+    const availability = useCommandAvailability(command, values, queryResults);
+    const gate = useElementGate('action', text(element, 'command'), values);
+
+    // What withholds an action, strongest first: the part is not in the caller's offer (not rendered), an operator suspended it (a short message), or the
+    // caller may not use the command (shown unavailable below, with the server's reason). The explicit gate of the element only narrows what the command's own path says.
+    const withheld = combineAvailability(gate, availabilityOfCommand(availability));
+    if (withheld.kind === 'notAvailable' || withheld.kind === 'unknown') return null;
+    if (withheld.kind === 'suspended') return <StageSuspended id={element.id} />;
 
     if (!command) {
         return <StageActionTrigger id={element.id} sceneId={element.id} label={label} disabled title='This command is not exposed as an API yet' interactions={interactions} />;

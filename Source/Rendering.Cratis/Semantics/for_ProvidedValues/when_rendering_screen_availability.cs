@@ -32,8 +32,8 @@ public class when_rendering_screen_availability : Specification
     [Fact] void should_map_an_inherited_gate() => _map.ContainsKey("InheritedList").ShouldBeTrue();
     [Fact] void should_not_gate_a_screen_without_a_direct_or_inherited_gate() => _map.ContainsKey("PublicList").ShouldBeFalse();
     [Fact] void should_register_an_exact_type_gate() => _registration.ShouldContain($"GateType(options, \"{_map["VesselList"]}\"");
-    [Fact] void should_combine_inherited_and_direct_requirements() => _registration.ShouldContain($"GateType(options, \"{_map["VesselList"]}\", global::Cratis.Choreography.Availability.AvailabilityExpression.AllOf(");
-    [Fact] void should_use_the_declaring_screen_scope() => _registration.ShouldContain($"[\"{_map["VesselList"]}\"] = global::Cratis.Choreography.Availability.Context.ContextScope.Of(\"Fleet\", \"Vessels\", \"Vessels\")");
+    [Fact] void should_combine_inherited_and_direct_requirements() => _registration.ShouldContain($"GateType(options, \"{_map["VesselList"]}\", global::Cratis.Arc.Availability.AvailabilityExpression.AllOf(");
+    [Fact] void should_use_the_declaring_screen_scope() => _registration.ShouldContain($"[\"{_map["VesselList"]}\"] = global::Cratis.Arc.Availability.Context.ContextScope.Of(\"Fleet\", \"Vessels\", \"Vessels\")");
     [Fact] void should_emit_the_same_keys_in_the_static_route_map() => _map.Values.All(key => a_fleet_model.Text(_plan, "stage.ts").Contains(key, StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_publish_a_screen_target_with_no_backend_slices() => _registration.ShouldContain("screen:Fleet/Vessels/Vessels/VesselList;slices=0");
     [Fact] void should_emit_distinct_stable_keys() => _map.Values.Distinct().Count().ShouldEqual(2);

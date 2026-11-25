@@ -134,6 +134,9 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticCommand", rendered, "Available");
         Add(entries, "SemanticKeyedQuery", rendered, "Available");
         Add(entries, "SemanticScreen", rendered, "Available");
+        Add(entries, "SemanticScreenAction", rendered, "Available");
+        Add(entries, "SemanticScreenData", rendered, "Available");
+        Add(entries, "SemanticAudienceRequirement", rendered, "Negated");
         Add(entries, "SemanticAudience", rendered, "Name");
         Add(entries, "SemanticAvailability", rendered, "Name Requirements");
         Add(entries, "SemanticAvailabilityRequirement", rendered, "$type");

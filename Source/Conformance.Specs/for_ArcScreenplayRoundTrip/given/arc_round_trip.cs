@@ -21,7 +21,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip.given;
 // recompile that source, and compare the recovered model with the original on the canonical semantic model.
 internal static class arc_round_trip
 {
-    public static RoundTripObservation Run(round_trip_fixture fixture)
+    public static RoundTripObservation Run(round_trip_fixture fixture, Action<string>? observeSource = null)
     {
         round_trip_model_profile.EnsureCovered(fixture.Model);
         var plan = fixture.Plan;
@@ -47,6 +47,7 @@ internal static class arc_round_trip
             Console.WriteLine($"{fixture.Name}: {diagnostic.Code} {diagnostic.Severity}: {diagnostic.Message}");
         }
 
+        observeSource?.Invoke(generated.Source);
         var recovered = Recover(application.Name, generated.Source);
 
         return new(

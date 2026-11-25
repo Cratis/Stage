@@ -19,7 +19,7 @@ public class when_rendering_generation_strategies : Specification
     [InlineData("BareTypeId", "GenerateValue.TypeId(\"\", context)")]
     [InlineData("BinaryCode", "GenerateValue.NanoId(64, \"ab\")")]
     [InlineData("EncodedRandom", "GenerateValue.Bytes(32, ValueEncoding.Base64Url)")]
-    [InlineData("HexReference", "GenerateValue.Bytes(16, ValueEncoding.Hex).ToUpperInvariant()")]
+    [InlineData("HexReference", "RandomNumberGenerator.GetHexString(32, false)")]
     [InlineData("Base32Reference", "GenerateValue.Bytes(16, ValueEncoding.Base32).ToLowerInvariant()")]
     [InlineData("ImplicitId", "GenerateValue.Uuid()")]
     public void should_emit_the_concepts_strategy_factory(string name, string factory)

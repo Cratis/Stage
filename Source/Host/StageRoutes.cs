@@ -46,7 +46,7 @@ public record StageRoutes(
 
     /// <summary>
     /// Gets the exact Arc availability part key of every screen element that carries its own availability gate, by the
-    /// screen name, the kind of element and the name of the command or query it is bound to (<c>Screen/action/Command</c>, <c>Screen/data/Query</c>).
+    /// screen name, the kind of element and the name of the command or query it is bound to (<c language="text">Screen/action/Command</c>, <c language="text">Screen/data/Query</c>).
     /// </summary>
     public IReadOnlyDictionary<string, string> Elements { get; init; } = new Dictionary<string, string>();
 

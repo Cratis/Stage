@@ -5,9 +5,8 @@
 using System.Reflection;
 using System.Text.Json;
 using Cratis.Arc.Availability;
-using Cratis.Arc.Slices;
-using Cratis.Arc.Availability;
 using Cratis.Arc.Availability.Audiences;
+using Cratis.Arc.Slices;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.Semantics.for_ProvidedValues.given;
 using Cratis.Types;
@@ -44,7 +43,9 @@ public class when_publishing_screen_marker_parts : Specification
     void RegisterMarkers()
     {
         var options = new ArcAvailabilityOptions();
+#pragma warning disable CS0618 // The generated registration uses the same string-based gates, which Arc still reads.
         foreach (var marker in _markers) options.Gate(marker, AvailabilityExpression.For([new AudienceName("Plus")]));
+#pragma warning restore CS0618
         var types = Substitute.For<ITypes>();
         types.All.Returns([]);
         _registered = new ArcAvailabilityGate(options, Substitute.For<IAvailabilityEvaluator>(), Substitute.For<IAudienceSource>(), types).GatedParts;

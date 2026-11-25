@@ -8,8 +8,9 @@ using Cratis.Screenplay.Semantics;
 namespace Cratis.Stage.Rendering.Cratis.Semantics.for_ProvidedValues.given;
 
 /// <summary>
-/// The available screen model with explicit gates on the elements of the gated <c>VesselList</c> screen: an action bound to the
+/// The available screen model with explicit gates on the elements of the gated <c language="text">VesselList</c> screen: an action bound to the
 /// register command, gated against an audience the caller has not been given, and a data element bound to the vessel query.
+/// With <c language="text">conflicting</c> the same command is placed twice on the screen with different gates.
 /// </summary>
 internal static class an_available_screen_element_model
 {
@@ -24,9 +25,9 @@ internal static class an_available_screen_element_model
         var query = viewSlice.Queries.Single();
         var screen = viewSlice.Screens.Single(candidate => candidate.Name == "VesselList");
         ImmutableArray<SemanticAvailabilityRequirement> incident = [new SemanticAudienceRequirement("Beta", Negated: true)];
-        var actions = conflicting
-            ? ImmutableArray.Create(Action(command, incident), Action(command, [new SemanticAudienceRequirement("Plus")]))
-            : ImmutableArray.Create(Action(command, incident));
+        ImmutableArray<SemanticScreenAction> actions = conflicting
+            ? [Action(command, incident), Action(command, [new SemanticAudienceRequirement("Plus")])]
+            : [Action(command, incident)];
         var gated = screen with
         {
             Actions = actions,

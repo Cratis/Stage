@@ -82,25 +82,3 @@ public static class ScreenAvailabilityParts
 
     static string Key(SemanticScreen screen) => $"StageScreen_{screen.Id.ToString().Replace(':', '_')}";
 }
-
-/// <summary>
-/// The kind of screen element that can carry an explicit availability gate.
-/// </summary>
-public enum ScreenElementKind
-{
-    /// <summary>An action bound to a command.</summary>
-    Action,
-
-    /// <summary>A data element bound to a query.</summary>
-    Data
-}
-
-/// <summary>
-/// A screen element with its own availability gate.
-/// </summary>
-/// <param name="Screen">The name of the screen holding it.</param>
-/// <param name="Kind">Whether it is an action or a data element.</param>
-/// <param name="Name">The name of the command or query it is bound to.</param>
-/// <param name="Key">The exact marker key that carries its gate.</param>
-/// <param name="Requirements">The gate of the element alone; the gates above it apply as well.</param>
-public sealed record ScreenElementGate(string Screen, ScreenElementKind Kind, string Name, string Key, System.Collections.Immutable.ImmutableArray<SemanticAvailabilityRequirement> Requirements);

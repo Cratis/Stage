@@ -7,6 +7,7 @@ import { BindingSourceKind, type BindingExpression } from '@cratis/scene.model';
 import { ArcContext } from '@cratis/arc.react';
 import { ObservableQueryFor, type QueryResult } from '@cratis/arc/queries';
 import { applyQueryChangeSet } from './applyQueryChangeSet';
+import { reasonOf } from './availabilityClient';
 import { registeredQuery, performQuery, subscribeQuery } from './queryExecutor';
 import { createBindingResolver, resolveArgumentSource, validateBindingExpression } from '@cratis/scene.engine';
 import type { StageRoutes } from './stageRoutes';
@@ -691,10 +692,22 @@ function resolveQueryResult(queries: Record<string, QueryState>, query: string |
     return rows.map(row => valueAt(row, parts));
 }
 
+/** What a query result says when its read model is not in the caller's offer; the element that shows the rows is not rendered. */
+export const queryNotAvailable = 'The query is not available.';
+
+/** What a query result says when an operator suspended its read model; the element that shows the rows says so briefly. */
+export const querySuspended = 'The query is suspended.';
+
 // What a result that carries no rows says about why: a denied or invalid subscription ends rather than retrying.
-function queryFailure(result: unknown): string {
+export function queryFailure(result: unknown): string {
     if (!isRecord(result)) return '';
-    if (result.isAuthorized === false) return 'The query answered 403.';
+    if (result.isAuthorized === false) {
+        // The availability engine answers before authorization: a part that is not offered and a part an operator suspended are told apart from a caller who may not read.
+        const refusal = reasonOf(typeof result.authorizationFailureReason === 'string' ? result.authorizationFailureReason : undefined);
+        if (refusal === 'NotAvailable') return queryNotAvailable;
+        if (refusal === 'Suspended') return querySuspended;
+        return 'The query answered 403.';
+    }
     if (result.isValid === false || result.hasExceptions === true || result.isSuccess === false) {
         const messages = Array.isArray(result.exceptionMessages) ? result.exceptionMessages.filter(message => typeof message === 'string') : [];
         return messages.length > 0 ? messages.join(' ') : 'The query could not be answered.';

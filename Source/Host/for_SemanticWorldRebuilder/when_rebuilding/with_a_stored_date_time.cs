@@ -14,7 +14,8 @@ public class with_a_stored_date_time : a_stored_typed_event
     void Establish() => Prepare("DateTime", "\"2026-09-24T12:00:00.1234567+02:00\"");
     void Because() => _error = Catch.Exception(() => SemanticWorldRebuilder.Fact(_typedPlan, _stored, evidence: Evidence));
 
-    [Fact] void should_convert_through_chronicles_date_time_schema() => _converted.ShouldBeOfExactType<DateTime>();
+    // Chronicle 19.187 converts a stored date time with an offset to a DateTimeOffset; the rebuild still refuses it because the model's value has no offset.
+    [Fact] void should_convert_through_chronicles_date_time_schema() => _converted.ShouldBeOfExactType<DateTimeOffset>();
     [Fact] void should_refuse_the_non_exact_event_property() => _error.ShouldBeOfExactType<SemanticWorldRebuildRefused>();
     [Fact] void should_name_the_event_type() => _error.Message.ShouldContain("ProjectRegistered");
     [Fact] void should_name_the_refused_property() => _error.Message.ShouldContain("value");

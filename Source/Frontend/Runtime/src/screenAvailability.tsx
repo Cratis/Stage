@@ -1,88 +1,56 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
-import { Globals } from '@cratis/arc';
-import { buildQueryHttpRequest, Paging, QueryHttpMethod, Sorting } from '@cratis/arc/queries';
-import { ArcContext, type ArcConfiguration } from '@cratis/arc.react';
-import { apiBasePathFor } from './hostedBasePath';
+import { useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { ArcContext } from '@cratis/arc.react';
+import { fetchUnavailableParts, type UnavailableParts } from './availabilityClient';
 import type { StageRoutes } from './stageRoutes';
 
 /** The exact Arc part key of each gated screen. Screens absent from the map are ungated. */
 export type ScreenParts = Record<string, string>;
 
-/**
- * Reads Arc 23.5's request-specific unavailable-part snapshot. A failed request never opens a gated screen.
- * @param signal Cancels an abandoned request.
- * @param arc The host's Arc transport configuration.
- * @returns The exact names of unavailable parts.
- */
-export async function fetchUnavailableScreens(signal: AbortSignal, arc: ArcConfiguration = { microservice: '' }): Promise<Set<string>> {
-    const headers = new Headers(arc.httpHeadersCallback?.());
-    headers.set('Accept', 'application/json');
-    headers.set('Content-Type', 'application/json');
-    if (arc.microservice) headers.set(Globals.microserviceHttpHeader, arc.microservice);
-    const { url, init } = buildQueryHttpRequest(QueryHttpMethod.Get, {
-        route: '/.cratis/availability',
-        origin: arc.origin ?? '',
-        apiBasePath: apiBasePathFor(arc.apiBasePath),
-        args: { waitForFirstResult: true },
-        parameterValues: {},
-        paging: Paging.noPaging,
-        sorting: Sorting.none,
-        headers,
-        signal,
-    });
-    const response = await fetch(url, { ...init, credentials: 'same-origin' });
-    if (!response.ok) throw new Error('Unable to read screen availability.');
-    const result: unknown = await response.json();
-    if (!validSnapshot(result)) throw new Error('Invalid screen availability.');
-    return new Set(result.data.unavailable.map(part => part.name));
+/** Says whether a screen may be rendered or linked to, and, for a screen an operator suspended, that it is only suspended. */
+export interface ScreenAvailability {
+    (screen: string | undefined): boolean;
+
+    /** Whether the screen is unavailable because an operator suspended it, as opposed to not being in the caller's offer. */
+    suspended?: (screen: string | undefined) => boolean;
 }
 
-interface AvailabilitySnapshot {
-    isSuccess: boolean;
-    data: { unavailable: { name: string }[] };
-}
-
-function validSnapshot(result: unknown): result is AvailabilitySnapshot {
-    const snapshot = result as Partial<AvailabilitySnapshot> | null;
-    if (snapshot?.isSuccess !== true) return false;
-    return unavailableParts(snapshot.data?.unavailable);
-}
-
-function unavailableParts(value: unknown): value is { name: string }[] {
-    return Array.isArray(value) && value.every(part => typeof part?.name === 'string');
-}
-
-function screenIsAvailable(screen: string | undefined, parts: ScreenParts | undefined, unavailable: Set<string> | undefined): boolean {
+function screenIsAvailable(screen: string | undefined, parts: ScreenParts | undefined, unavailable: UnavailableParts | undefined): boolean {
     if (!screen) return true;
     if (!parts) return true;
     if (!Object.hasOwn(parts, screen)) return true;
     return unavailable !== undefined && !unavailable.has(parts[screen]);
 }
 
+function screenIsSuspended(screen: string | undefined, parts: ScreenParts | undefined, unavailable: UnavailableParts | undefined): boolean {
+    if (!screen || !parts || !unavailable || !Object.hasOwn(parts, screen)) return false;
+    return unavailable.get(parts[screen]) === 'Suspended';
+}
+
 /**
  * Hides a gated screen until its exact part is known to be available; failures stay closed. Ungated screens need no request.
+ * The Stage-owned client reads `/.cratis/availability` with the reason of every refusal, so a suspended screen can be told from one that is not offered.
  * @param routes The routes, including the gated screen map.
  * @param lookupFailed Whether the route lookup failed to establish the screen gate map.
  * @returns Whether a screen may be rendered or linked to.
  */
-export function useScreenAvailability(routes: StageRoutes | undefined, lookupFailed = false): (screen: string | undefined) => boolean {
+export function useScreenAvailability(routes: StageRoutes | undefined, lookupFailed = false): ScreenAvailability {
     const arc = useContext(ArcContext);
     const parts = routes?.screens;
     const key = JSON.stringify(parts ?? {});
-    const [snapshot, setSnapshot] = useState<{ key: string; unavailable: Set<string> }>();
+    const [snapshot, setSnapshot] = useState<{ key: string; unavailable: UnavailableParts }>();
     useEffect(() => {
         if (key === '{}') return;
         let abort = new AbortController();
-        // Replace this Stage-owned bridge with Arc's availability components once Showrunner supports Arc 23.
-        // Arc 22 has no availability export; do not override Showrunner's Arc peer dependencies to import it.
+        // This Stage-owned client stays until the frontend is off Arc JS 22, which has no availability export (Cratis/Stage#1135).
+        // Do not override Showrunner's Arc peer dependencies to import it.
         const refresh = () => {
             abort.abort();
             const request = new AbortController();
             abort = request;
-            void fetchUnavailableScreens(request.signal, arc)
+            void fetchUnavailableParts(request.signal, arc)
                 .then(unavailable => { if (!request.signal.aborted) setSnapshot({ key, unavailable }); })
                 .catch(() => { if (!request.signal.aborted) setSnapshot(undefined); });
         };
@@ -95,9 +63,11 @@ export function useScreenAvailability(routes: StageRoutes | undefined, lookupFai
             globalThis.removeEventListener('focus', refresh);
         };
     }, [key, arc]);
-    return useCallback(screen => {
-        if (lookupFailed) return !screen;
-        return screenIsAvailable(screen, parts, snapshot?.key === key ? snapshot.unavailable : undefined);
+    return useMemo(() => {
+        const unavailable = snapshot?.key === key ? snapshot.unavailable : undefined;
+        return Object.assign(
+            (screen: string | undefined) => lookupFailed ? !screen : screenIsAvailable(screen, parts, unavailable),
+            { suspended: (screen: string | undefined) => !lookupFailed && screenIsSuspended(screen, parts, unavailable) });
     }, [lookupFailed, parts, key, snapshot]);
 }
 
@@ -107,14 +77,19 @@ export function ScreenRoutesReady({ ready, children }: { ready: boolean; childre
     return children;
 }
 
-/** Refuses a requested screen before mounting its content, including data bindings and command controls. */
+/**
+ * Refuses a requested screen before mounting its content, including data bindings and command controls. A screen an operator suspended
+ * says so; any other refused screen is as if it did not exist.
+ */
 export function ScreenAvailabilityGuard({ screens, isAvailable, children }: {
     screens: (string | undefined)[];
-    isAvailable: (screen: string | undefined) => boolean;
+    isAvailable: ScreenAvailability;
     children: ReactNode;
 }) {
-    if (screens.some(screen => !isAvailable(screen))) {
-        return <main className='stage-message' role='alert'><h1>Screen not found</h1></main>;
+    const refused = screens.filter(screen => !isAvailable(screen));
+    if (refused.length === 0) return children;
+    if (isAvailable.suspended && refused.every(screen => isAvailable.suspended?.(screen))) {
+        return <main className='stage-message' role='alert'><h1>Back soon</h1><p>This screen is switched off for now.</p></main>;
     }
-    return children;
+    return <main className='stage-message' role='alert'><h1>Screen not found</h1></main>;
 }

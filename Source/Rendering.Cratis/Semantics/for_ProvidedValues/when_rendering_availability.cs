@@ -20,9 +20,9 @@ public class when_rendering_availability : Specification
         _plan = a_fleet_model.Plan(an_available_fleet_model.Source);
         if (!_plan.Success) return;
         _registration = a_fleet_model.Text(_plan, "Availability.cs")
-            .Replace("global::Cratis.Choreography.Availability.Audiences.", string.Empty, StringComparison.Ordinal)
-            .Replace("global::Cratis.Choreography.Availability.Context.", string.Empty, StringComparison.Ordinal)
-            .Replace("global::Cratis.Choreography.Availability.", string.Empty, StringComparison.Ordinal);
+            .Replace("global::Cratis.Arc.Availability.Audiences.", string.Empty, StringComparison.Ordinal)
+            .Replace("global::Cratis.Arc.Availability.Context.", string.Empty, StringComparison.Ordinal)
+            .Replace("global::Cratis.Arc.Availability.", string.Empty, StringComparison.Ordinal);
         _props = a_fleet_model.Text(_plan, "Availability.props");
     }
 

@@ -95,7 +95,7 @@ Other shapes remain explicit `STAGE-ESM-016` refusals on the original specificat
 
 ## Version 53 screen availability
 
-The V53 audience-and-availability vector renders screen `available` gates as exact-name marker parts instead of refusing them with `STAGE-ESM-016`. Its route map carries each gated screen's marker key, including inherited gates. The client hides unavailable navigation and refuses screen routes; server-side enforcement remains on the screen's commands and queries. See [availability rendering](availability-rendering.md).
+The V53 audience-and-availability vector renders screen `available` gates as exact-name marker parts instead of refusing them with `STAGE-ESM-016`. ESM v58 (`available not for`) and v59 (gates on screen actions and data elements) are admitted with the Cratis range. V58 and V59 carry the same other refusals as V54 and V56, recorded against the issues that cover them; neither vector refuses a gate. Its route map carries each gated screen's marker key, including inherited gates. The client hides unavailable navigation and refuses screen routes; server-side enforcement remains on the screen's commands and queries. See [availability rendering](availability-rendering.md).
 
 ## Update the table
 

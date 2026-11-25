@@ -20,7 +20,7 @@ internal static class SemanticProvidedValueRendering
     /// <summary>The diagnostic for a provided value whose type cannot render.</summary>
     internal const string UnsupportedType = "STAGE-ESM-076";
 
-    const string Choreography = "global::Cratis.Choreography.Availability.Context";
+    const string Choreography = "global::Cratis.Arc.Availability.Context";
 
     /// <summary>
     /// Refuses every provided value the generated resolver cannot resolve faithfully.

@@ -138,6 +138,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticAvailability", rendered, "Name Requirements");
         Add(entries, "SemanticAvailabilityRequirement", rendered, "$type");
         Add(entries, "SemanticAudienceRequirement", rendered, "Audience");
+        Add(entries, "SemanticAudienceRequirement", rejected("STAGE-ESM-077"), "Negated");
         Add(entries, "SemanticConditionRequirement", rendered, "Condition");
         Add(entries, "SemanticAvailabilityCondition", rendered, "$type");
         Add(entries, "SemanticAvailabilityReference", rendered, "Availability");
@@ -487,9 +488,9 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticScreenExtension", ignored("A screen's extension needs are part of the stack-neutral UI contract; the Stage host reads them from it, not from the rendered backend."), "System Reference");
         Add(entries, "SemanticScreenComponent", ignored("A screen's extension components are part of the stack-neutral UI contract; the Stage host reads them from it, not from the rendered backend."), "Name System Component Properties Handles");
         Add(entries, "SemanticScreenSignalHandler", ignored("A screen's signal handlers are part of the stack-neutral UI contract."), "Signal Commands");
-        Add(entries, "SemanticScreenData", ignored("Screens are a stack-neutral UI contract."), "Query By Fields");
+        Add(entries, "SemanticScreenData", ignored("Screens are a stack-neutral UI contract."), "Query By Fields Available");
         Add(entries, "SemanticScreenField", ignored("Screens are a stack-neutral UI contract."), "Label Property");
-        Add(entries, "SemanticScreenAction", ignored("Screens are a stack-neutral UI contract."), "Command Label Subject Inputs When Then");
+        Add(entries, "SemanticScreenAction", ignored("Screens are a stack-neutral UI contract."), "Command Label Subject Inputs When Then Available");
         Add(entries, "SemanticScreenInput", ignored("Screens are a stack-neutral UI contract."), "Property From");
         Add(entries, "SemanticScreenNavigation", ignored("Screens are a stack-neutral UI contract."), "Screen Trigger Opens By");
         Add(entries, "SemanticScreenLayout", ignored("Screens are a stack-neutral UI contract."), "Fits Regions");

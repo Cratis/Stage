@@ -112,6 +112,9 @@ internal static partial class SemanticAvailabilityRendering
     {
         switch (requirement)
         {
+            case SemanticAudienceRequirement { Negated: true } audience:
+                diagnostics.Add(Error(UnsupportedCondition, $"{owner} requires negated audience '{audience.Audience}'; Stage cannot render audience negation faithfully, so the model is refused.", context));
+                break;
             case SemanticConditionRequirement condition:
                 Refusal(condition.Condition, owner, context, diagnostics);
                 break;

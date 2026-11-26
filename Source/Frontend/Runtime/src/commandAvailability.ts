@@ -4,7 +4,7 @@
 import { useContext, useEffect, useState } from 'react';
 import { ArcContext, type ArcConfiguration } from '@cratis/arc.react';
 import type { Command } from '@cratis/arc/commands';
-import { reasonOf } from './availabilityClient';
+import { NotAvailable, Suspended } from '@cratis/arc/availability';
 import { apiBasePathFor } from './hostedBasePath';
 
 /** What the server says a caller may do with a command for the data a screen is showing. */
@@ -66,9 +66,8 @@ async function probe(commandType: new () => Command, values: Record<string, unkn
         const result = await command.validate();
         if (result.isAuthorized !== false) return offered;
         const reason = result.authorizationFailureReason || undefined;
-        const refusal = reasonOf(reason);
-        if (refusal === 'NotAvailable') return { unavailable: true, reason, kind: 'notAvailable' };
-        if (refusal === 'Suspended') return { unavailable: true, reason, kind: 'suspended' };
+        if (reason === NotAvailable) return { unavailable: true, reason, kind: 'notAvailable' };
+        if (reason === Suspended) return { unavailable: true, reason, kind: 'suspended' };
         return { unavailable: true, reason, kind: 'unauthorized' };
     } catch {
         return offered;

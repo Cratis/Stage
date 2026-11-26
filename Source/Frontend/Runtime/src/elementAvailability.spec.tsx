@@ -1,7 +1,10 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import type { ReactNode } from 'react';
 import { renderHook, waitFor } from '@testing-library/react';
+import { AvailabilityProvider } from '@cratis/arc.react/availability';
+import { FreshQueries } from './testing/freshQueries';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { availabilityOfCommand, combineAvailability, elementLookup, useElementGate } from './elementAvailability';
 
@@ -12,8 +15,11 @@ vi.mock('./stageData', () => ({ useStageData: () => stageData.value }));
 
 const answer = (reason?: string) => ({ isSuccess: true, data: { unavailable: reason ? [{ name: 'StageElement_exact', module: '', feature: '', slice: '', reason }] : [] } });
 
+// The application mounts Arc's availability provider when it has a gated element; the gate asks the server through it.
+const Gated = ({ children }: { children: ReactNode }) => <FreshQueries><AvailabilityProvider>{children}</AvailabilityProvider></FreshQueries>;
+
 function stubFetch(payload: () => Promise<unknown>) {
-    const fetcher = vi.fn((_input: RequestInfo | URL) => payload().then(json => ({ ok: true, json: async () => json } as Response)));
+    const fetcher = vi.fn((_input: RequestInfo | URL) => payload().then(json => new Response(JSON.stringify({ isAuthorized: true, ...(json as object) }), { status: 200 })));
     vi.stubGlobal('fetch', fetcher);
     return fetcher;
 }
@@ -34,34 +40,34 @@ describe('element availability', () => {
 
     it('shows nothing for a gated element until the server has answered', async () => {
         stubFetch(() => new Promise(() => undefined));
-        const { result } = renderHook(() => useElementGate('action', 'RegisterVessel', {}));
+        const { result } = renderHook(() => useElementGate('action', 'RegisterVessel', {}), { wrapper: Gated });
         expect(result.current).toEqual({ kind: 'unknown' });
     });
 
     it('asks about the marker with the values the screen shows', async () => {
         const fetcher = stubFetch(async () => answer());
-        const { result } = renderHook(() => useElementGate('action', 'RegisterVessel', { vesselId: 'v-17' }));
+        const { result } = renderHook(() => useElementGate('action', 'RegisterVessel', { vesselId: 'v-17' }), { wrapper: Gated });
         await waitFor(() => expect(result.current).toEqual({ kind: 'available' }));
-        const url = new URL(String(fetcher.mock.calls[0][0]), document.baseURI);
+        const url = fetcher.mock.calls.map(call => new URL(String(call[0]), document.baseURI)).find(candidate => candidate.searchParams.has('part'))!;
         expect(url.searchParams.get('part')).toBe('StageElement_exact');
         expect(JSON.parse(url.searchParams.get('arguments') ?? '{}')).toEqual({ vesselId: 'v-17' });
     });
 
     it('does not render an element whose part is not available', async () => {
         stubFetch(async () => answer('NotAvailable'));
-        const { result } = renderHook(() => useElementGate('action', 'RegisterVessel', {}));
+        const { result } = renderHook(() => useElementGate('action', 'RegisterVessel', {}), { wrapper: Gated });
         await waitFor(() => expect(result.current).toEqual({ kind: 'notAvailable' }));
     });
 
     it('tells an element an operator suspended from one that is not available', async () => {
         stubFetch(async () => answer('Suspended'));
-        const { result } = renderHook(() => useElementGate('action', 'RegisterVessel', {}));
+        const { result } = renderHook(() => useElementGate('action', 'RegisterVessel', {}), { wrapper: Gated });
         await waitFor(() => expect(result.current).toEqual({ kind: 'suspended' }));
     });
 
     it('keeps an element closed when the answer fails', async () => {
         const fetcher = stubFetch(() => Promise.reject(new Error('down')));
-        const { result } = renderHook(() => useElementGate('action', 'RegisterVessel', {}));
+        const { result } = renderHook(() => useElementGate('action', 'RegisterVessel', {}), { wrapper: Gated });
         await waitFor(() => expect(fetcher).toHaveBeenCalled());
         expect(result.current).toEqual({ kind: 'unknown' });
     });

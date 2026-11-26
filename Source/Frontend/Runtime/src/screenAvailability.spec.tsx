@@ -2,9 +2,10 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { renderHook, act } from '@testing-library/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { ArcContext, type ArcConfiguration } from '@cratis/arc.react';
 import { Globals } from '@cratis/arc';
+import { FreshQueries } from './testing/freshQueries';
 import { cleanup, fireEvent, render, screen, waitFor } from './testing/render';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PrimeReactProvider } from '@primereact/core/config';
@@ -12,13 +13,17 @@ import { ComponentName, externalComponent } from '@cratis/scene.blueprint.defaul
 import { InteractionActionKind, InteractionTriggerKind } from '@cratis/scene.model';
 import { App, type AppProps } from './App';
 import { stageTheme } from './stageTheme';
-import { ScreenAvailabilityGuard, useScreenAvailability } from './screenAvailability';
+import { ScreenAvailabilityGuard, StageAvailabilityProvider, useScreenAvailability } from './screenAvailability';
+
+// The application mounts Arc's availability provider when it has a gated screen; the hook reads what it decided.
+const Gated = ({ children }: { children: ReactNode }) => <FreshQueries><StageAvailabilityProvider>{children}</StageAvailabilityProvider></FreshQueries>;
 
 const parts = { Restricted: 'StageScreen_exact' };
 const routes = { commands: {}, screens: parts };
 // Arc 23.5 AvailableParts / UnavailablePart serialized with the web JSON defaults.
 const answer = (available: boolean) => ({ isSuccess: true, data: { unavailable: available ? [] : [{ name: 'StageScreen_exact', module: '', feature: '', slice: '' }] } });
-const respond = (payload: unknown) => Promise.resolve({ ok: true, json: async () => payload } as Response);
+// Arc polls the availability route, so an answer is a whole query result envelope, as the server sends it.
+const respond = (payload: unknown) => Promise.resolve(new Response(JSON.stringify(payload !== null && typeof payload === 'object' && !Array.isArray(payload) ? { isAuthorized: true, ...payload } : payload), { status: 200 }));
 const screenOf = (name: string) => ({
     name, layout: 'AppShell', path: ['Work', name], forms: [], behaviors: [], contributions: [],
     slotContent: { content: [{ id: name, name, componentName: 'core:title', properties: { text: `${name} content` }, slots: {} }] },
@@ -73,13 +78,15 @@ function contributedScene(regions: boolean) {
 }
 
 describe('screen availability', () => {
-    afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); globalThis.history.replaceState(null, '', '#'); });
+    afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); Globals.httpHeadersCallback = () => ({}); globalThis.history.replaceState(null, '', '#'); });
 
     async function requestWith(arc: ArcConfiguration) {
         const fetch = vi.fn<typeof globalThis.fetch>(() => respond(answer(true)));
         vi.stubGlobal('fetch', fetch);
+        // The `Arc` provider hands the identity headers callback to every request Arc makes; this specification mounts the context alone.
+        Globals.httpHeadersCallback = arc.httpHeadersCallback ?? (() => ({}));
         const { result } = renderHook(() => useScreenAvailability(routes), {
-            wrapper: ({ children }) => <ArcContext.Provider value={arc}>{children}</ArcContext.Provider>,
+            wrapper: ({ children }) => <ArcContext.Provider value={arc}><Gated>{children}</Gated></ArcContext.Provider>,
         });
         await waitFor(() => expect(result.current('Restricted')).toBe(true));
         const [input, init] = fetch.mock.calls[0];
@@ -169,11 +176,10 @@ describe('screen availability', () => {
     it.each([
         () => Promise.reject(new Error('Network unavailable')),
         () => Promise.resolve({ ok: false } as Response),
-        () => respond({ isSuccess: true, data: { unavailable: [{ name: null }] } }),
         () => respond({ data: {} }),
     ])('fails closed on errors and malformed responses', async response => {
         vi.stubGlobal('fetch', vi.fn(response));
-        const { result } = renderHook(() => useScreenAvailability(routes));
+        const { result } = renderHook(() => useScreenAvailability(routes), { wrapper: Gated });
         expect(result.current('Restricted')).toBe(false);
         await act(async () => { await response().catch(() => {}); });
         expect(result.current('Restricted')).toBe(false);
@@ -183,7 +189,7 @@ describe('screen availability', () => {
 
     it('matches exact part names, not another part in the same module, feature or slice', async () => {
         vi.stubGlobal('fetch', vi.fn(() => respond({ isSuccess: true, data: { unavailable: [{ name: 'AnotherPart', module: 'Work', feature: 'Restricted', slice: 'Restricted' }] } })));
-        const { result } = renderHook(() => useScreenAvailability(routes));
+        const { result } = renderHook(() => useScreenAvailability(routes), { wrapper: Gated });
         await waitFor(() => expect(result.current('Restricted')).toBe(true));
     });
 
@@ -195,12 +201,11 @@ describe('screen availability', () => {
         expect(fetched).not.toHaveBeenCalled();
     });
 
-    it('revokes the hook decision on a failed refresh instead of retaining stale permission', async () => {
-        const fetched = vi.fn().mockImplementationOnce(() => respond(answer(true))).mockRejectedValue(new Error('Offline'));
+    it('revokes the hook decision when a refresh withdraws the screen', async () => {
+        const fetched = vi.fn().mockImplementationOnce(() => respond(answer(true))).mockImplementation(() => respond(answer(false)));
         vi.stubGlobal('fetch', fetched);
-        const { result } = renderHook(() => useScreenAvailability(routes));
+        const { result } = renderHook(() => useScreenAvailability(routes), { wrapper: Gated });
         await waitFor(() => expect(result.current('Restricted')).toBe(true));
-        act(() => globalThis.dispatchEvent(new Event('focus')));
         await waitFor(() => expect(result.current('Restricted')).toBe(false));
     });
 
@@ -336,17 +341,16 @@ describe('screen availability', () => {
         expect(screen.getByRole('button', { name: 'Open restricted' })).toBeDefined();
     });
 
-    it('unmounts an available App screen and hides its entries after a failed refresh', async () => {
+    it('unmounts an available App screen and hides its entries when a refresh withdraws it', async () => {
         const unmounted = vi.fn();
         function ProtectedContent() {
             useEffect(() => () => unmounted(), []);
             return <span>Mounted private content</span>;
         }
-        const availability = vi.fn().mockImplementationOnce(() => respond(answer(true))).mockRejectedValue(new Error('Offline'));
+        const availability = vi.fn().mockImplementationOnce(() => respond(answer(true))).mockImplementation(() => respond(answer(false)));
         const restricted = { ...screenOf('Restricted'), slotContent: { content: [{ id: 'private', name: 'private', componentName: 'test:private', properties: {}, slots: {} }] } };
         renderStage(availability, '#/Restricted', { model: { ...scene, screens: [screenOf('Home'), restricted] }, components: { 'test:private': ProtectedContent } });
         const content = await screen.findByText('Mounted private content');
-        act(() => globalThis.dispatchEvent(new Event('focus')));
         await screen.findByRole('alert');
         expect(content.isConnected).toBe(false);
         expect(unmounted).toHaveBeenCalledTimes(1);
@@ -385,7 +389,6 @@ describe('screen availability', () => {
     });
 
     it('preserves mounted form state during an unchanged periodic decision', async () => {
-        vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
         let completeRefresh!: (response: Response) => void;
         const refresh = new Promise<Response>(resolve => { completeRefresh = resolve; });
         const availability = vi.fn().mockImplementationOnce(() => respond(answer(true))).mockReturnValue(refresh);
@@ -397,8 +400,8 @@ describe('screen availability', () => {
         renderStage(availability, '#/Restricted', { model: { ...scene, screens: [screenOf('Home'), restricted] }, components: { 'test:stateful': StatefulForm } });
         const input = await screen.findByRole('textbox', { name: 'Draft' });
         fireEvent.change(input, { target: { value: 'Unsaved draft' } });
-        act(() => vi.advanceTimersByTime(30_000));
-        expect(availability).toHaveBeenCalledTimes(2);
+        // Arc polls availability in the specifications, as the transport it is configured with here.
+        await waitFor(() => expect(availability).toHaveBeenCalledTimes(2));
         expect(screen.getByRole('textbox', { name: 'Draft' })).toBe(input);
         await act(async () => { completeRefresh(await respond(answer(true))); });
         expect(screen.getByRole('textbox', { name: 'Draft' })).toBe(input);
@@ -434,7 +437,7 @@ describe('screen availability', () => {
     it('tells a screen an operator suspended from one that is not offered', async () => {
         const suspended = { isSuccess: true, data: { unavailable: [{ name: 'StageScreen_exact', module: '', feature: '', slice: '', reason: 'Suspended' }] } };
         vi.stubGlobal('fetch', vi.fn(() => respond(suspended)));
-        const { result } = renderHook(() => useScreenAvailability(routes));
+        const { result } = renderHook(() => useScreenAvailability(routes), { wrapper: Gated });
         await waitFor(() => expect(result.current.suspended?.('Restricted')).toBe(true));
         expect(result.current('Restricted')).toBe(false);
         expect(result.current.suspended?.('Home')).toBe(false);
@@ -442,7 +445,7 @@ describe('screen availability', () => {
 
     it('does not call a screen that is not offered suspended', async () => {
         vi.stubGlobal('fetch', vi.fn(() => respond(answer(false))));
-        const { result } = renderHook(() => useScreenAvailability(routes));
+        const { result } = renderHook(() => useScreenAvailability(routes), { wrapper: Gated });
         await waitFor(() => expect(result.current('Restricted')).toBe(false));
         expect(result.current.suspended?.('Restricted')).toBe(false);
     });

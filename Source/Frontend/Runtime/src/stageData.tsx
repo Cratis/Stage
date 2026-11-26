@@ -7,7 +7,7 @@ import { BindingSourceKind, type BindingExpression } from '@cratis/scene.model';
 import { ArcContext } from '@cratis/arc.react';
 import { ObservableQueryFor, type QueryResult } from '@cratis/arc/queries';
 import { applyQueryChangeSet } from './applyQueryChangeSet';
-import { reasonOf } from './availabilityClient';
+import { NotAvailable, Suspended } from '@cratis/arc/availability';
 import { registeredQuery, performQuery, subscribeQuery } from './queryExecutor';
 import { createBindingResolver, resolveArgumentSource, validateBindingExpression } from '@cratis/scene.engine';
 import type { StageRoutes } from './stageRoutes';
@@ -703,9 +703,8 @@ export function queryFailure(result: unknown): string {
     if (!isRecord(result)) return '';
     if (result.isAuthorized === false) {
         // The availability engine answers before authorization: a part that is not offered and a part an operator suspended are told apart from a caller who may not read.
-        const refusal = reasonOf(typeof result.authorizationFailureReason === 'string' ? result.authorizationFailureReason : undefined);
-        if (refusal === 'NotAvailable') return queryNotAvailable;
-        if (refusal === 'Suspended') return querySuspended;
+        if (result.authorizationFailureReason === NotAvailable) return queryNotAvailable;
+        if (result.authorizationFailureReason === Suspended) return querySuspended;
         return 'The query answered 403.';
     }
     if (result.isValid === false || result.hasExceptions === true || result.isSuccess === false) {

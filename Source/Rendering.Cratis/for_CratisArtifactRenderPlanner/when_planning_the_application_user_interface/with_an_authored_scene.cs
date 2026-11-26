@@ -53,7 +53,8 @@ public class with_an_authored_scene : a_screen_composition_render
     // Recomputed for Cratis/Stage#1147: the Scene 6.0.1 pins of the Stage runtime and the scaffold, and the Screenplay 6.32.0 pins.
     // Recomputed after merging main into the #970 train: the #970 Program.cs change on top of the #1147 pins.
     // Recomputed for Screenplay 6.33.0 (Cratis/Stage#1052): only the Screenplay pins in Directory.Packages.props and the scaffold catalog change.
-    const string Before = "db3542787be6db662d4b286d7ebc9ecb2dabca5f86bf82b62383a5fef0f59caa";
+    // Recomputed for the Arc 24.8.1, Showrunner 2.28.1 and Scene 6.2.1 npm pins: only package.json changes.
+    const string Before = "8a8d2268c52c5ceb432b3895a8812b15f446e6cb7278d530d347c77be0c24dd6";
 
     ArtifactRenderPlan _plan = null!;
 

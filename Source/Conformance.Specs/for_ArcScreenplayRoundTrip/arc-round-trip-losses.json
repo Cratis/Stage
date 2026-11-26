@@ -4,7 +4,7 @@
   "corpusVersion": "6.44.0",
   "minimumFixtureCount": 29,
   "budget": {
-    "maximumEntries": 220,
+    "maximumEntries": 199,
     "maximumByDesign": 0,
     "maximumExclusions": 2
   },
@@ -279,16 +279,8 @@
     },
     {
       "fixture": "GenerationSupportCorpus.V21",
-      "change": "missing",
-      "path": "/application/concepts[InvoiceRef]/generation",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3554"
-    },
-    {
-      "fixture": "GenerationSupportCorpus.V21",
-      "change": "missing",
-      "path": "/application/concepts[InvoiceRef]/validations[0]",
+      "change": "changed",
+      "path": "/application/concepts[InvoiceRef]/validations[0]/message",
       "direction": "adapter",
       "diagnostics": [],
       "issue": "Cratis/Arc#3554"
@@ -1079,16 +1071,6 @@
     {
       "fixture": "GenerationSupportCorpus.V21",
       "change": "diagnostic",
-      "path": "/diagnostics[SP0016]",
-      "direction": "adapter",
-      "diagnostics": [
-        "SP0016"
-      ],
-      "issue": "Cratis/Arc#3554"
-    },
-    {
-      "fixture": "GenerationSupportCorpus.V21",
-      "change": "diagnostic",
       "path": "/diagnostics[SP0039]",
       "direction": "adapter",
       "diagnostics": [
@@ -1299,142 +1281,6 @@
     {
       "fixture": "GeneratedValuesCorpus.V15",
       "change": "missing",
-      "path": "/application/concepts[Base32Reference]/generation/case",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3987"
-    },
-    {
-      "fixture": "GeneratedValuesCorpus.V15",
-      "change": "missing",
-      "path": "/application/concepts[Base32Reference]/generation/count",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3987"
-    },
-    {
-      "fixture": "GeneratedValuesCorpus.V15",
-      "change": "missing",
-      "path": "/application/concepts[Base32Reference]/generation/encoding",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3987"
-    },
-    {
-      "fixture": "GeneratedValuesCorpus.V15",
-      "change": "changed",
-      "path": "/application/concepts[Base32Reference]/generation/kind",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3987"
-    },
-    {
-      "fixture": "GeneratedValuesCorpus.V15",
-      "change": "unexpected",
-      "path": "/application/concepts[Base32Reference]/generation/requirement",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3987"
-    },
-    {
-      "fixture": "GeneratedValuesCorpus.V15",
-      "change": "missing",
-      "path": "/application/concepts[BinaryCode]/generation/alphabet",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3987"
-    },
-    {
-      "fixture": "GeneratedValuesCorpus.V15",
-      "change": "changed",
-      "path": "/application/concepts[BinaryCode]/generation/kind",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3987"
-    },
-    {
-      "fixture": "GeneratedValuesCorpus.V15",
-      "change": "missing",
-      "path": "/application/concepts[BinaryCode]/generation/prefix",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3987"
-    },
-    {
-      "fixture": "GeneratedValuesCorpus.V15",
-      "change": "unexpected",
-      "path": "/application/concepts[BinaryCode]/generation/requirement",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3987"
-    },
-    {
-      "fixture": "GeneratedValuesCorpus.V15",
-      "change": "missing",
-      "path": "/application/concepts[BinaryCode]/generation/size",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3987"
-    },
-    {
-      "fixture": "GeneratedValuesCorpus.V15",
-      "change": "missing",
-      "path": "/application/concepts[SortableId]/generation/case",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3987"
-    },
-    {
-      "fixture": "GeneratedValuesCorpus.V15",
-      "change": "changed",
-      "path": "/application/concepts[SortableId]/generation/kind",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3987"
-    },
-    {
-      "fixture": "GeneratedValuesCorpus.V15",
-      "change": "unexpected",
-      "path": "/application/concepts[SortableId]/generation/requirement",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3987"
-    },
-    {
-      "fixture": "GeneratedValuesCorpus.V15",
-      "change": "missing",
-      "path": "/application/concepts[StringUuid]/generation/case",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3987"
-    },
-    {
-      "fixture": "GeneratedValuesCorpus.V15",
-      "change": "changed",
-      "path": "/application/concepts[StringUuid]/generation/kind",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3987"
-    },
-    {
-      "fixture": "GeneratedValuesCorpus.V15",
-      "change": "missing",
-      "path": "/application/concepts[StringUuid]/generation/prefix",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3987"
-    },
-    {
-      "fixture": "GeneratedValuesCorpus.V15",
-      "change": "unexpected",
-      "path": "/application/concepts[StringUuid]/generation/requirement",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3987"
-    },
-    {
-      "fixture": "GeneratedValuesCorpus.V15",
-      "change": "missing",
       "path": "/application/modules[Billing]/features[Creation]/slices[Start]/specifications[ReusedSource]",
       "direction": "adapter",
       "diagnostics": [],
@@ -1474,19 +1320,11 @@
     },
     {
       "fixture": "QueryValidationCorpus.V18",
-      "change": "missing",
-      "path": "/application/concepts[CustomerCode]/validations[0]",
+      "change": "changed",
+      "path": "/version-meaning-unproven[V11 numeric literal lowering]/application/Concepts[1]/Validations[0]/Operand",
       "direction": "adapter",
       "diagnostics": [],
-      "issue": "Cratis/Arc#3554"
-    },
-    {
-      "fixture": "QueryValidationCorpus.V18",
-      "change": "missing",
-      "path": "/application/concepts[InvoiceNumber]/validations[0]",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3554"
+      "issue": "Cratis/Arc#3559"
     },
     {
       "fixture": "QueryValidationCorpus.V18",
@@ -1651,16 +1489,6 @@
         "STAGE-DEGRADE-002"
       ],
       "issue": "Cratis/Stage#1195"
-    },
-    {
-      "fixture": "QueryValidationCorpus.V18",
-      "change": "diagnostic",
-      "path": "/diagnostics[SP0016]",
-      "direction": "adapter",
-      "diagnostics": [
-        "SP0016"
-      ],
-      "issue": "Cratis/Arc#3557"
     },
     {
       "fixture": "EsmGoldenVectors.V31",

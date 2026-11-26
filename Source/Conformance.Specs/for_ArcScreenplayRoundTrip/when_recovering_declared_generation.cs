@@ -56,7 +56,7 @@ public class when_recovering_declared_generation
 
     [Fact]
     void should_report_the_existing_checksum_validation_limitation() =>
-        AssertLedgered(generation_round_trips.Get("GenerationSupportCorpus.V21"), "InvoiceRef", 2, "Cratis/Arc#3554");
+        AssertLedgered(generation_round_trips.Get("GenerationSupportCorpus.V21"), "InvoiceRef", 1, "Cratis/Arc#3554");
 
     static void AssertLedgered(generation_round_trips.observation observation, string concept, int count, string issue)
     {

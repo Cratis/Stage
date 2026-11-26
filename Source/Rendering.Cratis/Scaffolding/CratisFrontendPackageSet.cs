@@ -221,10 +221,10 @@ public sealed class CratisFrontendPackageSet
     /// compiles is the runtime the live Stage was verified with. A specification compares the two.
     /// </remarks>
     internal static CratisFrontendPackageSet Current { get; } = new(
-        "22.184.0",
-        "22.184.0",
-        "22.184.0",
-        "7.33.1",
+        "24.8.1",
+        "24.8.1",
+        "24.8.1",
+        "7.34.4",
         "7.8.2",
         "4.10.0",
         "0.2.2",
@@ -236,14 +236,14 @@ public sealed class CratisFrontendPackageSet
         "6.2.1",
         "19.3.0",
         "19.3.0",
-        "4.40.1",
-        "6.0.1",
+        "4.63.1",
+        "6.2.1",
         "11.2.2",
         "8.0.2",
         "1.68.0",
         "3.1.0",
         "26.6.6",
-        "1.0.0");
+        "2.28.1");
 
     /// <summary>
     /// Creates an unvalidated frontend package set for in-assembly contract verification.

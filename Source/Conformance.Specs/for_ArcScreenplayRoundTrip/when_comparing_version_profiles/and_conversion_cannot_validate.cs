@@ -78,30 +78,35 @@ public class and_conversion_cannot_validate : Specification
     }
 
     [Fact]
-    void should_fail_an_above_profile_fixture_before_attempting_render_or_recovery()
+    void should_fail_an_unsupported_pair_before_attempting_render_or_recovery()
     {
-        var fixture = new round_trip_fixture("AboveProfile", comparison_profile_models.Golden(49), null!);
+        var model = comparison_profile_models.Migratable;
+        var unsupported = comparison_profile_models.Unchecked(model, new(61, 0), new(61, 0), model.Application);
+        var fixture = new round_trip_fixture("UnsupportedPair", unsupported, null!);
         var exception = Assert.Throws<InvalidSemanticContract>(() => arc_round_trip.Run(fixture));
 
-        Assert.Contains("cannot downgrade", exception.Message, StringComparison.Ordinal);
-        Assert.Contains("49.0", exception.Message, StringComparison.Ordinal);
-        Assert.Contains("48.0", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("does not declare", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("61.0", exception.Message, StringComparison.Ordinal);
     }
 
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    void should_refuse_a_valid_source_above_the_common_profile_instead_of_downgrading_it(bool reverse)
+    void should_compare_an_above_profile_pair_natively_without_allowing_downgrade(bool reverse)
     {
         var legacy = comparison_profile_models.Migratable;
         var newer = comparison_profile_models.Golden(49);
-        var exception = Assert.Throws<InvalidSemanticContract>(() => reverse
+        var exception = Assert.Throws<InvalidSemanticContract>(() => round_trip_model_profile.Convert(newer));
+        var comparison = reverse
             ? round_trip_model_comparison.Compare(newer, legacy)
-            : round_trip_model_comparison.Compare(legacy, newer));
+            : round_trip_model_comparison.Compare(legacy, newer);
 
         Assert.Contains("49.0", exception.Message, StringComparison.Ordinal);
         Assert.Contains("48.0", exception.Message, StringComparison.Ordinal);
         Assert.Contains("cannot downgrade", exception.Message, StringComparison.Ordinal);
+        comparison.IsEquivalent.ShouldBeFalse();
+        Assert.Contains(comparison.Differences, difference => difference.Path == "/semanticVersion");
+        newer.SemanticVersion.ShouldEqual(SemanticVersion.V49);
     }
 }
 #endif

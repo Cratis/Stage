@@ -24,24 +24,8 @@ internal static partial class SemanticAvailabilityRendering
         var gates = new Dictionary<string, SemanticAvailabilityGate>(StringComparer.Ordinal);
         foreach (var located in context.AllSlices)
         {
-            var modulePrefix = located.Path.Count - located.FeaturePath.Count - 1;
-            Add(gates, new(SliceNaming.Namespace(context.RootNamespace, located.Path.Take(modulePrefix)), false, located.Module.Available, $"module '{located.Module.Name}'"));
-            for (var index = 0; index < located.FeaturePath.Count; index++)
-            {
-                Add(gates, new(SliceNaming.Namespace(context.RootNamespace, located.Path.Take(modulePrefix + index + 1)), false, located.FeaturePath[index].Available, $"feature '{located.FeaturePath[index].Name}'"));
-            }
-
-            var sliceNamespace = SliceNaming.Namespace(context.RootNamespace, located.Path);
-            Add(gates, new(sliceNamespace, false, located.Slice.Available, $"slice '{located.Slice.Name}'"));
-            foreach (var command in located.Slice.Commands)
-            {
-                Add(gates, new($"{sliceNamespace}.{Identifiers.ToPascalCase(command.Name)}", true, command.Available, $"command '{command.Name}'"));
-            }
-
-            foreach (var query in located.Slice.Queries)
-            {
-                Add(gates, new($"{sliceNamespace}.{Identifiers.ToPascalCase(context.ReadModels[query.ReadModel].Name)}", true, query.Available, $"query '{query.Name}'"));
-            }
+            AddContainingGates(gates, context, located);
+            AddSliceGates(gates, context, located);
         }
 
         foreach (var part in SemanticScreenAvailability.Parts(context))
@@ -50,6 +34,31 @@ internal static partial class SemanticAvailabilityRendering
         }
 
         return [.. gates.Values];
+    }
+
+    static void AddContainingGates(Dictionary<string, SemanticAvailabilityGate> gates, SemanticApplicationContext context, LocatedSemanticSlice located)
+    {
+        var modulePrefix = located.Path.Count - located.FeaturePath.Count - 1;
+        Add(gates, new(SliceNaming.Namespace(context.RootNamespace, located.Path.Take(modulePrefix)), false, located.Module.Available, $"module '{located.Module.Name}'"));
+        for (var index = 0; index < located.FeaturePath.Count; index++)
+        {
+            Add(gates, new(SliceNaming.Namespace(context.RootNamespace, located.Path.Take(modulePrefix + index + 1)), false, located.FeaturePath[index].Available, $"feature '{located.FeaturePath[index].Name}'"));
+        }
+    }
+
+    static void AddSliceGates(Dictionary<string, SemanticAvailabilityGate> gates, SemanticApplicationContext context, LocatedSemanticSlice located)
+    {
+        var sliceNamespace = SliceNaming.Namespace(context.RootNamespace, located.Path);
+        Add(gates, new(sliceNamespace, false, located.Slice.Available, $"slice '{located.Slice.Name}'"));
+        foreach (var command in located.Slice.Commands)
+        {
+            Add(gates, new($"{sliceNamespace}.{Identifiers.ToPascalCase(command.Name)}", true, command.Available, $"command '{command.Name}'"));
+        }
+
+        foreach (var query in located.Slice.Queries)
+        {
+            Add(gates, new($"{sliceNamespace}.{Identifiers.ToPascalCase(context.ReadModels[query.ReadModel].Name)}", true, query.Available, $"query '{query.Name}'"));
+        }
     }
 
     static void Add(Dictionary<string, SemanticAvailabilityGate> gates, SemanticAvailabilityGate gate)

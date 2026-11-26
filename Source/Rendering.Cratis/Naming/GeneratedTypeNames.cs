@@ -134,6 +134,10 @@ internal static class GeneratedTypeNames
         foreach (var (path, slice) in selectedSlices)
         {
             var ns = string.Join('.', path);
+            foreach (var projection in application.GraphProjections.Where(projection => projection.DeclaringSlice == slice.Id))
+            {
+                foreach (var name in Names(ns, GraphProjectionDeclarationName(projection.Name), slice.Id, "GraphProjectionDeclaration", generated: true)) yield return name;
+            }
             foreach (var reaction in slice.Reactions.IsDefault ? [] : slice.Reactions)
             {
                 foreach (var name in Names(ns, reaction.Name, reaction.Id, "Reaction")) yield return name;
@@ -236,6 +240,8 @@ internal static class GeneratedTypeNames
             yield return new(id, kind, ns, generated ? source : GeneratedPascalCase.From(source));
         }
     }
+
+    internal static string GraphProjectionDeclarationName(string projection) => $"{GeneratedPascalCase.From(projection)}GraphProjection";
 
     internal static string EventSourceName(string source)
     {

@@ -28,7 +28,15 @@ For the [Organization sample](https://github.com/Cratis/Screenplay/tree/main/Sam
 
 The attributes are Chronicle's own, so the engine behaves as it does for a hand-written graph. A node's key and an edge's identity are said once by the handler and are not mapped a second time. The fluent `IGraphProjection` is never needed: every construct is either expressible with attributes or refused.
 
-A `StateView` slice that only hosts a graph has no read model, so it renders nothing of its own; the graph renders with the application.
+### Projection declarations
+
+ESM v60 preserves the actual declaring slice of each graph projection. With Arc 24.4.0 or later, Stage emits a `<ProjectionName>GraphProjection.cs` marker in that slice's folder and namespace, such as `PeopleIndexGraphProjection.cs`. Its `Cratis.Arc.Slices.GraphProjectionDeclarationAttribute` carries the exact projection name, graph name and `typeof(...)` references to its owned node and edge records. The marker name uses Stage's standard generated type naming and stays stable when declarations are reordered; the attribute preserves the original projection identity.
+
+This metadata lets Arc's Screenplay generator recover multiple projections in one slice, a projection named differently from its slice, and a projection declared separately from its events. A different grouping of the same handlers changes the declaration metadata, not the executing graph records. Shape-only elements are still emitted but are not assigned to a projection. Screenplay rejects empty projections and element blocks without a `from` handler.
+
+The Chronicle records remain under `Graphs/<graph>` with their existing handler, removal, detach and mapping attributes. Declaration metadata does not change execution. A `StateView` slice hosting a graph still needs no read model; it now owns the declaration marker while graph records render with the application.
+
+Legacy ESM models without `SemanticGraphProjection.DeclaringSlice` emit no marker: Stage does not guess ownership. Arc retains its canonical reconstruction for this metadata-absent code. Invalid explicit metadata is diagnosed by Arc as `SP0089`, not treated as legacy code.
 
 ### Host and configuration
 

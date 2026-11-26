@@ -41,6 +41,15 @@ public class when_running_seeded_graph_specifications : Specification
         await Run(Files(new CratisArtifactRenderPlanner().Plan(request)));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    async Task should_assert_key_properties_using_the_rendered_types(bool eventSourceEdgeKey)
+    {
+        var request = an_organization_graph_model.Request(a_graph_with_asserted_key_properties.Source(eventSourceEdgeKey));
+        await Run(Files(new CratisArtifactRenderPlanner().Plan(request)));
+    }
+
     [Fact]
     async Task should_fail_when_a_seeded_property_is_changed()
     {

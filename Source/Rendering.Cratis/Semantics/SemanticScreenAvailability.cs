@@ -16,11 +16,32 @@ internal static class SemanticScreenAvailability
     internal static IReadOnlyList<Part> Parts(SemanticApplicationContext context)
     {
         var keys = Map(context);
-        return [.. context.AllSlices.SelectMany(located => located.Slice.Screens
-                .Where(screen => keys.ContainsKey(screen.Name))
-                .Select(screen => Create(located, screen, keys[screen.Name])))
-            .OrderBy(part => part.Key, StringComparer.Ordinal)];
+        var elements = ScreenAvailabilityParts.Elements(context.Application);
+        var screens = context.AllSlices.SelectMany(located => located.Slice.Screens
+            .Where(screen => keys.ContainsKey(screen.Name))
+            .Select(screen => Create(located, screen, keys[screen.Name])));
+        var gated = context.AllSlices.SelectMany(located => located.Slice.Screens
+            .SelectMany(screen => elements.Where(element => element.Screen == screen.Name).Select(element => CreateElement(located, screen, element))));
+        return [.. screens.Concat(gated).DistinctBy(part => part.Key).OrderBy(part => part.Key, StringComparer.Ordinal)];
     }
+
+    /// <summary>
+    /// Finds the gated elements of one screen that share a command or query but not their gate, which one marker cannot carry.
+    /// </summary>
+    /// <param name="context">The semantic application.</param>
+    /// <returns>The descriptions of the conflicting elements.</returns>
+    internal static IReadOnlyList<string> ConflictingElements(SemanticApplicationContext context) =>
+        [.. ScreenAvailabilityParts.Elements(context.Application)
+            .GroupBy(element => element.Key)
+            .Where(group => group.Select(element => string.Join('\n', element.Requirements.Select(requirement => requirement.ToString()))).Distinct(StringComparer.Ordinal).Count() > 1)
+            .Select(group => $"{group.First().Kind.ToString().ToLowerInvariant()} '{group.First().Name}' of screen '{group.First().Screen}'")];
+
+    /// <summary>
+    /// Gets the marker keys of gated screen elements by the lookup a client uses.
+    /// </summary>
+    /// <param name="context">The semantic application.</param>
+    /// <returns>The element keys.</returns>
+    internal static IReadOnlyDictionary<string, string> ElementMap(SemanticApplicationContext context) => ScreenAvailabilityParts.ElementKeys(context.Application);
 
     internal static IReadOnlyDictionary<string, string> Map(SemanticApplicationContext context) => ScreenAvailabilityParts.For(context.Application);
 
@@ -56,6 +77,13 @@ internal static class SemanticScreenAvailability
     }
 
     static string[] ScopeOf(LocatedSemanticSlice located) => [located.Module.Name, .. located.FeaturePath.Select(feature => feature.Name), located.Slice.Name];
+
+    static Part CreateElement(LocatedSemanticSlice located, SemanticScreen screen, ScreenElementGate element) => new(
+        $"{element.Kind.ToString().ToLowerInvariant()} '{element.Name}' of screen '{screen.Name}'",
+        element.Key,
+        $"element:{string.Join('/', ScopeOf(located).Append(screen.Name).Append(element.Kind.ToString().ToLowerInvariant()).Append(element.Name))}",
+        ScopeOf(located),
+        [.. located.Module.Available, .. located.FeaturePath.SelectMany(feature => feature.Available), .. located.Slice.Available, .. screen.Available, .. element.Requirements]);
 
     static Part Create(LocatedSemanticSlice located, SemanticScreen screen, string key) => new(
         screen.Name,

@@ -44,6 +44,12 @@ public record StageRoutes(
     /// </summary>
     public IReadOnlyDictionary<string, string> Screens { get; init; } = new Dictionary<string, string>();
 
+    /// <summary>
+    /// Gets the exact Arc availability part key of every screen element that carries its own availability gate, by the
+    /// screen name, the kind of element and the name of the command or query it is bound to (<c language="text">Screen/action/Command</c>, <c language="text">Screen/data/Query</c>).
+    /// </summary>
+    public IReadOnlyDictionary<string, string> Elements { get; init; } = new Dictionary<string, string>();
+
     internal static StageRoutes For(StageSceneRoutes routes, EventModel model) => Create(
         routes,
         [],
@@ -78,7 +84,8 @@ public record StageRoutes(
         return result with
         {
             Diagnostics = [.. result.Diagnostics, .. diagnostics.All.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")],
-            Screens = ScreenAvailabilityParts.For(model.Application)
+            Screens = ScreenAvailabilityParts.For(model.Application),
+            Elements = ScreenAvailabilityParts.ElementKeys(model.Application)
         };
     }
 

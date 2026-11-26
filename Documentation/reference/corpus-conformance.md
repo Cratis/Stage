@@ -20,6 +20,8 @@ A guessed event-source id would change the reference runner's null identity, so 
 surfaces do not synthesize one for an observable source. Explicitly sourced givens
 and source-unobserved givens retain their existing admission.
 
+`ClockOperandsCorpus.V37` and the ESM v37 calendar golden remain refused on the executor, host and renderer. They declare configurable non-UTC time zones and context members, and include calendars, `today` or `date of`. Admitting UTC `now` command property validation does not admit those vectors or remove their refusal records. The supported command subset and its limits are listed in the [ESM feature matrix](esm-feature-matrix.md).
+
 ## What each column measures
 
 | Column | What runs | Cell is `supported` when |
@@ -95,7 +97,7 @@ Other shapes remain explicit `STAGE-ESM-016` refusals on the original specificat
 
 ## Version 53 screen availability
 
-The V53 audience-and-availability vector renders screen `available` gates as exact-name marker parts instead of refusing them with `STAGE-ESM-016`. Its route map carries each gated screen's marker key, including inherited gates. The client hides unavailable navigation and refuses screen routes; server-side enforcement remains on the screen's commands and queries. See [availability rendering](availability-rendering.md).
+The V53 audience-and-availability vector renders screen `available` gates as exact-name marker parts instead of refusing them with `STAGE-ESM-016`. ESM v58 (`available not for`) and v59 (gates on screen actions and data elements) are admitted with the Cratis range. V58 and V59 carry the same other refusals as V54 and V56, recorded against the issues that cover them; neither vector refuses a gate. Its route map carries each gated screen's marker key, including inherited gates. The client hides unavailable navigation and refuses screen routes; server-side enforcement remains on the screen's commands and queries. See [availability rendering](availability-rendering.md).
 
 ## Update the table
 

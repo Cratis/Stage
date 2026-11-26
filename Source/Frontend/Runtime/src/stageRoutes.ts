@@ -12,6 +12,8 @@ export interface StageRoutes {
     queries?: Record<string, string>;
     /** Exact Arc part keys of gated screens; absent for applications without screen gates. */
     screens?: Record<string, string>;
+    /** Exact Arc part keys of screen elements that carry their own gate, by `Screen/action/Command` or `Screen/data/Query`; absent when no element is gated. */
+    elements?: Record<string, string>;
     /** Live-host metadata for route-synthesized proxies. Generated apps register their real proxies instead. */
     commandSchemas?: Record<string, string>;
 }

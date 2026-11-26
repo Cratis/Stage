@@ -35,6 +35,13 @@ internal static class SemanticGraphNaming
 
     internal static string Property(string name) => Identifiers.ToPascalCase(name);
 
+    // Chronicle's graph reader finds a key by [Key], and CHR0026 refuses [Key] on an event source identity.
+    // Render both the property and its assertions as the primitive that identity holds.
+    internal static SemanticTypeReference PropertyType(SemanticGraphProperty property, bool isIdentity, SemanticTypeSystem types, SemanticApplicationContext context) =>
+        (property.IsKey || isIdentity) && property.Type.Kind == SemanticTypeReferenceKind.Concept && context.IdentifierConcepts.Contains(property.Type.Target)
+            ? property.Type with { Kind = SemanticTypeReferenceKind.Primitive, Primitive = types.ConceptPrimitive(property.Type), IsOptional = false, IsCollection = false }
+            : property.Type;
+
     internal static bool IsIdentifier(string name) =>
         name.Length != 0 && SyntaxFacts.IsValidIdentifier(name) && SyntaxFacts.GetKeywordKind(name) == SyntaxKind.None &&
         SyntaxFacts.GetContextualKeywordKind(name) == SyntaxKind.None;

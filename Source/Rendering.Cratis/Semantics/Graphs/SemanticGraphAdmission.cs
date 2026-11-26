@@ -77,29 +77,6 @@ internal static class SemanticGraphAdmission
         slice.Kind == SemanticSliceKind.StateView && !application.Graphs.IsDefaultOrEmpty &&
         slice.ReadModels.IsDefaultOrEmpty && slice.Reducers.IsDefaultOrEmpty && slice.Projections.IsDefaultOrEmpty && slice.Queries.IsDefaultOrEmpty;
 
-    /// <summary>
-    /// Gets whether a graph specification seeds a graph with <c language="text">given graph</c>, which the generated <c language="csharp">GraphScenario</c>
-    /// cannot express: it builds a graph only from appended events.
-    /// </summary>
-    /// <param name="specification">The graph specification.</param>
-    /// <returns>True when the specification seeds a graph.</returns>
-    internal static bool IsSeeded(SemanticGraphSpecification specification) => !specification.GivenGraphs.IsDefaultOrEmpty;
-
-    /// <summary>
-    /// Names each graph specification the renderer leaves out and why, as a degradation: a seeded graph is a precondition the generated
-    /// scenario cannot establish, and a specification run against an empty graph would assert something else.
-    /// </summary>
-    /// <param name="context">The indexed semantic application.</param>
-    /// <returns>One degradation per omitted graph specification.</returns>
-    internal static ImmutableArray<ArtifactRenderDegradation> Omitted(SemanticApplicationContext context) =>
-        [.. context.Application.GraphSpecifications.Where(IsSeeded).Select(specification => new ArtifactRenderDegradation(
-            new ArtifactRenderDiagnostic(
-                ArtifactRenderDegradationCodes.UnsupportedConstruct,
-                ArtifactRenderDiagnosticSeverity.Warning,
-                $"{Specification}: graph specification '{specification.Name}' of slice '{specification.Owner}' seeds a graph with 'given graph' and is not rendered; the generated GraphScenario builds a graph only from appended events.",
-                context.Application.Id),
-            "Express the precondition as the events that build it, or verify the specification with the Screenplay reference evaluator."))];
-
     static string Described(SemanticApplication application) =>
         string.Join(", ", new[]
         {
@@ -197,9 +174,7 @@ internal static class SemanticGraphAdmission
             foreach (var specification in context.Application.GraphSpecifications)
             {
                 var label = $"Graph specification '{specification.Name}' of slice '{specification.Owner}'";
-                if (IsSeeded(specification)) continue;
-
-                if (specification.WhenAppended is null && specification.Given.IsEmpty)
+                if (!HasPrecondition(specification))
                 {
                     Diagnostic(Specification, $"{label} appends no event, so there is nothing for the generated GraphScenario to project.");
                 }
@@ -209,6 +184,7 @@ internal static class SemanticGraphAdmission
                     CheckFact(label, fact);
                 }
 
+                CheckSeeds(label, specification.GivenGraphs);
                 foreach (var step in specification.ThenGraphs) CheckStep(label, step);
                 if (context.AllSlices.All(located => !string.Equals(located.Slice.Name, specification.Owner, StringComparison.Ordinal)))
                 {
@@ -216,6 +192,9 @@ internal static class SemanticGraphAdmission
                 }
             }
         }
+
+        static bool HasPrecondition(SemanticGraphSpecification specification) =>
+            specification.WhenAppended is not null || !specification.Given.IsEmpty || !specification.GivenGraphs.IsDefaultOrEmpty;
 
         void CheckFact(string label, SemanticSpecificationEvent fact)
         {
@@ -235,6 +214,18 @@ internal static class SemanticGraphAdmission
             if (fact.EventSource is null && keyedByEventSource)
             {
                 Diagnostic(Specification, $"{label} appends '{contract.Name}', which a graph projection keys on the event source, without stating the event source.");
+            }
+        }
+
+        void CheckSeeds(string label, ImmutableArray<SemanticGraphStep> steps)
+        {
+            foreach (var step in steps)
+            {
+                CheckStep(label, step);
+                if (step.Elements.Any(element => element.Absent))
+                {
+                    Diagnostic(Specification, $"{label} seeds an absent graph element; a given graph can seed only present nodes and edges.");
+                }
             }
         }
 

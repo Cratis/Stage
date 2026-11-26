@@ -53,8 +53,7 @@ public class with_an_authored_scene : a_screen_composition_render
     // Recomputed for Cratis/Stage#1147: the Scene 6.0.1 pins of the Stage runtime and the scaffold, and the Screenplay 6.32.0 pins.
     // Recomputed after merging main into the #970 train: the #970 Program.cs change on top of the #1147 pins.
     // Recomputed for Screenplay 6.33.0 (Cratis/Stage#1052): only the Screenplay pins in Directory.Packages.props and the scaffold catalog change.
-    // Before #1146's dependency sync and Arc#3975: 214963d60b4af2fa3350db7b6483a260b119f8cd2618580995f653b18c55b06d.
-    // Only the Arc/Fundamentals/Choreography/Chronicle pins, target version, telemetry pin and Program.cs availability order change; no scoped-UI behavior changes.
+    // Recomputed for #1146's dependency sync and Arc#3975 together with main's DiagnosticSource 11 and proxy-generator runtime wiring.
     const string Before = "e546907dd7d97ca61b058957f6ad7adb9ad532af463dd6d09f71df65bf443b9b";
 
     ArtifactRenderPlan _plan = null!;

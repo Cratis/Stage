@@ -124,7 +124,7 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     // Re-frozen for Screenplay 6 and Scene 5: only the scene and the WorkItemList screen fragment change.
     // Re-frozen for Scene 5.1.0: only the scene and the WorkItemList screen fragment change (the icon-only toolbar item).
     // Re-frozen for Cratis/Stage#970: only Program.cs gains the Diagnostics import and defaults event-source id tracing to Omitted.
-    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(_qualified)).ShouldEqual("7987b19b953e79fd02c33dd12486e229743a7afc43f327cc148df1e44865dfe4");
+    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(_qualified)).ShouldEqual("1e0a673086650ff158a87a9a0ab8d7615a0a37596a1a05884d89bee673cd8e07");
 
     // Re-frozen when the license header became the caller's choice and specifications moved into the application project.
     // Re-frozen for #424: generated C# uses short type names and using directives above the namespace.
@@ -138,7 +138,7 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     // Re-frozen for Screenplay 6 and Scene 5: only the scene and the WorkItemList screen fragment change.
     // Re-frozen for Scene 5.1.0: only the scene and the WorkItemList screen fragment change (the icon-only toolbar item).
     // Re-frozen for Cratis/Stage#970: only Program.cs gains the Diagnostics import and defaults event-source id tracing to Omitted.
-    // Before Arc#3975: f76576fe7db9fd2f8251663cb3be353e71238602983d72c299fd0de889fb17e5; only Program.cs moves availability registration before AddCratis.
+    // Re-frozen for Arc#3975 together with main's DiagnosticSource 11 and proxy-generator runtime wiring.
     [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("2fc2795fcecedf79347132c6020d454559c1cb71514d08386cb7fd82af66dfe2");
 
     // The #209 restoration removed 34 details bytes and 273 list bytes on Scene 4.86.0.

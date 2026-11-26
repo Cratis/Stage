@@ -431,6 +431,29 @@ describe('screen availability', () => {
         expect(hostile).not.toHaveBeenCalled();
     });
 
+    it('tells a screen an operator suspended from one that is not offered', async () => {
+        const suspended = { isSuccess: true, data: { unavailable: [{ name: 'StageScreen_exact', module: '', feature: '', slice: '', reason: 'Suspended' }] } };
+        vi.stubGlobal('fetch', vi.fn(() => respond(suspended)));
+        const { result } = renderHook(() => useScreenAvailability(routes));
+        await waitFor(() => expect(result.current.suspended?.('Restricted')).toBe(true));
+        expect(result.current('Restricted')).toBe(false);
+        expect(result.current.suspended?.('Home')).toBe(false);
+    });
+
+    it('does not call a screen that is not offered suspended', async () => {
+        vi.stubGlobal('fetch', vi.fn(() => respond(answer(false))));
+        const { result } = renderHook(() => useScreenAvailability(routes));
+        await waitFor(() => expect(result.current('Restricted')).toBe(false));
+        expect(result.current.suspended?.('Restricted')).toBe(false);
+    });
+
+    it('says a suspended screen is switched off for now instead of calling it missing', () => {
+        const isAvailable = Object.assign(() => false, { suspended: () => true });
+        render(<ScreenAvailabilityGuard screens={['Restricted']} isAvailable={isAvailable}><span>Protected</span></ScreenAvailabilityGuard>);
+        expect(screen.getByRole('alert').textContent).toContain('Back soon');
+        expect(screen.queryByText('Protected')).toBeNull();
+    });
+
     it('does not mount guarded child components while pending', () => {
         const child = vi.fn(() => <span>Protected</span>);
         const Child = child;

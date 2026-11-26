@@ -68,9 +68,8 @@ internal static class SemanticBodyDeclarations
         var code = string.Empty;
         foreach (var command in context.Commands.Values)
         {
-            var raw = SemanticDateComparisonAdmission.Raw(context.Application, command);
             var inputs = command.Properties.Where(property => !property.IsGenerated).Select(property =>
-                $"{SemanticCommandResultRendering.InputType(property, raw, types)} {context.MemberNames.Property(property)}");
+                $"{types.Type(property.Type)} {context.MemberNames.Property(property)}");
             code += $"namespace {SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(command.Id).Path)} {{ public record {Identifiers.ToPascalCase(command.Name)}({string.Join(", ", inputs)}); }}\n";
         }
 

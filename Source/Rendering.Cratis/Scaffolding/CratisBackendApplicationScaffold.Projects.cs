@@ -64,6 +64,8 @@ public sealed partial class CratisBackendApplicationScaffold
                  System.Security.Cryptography.Xml is part of the ASP.NET Core shared framework, so it is pruned
                  and serviced by the ASP.NET Core 10.0.x runtime. -->
             <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="{{ScaffoldPackageVersions.CryptographyPkcs}}" />
+            <PackageVersion Include="System.Diagnostics.DiagnosticSource" Version="{{ScaffoldPackageVersions.DiagnosticSource}}" />
+            <PackageVersion Include="Cratis.Arc.ProxyGenerator.Build" Version="{{ScaffoldPackageVersions.ProxyGenerator}}" />
             <PackageVersion Include="xunit" Version="{{profile.XunitPackageVersion}}" />
             <PackageVersion Include="xunit.runner.visualstudio" Version="{{profile.XunitRunnerVisualStudioPackageVersion}}" />
           </ItemGroup>
@@ -90,6 +92,9 @@ public sealed partial class CratisBackendApplicationScaffold
             <CratisProxiesSkipOutputDeletion>true</CratisProxiesSkipOutputDeletion>
             <CratisProxiesSkipCommandNameInRoute>true</CratisProxiesSkipCommandNameInRoute>
             <CratisProxiesUseSourceFileAsOutputFile>true</CratisProxiesUseSourceFileAsOutputFile>
+            <!-- The proxy generator loads the application's assemblies on the runtime it runs on. Chronicle 19.187 and later
+                 reference System.Diagnostics.DiagnosticSource 11 from their net10.0 build too, which a net10.0 runtime does not carry. -->
+            <CratisProxyGeneratorEnvironmentVariables>DOTNET_ROLL_FORWARD=LatestMajor</CratisProxyGeneratorEnvironmentVariables>
             <!-- Program.cs is the entry point; the test SDK must not generate another one. This holds in every
                  configuration: a restore for Debug writes the test SDK's targets into the restore assets, which a
                  later Release build without a restore still imports. -->
@@ -112,6 +117,9 @@ public sealed partial class CratisBackendApplicationScaffold
             <PackageReference Include="Cratis.Screenplay.Matching" />
             <PackageReference Include="Cratis" />
             <PackageReference Include="Cratis.Arc.MongoDB" />
+            <!-- The proxy generator is held below the Arc release: from 24.8 a proxy imports PartIdentity from the Arc frontend reflection
+                 module, which the Arc 22 frontend packages this scaffold is frozen with do not export (Cratis/Stage#1135). The reference is a deliberate downgrade of the generator alone. -->
+            <PackageReference Include="Cratis.Arc.ProxyGenerator.Build" NoWarn="NU1605" />
             <PackageReference Include="Cratis.Chronicle" />
             <PackageReference Include="Cratis.Chronicle.AspNetCore" />
             <PackageReference Include="Cratis.Choreography" />

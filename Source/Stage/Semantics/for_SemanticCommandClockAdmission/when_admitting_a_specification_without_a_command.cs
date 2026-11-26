@@ -19,16 +19,16 @@ public class when_admitting_a_specification_without_a_command
                 slice StateChange Keep
                   command Keep
                     id String identifier
-                    at DateTime
+                    at Date
                     validate
-                      at > now
+                      at > today
                     produces Kept
                       for id
                   event Kept
                   specification Original
                     when Keep
                       id = "window"
-                      at = "2026-01-02T00:00:00.0000000Z"
+                      at = "2026-01-02"
                     then Kept
             """;
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("NoCommandClock"));

@@ -97,9 +97,7 @@ public class when_strict_planning_retains_performer_metadata : given.a_source_pl
 
         // Recomputed for Arc 23.5.0 scaffold pins and the availability registration seam (Cratis/Stage#1117).
         // Recomputed for Arc 23.8.0, Chronicle 19.162.0 and Choreography 2.9.0 scaffold pins.
-        // Previous frozen digest: 7b932a764632de8eaf44b636ec830ed0d31a4413543d7ebffb3f8d343ea27f2e.
-        // Recomputed for Arc 23.21.0, Chronicle 19.182.2 and Choreography 2.10.0 pins (4da878b6e),
-        // and availability registration before AddCratis (a0d7219da, Cratis/Arc#3975).
+        // Recomputed for Arc#3975 together with main's DiagnosticSource 11 and proxy-generator runtime wiring.
         // Keep exact equality with untruncated failure output for future intentional snapshot changes.
         _defaultLegacy.Digest.ShouldEqual("f1e7417c9e3c0aae0fcb2cc6e4d38f3c9c730dac4c7f0da3e306817c0b7aad2b");
         Assert.DoesNotContain(_normal.Plan.Diagnostics, diagnostic => diagnostic.Code.StartsWith("STAGE-DEGRADE-", StringComparison.Ordinal));

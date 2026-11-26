@@ -689,11 +689,10 @@ conformance covers `DateComparisonsCorpus` in all four source forms.
 
 Divergences and refusals (`STAGE-ESM-046`, naming the property):
 
-- A compared DateTime property typed through a concept binds as a plain `DateTimeOffset`, because Arc's marker
-  supports only `DateTime` and `DateTimeOffset`; it converts to the concept where an event or rule uses it. A concept
-  with compliance, an optional concept-typed compared DateTime (an absent `DateTimeOffset` has no conversion back to
-  an absent concept), or a property whose name is not camel case (Arc names the member in camel case), is refused.
-  Pending Arc ask: a marker for concept-wrapped dates (Cratis/Arc#3350).
+- A compared DateTime property typed through a concept, required or optional and with or without compliance, binds
+  as its concept type and carries the same `[property: ExplicitOffset]` marker, which Arc applies to concept-wrapped
+  dates (Cratis/Arc#3556). Events and rules use the concept directly. A property whose name is not camel case is
+  refused, because Arc names the failing member in camel case.
 - For a command with an authorization policy, an unauthorized caller sending an unbindable date body gets
   `Validation`, not 403. Stage renders native named Arc policies, and Arc's resource-free evaluation covers only
   ASP.NET requirements. See [command input binding](https://github.com/Cratis/Arc/blob/main/Documentation/backend/csharp/commands/input-binding.md)

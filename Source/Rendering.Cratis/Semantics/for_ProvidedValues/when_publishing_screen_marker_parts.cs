@@ -5,9 +5,8 @@
 using System.Reflection;
 using System.Text.Json;
 using Cratis.Arc.Availability;
+using Cratis.Arc.Availability.Audiences;
 using Cratis.Arc.Slices;
-using Cratis.Choreography.Availability;
-using Cratis.Choreography.Availability.Audiences;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.Semantics.for_ProvidedValues.given;
 using Cratis.Types;
@@ -44,7 +43,9 @@ public class when_publishing_screen_marker_parts : Specification
     void RegisterMarkers()
     {
         var options = new ArcAvailabilityOptions();
+#pragma warning disable CS0618 // The generated registration uses the same string-based gates, which Arc still reads.
         foreach (var marker in _markers) options.Gate(marker, AvailabilityExpression.For([new AudienceName("Plus")]));
+#pragma warning restore CS0618
         var types = Substitute.For<ITypes>();
         types.All.Returns([]);
         _registered = new ArcAvailabilityGate(options, Substitute.For<IAvailabilityEvaluator>(), Substitute.For<IAudienceSource>(), types).GatedParts;
@@ -55,7 +56,7 @@ public class when_publishing_screen_marker_parts : Specification
     [Fact] void should_discover_registered_markers_that_are_not_commands_or_read_models() => _registered.Count.ShouldEqual(2);
     [Fact] void should_close_only_the_denied_marker() => _unavailable.Count.ShouldEqual(1);
     [Fact] void should_publish_the_exact_closed_type_name() => _unavailable[0].Name.ShouldEqual(_markers[0].FullName);
-    [Fact] void should_serialize_the_pinned_arc_client_contract() => _json.ShouldContain($"\"unavailable\":[{{\"name\":\"{_markers[0].FullName}\",\"module\":\"\",\"feature\":\"\",\"slice\":\"\"}}");
+    [Fact] void should_serialize_the_pinned_arc_client_contract() => _json.ShouldContain($"\"unavailable\":[{{\"name\":\"{_markers[0].FullName}\",\"module\":\"\",\"feature\":\"\",\"slice\":\"\",\"reason\":\"NotAvailable\"}}");
     [Fact] void should_not_list_the_available_marker() => _json.Contains(_markers[1].FullName!, StringComparison.Ordinal).ShouldBeFalse();
 }
 #endif

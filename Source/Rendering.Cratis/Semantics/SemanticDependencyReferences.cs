@@ -20,6 +20,8 @@ internal static class SemanticDependencyReferences
         SemanticCommand:Available
         SemanticKeyedQuery:Available
         SemanticScreen:Available
+        SemanticScreenAction:Available
+        SemanticScreenData:Available
         SemanticAvailability:Requirements
         SemanticConditionRequirement:Condition
         SemanticAvailabilityComparison:Operand

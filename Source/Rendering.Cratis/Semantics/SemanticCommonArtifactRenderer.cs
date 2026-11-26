@@ -104,12 +104,7 @@ internal static class SemanticCommonArtifactRenderer
         var isIdentifier = context.IdentifierConcepts.Contains(concept.Id);
         var primitive = types.Primitive(concept.Primitive);
 
-        // These original type-only imports belong to the byte oracle, not to the extension-method scope.
-        if (qualified)
-        {
-            builder.Using("Cratis.Concepts");
-            if (isIdentifier) builder.Using("Cratis.Chronicle.Events");
-        }
+        RenderConceptImports(builder, qualified, isIdentifier);
 
         builder.Inherits(isIdentifier ? "Cratis.Chronicle.Events.EventSourceId`1" : "Cratis.Concepts.ConceptAs`1");
         var baseType = isIdentifier ? $"{builder.Type(new("Cratis.Chronicle.Events", "EventSourceId", 1, ReferenceContext.Type))}<{primitive}>" : $"{builder.Type(new("Cratis.Concepts", "ConceptAs", 1, ReferenceContext.Type))}<{primitive}>";
@@ -133,21 +128,34 @@ internal static class SemanticCommonArtifactRenderer
         builder.Summary($"Converts a value to {name}.")
             .Parameter("value", "The underlying value.").Returns("The concept wrapping the value.")
             .Line($"public static implicit operator {name}({primitive} value) => new(value);");
-        if (!isIdentifier)
-        {
-            foreach (var source in SemanticProjectionConversions.Into(concept, context))
-            {
-                builder.Summary($"Converts {Identifiers.ToWords(source.Name)} to {name}.")
-                    .Parameter("value", "The concept to convert.").Returns("The concept wrapping the value.")
-                    .Line($"public static implicit operator {name}({types.CommonType(source.Name)} value) => new(value.Value);");
-            }
-        }
+        if (!isIdentifier) RenderProjectionConversions(builder, concept, context);
 
         builder.EndBlock();
         if (!declarationOnly && withValidator) RenderValidator(builder, concept, name, context);
     }
 
+    static void RenderConceptImports(CSharpCodeBuilder builder, bool qualified, bool isIdentifier)
+    {
+        // These original type-only imports belong to the byte oracle, not to the extension-method scope.
+        if (!qualified) return;
+        builder.Using("Cratis.Concepts");
+        if (isIdentifier) builder.Using("Cratis.Chronicle.Events");
+    }
+
+    static void RenderProjectionConversions(CSharpCodeBuilder builder, SemanticConcept concept, SemanticApplicationContext context)
+    {
+        var types = new SemanticTypeSystem(context, builder);
+        var name = Identifiers.ToPascalCase(concept.Name);
+        foreach (var source in SemanticProjectionConversions.Into(concept, context))
+        {
+            builder.Summary($"Converts {Identifiers.ToWords(source.Name)} to {name}.")
+                .Parameter("value", "The concept to convert.").Returns("The concept wrapping the value.")
+                .Line($"public static implicit operator {name}({types.CommonType(source.Name)} value) => new(value.Value);");
+        }
+    }
+
     static bool NeedsFactory(SemanticConcept concept, SemanticApplicationContext context) =>
+        (concept.Generation is not null && context.Request.Model.SemanticVersion.IsAtLeast(SemanticVersion.V15) && SemanticGenerationShapes.Supported(concept)) ||
         context.IdentifierConcepts.Contains(concept.Id) || context.Commands.Values.Any(command =>
             command.Properties.Any(property => property.IsGenerated && property.Type.Target == concept.Id));
 
@@ -164,24 +172,33 @@ internal static class SemanticCommonArtifactRenderer
     {
         if (!NeedsFactory(concept, context)) return;
         var usesContext = UsesGenerationContext(concept, context);
-        var value = string.Empty;
-        if (!declarationOnly)
-        {
-            value = IsGeneratable(concept, context) ? SemanticGenerationRendering.Factory(concept, usesContext ? "context" : null, context, builder) : new SemanticTypeSystem(context, builder).NotSet(concept.Primitive);
-        }
         var parameters = usesContext ? $"{builder.Type(new("Cratis.Concepts", "GenerationContext", 0, ReferenceContext.Type))} context" : string.Empty;
+        var declaration = $"{FactoryDeclaration(builder, concept, context)}({parameters})";
+        builder.Summary($"Creates a {Identifiers.ToWords(concept.Name)} using its modeled generation rule.");
+        if (usesContext) builder.Parameter("context", "The generation context.");
+        builder.Returns("The generated concept.");
+        if (declarationOnly)
+        {
+            builder.Line($"{declaration} => throw new global::System.NotImplementedException();").BlankLine();
+            return;
+        }
+
+        if (SemanticGenerationRendering.RenderFactoryBody(builder, concept, context, declaration)) return;
+        builder.Line($"{declaration} => new({FactoryValue(builder, concept, context, usesContext)});").BlankLine();
+        SemanticGenerationRendering.RenderBody(builder, concept, context);
+    }
+
+    static string FactoryDeclaration(CSharpCodeBuilder builder, SemanticConcept concept, SemanticApplicationContext context)
+    {
         var name = Identifiers.ToPascalCase(concept.Name);
 
         // A concept named New cannot declare a member named New (CS0542); Arc only reaches the factory through
         // IGeneratable, so the colliding factory implements the interface explicitly and the type keeps its name.
-        var factory = name == "New" && IsGeneratable(concept, context) ? $"static {name} {GeneratableType(concept, context, builder)}.New" : $"public static {name} New";
-        var implementation = declarationOnly ? "throw new global::System.NotImplementedException()" : $"new({value})";
-        builder.Summary($"Creates a {Identifiers.ToWords(concept.Name)} using its modeled generation rule.");
-        if (usesContext) builder.Parameter("context", "The generation context.");
-        builder.Returns("The generated concept.")
-            .Line($"{factory}({parameters}) => {implementation};").BlankLine();
-        if (!declarationOnly) SemanticGenerationRendering.RenderBody(builder, concept, context);
+        return name == "New" && IsGeneratable(concept, context) ? $"static {name} {GeneratableType(concept, context, builder)}.New" : $"public static {name} New";
     }
+
+    static string FactoryValue(CSharpCodeBuilder builder, SemanticConcept concept, SemanticApplicationContext context, bool usesContext) =>
+        IsGeneratable(concept, context) ? SemanticGenerationRendering.Factory(concept, usesContext ? "context" : null, context, builder) : new SemanticTypeSystem(context, builder).NotSet(concept.Primitive);
 
     static void RenderValidator(CSharpCodeBuilder builder, SemanticConcept concept, string name, SemanticApplicationContext context)
     {

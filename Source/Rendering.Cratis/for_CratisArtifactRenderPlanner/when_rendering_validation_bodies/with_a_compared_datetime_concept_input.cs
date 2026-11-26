@@ -11,21 +11,22 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_ren
 public class with_a_compared_datetime_concept_input : Specification
 {
     [Theory]
-    [InlineData("return context.Artifact.At.Year >= 2026 && context.Value > 0;")]
+    [InlineData("return context.Artifact.At.Value.Year >= 2026 && context.Value > 0;")]
     [InlineData("return context.Artifact.Amount > 0;")]
     void should_compile_and_execute_against_the_runtime_command_input_shape(string body)
     {
         var plan = opaque_policy_model.Plan(validation_body_model.Load(Source(body)));
         Assert.True(plan.Success, opaque_policy_model.Errors(plan));
         var assembly = opaque_policy_model.Compile(plan);
-        validation_body_model.Validate(assembly, "Book", "booking", new DateTimeOffset(2026, 10, 17, 0, 0, 0, TimeSpan.Zero), 1m).IsValid.ShouldBeTrue();
-        validation_body_model.Validate(assembly, "Book", "booking", new DateTimeOffset(2026, 10, 17, 0, 0, 0, TimeSpan.Zero), 0m).IsValid.ShouldBeFalse();
+        var at = Activator.CreateInstance(assembly.GetTypes().Single(type => type.Name == "Moment"), new DateTimeOffset(2026, 10, 17, 0, 0, 0, TimeSpan.Zero));
+        validation_body_model.Validate(assembly, "Book", "booking", at, 1m).IsValid.ShouldBeTrue();
+        validation_body_model.Validate(assembly, "Book", "booking", at, 0m).IsValid.ShouldBeFalse();
     }
 
     [Fact]
-    void should_refuse_concept_member_access_on_the_raw_bound_input()
+    void should_refuse_primitive_member_access_on_the_nominal_input()
     {
-        var plan = opaque_policy_model.Plan(validation_body_model.Load(Source("return context.Artifact.At.Value.Year >= 2026;")));
+        var plan = opaque_policy_model.Plan(validation_body_model.Load(Source("return context.Artifact.At.Year >= 2026;")));
         Assert.False(plan.Success);
         Assert.Empty(plan.Artifacts);
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-019");

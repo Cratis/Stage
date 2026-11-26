@@ -14,10 +14,12 @@ const StageAction = stageComponents['core:action'];
 const schema = JSON.stringify({ type: 'object', required: ['assetId'], properties: { assetId: { type: 'string' } } });
 
 // The server answers a command's pre-flight check from the plan of the asset it is asked about.
-function renderAsset(answer: () => Record<string, unknown>) {
-    const routes = { commands: { ExportAsset: '/api/export' }, queries: {}, commandSchemas: { ExportAsset: schema } };
+// An element can also carry its own gate: the marker the Stage published for it is asked about at /.cratis/availability.
+function renderAsset(answer: () => Record<string, unknown>, gate?: { reason?: string }) {
+    const routes = { commands: { ExportAsset: '/api/export' }, queries: {}, commandSchemas: { ExportAsset: schema }, ...(gate ? { elements: { 'Asset/action/ExportAsset': 'StageElement_export' } } : {}) };
     registerStageCommands(routes);
-    const fetched = vi.fn((url: RequestInfo | URL) => Promise.resolve({ ok: true, json: async () => String(url).endsWith('/validate') ? commandResult(answer()) : commandResult() }));
+    const unavailable = gate?.reason ? [{ name: 'StageElement_export', module: '', feature: '', slice: '', reason: gate.reason }] : [];
+    const fetched = vi.fn((url: RequestInfo | URL) => Promise.resolve({ ok: true, json: async () => String(url).includes('/.cratis/availability') ? { isSuccess: true, data: { unavailable } } : String(url).endsWith('/validate') ? commandResult(answer()) : commandResult() }));
     vi.stubGlobal('fetch', fetched);
     globalThis.location.hash = '#/Asset';
     const item = element('export', 'core:action', { command: 'ExportAsset', label: 'Export', schema, fields: [], generationMode: 'manual' });
@@ -42,6 +44,50 @@ describe('an action whose command the server refuses for the data on the screen'
         const button = screen.getByRole('button', { name: 'Export' }) as HTMLButtonElement;
         expect(button.disabled).toBe(true);
         expect(button.title).toBe('The plan does not include exports');
+    });
+
+    it('is not rendered when its command is not available to the caller', async () => {
+        const fetched = renderAsset(() => ({ isSuccess: false, isAuthorized: false, authorizationFailureReason: 'NotAvailable' }));
+
+        await waitFor(() => expect(fetched.mock.calls.some(([url]) => String(url).endsWith('/validate'))).toBe(true));
+        await waitFor(() => expect(screen.queryByRole('button', { name: 'Export' })).toBeNull());
+        expect(screen.queryByRole('status')).toBeNull();
+    });
+
+    it('says it is switched off for now when an operator suspended its command', async () => {
+        renderAsset(() => ({ isSuccess: false, isAuthorized: false, authorizationFailureReason: 'Suspended' }));
+
+        await waitFor(() => expect(screen.getByRole('status').textContent).toBe('Back soon'));
+        expect(screen.queryByRole('button', { name: 'Export' })).toBeNull();
+    });
+
+    it('is not rendered when its own gate is not available', async () => {
+        renderAsset(() => ({}), { reason: 'NotAvailable' });
+
+        await waitFor(() => expect(screen.queryByRole('button', { name: 'Export' })).toBeNull());
+        expect(screen.queryByRole('status')).toBeNull();
+    });
+
+    it('says it is switched off for now when an operator suspended its own gate', async () => {
+        renderAsset(() => ({}), { reason: 'Suspended' });
+
+        await waitFor(() => expect(screen.getByRole('status').textContent).toBe('Back soon'));
+    });
+
+    it('is offered when its own gate is open', async () => {
+        renderAsset(() => ({}), {});
+
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Export' })).toBeTruthy());
+    });
+
+    it('is not offered before its own gate has answered', async () => {
+        vi.stubGlobal('fetch', vi.fn(() => new Promise(() => undefined)));
+        const routes = { commands: { ExportAsset: '/api/export' }, queries: {}, commandSchemas: { ExportAsset: schema }, elements: { 'Asset/action/ExportAsset': 'StageElement_export' } };
+        registerStageCommands(routes);
+        const item = element('export', 'core:action', { command: 'ExportAsset', label: 'Export', schema, fields: [], generationMode: 'manual' });
+        render(<PrimeReactProvider><StageDataProvider routes={routes} parameters={{ assetId: 'a1' }} locale='en' locales={['en']} screen='Asset'><StageAction element={item} slots={{}} /></StageDataProvider></PrimeReactProvider>);
+
+        expect(screen.queryByRole('button', { name: 'Export' })).toBeNull();
     });
 
     it('stays offered when the server authorizes it', async () => {

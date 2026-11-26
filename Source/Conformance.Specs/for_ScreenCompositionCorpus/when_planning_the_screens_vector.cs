@@ -37,8 +37,9 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     // Re-frozen for Cratis/Stage#937: only Directory.Packages.props pins Pkcs to 10.0.14 and documents Xml runtime servicing.
     // Re-frozen for Cratis/Stage#926: the scaffold hosts an Orleans silo (Program.cs, Directory.Packages.props, the project).
     // Re-frozen for Choreography 2.2.0 with Chronicle 19.124.0 and Arc 22.165.2: the scaffold uses the renamed hosting APIs.
+    // Re-frozen for Cratis/Stage#1209 and #1128 (Arc 24.8.0, Chronicle 19.187.0, Choreography 2.11.0): Directory.Packages.props pins DiagnosticSource 11 and the project tells the proxy generator to roll forward onto it.
     // Re-frozen for Cratis/Stage#970: only Program.cs gains the Diagnostics import and defaults event-source id tracing to Omitted.
-    // Before Arc#3975: d6b8bce04fc560a9874025396f79aa9e02d516a1f13605398ded17610eb3a03a; only Program.cs moves availability registration before AddCratis.
+    // Re-frozen for Arc#3975 together with main's DiagnosticSource 11 and proxy-generator runtime wiring.
     const string Digest = "355a5e3b124243dad665aca4898204d43b321e1ff474b7a53b3205fe237e71c0";
 
     // Arc#3975 changes only Program.cs: before 502d23cf522c85ee2e4bd302bbe604112ed3f65614c814a52f127a251d8456c1, 2183 bytes.
@@ -58,7 +59,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Common/WorkStatus.cs 39e8088132ed10030ab679cbd735db36c75cd2dfc5c9650596aa9c285458cce3 282
         Directory.Build.props b074ad4117a0d8e81466865fbb69d5d57a9c9cb7c0d3886d2575c1009322597a 1167
         Directory.Build.targets 17284cb74605517cbec8a8153505da71a685b28694b67b5ef80608cd79b1c0ea 12
-        Directory.Packages.props d777ce75d8673aeb35ce68c9c3d0f9fd3281e1dd78630af72c507b1f1f3e71f0 1914
+        Directory.Packages.props 87ad35f09b85afc4031516d18b6f7eef2733a9a484e2187ced53a5cb6ee443d3 2081
         GeneratedAuthentication.cs ed09e251946fc352764a02a5b0ba94af3f465c824458b163fc4dc0fd958d7d29 5225
         GeneratedAuthenticationPerimeter.cs 81cd5b2cf77e385a07fcd4ff6d413be8e79436b1226242e9aa9ac461d6b6e960 9693
         GeneratedAvailabilityRegistration.cs dc174770528fcb1ca88dfceff35dca3b6522e17d822e71007084ada45950a53a 632
@@ -67,7 +68,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         GlobalUsings.cs 74b2438fda9d5bc192e6fcd6b44837b6129b532faa99555d77013f62f1ec3f8e 137
         Program.cs d19bf1f55d094e7975f4795ed0165cc0edfdffdd87d2fa50725197a2b6cf5ff3 2281
         README.md aa64c1ef6846ab9796feb390c9aa112864126aaac54c9c81c0e50fea02d38e74 2392
-        Workspaces.csproj 9eb3a11850e8a7c4a6810367e622c7658dfcf7220bf8bb211d20024cfd30ec8b 2992
+        Workspaces.csproj bdb41f19477a8c99f76b03355c38d056a7bff10e5fb82d5cdc0b079532cde36e 3762
         Workspaces.slnx f74d3ddcde0097a4bdb2ce376128f76d0ed516c309d01f273f9b92c394ba2166 62
         Workspaces/Tracking/AddComment/AddComment.cs 8ca9724697e5cbf55e8c5245c666a43d94e1a63eb322b36651e6d9500ce89c67 944
         Workspaces/Tracking/AddComment/when_adding_a_comment.cs 5f692eef442134983246c572182e653f6775912ed3154134f4c62ddd45f9b56b 1525
@@ -109,7 +110,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Common/WorkStatus.cs 94c14a6093b208dfe5065c1320725638b94db7a004b164fef1cc4765e967f36a 431
         Directory.Build.props fb4abdf22956b96063dbf033d57b65bb965ad5679faeccbd0cbcd8947e7c0f99 1115
         Directory.Build.targets 17284cb74605517cbec8a8153505da71a685b28694b67b5ef80608cd79b1c0ea 12
-        Directory.Packages.props d777ce75d8673aeb35ce68c9c3d0f9fd3281e1dd78630af72c507b1f1f3e71f0 1914
+        Directory.Packages.props 87ad35f09b85afc4031516d18b6f7eef2733a9a484e2187ced53a5cb6ee443d3 2081
         GeneratedAuthentication.cs ff86455b7f123bb85d611a5fabc40fd3e124ea6e6724ba9cca9d0b730e105ac2 5374
         GeneratedAuthenticationPerimeter.cs aef7e8ae1697056711fe37948080bbda478ba5bf26cbccdf8614c6578b96041b 9842
         GeneratedAvailabilityRegistration.cs 44ae7da0bcb5886f92195b70f11fb3a4b1a46c548d235d22413aaecf6355fe92 781
@@ -118,7 +119,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Program.cs 44415c83c0e9fdcf141a8ef960fef9ab13e945023ddb4ff9077529e9fc9ad89b 2332
         README.md 30cac1be79d8dfeb616a606e0f54a3ddbc819d8641cef281c0d946c92ad647c4 2332
         Workspaces.Specs/Workspaces.Specs.csproj b88f81e8d9f2f47b00113df7ec92e37919c703083d9b767a24451a5104d8f617 1105
-        Workspaces.csproj 748d15f27efb72689aa19963fbdef615d4a6bd6f628aedf8ddeca98fdce21f0c 1593
+        Workspaces.csproj 3dfac3579e9475b00c4a578dd53b458a2b1e4fcf72c09691c0615066ed03abae 2363
         Workspaces.slnx 650516e95954eebf4339f821450c06276740585167423ff70481565a1a03dda5 124
         Workspaces/Tracking/AddComment/AddComment.cs 51ca54f7865f5b7f6b5e9a389cd862bdacfb1498ef2a55f1984712a86457253b 1546
         Workspaces/Tracking/AddComment/when_adding_a_comment.cs a7d95a77837912a3396b6a7bacff2d303c8fd6c6e05247386395d80a1580289f 2495
@@ -201,7 +202,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("a70ecf2f3fab8acbcd78b4ef8d97d936b59842791f0c59fa9d2dc6e4da5ea0f1"); // Re-frozen for #741 (.gitignore gains the .yarn/ line), Scene 4.86.0, Cratis/Stage#120 merged with train 10 and #937 (only Directory.Packages.props pins Pkcs and documents Xml runtime servicing).
+            plan.Diagnostics).ShouldEqual("1b11662ef7e8b5bb002322bcf4cb69ca0771823d9be85c22006afc5f0268035a"); // Re-frozen for #741 (.gitignore gains the .yarn/ line), Scene 4.86.0, Cratis/Stage#120 merged with train 10 and #937 (only Directory.Packages.props pins Pkcs and documents Xml runtime servicing).
     }
 
     [Theory]

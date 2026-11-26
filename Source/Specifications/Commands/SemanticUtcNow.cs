@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Globalization;
 using Cratis.Screenplay.Semantics;
 
 namespace Cratis.Stage.Specifications.Commands;
@@ -24,6 +25,17 @@ internal static class SemanticUtcNow
 
     internal static bool Uses(SemanticComparison comparison) =>
         comparison.Left.Clock is not null || comparison.Right.Clock is not null || comparison.Left.DateOf || comparison.Right.DateOf;
+
+    internal static SemanticRuleCheck Check(SemanticValidationRule rule, SemanticValue value, DateTimeOffset? occurrence)
+    {
+        var instant = Instant(rule.ClockOperand!, occurrence);
+        var resolved = rule with
+        {
+            Operand = SemanticValue.Text(instant.UtcDateTime.ToString("O", CultureInfo.InvariantCulture)),
+            ClockOperand = null
+        };
+        return SemanticDateComparisons.Check(resolved, value, SemanticPrimitiveType.DateTime);
+    }
 
     internal static bool Compare(SemanticComparison comparison, IReadOnlyDictionary<SemanticId, SemanticValue> values, DateTimeOffset? occurrence) =>
         Satisfies(comparison.Operator, Operand(comparison.Left, values, occurrence).CompareTo(Operand(comparison.Right, values, occurrence)));

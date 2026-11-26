@@ -77,6 +77,40 @@ internal static class SemanticValidationRendering
             rules.Where(rule => rule.Kind == SemanticValidationRuleKind.Matches).Select(rule => ((SemanticTextValue)rule.Operand!).Value),
             ownerType);
 
+    internal static string DefaultMessage(SemanticValidationRule rule, SemanticPrimitiveType primitive, bool concept)
+    {
+        var operand = rule.Operand switch
+        {
+            SemanticTextValue text => $"'{text.Value}'",
+            SemanticNumberValue number => number.Value.ToString(CultureInfo.InvariantCulture),
+            SemanticBooleanValue boolean => boolean.Value ? "true" : "false",
+            _ => "null"
+        };
+        return rule.Kind switch
+        {
+            SemanticValidationRuleKind.NotEmpty => concept ? "A required concept value is empty." : "A required value is empty.",
+            SemanticValidationRuleKind.Maximum when primitive == SemanticPrimitiveType.Text => $"A value must be at most {operand} characters long.",
+            SemanticValidationRuleKind.Minimum when primitive == SemanticPrimitiveType.Text => $"A value must be at least {operand} characters long.",
+            SemanticValidationRuleKind.Maximum or SemanticValidationRuleKind.LessThanOrEqual => $"A value must be at most {operand}.",
+            SemanticValidationRuleKind.Minimum or SemanticValidationRuleKind.GreaterThanOrEqual => $"A value must be at least {operand}.",
+            SemanticValidationRuleKind.Equal => $"A value must equal {operand}.",
+            SemanticValidationRuleKind.NotEqual => $"A value must not equal {operand}.",
+            SemanticValidationRuleKind.GreaterThan => $"A value must be greater than {operand}.",
+            SemanticValidationRuleKind.LessThan => $"A value must be less than {operand}.",
+            SemanticValidationRuleKind.Length => $"A value must be exactly {operand} characters long.",
+            SemanticValidationRuleKind.Matches => "A value must match the required pattern.",
+            SemanticValidationRuleKind.Contains => $"A value must contain {operand}.",
+            SemanticValidationRuleKind.NotContains => $"A value must not contain {operand}.",
+            SemanticValidationRuleKind.DecimalPlaces => $"A value must have at most {operand} decimal places.",
+            SemanticValidationRuleKind.StartsWith => $"A value must start with {operand}.",
+            SemanticValidationRuleKind.EndsWith => $"A value must end with {operand}.",
+            SemanticValidationRuleKind.Checksum => $"A value must end in the exact {operand} check digits.",
+            SemanticValidationRuleKind.AllGreaterThan => $"Every value must be greater than {operand}.",
+            SemanticValidationRuleKind.AllGreaterThanOrEqual => $"Every value must be at least {operand}.",
+            _ => string.Empty
+        };
+    }
+
     static string SeveritySuffix(SemanticValidationSeverity severity, CSharpCodeBuilder? typeBuilder)
     {
         var name = severity switch
@@ -159,40 +193,6 @@ internal static class SemanticValidationRendering
     {
         var reference = new TypeReference(@namespace, name, 0, context);
         return builder?.Type(reference) ?? reference.Qualified;
-    }
-
-    static string DefaultMessage(SemanticValidationRule rule, SemanticPrimitiveType primitive, bool concept)
-    {
-        var operand = rule.Operand switch
-        {
-            SemanticTextValue text => $"'{text.Value}'",
-            SemanticNumberValue number => number.Value.ToString(CultureInfo.InvariantCulture),
-            SemanticBooleanValue boolean => boolean.Value ? "true" : "false",
-            _ => "null"
-        };
-        return rule.Kind switch
-        {
-            SemanticValidationRuleKind.NotEmpty => concept ? "A required concept value is empty." : "A required value is empty.",
-            SemanticValidationRuleKind.Maximum when primitive == SemanticPrimitiveType.Text => $"A value must be at most {operand} characters long.",
-            SemanticValidationRuleKind.Minimum when primitive == SemanticPrimitiveType.Text => $"A value must be at least {operand} characters long.",
-            SemanticValidationRuleKind.Maximum or SemanticValidationRuleKind.LessThanOrEqual => $"A value must be at most {operand}.",
-            SemanticValidationRuleKind.Minimum or SemanticValidationRuleKind.GreaterThanOrEqual => $"A value must be at least {operand}.",
-            SemanticValidationRuleKind.Equal => $"A value must equal {operand}.",
-            SemanticValidationRuleKind.NotEqual => $"A value must not equal {operand}.",
-            SemanticValidationRuleKind.GreaterThan => $"A value must be greater than {operand}.",
-            SemanticValidationRuleKind.LessThan => $"A value must be less than {operand}.",
-            SemanticValidationRuleKind.Length => $"A value must be exactly {operand} characters long.",
-            SemanticValidationRuleKind.Matches => "A value must match the required pattern.",
-            SemanticValidationRuleKind.Contains => $"A value must contain {operand}.",
-            SemanticValidationRuleKind.NotContains => $"A value must not contain {operand}.",
-            SemanticValidationRuleKind.DecimalPlaces => $"A value must have at most {operand} decimal places.",
-            SemanticValidationRuleKind.StartsWith => $"A value must start with {operand}.",
-            SemanticValidationRuleKind.EndsWith => $"A value must end with {operand}.",
-            SemanticValidationRuleKind.Checksum => $"A value must end in the exact {operand} check digits.",
-            SemanticValidationRuleKind.AllGreaterThan => $"Every value must be greater than {operand}.",
-            SemanticValidationRuleKind.AllGreaterThanOrEqual => $"Every value must be at least {operand}.",
-            _ => string.Empty
-        };
     }
 
     /// <summary>

@@ -15,6 +15,7 @@ public class with_a_stored_date_time : a_stored_typed_event
     void Establish() => Prepare("DateTime", "\"2026-09-24T12:00:00.1234567+02:00\"");
     void Because() => _error = Catch.Exception(() => SemanticWorldRebuilder.Fact(_typedPlan, _stored, evidence: Evidence));
 
+    // Chronicle 19.187 converts a stored date time with an offset to a DateTimeOffset; the rebuild still refuses it because the model's value has no offset.
     [Fact] void should_convert_through_chronicles_date_time_schema() => _converted.ShouldBeOfExactType<DateTimeOffset>();
     [Fact] void should_preserve_the_offset_and_subsecond_precision() => Assert.IsType<DateTimeOffset>(_converted).EqualsExact(new DateTimeOffset(2026, 9, 24, 12, 0, 0, TimeSpan.FromHours(2)).AddTicks(1234567)).ShouldBeTrue();
 

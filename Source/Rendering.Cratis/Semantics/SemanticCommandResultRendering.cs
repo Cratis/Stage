@@ -47,18 +47,12 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
         ? Identifiers.EscapeKeyword(Identifiers.ToCamelCase(property.Name))
         : application?.MemberNames.Property(property) ?? Identifiers.ToPascalCase(property.Name);
 
-    // Command declarations and validation analysis must agree on raw-bound DateTime concept inputs.
-    internal static string InputType(SemanticProperty property, IReadOnlySet<SemanticId> raw, SemanticTypeSystem types) => raw.Contains(property.Id)
-        ? types.Primitive(SemanticPrimitiveType.DateTime) + (property.Type.IsOptional ? "?" : string.Empty)
-        : types.Type(property.Type);
-
     internal void RenderDeclaration(CSharpCodeBuilder builder)
     {
         var destination = DestinationProperty;
         var providesSource = destination is { IsGenerated: false };
         var marked = SemanticDateComparisonAdmission.Marked(context.Application, command);
-        var raw = SemanticDateComparisonAdmission.Raw(context.Application, command);
-        var parameters = string.Join(", ", Inputs.Select(property => $"{(marked.Contains(property.Id) ? ExplicitOffset : string.Empty)}{_compliance.InputAttribute(property.Type)}{InputType(property, raw, _types)} {context.MemberNames.Property(property)}"));
+        var parameters = string.Join(", ", Inputs.Select(property => $"{(marked.Contains(property.Id) ? ExplicitOffset : string.Empty)}{_compliance.InputAttribute(property.Type)}{_types.Type(property.Type)} {context.MemberNames.Property(property)}"));
         var name = Identifiers.ToPascalCase(command.Name);
         builder.Attribute(SemanticAuthorizationAttributes.For(command, context))
             .OpenBlock($"public record {name}({parameters}){(providesSource ? " : global::Cratis.Chronicle.Events.ICanProvideEventSourceId" : string.Empty)}");
@@ -193,15 +187,7 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
         _ => null
     };
 
-    // A raw-bound DateTime concept converts back explicitly, so a checked result never needs two user-defined conversions.
-    string SourceValue(SemanticId source)
-    {
-        var property = command.Properties.Single(property => property.Id == source);
-
-        return SemanticDateComparisonAdmission.Raw(context.Application, command).Contains(property.Id)
-            ? $"(({_types.Type(property.Type)}){Value(property)})"
-            : Value(property);
-    }
+    string SourceValue(SemanticId source) => Value(command.Properties.Single(property => property.Id == source));
 
     sealed record ResultExpression(string Type, string Value);
 }

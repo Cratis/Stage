@@ -38,8 +38,10 @@ the single command, trigger, reaction or specification that needs it, and the re
 | Feature | Sandbox | Renderer | Diagnostic |
 | --- | --- | --- | --- |
 | Application triggers and the reactions they start | Refused individually, not executed; the rest of the model runs | Refused | `STAGE-ESM-024` |
-| Command clock (`SemanticCommand.Calendar`, clock operands, `now` and `today` conditions) | The commands that use it are refused; other commands run | The model is refused | `STAGE-ESM-016` |
-| Specification that sets a time zone or uses the clock | Specifications in that slice are refused | The model is refused | `STAGE-ESM-016` |
+| UTC `now` in required scalar DateTime command conditions, or in scalar DateTime command property validation rules (including optional properties and DateTime concepts) | Runs using the supplied operation instant | Renders using the captured command receipt instant | — |
+| Calendars, `today`, `date of`, concept clock rules and reaction-where clock conditions | The commands or reactions that use them are refused; other commands run | Refused | `STAGE-ESM-016` |
+| Specification with a canonical offset-bearing `given clock` for an admitted command | Runs using that instant, not an options clock | Renders using that instant | — |
+| Specification that sets a time zone or advances the clock | Specifications in that slice are refused | Refused | `STAGE-ESM-016` |
 | Application time zone, context members and declared read model property order | Commands and queries run, with properties ordered canonically; specifications in the affected scope are refused | The model is refused | `STAGE-ESM-016` |
 | Graph queries (ESM 40) | Run against Neo4j | Refused | `STAGE-ESM-068` |
 | Graph queries that collect nested rows (ESM 54) | Read as Chronicle graph views through Arc's graph session | Refused | `STAGE-ESM-068` |
@@ -49,6 +51,8 @@ the single command, trigger, reaction or specification that needs it, and the re
 | Form field `choose from query` | Kept as a plain input; the gap is reported as a warning | Kept as a plain input; the gap is reported as a warning | `STAGE-SCENE-FORM-004` |
 | Unaudited ESM pair or unknown version | The whole model is refused | The whole model is refused | `STAGE-ESM-016` |
 | Any other unaudited member, including security-relevant ones | The whole model is refused | The whole model is refused | `STAGE-ESM-016` |
+
+The UTC `now` subset requires the default application time zone or a fixed, nonconfigurable `UTC`, no declared context members, and no command calendar. Offsets are signed whole minutes, hours or elapsed 24-hour days. Property validation rules admit only `==`, `!=`, `<`, `<=`, `>` and `>=` with `now` on the right. Calendar interpretation, configurable or non-UTC zones, collection properties and non-command clock owners remain refused. A command specification must supply its occurrence with an offset-bearing `given clock`; an expected contract error can test a missing occurrence.
 
 ### Application triggers
 

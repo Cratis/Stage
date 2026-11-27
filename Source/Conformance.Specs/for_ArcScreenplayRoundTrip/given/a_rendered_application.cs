@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using System.Text;
 using System.Xml.Linq;
 using Cratis.Arc.Screenplay;
@@ -107,4 +106,3 @@ public abstract class a_rendered_application : Specification
         return compilation.Value.Model;
     }
 }
-#endif

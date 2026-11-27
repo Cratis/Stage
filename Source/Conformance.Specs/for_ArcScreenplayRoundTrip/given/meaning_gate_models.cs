@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using Cratis.Screenplay.Semantics;
 
 namespace Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip.given;
@@ -96,4 +95,3 @@ internal static class meaning_gate_models
         Slices = [.. feature.Slices.Select(slice => slice with { Specifications = [.. slice.Specifications.Select(change)] })]
     };
 }
-#endif

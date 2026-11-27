@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using Cratis.Arc.Commands;
 using Cratis.Screenplay.CanonicalCorpus;
 using Cratis.Screenplay.Syntax;
@@ -33,4 +32,3 @@ public class when_recovering_protected_command_reads : given.a_rendered_applicat
     CommandSyntax Recovered(string name) => _recoveredAuthoring.Modules.SelectMany(module => Slices(module.Features))
         .SelectMany(slice => slice.Commands).Single(command => command.Name == name);
 }
-#endif

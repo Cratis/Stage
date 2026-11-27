@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip.given;
 using Xunit;
@@ -21,4 +20,3 @@ public class when_recovering_different_stored_names : given.a_rendered_applicati
     [Fact] void should_recover_the_command_stored_stream() => _result.Model.Slices.SelectMany(slice => slice.Commands).Single().Authoring.Route.StoredStream.ShouldEqual(_model.Application.EventSources.Single().Streams.Single().StreamKind);
     [Fact] void should_not_report_source_or_stream_diagnostics() => AssertSourceDiagnosticsAbsent();
 }
-#endif

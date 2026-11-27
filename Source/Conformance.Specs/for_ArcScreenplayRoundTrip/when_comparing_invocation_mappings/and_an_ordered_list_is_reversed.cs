@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using Cratis.Screenplay.Conformance;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip.given;
@@ -24,4 +23,3 @@ public class and_an_ordered_list_is_reversed : Specification
         SemanticModelEquivalence.Compare(expected, actual).IsEquivalent.ShouldBeFalse();
     }
 }
-#endif

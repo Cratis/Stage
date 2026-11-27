@@ -2,14 +2,21 @@
     <PropertyGroup>
         <AssemblyName>Cratis.Stage.Conformance.Specs</AssemblyName>
         <RootNamespace>Cratis.Stage.Rendering.Cratis</RootNamespace>
+        <DedicatedSpecsProject>true</DedicatedSpecsProject>
+        <IsTestProject>true</IsTestProject>
+        <IsPackable>false</IsPackable>
         <!-- Type discovery emits deprecated structural names from the Stage reference in Debug. -->
         <NoWarn Condition="'$(Configuration)' == 'Debug'">$(NoWarn);CS0618</NoWarn>
     </PropertyGroup>
-    <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <ItemGroup>
+        <PackageReference Include="xunit" />
+        <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="All" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" />
+        <PackageReference Include="NSubstitute" />
+        <PackageReference Include="Cratis.Specifications" />
+        <PackageReference Include="Cratis.Specifications.XUnit" />
         <ProjectReference Include="../Rendering.Cratis/Rendering.Cratis.csproj" />
-        <ProjectReference Include="../Specifications/Specifications.csproj" />
-        <Compile Include="../Specifications/for_SemanticSpecificationExecutor/given/refused_read_keys.cs" Link="for_CanonicalCorpusConformance/given/refused_read_keys.cs" />
-        <!-- The Host's admission is internal; the Host grants this assembly InternalsVisibleTo so the matrix runs the shipped code, not a copy. -->
+        <!-- The Host supplies the Cratis runtime assemblies the rendered code is compiled against, in both configurations. -->
         <ProjectReference Include="../Host/Host.csproj" />
         <PackageReference Include="Cratis.Screenplay.CanonicalCorpus" PrivateAssets="All" />
         <PackageReference Include="Cratis.Screenplay.Conformance" PrivateAssets="All" />
@@ -17,6 +24,44 @@
         <!-- Match the renderer's Roslyn assembly and the corpus' Workspaces dependency. -->
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="All" />
         <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" PrivateAssets="All" />
+    </ItemGroup>
+    <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+        <ProjectReference Include="../Specifications/Specifications.csproj" />
+        <Compile Include="../Specifications/for_SemanticSpecificationExecutor/given/refused_read_keys.cs" Link="for_CanonicalCorpusConformance/given/refused_read_keys.cs" />
+    </ItemGroup>
+    <!--
+        Release compiles only the Arc round trip and the read-only fixtures it shares: the Host admission, matrix-writing and
+        every other suite stay Debug-only. The renderer's compile helper and the names it needs are internal to the Debug renderer
+        build, so Release compiles those exact sources into this assembly instead of widening the product.
+    -->
+    <ItemGroup Condition="'$(Configuration)' != 'Debug'">
+        <!--
+            The Debug renderer carries the Cratis assemblies the rendered application is compiled against as private assets, and
+            the Release renderer deliberately carries none. Release supplies the same pinned set here, without analyzers, so Debug
+            and Release compile each rendered fixture against the same metadata.
+        -->
+        <PackageReference Include="Cratis.Arc" ExcludeAssets="analyzers" />
+        <PackageReference Include="Cratis.Arc.Availability" PrivateAssets="all" />
+        <PackageReference Include="Cratis.Arc.Chronicle" ExcludeAssets="analyzers" />
+        <PackageReference Include="Cratis.Arc.Chronicle.Testing" ExcludeAssets="analyzers" />
+        <PackageReference Include="Cratis.Arc.MongoDB" ExcludeAssets="analyzers" />
+        <PackageReference Include="Cratis.Arc.Swagger" ExcludeAssets="analyzers" />
+        <PackageReference Include="Cratis.Arc.Testing" ExcludeAssets="analyzers" />
+        <PackageReference Include="Cratis.Chronicle" ExcludeAssets="analyzers" />
+        <PackageReference Include="Cratis.Chronicle.Testing" ExcludeAssets="analyzers" />
+        <PackageReference Include="Cratis.Fundamentals" ExcludeAssets="analyzers" PrivateAssets="all" />
+        <PackageReference Include="Cratis.Choreography" ExcludeAssets="analyzers" PrivateAssets="all" />
+        <PackageReference Include="Cratis.Choreography.Chronicle" ExcludeAssets="analyzers" PrivateAssets="all" />
+        <PackageReference Include="System.Reactive" PrivateAssets="all" />
+        <PackageReference Include="MongoDB.Driver" />
+        <PackageReference Include="Microsoft.Identity.Web" ExcludeAssets="analyzers" />
+        <PackageReference Include="Microsoft.AspNetCore.TestHost" />
+        <Compile Remove="**/*.cs" />
+        <Compile Include="for_ArcScreenplayRoundTrip/**/*.cs" />
+        <Compile Include="for_CanonicalCorpusConformance/given/canonical_corpus_vectors.cs;for_CanonicalCorpusConformance/given/conformance_vector.cs;for_CanonicalCorpusConformance/given/expected_conformance_table.cs;for_CanonicalCorpusConformance/given/conformance_table_schema.cs;for_CanonicalCorpusConformance/given/conformance_surface.cs;for_CanonicalCorpusConformance/given/conformance_refusals.cs;for_CanonicalCorpusConformance/given/canonical_strings_catalog.cs;for_CanonicalCorpusConformance/given/conformance_source_bodies.cs" />
+        <Compile Include="../Rendering.Cratis/for_CratisRenderer/RenderedOutput.cs" Link="RenderedOutput/RenderedOutput.cs" />
+        <Compile Include="../Rendering.Cratis/Naming/Imports/Catalog*.cs;../Rendering.Cratis/Naming/Imports/FrameworkNameCatalog*.cs;../Rendering.Cratis/Naming/Imports/GeneratedProjects.cs;../Rendering.Cratis/Naming/Imports/InheritedNames.cs;../Rendering.Cratis/Naming/Imports/MalformedFrameworkNameCatalog.cs" LinkBase="RenderedOutput/Imports" />
+        <EmbeddedResource Include="../Rendering.Cratis/Naming/Imports/FrameworkNames.catalog" LogicalName="Cratis.Stage.Rendering.Cratis.Naming.Imports.FrameworkNames.catalog" />
     </ItemGroup>
   <ItemGroup>
     <None Include="for_CanonicalCorpusConformance/conformance-matrix.json" CopyToOutputDirectory="PreserveNewest" Link="for_CanonicalCorpusConformance/conformance-matrix.json" />

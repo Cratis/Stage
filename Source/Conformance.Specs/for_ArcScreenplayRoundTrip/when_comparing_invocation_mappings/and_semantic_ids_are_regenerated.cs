@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -48,4 +47,3 @@ public partial class and_semantic_ids_are_regenerated : Specification
     [GeneratedRegex("(?:sem1|evt1):[0-9a-f]{64}", RegexOptions.CultureInvariant, 1000)]
     private static partial Regex Identity { get; }
 }
-#endif

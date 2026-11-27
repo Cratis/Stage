@@ -112,3 +112,13 @@ The V53 audience-and-availability vector renders screen `available` gates as exa
 3. Review changed outcomes and fingerprints before replacing `conformance-matrix.json`. The writer carries a disposition only from one identical prior `(vector, surface, fingerprint)` record. A new or ambiguous fingerprint gets `"issue": null`, even if another artifact has the same code or the cell outcome is unchanged.
 4. Replace each null with the issue that covers that exact refusal, or the authorized by-design reason. Do not infer coverage from another record in the cell.
 5. Rebuild to copy the reviewed matrix into the test output directory, then rerun the specs. Removed refusals must leave no stale records.
+
+## Replay an Arc round-trip fixture
+
+The Arc round trip runs in both Debug and Release from `Source/Conformance.Specs`, using the supported cells of this table as its eligible fixtures. To reproduce one fixture's recovery, run the replay with the fixture names and an output directory:
+
+```bash
+CRATIS_STAGE_ARC_REPLAY_FIXTURES="DateComparisonsCorpus.V26" CRATIS_STAGE_ARC_REPLAY_DIRECTORY="$PWD/.ai-work/arc-replay" dotnet test Source/Conformance.Specs/Conformance.Specs.csproj --configuration Release --no-build --filter FullyQualifiedName~when_replaying_a_round_trip_fixture
+```
+
+Each fixture directory holds the emitted C# files, `Recovered.play` (the adapter's output), and `observation.json` (the comparison and diagnostics). A replay never reconciles the loss ledger and cannot satisfy the full gate, which `when_round_tripping_every_fixture` runs unconditionally.

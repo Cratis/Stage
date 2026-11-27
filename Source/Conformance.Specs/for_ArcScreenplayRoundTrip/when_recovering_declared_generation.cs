@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using Cratis.Screenplay.Conformance;
 using Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip.given;
 using Xunit;
@@ -79,4 +78,3 @@ public class when_recovering_declared_generation
         return [.. comparison.Differences.Where(difference => difference.Path == path || difference.Path.StartsWith(path + "/", StringComparison.Ordinal))];
     }
 }
-#endif

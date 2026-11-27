@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using Cratis.Screenplay.CanonicalCorpus;
 using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
@@ -19,4 +18,3 @@ public class when_recovering_a_query : given.a_rendered_application
     static IEnumerable<SemanticSlice> Slices(IEnumerable<SemanticFeature> features) =>
         features.SelectMany(feature => feature.Slices.Concat(Slices(feature.Features)));
 }
-#endif

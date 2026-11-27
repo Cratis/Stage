@@ -443,6 +443,21 @@ jobs:
       - name: Verify standalone packed reducer consumer
         run: python3 Verification/verify-packed-reducer-consumer.py ./Artifacts/NuGet
 
+      # The Arc round trip runs in Debug in the Conformance shards. This runs it against the Release renderer built above, so a Release-only
+      # difference in what is rendered, compiled or recovered fails here. The named fact must have passed in a fresh, nonempty result: a
+      # process that ran nothing, or a filter that matched nothing, is not evidence.
+      - name: Run the Arc round trip against the Release build
+        run: |
+          set -euo pipefail
+          results=TestResults/arc-round-trip-Release
+          mkdir -p "$results"
+          rm -f "$results/arc.trx"
+          dotnet test Source/Conformance.Specs/Conformance.Specs.csproj --no-build --configuration Release --framework net11.0 \
+            --filter "FullyQualifiedName~Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip" \
+            --logger "trx;LogFileName=arc.trx" --results-directory "$results"
+          python3 .github/spec-shards.py require-executed "$results/arc.trx"
+          python3 -c 'import sys,xml.etree.ElementTree as E; r=E.parse(sys.argv[1]); sys.exit(not any(x.get("testName", "").endswith("should_compare_at_least_the_minimum_number_of_fixtures") and x.get("outcome")=="Passed" for x in r.findall(".//{*}UnitTestResult")))' "$results/arc.trx"
+
   specs:
     # An empty matrix cannot expand, so a pull request touching no spec-bearing project skips the job; the
     # `build` aggregate accepts that only when routing explicitly output specs-selected=false.

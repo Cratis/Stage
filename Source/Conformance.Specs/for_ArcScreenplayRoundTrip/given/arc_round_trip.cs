@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using System.Collections.Immutable;
 using System.Text;
 using System.Xml.Linq;
@@ -86,4 +85,3 @@ internal static class arc_round_trip
         _ => RoundTripDiagnosticSeverity.Error
     });
 }
-#endif

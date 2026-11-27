@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip.given;
@@ -97,4 +96,3 @@ public class and_a_version_gate_changes_meaning : Specification
         Assert.Contains(comparison.Differences, difference => difference.Path.StartsWith("/version-meaning-unproven[", StringComparison.Ordinal) && difference.Path.Contains(gate, StringComparison.Ordinal));
     }
 }
-#endif

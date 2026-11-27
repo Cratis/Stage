@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
 using Cratis.Stage.Conformance.Specs.for_CanonicalCorpusConformance.given;
@@ -39,4 +38,3 @@ public class and_the_common_profile_is_selected : Specification
         Assert.Equal(eligible.Order(StringComparer.Ordinal), observed.Order(StringComparer.Ordinal));
     }
 }
-#endif

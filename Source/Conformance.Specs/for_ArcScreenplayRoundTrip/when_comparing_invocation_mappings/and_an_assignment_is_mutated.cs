@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using Cratis.Screenplay.Conformance;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip.given;
@@ -71,4 +70,3 @@ public class and_an_assignment_is_mutated : Specification
         Assert.Throws<SemanticNormalizationFailed>(() => round_trip_invocation_mappings.Normalize(invocation_mapping_models.Model(assignments)));
     }
 }
-#endif

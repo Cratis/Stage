@@ -47,6 +47,16 @@ A round trip renders a Screenplay model, recovers it with the ecosystem's source
 
 When the adapter releases, the renderer repository's package updates bump it and run the round trip again. Stage's own Arc round trip already references the published `Cratis.Arc.Screenplay` this way.
 
+A copyable recipe needs only published packages, not a checkout of Stage or of the adapter repository:
+
+1. Create a spec project with `IsPackable=false`. Reference your renderer project, the pinned `Cratis.Screenplay.CanonicalCorpus`, the source-only `Cratis.Screenplay.Conformance` comparator at the matching Screenplay version, and the adapter's published package, the last three with `PrivateAssets="All"`.
+2. For each fixture your renderer supports, render it, compile the emitted code with the references a real application has, and recover it with the adapter. Create one `RoundTripObservation` per fixture that holds the comparison, the render and adapter diagnostics, and any recovery errors.
+3. Load your target's versioned loss ledger with `SemanticLossLedger.Load`, then call `Reconcile(observations, requireCompleteRun: true, eligibleFixtures)` with every eligible fixture name. A fixture the renderer refuses must be accounted for explicitly; do not select only the fixtures that happened to render.
+4. Assert that the verdict has no malformed, unledgered, stale, unexplained, uncited, over-budget or vacuous finding, and that at least one corpus model was compared.
+5. Run the spec in both Debug and Release against the same pinned inputs. In CI, require a fresh non-empty test result in which the full-comparison fact passed: a process that ran no tests, or a filter that matched none, is not evidence.
+
+Stage's own Arc spec project is the worked example. The ledger schema and the comparison rules are in [Screenplay's semantic conformance documentation](https://github.com/Cratis/Screenplay/blob/v6.43.0/Documentation/screenplay/semantic-conformance.md); keep adapter-specific profiles and compiler setup out of what you require of another target.
+
 ## Release each package on its own
 
 Renderers and adapters release on their own schedules. Before a host bundles a package, validate it against that host's locked dependency set, using the published binaries the host restores rather than only the newest common version.

@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 namespace Cratis.Stage.Conformance.Specs.for_CanonicalCorpusConformance.given;
 
 // Record string equality is ordinal: neither codes nor full artifact identities have aliases or wildcard matches.
@@ -21,4 +20,3 @@ public sealed record conformance_observation(
 {
     public static conformance_observation WithoutRefusals(string outcome) => new(outcome, [], new Dictionary<refusal_fingerprint, string>());
 }
-#endif

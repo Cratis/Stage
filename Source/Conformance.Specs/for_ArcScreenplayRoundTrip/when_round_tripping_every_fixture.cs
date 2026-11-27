@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using Cratis.Screenplay.Conformance;
 using Cratis.Specifications;
 using Cratis.Stage.Conformance.Specs.for_CanonicalCorpusConformance.given;
@@ -66,4 +65,3 @@ public class when_round_tripping_every_fixture
         internal SemanticLossVerdict Verdict { get; }
     }
 }
-#endif

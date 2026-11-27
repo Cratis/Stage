@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip.given;
@@ -45,4 +44,3 @@ public class and_the_time_zone_is_implicit : Specification
         round_trip_model_comparison.Compare(_legacy, changed).IsEquivalent.ShouldBeFalse();
     }
 }
-#endif

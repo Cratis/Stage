@@ -53,8 +53,11 @@ public class with_an_authored_scene : a_screen_composition_render
     // Recomputed for Cratis/Stage#1147: the Scene 6.0.1 pins of the Stage runtime and the scaffold, and the Screenplay 6.32.0 pins.
     // Recomputed after merging main into the #970 train: the #970 Program.cs change on top of the #1147 pins.
     // Recomputed for Screenplay 6.33.0 (Cratis/Stage#1052): only the Screenplay pins in Directory.Packages.props and the scaffold catalog change.
+    // Recomputed for #1146's dependency sync and Arc#3975 together with main's DiagnosticSource 11 and proxy-generator runtime wiring.
+    // Recomputed for the Arc 24.8.1, Showrunner 2.28.1 and Scene 6.2.1 npm pins from main: only package.json changes on top of #1146.
     // Recomputed for Chronicle 19.191.0 (Cratis/Stage#1206): only the Chronicle pins in Directory.Packages.props and docker-compose.yml change.
-    const string Before = "cdb805c9943db0b59d0126e1243fd2500da7ee60c945830260cebe10304768c1";
+    // TODO(#1206 fold): recompute on combined tree
+    const string Before = "17e8a637ca1bd18bae2b9856ce13bf335743c885fd2e3b36c39977e97b891037";
 
     ArtifactRenderPlan _plan = null!;
 

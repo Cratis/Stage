@@ -56,7 +56,7 @@ public sealed partial class CratisBackendApplicationScaffold
             <PackageVersion Include="Cratis.Choreography.Chronicle" Version="{{ScaffoldPackageVersions.ChoreographyChronicle}}" />
             <PackageVersion Include="Cratis.Specifications" Version="{{profile.CratisSpecificationsPackageVersion}}" />
             <PackageVersion Include="Cratis.Specifications.XUnit" Version="{{profile.CratisSpecificationsXUnitPackageVersion}}" />
-            <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="{{ScaffoldPackageVersions.TelemetryAbstractions}}" />
+            <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="{{ScaffoldTelemetryVersions.ForTargetFramework(profile.TargetFramework)}}" />
             <PackageVersion Include="Microsoft.Identity.Web" Version="{{ScaffoldPackageVersions.IdentityWeb}}" />
             <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="{{profile.MicrosoftNetTestSdkPackageVersion}}" />
             <PackageVersion Include="NSubstitute" Version="{{profile.NSubstitutePackageVersion}}" />

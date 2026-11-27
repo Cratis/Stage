@@ -41,18 +41,19 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     // Re-frozen for #937: only Directory.Packages.props pins Pkcs to 10.0.14 and documents Xml runtime servicing.
     // Re-frozen for Cratis/Stage#967: the scaffold emits Choreography hosting and registers Chronicle telemetry options.
     // Re-frozen for Cratis/Stage#970: only Program.cs gains the Diagnostics import and defaults event-source id tracing to Omitted.
-    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(QualifiedCommonOutput.Restore(_plan, () => invoice_model.Plan(_model)))).ShouldEqual("faa3d43ed6bab1659da7efa048cf3544eafe5ca85c11f2391e588646439184fe");
+    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(QualifiedCommonOutput.Restore(_plan, () => invoice_model.Plan(_model)))).ShouldEqual("c62f738abe503aa282853585b1ff5a1928ee266656ac0dbfe22ea9d9d8dd8b69");
 
     // Re-frozen for #424: generated C# uses short type names and using directives; the qualified restore above still matches.
     // Re-frozen for Cratis/Stage#816 and Cratis/Stage#757: only src/bindings.ts command imports and the package.json fundamentals resolution change.
-    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => FrozenScaffoldPins.Digest(_plan, Legacy(_plan.Artifacts)).ShouldEqual("9cc8e94eb4eaba50fb4bd65654e56daa19489eaa9ca00cda52158306c1a2d8d4");
+    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => FrozenScaffoldPins.Digest(_plan, Legacy(_plan.Artifacts)).ShouldEqual("c52261e3126cda495f12bd2f251a2e4eff356ec42b21caeb58f68bdb12e913a8");
 
     // Re-frozen when the license header became the caller's choice and specifications moved into the application project.
     // Re-frozen for #424: generated C# uses short type names and using directives.
     // Re-frozen for Cratis/Stage#816 (aliased Scene command imports in src/bindings.ts) and Cratis/Stage#757 (fundamentals resolution in package.json).
     // Re-frozen for Cratis/Stage#120 merged with train 10: authentication artifacts and host wiring on top of the train 10 output.
-    [Fact] void should_emit_the_frozen_plan_bytes() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("56c73bc3d4d565067c70b9d5d537e33c27e1fdc5121704b7cef2eef231ae9a4a");
-    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("9e95686852cc6bd183b1f47885567a5870a5a88e03e17568b34f33c0f1d18d53");
+    // Re-frozen for Arc#3975 together with main's DiagnosticSource 11 and proxy-generator runtime wiring.
+    [Fact] void should_emit_the_frozen_plan_bytes() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("573ac98a220db6192fef1607455b9ebdb3d6eefb28491b54c843bf616d200a8f");
+    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("873ea07d616a5bea0dc7ab76a963f34a9768ef8609cad7fe81706f18e1b89ace");
 
     [Fact]
     void should_attribute_the_frozen_plan_changes_to_yarn_cache_yarn_preapproval_and_debug_telemetry()
@@ -66,11 +67,12 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
             : artifact).ToImmutableArray();
         beforeTelemetry.Where(artifact => _plan.Artifacts.Single(current => current.RelativePath == artifact.RelativePath).Sha256 != artifact.Sha256)
             .Select(artifact => artifact.RelativePath).ShouldContainOnly("Directory.Packages.props", "InvoiceApp.csproj");
-        FrozenScaffoldPins.Digest(_plan, beforeTelemetry).ShouldEqual("bbbe4a0deaa8a882180ae935fa855b8f22caddcff252a07b2ffa2a060fcca906");
+        // Undo only the exact Arc#3975 Program.cs order change when proving these older telemetry/Yarn-only boundaries.
+        FrozenScaffoldPins.Digest(_plan, beforeTelemetry.Select(artifact => AvailabilityRegistrationOrder.Restore(artifact, "Invoices"))).ShouldEqual("bbbe4a0deaa8a882180ae935fa855b8f22caddcff252a07b2ffa2a060fcca906");
         var beforeYarn = beforeTelemetry.Select(artifact => artifact.RelativePath == ".gitignore"
             ? PlannedArtifact.CreateText(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Replace(".yarn/\n", string.Empty, StringComparison.Ordinal), artifact.Sources)
             : artifact).ToImmutableArray();
-        FrozenScaffoldPins.Digest(_plan, beforeYarn).ShouldEqual("6b471df6866550bd0ab53f0efd6de3fb2628874554088b297124f9895f0ccb57");
+        FrozenScaffoldPins.Digest(_plan, beforeYarn.Select(artifact => AvailabilityRegistrationOrder.Restore(artifact, "Invoices"))).ShouldEqual("6b471df6866550bd0ab53f0efd6de3fb2628874554088b297124f9895f0ccb57");
     }
 
     string PreviousRealizationDigest() => ArtifactRenderPlan.ComputeDigest(
@@ -89,7 +91,9 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
             : artifact)],
         _plan.Diagnostics);
 
-    static IEnumerable<PlannedArtifact> Legacy(IEnumerable<PlannedArtifact> artifacts) => SeparateSpecificationsLayout.RestoreWithLicenseHeader(artifacts, "InvoiceApp", "Invoices");
+    // Arc#3975 changes the host scaffold, not the historical Common/using/query-argument boundaries: restore only that exact Program.cs change.
+    static IEnumerable<PlannedArtifact> Legacy(IEnumerable<PlannedArtifact> artifacts) => SeparateSpecificationsLayout.RestoreWithLicenseHeader(artifacts, "InvoiceApp", "Invoices")
+        .Select(artifact => AvailabilityRegistrationOrder.Restore(artifact, "Invoices"));
 
     // CPM keeps the backend Arc pins in Directory.Packages.props; frontend files may use the same version independently.
     static string PreviousRealization(string relativePath, string text)

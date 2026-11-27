@@ -10,6 +10,8 @@
   href: render-plans.md
 - name: Concept compliance rendering
   href: compliance-rendering.md
+- name: Concept compliance metadata
+  href: concept-compliance.md
 - name: Default generated Scene
   href: default-scene-composition.md
 - name: Custom runtime packages

@@ -29,6 +29,12 @@ public class when_round_tripping_every_fixture
     [Fact] void should_stay_within_the_loss_budget() => Assert.True(fixture.Verdict.OverBudget.IsEmpty, arc_round_trip_ledger.Describe(fixture.Verdict.OverBudget));
     [Fact] void should_have_no_orphaned_entry_or_exclusion() => Assert.True(fixture.Verdict.Orphans.Length + fixture.Verdict.IneligibleExclusions.Length + fixture.Verdict.ObsoleteExclusions.Length + fixture.Verdict.Unobserved.Length == 0, arc_round_trip_ledger.Describe([.. fixture.Verdict.Orphans, .. fixture.Verdict.IneligibleExclusions, .. fixture.Verdict.ObsoleteExclusions, .. fixture.Verdict.Unobserved]));
 
+    [Fact] void should_record_the_superseded_fixtures() => Assert.All(canonical_corpus_vectors.Replacements, entry =>
+    {
+        Assert.True(fixture.Ledger.ExcludedFixtures.TryGetValue(entry.Key, out var reason), $"Missing supersession for {entry.Key}");
+        reason.ShouldEqual(arc_round_trip_ledger.Superseded(entry.Value));
+    });
+
     sealed class context
     {
         internal context()
@@ -50,6 +56,7 @@ public class when_round_tripping_every_fixture
                 }
             }
 
+            arc_round_trip_ledger.WriteObservations(CorpusVersion, observations);
             Verdict = Ledger.Reconcile(observations, requireCompleteRun: true, Eligible);
             Console.WriteLine($"Arc round trip: {Eligible.Count} eligible, {Verdict.Executed} observed, {Verdict.Compared} compared, {Ledger.Losses.Length} ledger entries.");
             foreach (var finding in Verdict.Findings)

@@ -19,14 +19,17 @@ Stage admits the exact language/semantic pairs listed in [ESM versions and featu
 
 | Concept classification | Generated attributes |
 | --- | --- |
-| `pii` or `personal` | `[PII]` |
+| `pii` or `personal`, no qualifiers | `[PII]` |
+| `pii special health` | `[PII(SpecialCategory = SpecialCategory.Health)]` |
+| `pii criminal` | `[PII(Criminal = true)]` |
 | `secret`, unspecified or subject scope | `[Encrypted]` + `[NotAudited]` |
 | `secret scope namespace` or `global` | `[Encrypted(EncryptionScope.Namespace)]` (or `.Global`) + `[NotAudited]` |
-| `pii secret` | `[PII]` only; personal classification takes precedence. |
+| `pii secret` | `[PII(OperationalSecret = true)]` + `[NotAudited]`; any personal qualifiers are also retained. |
 
-The semantic path never emits `[ComplianceDetails]`. GDPR special-category and criminal qualifiers
-are carried by ESM v13 but do not change the generated attribute. Reasons are authoring metadata,
-not ESM members. Compliance details are a syntax-renderer feature, on by default there ([Stage #259](https://github.com/Cratis/Stage/issues/259)).
+The semantic path emits GDPR special-category and criminal qualifiers carried by ESM v13 as named
+`PIIAttribute` arguments. When both are declared, both arguments are emitted. It never emits
+`[ComplianceDetails]`: reasons are authoring metadata, not ESM members. Compliance details are a
+syntax-renderer feature, on by default there ([Stage #259](https://github.com/Cratis/Stage/issues/259)).
 Unmarked models retain their earlier ESM version and byte-identical artifacts.
 
 The semantic renderer and Host admit text and non-text `secret` concepts: `Int`, `Decimal`,
@@ -87,11 +90,26 @@ keyed by the event source; explicit subject lineage remains [Stage #28](https://
 Existing Play stores retain their earlier plaintext events; the new metadata does not retroactively
 encrypt them. Passing reference or Stage specifications proves modeled outcomes, not storage protection.
 
+## Personal-data classification
+
+Named classification arguments require a Chronicle client exposing `PIIAttribute.SpecialCategory`
+and `PIIAttribute.Criminal`. Special-category tokens map to the `Cratis.Chronicle.Compliance.GDPR.SpecialCategory`
+enum: `racialOrEthnicOrigin`, `politicalOpinions`, `religiousOrPhilosophicalBeliefs`,
+`tradeUnionMembership`, `genetic`, `biometric`, `health`, and `sexLifeOrSexualOrientation` use the
+corresponding PascalCase member. The generated enum reference is qualified when needed to avoid
+colliding with application types.
+
+These arguments classify personal data; they do not change encryption, erasure, or audit behavior,
+and do not establish a lawful basis for processing. Plain personal data still emits bare `[PII]`.
+Personal data combined with `secret` still uses only PII protection, with `OperationalSecret = true`
+and concept-level `[NotAudited]`; Stage does not add a second `[Encrypted]` protection handler.
+See [Concept compliance metadata](concept-compliance.md) for the exact token mapping and compatibility requirements.
+
 ## Syntax renderer details
 
-The syntax renderer always honors Screenplay secret encryption scope in generated C# attributes. Namespace and global secrets emit `[Encrypted(EncryptionScope.Namespace)]` and `[Encrypted(EncryptionScope.Global)]` even with details disabled. An unspecified or subject scope keeps the bare `[Encrypted]` output when details are disabled. Personal data remains `[PII]`, including `pii secret` concepts whose secret scope is ignored.
+The syntax renderer always honors Screenplay secret encryption scope in generated C# attributes. Namespace and global secrets emit `[Encrypted(EncryptionScope.Namespace)]` and `[Encrypted(EncryptionScope.Global)]` even with details disabled. An unspecified or subject scope keeps the bare `[Encrypted]` output when details are disabled. Personal data keeps PII protection, including `pii secret` concepts whose secret scope is ignored. Special-category, criminal, and operational-secret classifications become named `PIIAttribute` arguments independently of the details option. With `complianceDetails: false`, the syntax renderer omits `[ComplianceDetails]` but preserves all machine-readable classifications.
 
-The `complianceDetails` render option is **on by default** and gates personal-data qualifiers/reasons and secret reason text. Opt out with `complianceDetails: false`; other than namespace/global secret scope, models then keep byte-identical concept output without details.
+The `complianceDetails` render option is **on by default** and gates human-readable personal-data details and secret reason text. Opt out with `complianceDetails: false`; machine-readable classifications and secret encryption scope are unchanged.
 
 Generated details require Chronicle 19.90.1 or later, which excludes compliance details text from the event-schema compatibility comparison ([Chronicle #4660](https://github.com/Cratis/Chronicle/issues/4660)). Changing details text no longer forces a new event generation; changing a secret scope still does.
 
@@ -113,10 +131,11 @@ above is unconditional; details never bypass protected identity admission.
 | Screenplay concept | Generated attributes |
 | --- | --- |
 | `pii` or `personal`, no reason or qualifiers | `[PII]` |
-| `pii` with reason or qualifiers | `[PII]` and `[ComplianceDetails("<text>")]` |
+| `pii` with reason only | `[PII]` and `[ComplianceDetails("<text>")]` |
+| `pii` with special-category or criminal qualifiers | `[PII(SpecialCategory = SpecialCategory.<Category>, Criminal = true)]`, including only declared arguments, and `[ComplianceDetails("<text>")]` |
 | `secret`, no scope or reason | `[Encrypted]` and `[NotAudited]` |
 | `secret` with scope or reason | `[Encrypted(EncryptionScope.<Scope>, "<reason>")]` and `[NotAudited]` |
-| `pii secret` | Personal-data attributes only; secret scope and reason are ignored. |
+| `pii secret` | `[PII(OperationalSecret = true)]`, including any personal qualifiers, and `[NotAudited]`; secret scope and reason are ignored. |
 
 Personal-data text joins these parts with one space, in order:
 

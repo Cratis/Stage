@@ -19,7 +19,7 @@ public class when_planning_protected_command_reads : Specification
     ExecutableSemanticModel _model = null!;
     ArtifactRenderPlan _plan = null!;
 
-    void Establish() => _model = SemanticModelSerializer.Deserialize(ProtectedCommandReadsCorpus.V25.EsmBytes.AsSpan());
+    void Establish() => _model = SemanticModelSerializer.Deserialize(ProtectedReadReplacements.V25R2.EsmBytes.AsSpan());
 
     void Because() => _plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model, []).Plan, new(ArtifactRenderScopeKind.Application, _model.Application.Id), new("ProtectedReads", "ProtectedReads"));
 

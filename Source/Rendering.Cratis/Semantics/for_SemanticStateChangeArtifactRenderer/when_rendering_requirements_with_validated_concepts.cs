@@ -55,7 +55,7 @@ public class when_rendering_requirements_with_validated_concepts : Specification
         var artifacts = Plan(model);
         _check = artifacts.Single(artifact => artifact.Code.Contains("public class CheckValidator", StringComparison.Ordinal)).Code;
         _plain = artifacts.Single(artifact => artifact.Code.Contains("public class PlainValidator", StringComparison.Ordinal)).Code;
-        _protected = string.Join('\n', Plan(SemanticModelSerializer.Deserialize(ProtectedCommandReadsCorpus.V25.EsmBytes.AsSpan())).Select(artifact => artifact.Code));
+        _protected = string.Join('\n', Plan(SemanticModelSerializer.Deserialize(ProtectedReadReplacements.V25R2.EsmBytes.AsSpan())).Select(artifact => artifact.Code));
     }
 
     [Fact] void should_suppress_the_member_concept_validator() => _check.ShouldContain("RuleFor(_ => _.Label).IgnoreConceptRules();");

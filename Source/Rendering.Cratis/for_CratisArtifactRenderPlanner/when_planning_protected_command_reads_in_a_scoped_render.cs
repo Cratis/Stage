@@ -17,7 +17,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 /// </summary>
 public class when_planning_protected_command_reads_in_a_scoped_render : Specification
 {
-    static readonly ExecutableSemanticModel _model = SemanticModelSerializer.Deserialize(ProtectedCommandReadsCorpus.V25.EsmBytes.AsSpan());
+    static readonly ExecutableSemanticModel _model = SemanticModelSerializer.Deserialize(ProtectedReadReplacements.V25R2.EsmBytes.AsSpan());
 
     public static TheoryData<int> Slices => [.. Enumerable.Range(0, SemanticVersionFeatures.Slices(_model.Application).Count())];
 

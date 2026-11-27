@@ -23,6 +23,15 @@ public static class canonical_corpus_vectors
     public static IReadOnlyList<string> TypesWithoutVectors { get; } =
         [.. CorpusTypes.Select(type => type.Name).Except(All.Select(vector => vector.Source), StringComparer.Ordinal)];
 
+    // Screenplay decision 0170 preserves the published bytes but replaces the behavioral fixtures.
+    // Map the race model rows separately from the package's race byte fixtures (Bytes / BytesV1R2).
+    public static IReadOnlyDictionary<string, string> Replacements { get; } = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        [$"{nameof(ProtectedCommandReadsCorpus)}.{nameof(ProtectedCommandReadsCorpus.V25)}"] = $"{nameof(ProtectedReadReplacements)}.{nameof(ProtectedReadReplacements.V25R2)}",
+        [$"{nameof(ProtectedCommandReadRaceVectors)}.{nameof(ProtectedCommandReadRaceVectors.Model)}"] = $"{nameof(ProtectedReadReplacements)}.{nameof(ProtectedReadReplacements.RaceModelV1R3)}",
+        [$"{nameof(ProtectedCommandReadRaceVectors)}.{nameof(ProtectedCommandReadRaceVectors.ModelV1R2)}"] = $"{nameof(ProtectedReadReplacements)}.{nameof(ProtectedReadReplacements.RaceModelV1R3)}"
+    };
+
     static List<conformance_vector> Enumerate()
     {
         var vectors = new List<conformance_vector>();

@@ -19,15 +19,15 @@ public class when_compliance_details_are_explicitly_disabled : compliance_concep
         {
             var withoutDetails = concept with
             {
-                Attributes = [.. concept.Attributes.Select(attribute => attribute with { Reason = null, Scope = null, SpecialCategory = null, Criminal = false })]
+                Attributes = [.. concept.Attributes.Select(attribute => attribute with { Reason = null, Scope = null })]
             };
-            var baseline = Encoding.UTF8.GetBytes(ConceptRenderer.Render(withoutDetails, _applicationSet, "Generated").Content);
+            var baseline = Encoding.UTF8.GetBytes(ConceptRenderer.Render(withoutDetails, _applicationSet, "Generated", complianceDetails: false).Content);
             var explicitOff = Encoding.UTF8.GetBytes(ConceptRenderer.Render(concept, _applicationSet, "Generated", complianceDetails: false).Content);
             return baseline.SequenceEqual(explicitOff);
         }).ToArray();
         _explicitOffBytesUnchanged = comparisons.Length == 17 && comparisons.All(unchanged => unchanged);
     }
 
-    [Fact] void should_preserve_explicitly_disabled_bytes_except_for_non_subject_secrets() => _explicitOffBytesUnchanged.ShouldBeTrue();
+    [Fact] void should_preserve_classification_when_only_human_readable_details_are_disabled() => _explicitOffBytesUnchanged.ShouldBeTrue();
     [Fact] void should_allow_the_default_renderer_to_opt_out() => CratisRenderer.CreateDefault(complianceDetails: false).ComplianceDetails.ShouldBeFalse();
 }

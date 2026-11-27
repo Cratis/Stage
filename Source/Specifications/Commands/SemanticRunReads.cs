@@ -53,7 +53,8 @@ internal sealed class SemanticRunReads(SemanticRuntimeTypes types)
                 .FirstOrDefault(instance => SemanticExpectationComparer.AreEqual(instance.Key, key));
             if (instance is null)
             {
-                return new($"{context.Plan.ReadModels[read.ReadModel].Name} '{((SemanticTextValue)key).Value}' does not exist.", SemanticValidationSeverity.Error);
+                // Screenplay decision 0170: report the view, never the requested key.
+                return new($"{context.Plan.ReadModels[read.ReadModel].Name} does not exist.", SemanticValidationSeverity.Error);
             }
             _values.Add(read.Name, instance.Values.ToDictionary(value => value.TargetProperty, value => value.Value));
         }

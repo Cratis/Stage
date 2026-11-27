@@ -21,7 +21,7 @@ public class when_refusing_non_error_protected_requirements : Specification
     [InlineData(SemanticValidationSeverity.Information, "ReactionInvokesProtectedReadOfMissing", "Consume")]
     public async Task should_refuse_before_any_facts_or_rules_are_evaluated(SemanticValidationSeverity severity, string specificationName, string commandName)
     {
-        var model = SemanticModelSerializer.Deserialize(ProtectedCommandReadsCorpus.V25.EsmBytes.AsSpan());
+        var model = SemanticModelSerializer.Deserialize(ProtectedReadReplacements.V25R2.EsmBytes.AsSpan());
         var module = model.Application.Modules.Single();
         var feature = module.Features.Single();
         var slice = feature.Slices.Single(slice => slice.Name == "Use");

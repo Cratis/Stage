@@ -48,6 +48,7 @@ public sealed partial class CratisBackendApplicationScaffold
             <PackageVersion Include="Cratis.Screenplay.Matching" Version="{{ScaffoldPackageVersions.ScreenplayMatching}}" />
             <PackageVersion Include="Cratis" Version="{{profile.CratisPackageVersion}}" />
             <PackageVersion Include="Cratis.Arc.Chronicle.Testing" Version="{{profile.CratisArcChronicleTestingPackageVersion}}" />
+            <PackageVersion Include="Microsoft.Orleans.Streaming" Version="{{ScaffoldPackageVersions.OrleansStreaming}}" />
             <PackageVersion Include="Cratis.Arc.MongoDB" Version="{{profile.CratisArcMongoDBPackageVersion}}" />
             <PackageVersion Include="Cratis.Chronicle" Version="{{profile.CratisChroniclePackageVersion}}" />
             <PackageVersion Include="Cratis.Chronicle.AspNetCore" Version="{{profile.CratisChroniclePackageVersion}}" />
@@ -56,7 +57,7 @@ public sealed partial class CratisBackendApplicationScaffold
             <PackageVersion Include="Cratis.Choreography.Chronicle" Version="{{ScaffoldPackageVersions.ChoreographyChronicle}}" />
             <PackageVersion Include="Cratis.Specifications" Version="{{profile.CratisSpecificationsPackageVersion}}" />
             <PackageVersion Include="Cratis.Specifications.XUnit" Version="{{profile.CratisSpecificationsXUnitPackageVersion}}" />
-            <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="{{ScaffoldPackageVersions.TelemetryAbstractions}}" />
+            <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="{{ScaffoldTelemetryVersions.ForTargetFramework(profile.TargetFramework)}}" />
             <PackageVersion Include="Microsoft.Identity.Web" Version="{{ScaffoldPackageVersions.IdentityWeb}}" />
             <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="{{profile.MicrosoftNetTestSdkPackageVersion}}" />
             <PackageVersion Include="NSubstitute" Version="{{profile.NSubstitutePackageVersion}}" />
@@ -128,6 +129,7 @@ public sealed partial class CratisBackendApplicationScaffold
           </ItemGroup>
           <ItemGroup Condition="'$(Configuration)' == 'Debug'">
             <PackageReference Include="Cratis.Arc.Chronicle.Testing" />
+            <PackageReference Include="Microsoft.Orleans.Streaming" />
             <PackageReference Include="Cratis.Chronicle.Testing" />
             <PackageReference Include="Cratis.Specifications" />
             <PackageReference Include="Cratis.Specifications.XUnit" />

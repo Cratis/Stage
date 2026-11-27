@@ -9,7 +9,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticSpecificationAdmis
 public class with_a_reaction_reading_the_same_view_under_another_key : for_SemanticReactionSpecificationRenderer.given.a_reaction_specification
 {
     void Establish() => Prepare(with_a_reaction_reading_the_same_view.Source
-        .Replace("then error \"Item 'unknown' does not exist.\"", "then error \"Item 'other' does not exist.\"", StringComparison.Ordinal));
+        .Replace("            id = id", "            id = \"other\"", StringComparison.Ordinal));
 
     bool _rejectedByTrigger;
 

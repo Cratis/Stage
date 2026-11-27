@@ -93,6 +93,27 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     [Fact] void should_expose_only_the_required_chronicle_and_mongodb_ports() => ComposePorts().ShouldEqual("27017:27017|35000:35000");
     [Fact] void should_not_emit_wildcard_range_latest_or_random_guid_values() => HasForbiddenValues().ShouldBeFalse();
 
+    [Theory]
+    [InlineData("3", false)]
+    [InlineData("3", true)]
+    [InlineData("4", false)]
+    [InlineData("4", true)]
+    void should_register_availability_once_before_arc_convention_self_bindings(string version, bool repositoryRoot)
+    {
+        var profile = CratisBackendApplicationScaffoldProfile.ForVersion(version);
+        var request = CratisBackendApplicationScaffoldRequest.Create("MyApp", "MyApp", "MyApp", profile);
+        if (repositoryRoot) request = request.WithRepositoryRoot();
+        var inputs = new CratisBackendApplicationScaffold().Create(request);
+        var program = Text(inputs.Single(input => PathOf(input) == "Program.cs"));
+        const string registration = "MyApp.GeneratedAvailability.Registration.Register(builder);";
+        var availability = program.IndexOf(registration, StringComparison.Ordinal);
+        var arc = program.IndexOf("builder.AddCratis(", StringComparison.Ordinal);
+        (availability >= 0).ShouldBeTrue();
+        (arc > availability).ShouldBeTrue();
+        program.Split(registration, StringSplitOptions.None).Length.ShouldEqual(2);
+        program.ShouldContain("Cratis/Arc#3975");
+    }
+
     static IEnumerable<string> PublicStaticProfileMethods() =>
         typeof(CratisBackendApplicationScaffoldProfile)
             .GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
@@ -139,6 +160,7 @@ public class when_creating_the_current_scaffold : a_current_scaffold
         {
             $"Cratis={_profile.CratisPackageVersion}",
             $"Cratis.Arc.Chronicle.Testing={_profile.CratisArcChronicleTestingPackageVersion}",
+            $"Microsoft.Orleans.Streaming={ScaffoldPackageVersions.OrleansStreaming}",
             $"Cratis.Arc.MongoDB={_profile.CratisArcMongoDBPackageVersion}",
             $"Cratis.Arc.ProxyGenerator.Build={Scaffolding.ScaffoldPackageVersions.ProxyGenerator}",
             $"Cratis.Chronicle={_profile.CratisChroniclePackageVersion}",
@@ -150,7 +172,7 @@ public class when_creating_the_current_scaffold : a_current_scaffold
             $"Cratis.Screenplay.Matching={Scaffolding.ScaffoldPackageVersions.ScreenplayMatching}",
             $"Cratis.Specifications={_profile.CratisSpecificationsPackageVersion}",
             $"Cratis.Specifications.XUnit={_profile.CratisSpecificationsXUnitPackageVersion}",
-            $"Microsoft.Extensions.Telemetry.Abstractions={Scaffolding.ScaffoldPackageVersions.TelemetryAbstractions}",
+            $"Microsoft.Extensions.Telemetry.Abstractions={Scaffolding.ScaffoldTelemetryVersions.ForTargetFramework(_profile.TargetFramework)}",
             $"System.Diagnostics.DiagnosticSource={Scaffolding.ScaffoldPackageVersions.DiagnosticSource}",
             $"Microsoft.Identity.Web={Scaffolding.ScaffoldPackageVersions.IdentityWeb}",
             $"Microsoft.NET.Test.Sdk={_profile.MicrosoftNetTestSdkPackageVersion}",
@@ -174,13 +196,14 @@ public class when_creating_the_current_scaffold : a_current_scaffold
                        "Cratis.Specifications.XUnit",
                        "Microsoft.Extensions.Telemetry.Abstractions",
                        "Microsoft.NET.Test.Sdk",
+                       "Microsoft.Orleans.Streaming",
                        "NSubstitute",
                        "xunit",
                        "xunit.runner.visualstudio"
                    }.Order(StringComparer.Ordinal)) &&
                !project.Descendants("ItemGroup").Where(group => group.Attribute("Condition") is null)
                    .SelectMany(group => group.Elements("PackageReference"))
-                   .Select(reference => reference.Attribute("Include").Value).Intersect(["xunit", "Microsoft.NET.Test.Sdk", "Cratis.Specifications"], StringComparer.Ordinal).Any();
+                   .Select(reference => reference.Attribute("Include").Value).Intersect(["xunit", "Microsoft.NET.Test.Sdk", "Cratis.Specifications", "Microsoft.Orleans.Streaming"], StringComparer.Ordinal).Any();
     }
 
     string DebugProperty(string name) => XDocument.Parse(Content("MyApp.csproj")).Descendants("PropertyGroup")

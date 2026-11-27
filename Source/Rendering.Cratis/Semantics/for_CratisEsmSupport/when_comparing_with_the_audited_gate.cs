@@ -63,8 +63,10 @@ public class when_comparing_with_the_audited_gate : Specification
         (new(53, 0), new(53, 0)),
         (new(54, 0), new(54, 0)),
         (new(56, 0), new(56, 0)),
+        (new(57, 0), new(57, 0)),
         (new(58, 0), new(58, 0)),
-        (new(59, 0), new(59, 0))
+        (new(59, 0), new(59, 0)),
+        (new(60, 0), new(60, 0))
     ];
 
     readonly List<string> _descriptorMismatches = [];
@@ -72,7 +74,7 @@ public class when_comparing_with_the_audited_gate : Specification
     ExecutableSemanticModel _model = null!;
     int _compared;
 
-    void Establish() => _model = SemanticModelSerializer.Deserialize(ProtectedCommandReadsCorpus.V25.EsmBytes.AsSpan());
+    void Establish() => _model = SemanticModelSerializer.Deserialize(ProtectedReadReplacements.V25R2.EsmBytes.AsSpan());
 
     void Because()
     {

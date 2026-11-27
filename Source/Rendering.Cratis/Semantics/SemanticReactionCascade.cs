@@ -108,17 +108,46 @@ internal sealed record SemanticReactionCascade(SemanticSpecification Reaction, S
         return specification.ThenErrors.All(error =>
             (own.Contains(error.Message!) && !triggered.Contains(error.Message!)) ||
             absences.Any(read => IsAbsence(error.Message!, read) && !triggeredAbsences.Contains(read)) ||
-            IsOwnKeyedAbsence(context, command, specification, error.Message!) ||
+            (!triggered.Contains(error.Message!) && IsOwnSharedReadAbsence(context, command, specification, error.Message!)) ||
             ViolatesOwnConcept(context, command, specification, error.Message!));
     }
 
-    // A reaction's command reading the same view under the same key reads after the triggering command did. If the triggering
-    // read found the instance and nothing the cascade appends removes it, the later read finds it too, so the absence is the trigger's.
-    static bool IsOwnKeyedAbsence(SemanticApplicationContext context, SemanticCommand command, SemanticSpecification specification, string message) =>
-        !command.Reads.IsDefaultOrEmpty && command.Reads.Any(read =>
-            specification.When!.Values.FirstOrDefault(input => input.TargetProperty == read.Key)?.Value is SemanticTextValue key &&
-            message == $"{context.ReadModels[read.ReadModel].Name} '{key.Value}' does not exist." &&
-            !CascadeEvents(context, specification, command).Any(@event => CanRemove(context, read.ReadModel, @event)));
+    // The message no longer identifies the key (Screenplay decision 0170). Prove that a later read
+    // with that message uses the same key and cannot lose the instance after the initial read.
+    static bool IsOwnSharedReadAbsence(SemanticApplicationContext context, SemanticCommand command, SemanticSpecification specification, string message)
+    {
+        if (command.Reads.IsDefaultOrEmpty) return false;
+        var events = CascadeEvents(context, specification, command);
+        var triggers = SemanticSpecificationAdmission.EventReactionTriggers(context, specification).Where(trigger => events.Contains(trigger.Source)).ToArray();
+        return command.Reads.Any(read => IsAbsence(message, context.ReadModels[read.ReadModel].Name) &&
+            !events.Any(@event => CanRemove(context, read.ReadModel, @event)) &&
+            UsesOnlyTheSameReadKey(context, command, specification, read, triggers));
+    }
+
+    static bool UsesOnlyTheSameReadKey(SemanticApplicationContext context, SemanticCommand command, SemanticSpecification specification, SemanticDecisionRead read, SemanticReactionTrigger[] triggers)
+    {
+        var key = specification.When!.Values.FirstOrDefault(input => input.TargetProperty == read.Key)?.Value;
+        if (key is not SemanticTextValue) return false;
+        var laterEvents = triggers.SelectMany(trigger => SemanticReactionProductions.For(trigger)
+            .Concat(trigger.Invokes.SelectMany(invocation => context.Commands[invocation.Command].Produces)))
+            .Select(produced => produced.EventContract).ToHashSet();
+        return triggers.All(trigger => trigger.Invokes.All(invocation =>
+        {
+            var invoked = context.Commands[invocation.Command];
+            if (invoked.Reads.IsDefaultOrEmpty) return true;
+            return invoked.Reads.Where(candidate => candidate.ReadModel == read.ReadModel).All(candidate =>
+            {
+                var mapping = invocation.Mappings.FirstOrDefault(mapping => mapping.TargetProperty == candidate.Key)?.Source;
+                return mapping is SemanticValueExpression literal ? Equals(literal.Value, key)
+                    : !laterEvents.Contains(trigger.Source) && command.Produces.Where(produced => produced.EventContract == trigger.Source)
+                        .All(produced => ForwardedKey(context, specification, command, produced, mapping, key));
+            });
+        }));
+    }
+
+    static bool ForwardedKey(SemanticApplicationContext context, SemanticSpecification specification, SemanticCommand command, SemanticProducedEvent produced, SemanticExpression? mapping, SemanticValue key) =>
+        mapping is SemanticResolvedExpression { Root: SemanticExpressionRootKind.Event, Source: SemanticExpressionSourceKind.Property } property &&
+        Equals(Append(context, specification, command, produced)?.Values.FirstOrDefault(value => value.TargetProperty == property.Target)?.Value, key);
 
     // Every event the triggering command can set off: its own productions, and to a fixpoint what every reaction of the specification's
     // own slice that reacts to one of those events adds, through reaction productions, refusal-branch productions and the productions of
@@ -180,12 +209,12 @@ internal sealed record SemanticReactionCascade(SemanticSpecification Reaction, S
         return false;
     }
 
-    // A protected read that finds nothing refuses the command before it appends: "<ReadModel> '<key>' does not exist."
+    // A protected read that finds nothing refuses the command before it appends: "<ReadModel> does not exist."
     static IEnumerable<string> ReadAbsences(SemanticApplicationContext context, SemanticCommand command) =>
         command.Reads.IsDefaultOrEmpty ? [] : command.Reads.Select(read => context.ReadModels[read.ReadModel].Name);
 
     static bool IsAbsence(string message, string readModel) =>
-        message.StartsWith(readModel + " '", StringComparison.Ordinal) && message.EndsWith("' does not exist.", StringComparison.Ordinal);
+        string.Equals(message, $"{readModel} does not exist.", StringComparison.Ordinal);
 
     static HashSet<string> Messages(SemanticApplicationContext context, SemanticCommand command)
     {

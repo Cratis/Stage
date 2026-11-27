@@ -72,7 +72,7 @@ public class when_comparing_protected_reads_with_constraints(when_comparing_prot
                   specification ApprovingAnUnknownPlant
                     when ApprovePlant
                       id = "unknown"
-                    then error "PlantReadiness 'unknown' does not exist."
+                    then error "PlantReadiness does not exist."
                   specification ApprovingTwice
                     given PlantPrepared
                       for "plant"

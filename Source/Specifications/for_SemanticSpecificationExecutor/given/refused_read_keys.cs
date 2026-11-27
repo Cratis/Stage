@@ -9,14 +9,14 @@ using Xunit;
 
 namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor.given;
 
-// Published decision-0091 specifications, compiled in each canonical source form.
+// Published refused-key specifications with the replacement messages from Screenplay decision 0170.
 internal static class refused_read_keys
 {
     internal static readonly string[] Names = ["RefusedEmptyKey", "RefusedWhitespaceKey", "RefusedStarKey", "RefusedHashKey", "RefusedPaddedKey", "RefusedStarKeyWithStoredInstance"];
 
     internal static SemanticExecutionPlan Compile(string formName = "single")
     {
-        var corpus = ProtectedCommandReadsCorpus.V25;
+        var corpus = ProtectedReadReplacements.V25R2;
         var form = corpus.SourceForms.Single(form => form.Name == formName);
         var catalog = SemanticIdentityCatalogSerializer.Deserialize(form.IdentityCatalogBytes.AsSpan());
         var documents = form.Documents.Select(document => SemanticSourceDocument.Create(

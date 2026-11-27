@@ -39,7 +39,10 @@ public class when_checking_the_loss_ledger_guards
     void should_reject_one_entry_more_than_the_budget()
     {
         var ledger = arc_round_trip_ledger.Load();
-        var changed = ledger with { Losses = ledger.Losses.Add(ledger.Losses[0]) };
+
+        // Recoveries leave headroom; exercise the real boundary rather than assuming the current ledger fills it.
+        var additional = ledger.Budget.MaximumEntries - ledger.Losses.Length + 1;
+        var changed = ledger with { Losses = ledger.Losses.AddRange(Enumerable.Repeat(ledger.Losses[0], additional)) };
         var verdict = changed.Reconcile([_observation.Value], requireCompleteRun: false);
 
         Assert.NotEmpty(verdict.OverBudget);

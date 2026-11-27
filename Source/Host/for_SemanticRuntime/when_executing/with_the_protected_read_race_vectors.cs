@@ -19,8 +19,8 @@ public class with_the_protected_read_race_vectors : Specification
 
     void Establish()
     {
-        _vectors = JsonNode.Parse(ProtectedCommandReadRaceVectors.Bytes.AsSpan())["vectors"].AsArray();
-        _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(ProtectedCommandReadRaceVectors.Model.EsmBytes.AsSpan())).Plan;
+        _vectors = JsonNode.Parse(ProtectedReadReplacements.RacesV1R3.AsSpan())["vectors"].AsArray();
+        _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(ProtectedReadReplacements.RaceModelV1R3.EsmBytes.AsSpan())).Plan;
     }
 
     async Task Because()
@@ -32,6 +32,6 @@ public class with_the_protected_read_race_vectors : Specification
         }
     }
 
-    [Fact] void should_execute_all_sixteen_vectors_through_the_host() => _matched.ShouldEqual(16);
+    [Fact] void should_execute_all_seventeen_replacement_vectors_through_the_host() => _matched.ShouldEqual(17);
     [Fact] void should_include_every_published_vector() => _matched.ShouldEqual(_vectors.Count);
 }

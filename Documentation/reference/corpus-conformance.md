@@ -113,6 +113,12 @@ The V53 audience-and-availability vector renders screen `available` gates as exa
 4. Replace each null with the issue that covers that exact refusal, or the authorized by-design reason. Do not infer coverage from another record in the cell.
 5. Rebuild to copy the reviewed matrix into the test output directory, then rerun the specs. Removed refusals must leave no stale records.
 
+To refresh the Arc round-trip loss ledger after copying the regenerated matrix
+into the build output, run `when_round_tripping_every_fixture` with
+`CRATIS_STAGE_WRITE_ROUND_TRIP_OBSERVATIONS` set to an output JSON path. Review
+the observed differences and compiler diagnostics against the existing issues
+before changing the reviewed ledger. The observations do not approve losses.
+
 ## Replay an Arc round-trip fixture
 
 The Arc round trip runs in both Debug and Release from `Source/Conformance.Specs`, using the supported cells of this table as its eligible fixtures. To reproduce one fixture's recovery, run the replay with the fixture names and an output directory:

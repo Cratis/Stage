@@ -11,7 +11,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip;
 
 public class when_recovering_protected_command_reads : given.a_rendered_application
 {
-    protected override string Source => ProtectedCommandReadsCorpus.V25.SourceForms.Single(form => form.Name == "single").Documents.Single().Text;
+    protected override string Source => ProtectedReadReplacements.V25R2.SourceForms.Single(form => form.Name == "single").Documents.Single().Text;
     void Because() => GenerateAuthoring();
 
     [Fact]

@@ -73,7 +73,8 @@ import { asDialogScreens } from './stageDialogScreens';
 import { StageRouteShapeContext, createStageSceneRouting, stageRouteShapeOf, useStageSceneRouter } from './stageSceneRouting';
 import { StageOutletsScope } from './stageOutlets';
 import { stageIconAdapters } from './stageIcons';
-import { ScreenAvailabilityGuard, ScreenRoutesReady, useScreenAvailability } from './screenAvailability';
+import type { StageRoutes } from './stageRoutes';
+import { ScreenAvailabilityGuard, ScreenRoutesReady, StageAvailabilityProvider, useScreenAvailability } from './screenAvailability';
 import { availableNavigationScene } from './availableNavigationScene';
 import './app.css';
 
@@ -277,7 +278,17 @@ export function App({ components, packageCatalog, screenTemplates, dialogTemplat
 
     if (error) return <main className='stage-message'><h1>Unable to render this Stage</h1><p>{error}</p></main>;
     if (!scene) return <main className='stage-message'><h1>Preparing the Stage</h1></main>;
-    return <ScreenRoutesReady ready={routeState.ready}><StageApplication scene={scene} registry={registry} routing={routing} routeState={routeState} strings={strings} packageCatalog={packageCatalog} screenTemplates={screenTemplates} isVisible={isVisible} /></ScreenRoutesReady>;
+    return <ScreenRoutesReady ready={routeState.ready}>
+        <GatedAvailability routes={routeState.routes}>
+            <StageApplication scene={scene} registry={registry} routing={routing} routeState={routeState} strings={strings} packageCatalog={packageCatalog} screenTemplates={screenTemplates} isVisible={isVisible} />
+        </GatedAvailability>
+    </ScreenRoutesReady>;
+}
+
+/** Observes Arc's availability only for an application with a gated screen or element; an application without gates needs no request and everything is available. */
+function GatedAvailability({ routes, children }: { routes: StageRoutes | undefined; children: ReactNode }) {
+    const gated = Object.keys(routes?.screens ?? {}).length > 0 || Object.keys(routes?.elements ?? {}).length > 0;
+    return gated ? <StageAvailabilityProvider>{children}</StageAvailabilityProvider> : children;
 }
 
 interface StageApplicationProps {

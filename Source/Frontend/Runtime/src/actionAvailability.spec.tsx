@@ -4,6 +4,8 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PrimeReactProvider } from '@primereact/core';
+import { AvailabilityProvider } from '@cratis/arc.react/availability';
+import { FreshQueries } from './testing/freshQueries';
 import { registerStageCommands } from '../../src/host/commandRegistration';
 import { stageComponents } from './stageComponents';
 import { StageDataProvider } from './stageData';
@@ -19,7 +21,7 @@ function renderAsset(answer: () => Record<string, unknown>, gate?: { reason?: st
     const routes = { commands: { ExportAsset: '/api/export' }, queries: {}, commandSchemas: { ExportAsset: schema }, ...(gate ? { elements: { 'Asset/action/ExportAsset': 'StageElement_export' } } : {}) };
     registerStageCommands(routes);
     const unavailable = gate?.reason ? [{ name: 'StageElement_export', module: '', feature: '', slice: '', reason: gate.reason }] : [];
-    const fetched = vi.fn((url: RequestInfo | URL) => Promise.resolve({ ok: true, json: async () => String(url).includes('/.cratis/availability') ? { isSuccess: true, data: { unavailable } } : String(url).endsWith('/validate') ? commandResult(answer()) : commandResult() }));
+    const fetched = vi.fn((url: RequestInfo | URL) => Promise.resolve(new Response(JSON.stringify(String(url).includes('/.cratis/availability') ? { isSuccess: true, isAuthorized: true, data: { unavailable } } : String(url).endsWith('/validate') ? commandResult(answer()) : commandResult()), { status: 200 })));
     vi.stubGlobal('fetch', fetched);
     globalThis.location.hash = '#/Asset';
     const item = element('export', 'core:action', { command: 'ExportAsset', label: 'Export', schema, fields: [], generationMode: 'manual' });
@@ -30,7 +32,8 @@ function renderAsset(answer: () => Record<string, unknown>, gate?: { reason?: st
             </StageDataProvider>
         </PrimeReactProvider>
     );
-    render(view);
+    // The application mounts Arc's availability provider when it has a gated element.
+    render(gate ? <FreshQueries><AvailabilityProvider>{view}</AvailabilityProvider></FreshQueries> : view);
     return fetched;
 }
 
@@ -85,7 +88,7 @@ describe('an action whose command the server refuses for the data on the screen'
         const routes = { commands: { ExportAsset: '/api/export' }, queries: {}, commandSchemas: { ExportAsset: schema }, elements: { 'Asset/action/ExportAsset': 'StageElement_export' } };
         registerStageCommands(routes);
         const item = element('export', 'core:action', { command: 'ExportAsset', label: 'Export', schema, fields: [], generationMode: 'manual' });
-        render(<PrimeReactProvider><StageDataProvider routes={routes} parameters={{ assetId: 'a1' }} locale='en' locales={['en']} screen='Asset'><StageAction element={item} slots={{}} /></StageDataProvider></PrimeReactProvider>);
+        render(<FreshQueries><AvailabilityProvider><PrimeReactProvider><StageDataProvider routes={routes} parameters={{ assetId: 'a1' }} locale='en' locales={['en']} screen='Asset'><StageAction element={item} slots={{}} /></StageDataProvider></PrimeReactProvider></AvailabilityProvider></FreshQueries>);
 
         expect(screen.queryByRole('button', { name: 'Export' })).toBeNull();
     });

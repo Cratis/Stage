@@ -24,22 +24,22 @@ public class when_freezing_the_emitted_backend_bytes : a_version_3_scaffold
     // Re-frozen for Cratis/Stage#1116: the scaffold registers the provided value resolver beside the policies.
     // Re-frozen for Cratis/Stage#970: Program.cs omits event source ids from trace spans; every earlier digest re-frozen with it.
     // Re-frozen for Cratis/Stage#1146 and Cratis/Arc#3975 together with main's DiagnosticSource 11 and proxy-generator runtime wiring.
-    const string FrozenDigest = "5a3f52d7d1e00167f2b418956bff9c1db6f778628d05e6f0c89ff961e6806c93";
-    const string BeforeAvailabilityOrderDigest = "e4c31b59796a05b213b9491e7861baa8740b9d821d906ea68b75d1e6c03162a1";
+    const string FrozenDigest = "4ed967be9bbde1b65efffbd5ed9424ac64a25fe8ec8e422080b32bc9ba0836e3";
+    const string BeforeAvailabilityOrderDigest = "52547908f1c9728c56d57ec7d5889e1dd02ffe19b8f09faae8f1911aad99edaf";
 
     // Frozen when the license header became the caller's choice: generated C# carries none by default.
-    const string SeparateSpecificationsDigest = "f2b70a7f5447cc83ee4b5e6b22827f03dd65bb9e08c9d47295847b04fc113f9e";
+    const string SeparateSpecificationsDigest = "4ec8907a6aff9d1af0a4ed58e2ba35bef643933a76e223a672198d240b3e1988";
 
     // Frozen for #437: only the Matching package pin and host reference are added.
-    const string PreviousFrozenDigest = "8b59ce8302b265795138c2377b92b4512a4ee1e156c401176dcdd61315b96ea3";
+    const string PreviousFrozenDigest = "680f6cfee3e3738d08d5a97e9270be342d6a842192be2d9fd835c648f662f3a1";
 
     // Re-frozen for #424: the scaffold places using directives outside the namespace.
     // Re-frozen for #660: only Directory.Build.props gains CratisReadProtection On.
     // Re-frozen for Cratis/Stage#926: the application hosts an Orleans silo; every earlier digest re-frozen with it.
     // Re-frozen for Choreography 2.2.0 with Chronicle 19.124.0 and Arc 22.165.2; every earlier digest re-frozen with it.
     // Re-frozen for the same availability ordering and runtime wiring changes as the standalone backend.
-    const string FrozenRepositoryRootDigest = "4f1e49dc52a5ed656585967f87638e2e866b12157564b307698b09e3bdc33f7f";
-    const string BeforeAvailabilityOrderRepositoryRootDigest = "b40048c5193d0ebdf8e68dcd805db45835549622bfabda5706ee87d57f204cfa";
+    const string FrozenRepositoryRootDigest = "32f927380c94ce18d1b3dd26fc5c7077ff9f2a137e44d7b32a1a27d67e92f87c";
+    const string BeforeAvailabilityOrderRepositoryRootDigest = "572c76a734d6c01b6e3490e86151c4f771f1db3ed879bafd7e9e970b6bb885e7";
 
     string _digest = null!;
     ImmutableArray<ArtifactRenderInput> _beforeAvailabilityOrder;
@@ -53,12 +53,12 @@ public class when_freezing_the_emitted_backend_bytes : a_version_3_scaffold
     [Fact] void should_change_only_the_program_availability_registration_order_from_the_previous_frozen_backend() => Digest(_beforeAvailabilityOrder).ShouldEqual(BeforeAvailabilityOrderDigest);
     [Fact] void should_change_only_the_program_availability_registration_order_from_the_previous_frozen_repository_root() => Digest(AvailabilityRegistrationOrder.Restore(new Scaffolding.CratisBackendApplicationScaffold().Create(_request.WithRepositoryRoot()), "MyApp")).ShouldEqual(BeforeAvailabilityOrderRepositoryRootDigest);
 
-    [Fact] void should_change_only_using_placement_from_the_previous_backend() => Digest(SeparateSpecificationsLayout.Restore(_beforeAvailabilityOrder, "MyApp"), beforePlacement: true).ShouldEqual("9a7f13b3c99d6124229f152f1e3203b53a9f326d1e672617baa135357b170c62");
+    [Fact] void should_change_only_using_placement_from_the_previous_backend() => Digest(SeparateSpecificationsLayout.Restore(_beforeAvailabilityOrder, "MyApp"), beforePlacement: true).ShouldEqual("10c810272f0aecb2112ee8fa1e4506fa0490ea474ef18b6111f89bb34fb5190b");
     [Fact] void should_emit_the_frozen_backend_bytes() => _digest.ShouldEqual(FrozenDigest);
     [Fact] void should_change_only_the_specifications_layout_from_the_previous_frozen_backend() => Digest(SeparateSpecificationsLayout.Restore(_beforeAvailabilityOrder, "MyApp"), legacyPlacement: true).ShouldEqual(SeparateSpecificationsDigest);
     [Fact] void should_change_only_the_license_header_from_the_previous_frozen_backend() => Digest(SeparateSpecificationsLayout.Restore(_beforeAvailabilityOrder, "MyApp"), legacyHeader: true, legacyPlacement: true).ShouldEqual(PreviousFrozenDigest);
     [Fact] void should_emit_the_frozen_repository_root_bytes() => Digest(new Scaffolding.CratisBackendApplicationScaffold().Create(_request.WithRepositoryRoot())).ShouldEqual(FrozenRepositoryRootDigest);
-    [Fact] void should_change_only_the_runtime_pins_from_the_previous_frozen_backend() => Digest(SeparateSpecificationsLayout.Restore(_beforeAvailabilityOrder, "MyApp"), previousPins: true).ShouldEqual("5f2320acdb9556d4f86f089efe4ea7354ca2c45521e663b89c4b11502a17b4a7");
+    [Fact] void should_change_only_the_runtime_pins_from_the_previous_frozen_backend() => Digest(SeparateSpecificationsLayout.Restore(_beforeAvailabilityOrder, "MyApp"), previousPins: true).ShouldEqual("0f6ccbc85a02355ebacc20bb139816584c371eaf66762e5d21a2466ce9d8bf5f");
 
     static string Digest(ImmutableArray<ArtifactRenderInput> inputs, bool previousPins = false, bool beforePlacement = false, bool legacyHeader = false, bool legacyPlacement = false)
     {

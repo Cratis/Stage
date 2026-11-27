@@ -171,6 +171,7 @@ package	AS	Microsoft.Orleans.Serialization	10.4.2
 package	AS	Microsoft.Orleans.Serialization.Abstractions	10.4.2
 package	AS	Microsoft.Orleans.Serialization.SystemTextJson	10.4.2
 package	AS	Microsoft.Orleans.Server	10.4.2
+package	AS	Microsoft.Orleans.Streaming	10.4.2
 package	AS	Microsoft.TestPlatform.ObjectModel	18.11.0
 package	AS	Microsoft.TestPlatform.TestHost	18.11.0
 package	AS	MongoDB.Bson	3.14.1
@@ -2051,6 +2052,9 @@ namespace	AS	Orleans.Providers.MongoDB.StorageProviders
 namespace	AS	Orleans.Providers.MongoDB.StorageProviders.Serializers
 namespace	AS	Orleans.Providers.MongoDB.StorageProviders.Serializers.BsonSerializationProviders
 namespace	AS	Orleans.Providers.MongoDB.Utils
+namespace	AS	Orleans.Providers.Streams
+namespace	AS	Orleans.Providers.Streams.Common
+namespace	AS	Orleans.Providers.Streams.Generator
 namespace	AS	Orleans.Reminders
 namespace	AS	Orleans.Reminders.Diagnostics
 namespace	AS	Orleans.Runtime
@@ -2101,6 +2105,13 @@ namespace	AS	Orleans.Services
 namespace	AS	Orleans.Statistics
 namespace	AS	Orleans.Storage
 namespace	AS	Orleans.Storage.Internal
+namespace	AS	Orleans.Streaming
+namespace	AS	Orleans.Streaming.Diagnostics
+namespace	AS	Orleans.Streaming.JsonConverters
+namespace	AS	Orleans.Streams
+namespace	AS	Orleans.Streams.Core
+namespace	AS	Orleans.Streams.Filtering
+namespace	AS	Orleans.Streams.PubSub
 namespace	AS	Orleans.Threading
 namespace	AS	Orleans.Timers
 namespace	AS	Orleans.Timers.Internal
@@ -2228,6 +2239,7 @@ namespace	AS	OrleansCodeGen.Orleans.Concurrency
 namespace	AS	OrleansCodeGen.Orleans.Core
 namespace	AS	OrleansCodeGen.Orleans.Core.Internal
 namespace	AS	OrleansCodeGen.Orleans.GrainDirectory
+namespace	AS	OrleansCodeGen.Orleans.Hosting
 namespace	AS	OrleansCodeGen.Orleans.LeaseProviders
 namespace	AS	OrleansCodeGen.Orleans.Metadata
 namespace	AS	OrleansCodeGen.Orleans.Networking
@@ -2237,6 +2249,9 @@ namespace	AS	OrleansCodeGen.Orleans.Placement.Rebalancing
 namespace	AS	OrleansCodeGen.Orleans.Placement.Repartitioning
 namespace	AS	OrleansCodeGen.Orleans.Placement.Repartitioning.AcceptExchangeResponse
 namespace	AS	OrleansCodeGen.Orleans.Providers
+namespace	AS	OrleansCodeGen.Orleans.Providers.Streams
+namespace	AS	OrleansCodeGen.Orleans.Providers.Streams.Common
+namespace	AS	OrleansCodeGen.Orleans.Providers.Streams.Generator
 namespace	AS	OrleansCodeGen.Orleans.Runtime
 namespace	AS	OrleansCodeGen.Orleans.Runtime.Development
 namespace	AS	OrleansCodeGen.Orleans.Runtime.GrainDirectory
@@ -2256,6 +2271,8 @@ namespace	AS	OrleansCodeGen.Orleans.Services
 namespace	AS	OrleansCodeGen.Orleans.Statistics
 namespace	AS	OrleansCodeGen.Orleans.Storage
 namespace	AS	OrleansCodeGen.Orleans.Storage.Internal
+namespace	AS	OrleansCodeGen.Orleans.Streams
+namespace	AS	OrleansCodeGen.Orleans.Streams.Core
 namespace	AS	OrleansCodeGen.Orleans.Versions
 namespace	AS	OrleansCodeGen.Orleans.Versions.Compatibility
 namespace	AS	OrleansCodeGen.Orleans.Versions.Selector
@@ -2268,6 +2285,7 @@ namespace	AS	OrleansCodeGen.OrleansReminders
 namespace	AS	OrleansCodeGen.OrleansRuntime
 namespace	AS	OrleansCodeGen.OrleansSerialization
 namespace	AS	OrleansCodeGen.OrleansSerializationSystemTextJson
+namespace	AS	OrleansCodeGen.OrleansStreaming
 namespace	AS	Polly
 namespace	AS	Polly.Bulkhead
 namespace	AS	Polly.Caching
@@ -9679,6 +9697,7 @@ type	AS	Orleans	AsyncSerialExecutor	class
 type	AS	Orleans	AsyncSerialExecutor`1	class
 type	AS	Orleans	BatchWorker	class
 type	AS	Orleans	BatchWorkerFromDelegate	class
+type	AS	Orleans	ClientStreamingExtensions	static
 type	AS	Orleans	CollectionAgeLimitAttribute	attribute
 type	AS	Orleans	CompoundTypeAliasAttribute	attribute
 type	AS	Orleans	ConnectionMiddlewareExtensions	static
@@ -9711,6 +9730,7 @@ type	AS	Orleans	GrainFactoryExtensions	static
 type	AS	Orleans	GrainInterfaceTypeToGrainTypeResolver	class
 type	AS	Orleans	GrainReminderExtensions	static
 type	AS	Orleans	GrainState`1	class
+type	AS	Orleans	GrainStreamingExtensions	static
 type	AS	Orleans	GrainTypeAttribute	attribute
 type	AS	Orleans	Grain`1	class
 type	AS	Orleans	IClientConnectionRetryFilter	interface
@@ -9756,6 +9776,7 @@ type	AS	Orleans	ISystemTarget	interface
 type	AS	Orleans	IVersionManager	interface
 type	AS	Orleans	IdAttribute	attribute
 type	AS	Orleans	ImmutableAttribute	attribute
+type	AS	Orleans	ImplicitStreamSubscriptionAttribute	attribute
 type	AS	Orleans	IncomingGrainCallFilterDelegate	delegate
 type	AS	Orleans	InvalidGrainName	class
 type	AS	Orleans	InvokableBaseTypeAttribute	attribute
@@ -9777,6 +9798,7 @@ type	AS	Orleans	PersistentStateAttributeMapper	class
 type	AS	Orleans	PublicOrleansTaskExtensions	static
 type	AS	Orleans	RedactAttribute	attribute
 type	AS	Orleans	RedactConnectionStringAttribute	attribute
+type	AS	Orleans	RegexImplicitStreamSubscriptionAttribute	attribute
 type	AS	Orleans	RegisterActivatorAttribute	attribute
 type	AS	Orleans	RegisterConverterAttribute	attribute
 type	AS	Orleans	RegisterCopierAttribute	attribute
@@ -9798,6 +9820,10 @@ type	AS	Orleans.Hosting	ActivationRepartitioningExtensions	static
 type	AS	Orleans.Hosting	ClientBuilder	class
 type	AS	Orleans.Hosting	ClientBuilderExtensions	static
 type	AS	Orleans.Hosting	ClientBuilderGrainCallFilterExtensions	static
+type	AS	Orleans.Hosting	ClientBuilderStreamingExtensions	static
+type	AS	Orleans.Hosting	ClusterClientMemoryStreamConfigurator`1	class
+type	AS	Orleans.Hosting	ClusterClientPersistentStreamConfigurator	class
+type	AS	Orleans.Hosting	ClusterClientPersistentStreamConfiguratorExtensions	static
 type	AS	Orleans.Hosting	CoreHostingExtensions	static
 type	AS	Orleans.Hosting	EndpointOptionsExtensions	static
 type	AS	Orleans.Hosting	GrainCallFilterServiceCollectionExtensions	static
@@ -9805,18 +9831,39 @@ type	AS	Orleans.Hosting	GrainCallFilterSiloBuilderExtensions	static
 type	AS	Orleans.Hosting	GrainServicesSiloBuilderExtensions	static
 type	AS	Orleans.Hosting	HostingGrainExtensions	static
 type	AS	Orleans.Hosting	IClientBuilder	interface
+type	AS	Orleans.Hosting	IClusterClientMemoryStreamConfigurator	interface
+type	AS	Orleans.Hosting	IClusterClientPersistentStreamConfigurator	interface
+type	AS	Orleans.Hosting	IMemoryStreamConfigurator	interface
 type	AS	Orleans.Hosting	INamedServiceConfigurator	interface
+type	AS	Orleans.Hosting	IPersistentStreamConfigurator	interface
 type	AS	Orleans.Hosting	ISiloBuilder	interface
+type	AS	Orleans.Hosting	ISiloMemoryStreamConfigurator	interface
+type	AS	Orleans.Hosting	ISiloPersistentStreamConfigurator	interface
+type	AS	Orleans.Hosting	ISiloRecoverableStreamConfigurator	interface
 type	AS	Orleans.Hosting	MemoryGrainStorageSiloBuilderExtensions	static
+type	AS	Orleans.Hosting	MemoryStreamConfiguratorExtensions	static
 type	AS	Orleans.Hosting	MongoDBSiloExtensions	static
 type	AS	Orleans.Hosting	NamedServiceConfigurator	class
 type	AS	Orleans.Hosting	NamedServiceConfiguratorExtensions	static
+type	AS	Orleans.Hosting	PersistentStreamConfiguratorExtensions	static
+type	AS	Orleans.Hosting	PersistentStreamStorageConfigurationValidator	class
 type	AS	Orleans.Hosting	PlacementStrategyExtensions	static
 type	AS	Orleans.Hosting	ReminderOptions	class
 type	AS	Orleans.Hosting	SiloBuilderExtensions	static
+type	AS	Orleans.Hosting	SiloBuilderMemoryStreamExtensions	static
 type	AS	Orleans.Hosting	SiloBuilderReminderExtensions	static
 type	AS	Orleans.Hosting	SiloBuilderReminderMemoryExtensions	static
 type	AS	Orleans.Hosting	SiloBuilderStartupExtensions	static
+type	AS	Orleans.Hosting	SiloBuilderStreamingExtensions	static
+type	AS	Orleans.Hosting	SiloMemoryStreamConfigurator`1	class
+type	AS	Orleans.Hosting	SiloPersistentStreamConfigurator	class
+type	AS	Orleans.Hosting	SiloPersistentStreamConfiguratorExtension	static
+type	AS	Orleans.Hosting	SiloPersistentStreamConfiguratorExtensions	static
+type	AS	Orleans.Hosting	SiloRecoverableStreamConfigurator	class
+type	AS	Orleans.Hosting	SiloRecoverableStreamConfiguratorExtensions	static
+type	AS	Orleans.Hosting	SimpleGeneratorOptions	class
+type	AS	Orleans.Hosting	StaticClusterDeploymentOptions	class
+type	AS	Orleans.Hosting	StreamingServiceCollectionExtensions	static
 type	AS	Orleans.Hosting	SystemTextJsonSerializerExtensions	static
 type	AS	Orleans.Runtime	ActivationCountBasedPlacement	class
 type	AS	Orleans.Runtime	ActivationId	struct
@@ -9928,6 +9975,8 @@ type	AS	Orleans.Runtime	PersistentStateAttribute	attribute
 type	AS	Orleans.Runtime	PersistentStateFactory	class
 type	AS	Orleans.Runtime	PlacementStrategy	class
 type	AS	Orleans.Runtime	PreferLocalPlacement	class
+type	AS	Orleans.Runtime	QualifiedStreamId	struct
+type	AS	Orleans.Runtime	QualifiedStreamIdJsonConverter	class
 type	AS	Orleans.Runtime	RandomPlacement	class
 type	AS	Orleans.Runtime	RangeFactory	static
 type	AS	Orleans.Runtime	ReminderException	class
@@ -9949,6 +9998,8 @@ type	AS	Orleans.Runtime	SiloStatus	enum
 type	AS	Orleans.Runtime	SiloStatusExtensions	static
 type	AS	Orleans.Runtime	SiloUnavailableException	class
 type	AS	Orleans.Runtime	SimpleGrainStatistic	class
+type	AS	Orleans.Runtime	StreamId	struct
+type	AS	Orleans.Runtime	StreamIdJsonConverter	class
 type	AS	Orleans.Runtime	SystemTarget	class
 type	AS	Orleans.Runtime	SystemTargetGrainId	struct
 type	AS	Orleans.Runtime	SystemTargetPlacementStrategy	class
@@ -14827,8 +14878,8 @@ extensions	AS	NSubstitute.ExceptionExtensions	Throws ThrowsAsync ThrowsAsyncForA
 extensions	AS	NSubstitute.Extensions	Configure Protected ReturnsForAll When
 extensions	AS	NSubstitute.ReceivedExtensions	Received ReceivedWithAnyArgs
 extensions	AS	NSubstitute.ReturnsExtensions	ReturnsNull ReturnsNullForAnyArgs
-extensions	AS	Orleans	AddMongoDBGatewayListProvider DeactivateOnIdle GetGrain GetGrainExtension GetGrainType GetOptionsByName GetReference GetReminder GetReminders Ignore MigrateOnIdle RegisterGrainTimer RegisterOrUpdateReminder Subscribe UnregisterReminder UseMiddleware UseMongoDBClient UseMongoDBClustering
-extensions	AS	Orleans.Hosting	AddActivationRebalancer AddActivationRepartitioner AddActivityPropagation AddClusterConnectionLostHandler AddClusterConnectionStatusObserver AddDistributedGrainDirectory AddGatewayCountChangedHandler AddGrainCallFilter AddGrainExtension AddGrainService AddIncomingGrainCallFilter AddMemoryGrainStorage AddMemoryGrainStorageAsDefault AddMongoDBGrainStorage AddMongoDBGrainStorageAsDefault AddMongoDBMembershipTable AddMongoDBReminders AddOutgoingGrainCallFilter AddPlacementDirector AddReminders AddStartupTask Configure ConfigureComponent ConfigureEndpoints ConfigureLifecycle ConfigureLogging ConfigureServices UseConnectionRetryFilter UseDevelopmentClustering UseInMemoryReminderService UseLocalhostClustering UseMongoDBClient UseMongoDBClustering UseMongoDBMembershipTable UseMongoDBReminders UseStaticClustering UseSystemTextJsonGrainStorageSerializer
+extensions	AS	Orleans	AddMongoDBGatewayListProvider DeactivateOnIdle GetGrain GetGrainExtension GetGrainType GetOptionsByName GetReference GetReminder GetReminders GetStreamProvider Ignore MigrateOnIdle RegisterGrainTimer RegisterOrUpdateReminder Subscribe UnregisterReminder UseMiddleware UseMongoDBClient UseMongoDBClustering
+extensions	AS	Orleans.Hosting	AddActivationRebalancer AddActivationRepartitioner AddActivityPropagation AddClientStreaming AddClusterConnectionLostHandler AddClusterConnectionStatusObserver AddDistributedGrainDirectory AddGatewayCountChangedHandler AddGrainCallFilter AddGrainExtension AddGrainService AddIncomingGrainCallFilter AddMemoryGrainStorage AddMemoryGrainStorageAsDefault AddMemoryStreams AddMongoDBGrainStorage AddMongoDBGrainStorageAsDefault AddMongoDBMembershipTable AddMongoDBReminders AddOutgoingGrainCallFilter AddPersistentStreams AddPlacementDirector AddReminders AddSiloStreaming AddStartupTask AddStreamFilter AddStreaming Configure ConfigureBackoffProvider ConfigureCache ConfigureCacheEviction ConfigureComponent ConfigureEndpoints ConfigureLifecycle ConfigureLogging ConfigurePartitionBalancing ConfigurePartitioning ConfigurePullingAgent ConfigureServices ConfigureStatistics ConfigureStreamPubSub UseConnectionRetryFilter UseConsistentRingQueueBalancer UseDevelopmentClustering UseDynamicClusterConfigDeploymentBalancer UseGrainCheckpointer UseInMemoryReminderService UseLeaseBasedQueueBalancer UseLocalhostClustering UseMongoDBClient UseMongoDBClustering UseMongoDBMembershipTable UseMongoDBReminders UseStaticClusterConfigDeploymentBalancer UseStaticClustering UseSystemTextJsonGrainStorageSerializer
 extensions	AS	Orleans.Runtime	AverageTicksToMilliSeconds BatchIEnumerable CreateGuidKey CreateIntegerKey DeactivateAsync DictionaryToString EnumerableToString Export GetComponent GetGuidKey GetIntegerKey GetStackTrace Import IsClient IsGrainService IsLegacyGrain IsSystemTarget IsTerminating ParticipateIn SafeExecute SafeExecuteAsync TicksToMilliSeconds TimeSpanToString ToGatewayAddress ToGatewayUri ToIPEndPoint TryGetGuidKey TryGetIntegerKey WithBatchSize
 extensions	AS	System	AsMemory AsSpan BinarySearch CommonPrefixLength CompareTo Contains ContainsAny ContainsAnyExcept ContainsAnyExceptInRange ContainsAnyInRange CopyTo Count CountAny Deconstruct EndsWith EnumerateLines EnumerateRunes Equals GetNormalizedLength IndexOf IndexOfAny IndexOfAnyExcept IndexOfAnyExceptInRange IndexOfAnyInRange IsNormalized IsWhiteSpace LastIndexOf LastIndexOfAny LastIndexOfAnyExcept LastIndexOfAnyExceptInRange LastIndexOfAnyInRange Normalize Overlaps Replace ReplaceAny ReplaceAnyExcept Reverse SequenceCompareTo SequenceEqual Sort Split SplitAny StartsWith Subscribe SubscribeSafe ToLower ToLowerInvariant ToTuple ToUpper ToUpperInvariant ToValueTuple Trim TrimEnd TrimStart TryNormalize TryWrite
 extensions	AS	System.Buffers	CopyTo PositionOf ToArray TryReadBigEndian TryReadLittleEndian Write
@@ -18146,7 +18197,15 @@ base	AS	Orleans.Grain	System.Object	DeactivateOnIdle DelayDeactivation GrainCont
 base	AS	Orleans.GrainInterfaceTypeToGrainTypeResolver	System.Object	GetGrainType TryGetGrainType	-
 base	AS	Orleans.Grain`1	Orleans.Grain	ClearStateAsync ReadStateAsync State WriteStateAsync	-
 base	AS	Orleans.Hosting.ClientBuilder	System.Object	Configuration Services	-
+base	AS	Orleans.Hosting.ClusterClientMemoryStreamConfigurator`1	Orleans.Hosting.ClusterClientPersistentStreamConfigurator	-	-
+base	AS	Orleans.Hosting.ClusterClientPersistentStreamConfigurator	Orleans.Hosting.NamedServiceConfigurator	-	-
 base	AS	Orleans.Hosting.NamedServiceConfigurator	System.Object	ConfigureDelegate Name	-
+base	AS	Orleans.Hosting.PersistentStreamStorageConfigurationValidator	System.Object	Create ValidateConfiguration	-
+base	AS	Orleans.Hosting.SiloMemoryStreamConfigurator`1	Orleans.Hosting.SiloRecoverableStreamConfigurator	-	-
+base	AS	Orleans.Hosting.SiloPersistentStreamConfigurator	Orleans.Hosting.NamedServiceConfigurator	-	-
+base	AS	Orleans.Hosting.SiloRecoverableStreamConfigurator	Orleans.Hosting.SiloPersistentStreamConfigurator	-	-
+base	AS	Orleans.Hosting.StaticClusterDeploymentOptions	System.Object	SiloNames	-
+base	AS	Orleans.ImplicitStreamSubscriptionAttribute	System.Attribute	GetBindings Predicate StreamIdMapper	-
 base	AS	Orleans.InvalidGrainName	System.Exception	-	-
 base	AS	Orleans.KeepAliveAttribute	System.Attribute	Populate	-
 base	AS	Orleans.LifecycleSubject	System.Object	CallObserverStopAsync GetStageName GetStageNames Logger OnStart OnStartStageCompleted OnStop OnStopStageCompleted PerfMeasureOnStart PerfMeasureOnStop Subscribe	-

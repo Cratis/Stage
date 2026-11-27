@@ -160,6 +160,7 @@ public class when_creating_the_current_scaffold : a_current_scaffold
         {
             $"Cratis={_profile.CratisPackageVersion}",
             $"Cratis.Arc.Chronicle.Testing={_profile.CratisArcChronicleTestingPackageVersion}",
+            $"Microsoft.Orleans.Streaming={ScaffoldPackageVersions.OrleansStreaming}",
             $"Cratis.Arc.MongoDB={_profile.CratisArcMongoDBPackageVersion}",
             $"Cratis.Arc.ProxyGenerator.Build={Scaffolding.ScaffoldPackageVersions.ProxyGenerator}",
             $"Cratis.Chronicle={_profile.CratisChroniclePackageVersion}",
@@ -195,13 +196,14 @@ public class when_creating_the_current_scaffold : a_current_scaffold
                        "Cratis.Specifications.XUnit",
                        "Microsoft.Extensions.Telemetry.Abstractions",
                        "Microsoft.NET.Test.Sdk",
+                       "Microsoft.Orleans.Streaming",
                        "NSubstitute",
                        "xunit",
                        "xunit.runner.visualstudio"
                    }.Order(StringComparer.Ordinal)) &&
                !project.Descendants("ItemGroup").Where(group => group.Attribute("Condition") is null)
                    .SelectMany(group => group.Elements("PackageReference"))
-                   .Select(reference => reference.Attribute("Include").Value).Intersect(["xunit", "Microsoft.NET.Test.Sdk", "Cratis.Specifications"], StringComparer.Ordinal).Any();
+                   .Select(reference => reference.Attribute("Include").Value).Intersect(["xunit", "Microsoft.NET.Test.Sdk", "Cratis.Specifications", "Microsoft.Orleans.Streaming"], StringComparer.Ordinal).Any();
     }
 
     string DebugProperty(string name) => XDocument.Parse(Content("MyApp.csproj")).Descendants("PropertyGroup")

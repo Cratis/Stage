@@ -195,6 +195,7 @@
             <_ScaffoldPackage Include="System.Security.Cryptography.Pkcs" Constant="CryptographyPkcs" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'System.Security.Cryptography.Pkcs')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Arc.ProxyGenerator.Build" Constant="ProxyGenerator" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Arc.ProxyGenerator.Build')->Metadata('Version'))" />
             <_ScaffoldPackage Include="System.Diagnostics.DiagnosticSource" Constant="DiagnosticSource" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'System.Diagnostics.DiagnosticSource')->Metadata('Version'))" />
+            <_ScaffoldPackage Include="Microsoft.Orleans.Streaming" Constant="OrleansStreaming" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Microsoft.Orleans.Streaming')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Microsoft.Identity.Web" Constant="IdentityWeb" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Microsoft.Identity.Web')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Microsoft.Extensions.Telemetry.Abstractions/net10.0" Constant="TelemetryAbstractionsNet10" PinVersion="$(TelemetryAbstractionsVersionNet10)" />
             <_ScaffoldPackage Include="Microsoft.Extensions.Telemetry.Abstractions/net11.0" Constant="TelemetryAbstractionsNet11" PinVersion="$(TelemetryAbstractionsVersionNet11)" />

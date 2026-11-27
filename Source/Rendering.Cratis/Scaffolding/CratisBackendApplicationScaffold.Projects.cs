@@ -48,6 +48,7 @@ public sealed partial class CratisBackendApplicationScaffold
             <PackageVersion Include="Cratis.Screenplay.Matching" Version="{{ScaffoldPackageVersions.ScreenplayMatching}}" />
             <PackageVersion Include="Cratis" Version="{{profile.CratisPackageVersion}}" />
             <PackageVersion Include="Cratis.Arc.Chronicle.Testing" Version="{{profile.CratisArcChronicleTestingPackageVersion}}" />
+            <PackageVersion Include="Microsoft.Orleans.Streaming" Version="{{ScaffoldPackageVersions.OrleansStreaming}}" />
             <PackageVersion Include="Cratis.Arc.MongoDB" Version="{{profile.CratisArcMongoDBPackageVersion}}" />
             <PackageVersion Include="Cratis.Chronicle" Version="{{profile.CratisChroniclePackageVersion}}" />
             <PackageVersion Include="Cratis.Chronicle.AspNetCore" Version="{{profile.CratisChroniclePackageVersion}}" />
@@ -128,6 +129,7 @@ public sealed partial class CratisBackendApplicationScaffold
           </ItemGroup>
           <ItemGroup Condition="'$(Configuration)' == 'Debug'">
             <PackageReference Include="Cratis.Arc.Chronicle.Testing" />
+            <PackageReference Include="Microsoft.Orleans.Streaming" />
             <PackageReference Include="Cratis.Chronicle.Testing" />
             <PackageReference Include="Cratis.Specifications" />
             <PackageReference Include="Cratis.Specifications.XUnit" />

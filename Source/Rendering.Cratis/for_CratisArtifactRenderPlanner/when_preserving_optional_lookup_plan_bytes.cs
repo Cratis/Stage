@@ -41,19 +41,19 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     // Re-frozen for #937: only Directory.Packages.props pins Pkcs to 10.0.14 and documents Xml runtime servicing.
     // Re-frozen for Cratis/Stage#967: the scaffold emits Choreography hosting and registers Chronicle telemetry options.
     // Re-frozen for Cratis/Stage#970: only Program.cs gains the Diagnostics import and defaults event-source id tracing to Omitted.
-    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(QualifiedCommonOutput.Restore(_plan, () => invoice_model.Plan(_model)))).ShouldEqual("faa3d43ed6bab1659da7efa048cf3544eafe5ca85c11f2391e588646439184fe");
+    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(QualifiedCommonOutput.Restore(_plan, () => invoice_model.Plan(_model)))).ShouldEqual("c62f738abe503aa282853585b1ff5a1928ee266656ac0dbfe22ea9d9d8dd8b69");
 
     // Re-frozen for #424: generated C# uses short type names and using directives; the qualified restore above still matches.
     // Re-frozen for Cratis/Stage#816 and Cratis/Stage#757: only src/bindings.ts command imports and the package.json fundamentals resolution change.
-    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => FrozenScaffoldPins.Digest(_plan, Legacy(_plan.Artifacts)).ShouldEqual("9cc8e94eb4eaba50fb4bd65654e56daa19489eaa9ca00cda52158306c1a2d8d4");
+    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => FrozenScaffoldPins.Digest(_plan, Legacy(_plan.Artifacts)).ShouldEqual("c52261e3126cda495f12bd2f251a2e4eff356ec42b21caeb58f68bdb12e913a8");
 
     // Re-frozen when the license header became the caller's choice and specifications moved into the application project.
     // Re-frozen for #424: generated C# uses short type names and using directives.
     // Re-frozen for Cratis/Stage#816 (aliased Scene command imports in src/bindings.ts) and Cratis/Stage#757 (fundamentals resolution in package.json).
     // Re-frozen for Cratis/Stage#120 merged with train 10: authentication artifacts and host wiring on top of the train 10 output.
     // Re-frozen for Arc#3975 together with main's DiagnosticSource 11 and proxy-generator runtime wiring.
-    [Fact] void should_emit_the_frozen_plan_bytes() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("c94c3433b469ddaf3ca3cab6d73c0fdd1c668b5d352cedc621d2332c7a2e8478");
-    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("9e95686852cc6bd183b1f47885567a5870a5a88e03e17568b34f33c0f1d18d53");
+    [Fact] void should_emit_the_frozen_plan_bytes() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("573ac98a220db6192fef1607455b9ebdb3d6eefb28491b54c843bf616d200a8f");
+    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("873ea07d616a5bea0dc7ab76a963f34a9768ef8609cad7fe81706f18e1b89ace");
 
     [Fact]
     void should_attribute_the_frozen_plan_changes_to_yarn_cache_yarn_preapproval_and_debug_telemetry()

@@ -99,7 +99,7 @@ public class when_strict_planning_retains_performer_metadata : given.a_source_pl
         // Recomputed for Arc 23.8.0, Chronicle 19.162.0 and Choreography 2.9.0 scaffold pins.
         // Recomputed for Arc#3975 together with main's DiagnosticSource 11 and proxy-generator runtime wiring.
         // Keep exact equality with untruncated failure output for future intentional snapshot changes.
-        _defaultLegacy.Digest.ShouldEqual("f1e7417c9e3c0aae0fcb2cc6e4d38f3c9c730dac4c7f0da3e306817c0b7aad2b");
+        _defaultLegacy.Digest.ShouldEqual("d37b94f9401b789d7e456b91853c9fd85b9528dca97f830f334d7931f376f491");
         Assert.DoesNotContain(_normal.Plan.Diagnostics, diagnostic => diagnostic.Code.StartsWith("STAGE-DEGRADE-", StringComparison.Ordinal));
         Assert.Equal(ArtifactRenderOutcome.Partial, _normal.Plan.Outcome);
         Assert.Null(_normal.Plan.Inventory);

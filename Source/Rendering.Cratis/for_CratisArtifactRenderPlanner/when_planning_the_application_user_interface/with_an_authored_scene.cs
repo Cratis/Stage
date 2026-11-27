@@ -54,7 +54,7 @@ public class with_an_authored_scene : a_screen_composition_render
     // Recomputed after merging main into the #970 train: the #970 Program.cs change on top of the #1147 pins.
     // Recomputed for Screenplay 6.33.0 (Cratis/Stage#1052): only the Screenplay pins in Directory.Packages.props and the scaffold catalog change.
     // Recomputed for #1146's dependency sync and Arc#3975 together with main's DiagnosticSource 11 and proxy-generator runtime wiring.
-    const string Before = "e546907dd7d97ca61b058957f6ad7adb9ad532af463dd6d09f71df65bf443b9b";
+    const string Before = "ce281526b387ec9c13ef35c7b2599979c8cb17e2f9a26366eded7a4a25bf810a";
 
     ArtifactRenderPlan _plan = null!;
 

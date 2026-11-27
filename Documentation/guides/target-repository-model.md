@@ -49,11 +49,21 @@ When the adapter releases, the renderer repository's package updates bump it and
 
 A copyable recipe needs only published packages, not a checkout of Stage or of the adapter repository:
 
-1. Create a spec project with `IsPackable=false`. Reference your renderer project, the pinned `Cratis.Screenplay.CanonicalCorpus`, the source-only `Cratis.Screenplay.Conformance` comparator at the matching Screenplay version, and the adapter's published package, the last three with `PrivateAssets="All"`.
-2. For each fixture your renderer supports, render it, compile the emitted code with the references a real application has, and recover it with the adapter. Create one `RoundTripObservation` per fixture that holds the comparison, the render and adapter diagnostics, and any recovery errors.
-3. Load your target's versioned loss ledger with `SemanticLossLedger.Load`, then call `Reconcile(observations, requireCompleteRun: true, eligibleFixtures)` with every eligible fixture name. A fixture the renderer refuses must be accounted for explicitly; do not select only the fixtures that happened to render.
-4. Assert that the verdict has no malformed, unledgered, stale, unexplained, uncited, over-budget or vacuous finding, and that at least one corpus model was compared.
-5. Run the spec in both Debug and Release against the same pinned inputs. In CI, require a fresh non-empty test result in which the full-comparison fact passed: a process that ran no tests, or a filter that matched none, is not evidence.
+1. Create a test project with `IsTestProject=true` and `IsPackable=false`. Reference your renderer and pin `Cratis.Screenplay`, `Cratis.Screenplay.CanonicalCorpus`, and the source-only `Cratis.Screenplay.Conformance` comparator to corresponding versions (for example, `7.0.0`, `7.0.0`, and `7.0.0-preview`). Reference the adapter's published package at a compatible version. Set `PrivateAssets="All"` on these test package references.
+2. Decide which corpus fixtures are eligible before rendering. Check renderer refusals against a reviewed baseline in each configuration; do not choose fixtures based on which ones happened to render.
+3. For each eligible fixture, render the model, compile the emitted code against the application's references, recover Screenplay with the adapter, and compile the recovered source. Use `SemanticModelEquivalence.Compare` on the original and recovered models. Record one `RoundTripObservation` per fixture with the comparison, render and adapter diagnostics, and any recovery compilation errors.
+4. Reconcile against your target's versioned loss ledger. For example, with xUnit and `using Cratis.Screenplay.Conformance;`:
+
+   ```csharp
+   using var ledgerStream = File.OpenRead(ledgerPath);
+   var ledger = SemanticLossLedger.Load(ledgerStream);
+   var verdict = ledger.Reconcile(observations, requireCompleteRun: true, eligibleFixtures);
+   Assert.True(verdict.IsClean, string.Join(Environment.NewLine, verdict.Findings));
+   Assert.Contains(observations, observation =>
+       corpusFixtureNames.Contains(observation.Fixture) && observation.Comparison is not null);
+   ```
+
+5. Run the same spec in both Debug and Release against the same pinned inputs. In CI, require a fresh, nonempty test result in which the full-comparison fact passed. Compiling the spec project or running a filter that matches no tests does not prove recovery.
 
 Stage's own Arc spec project is the worked example. The ledger schema and the comparison rules are in [Screenplay's semantic conformance documentation](https://github.com/Cratis/Screenplay/blob/v6.43.0/Documentation/screenplay/semantic-conformance.md); keep adapter-specific profiles and compiler setup out of what you require of another target.
 

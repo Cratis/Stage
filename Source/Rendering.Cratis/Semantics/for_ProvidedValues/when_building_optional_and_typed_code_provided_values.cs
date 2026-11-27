@@ -73,7 +73,7 @@ public class when_building_optional_and_typed_code_provided_values : a_generated
 
     const string Proof = """
         using Cratis.Arc.Availability;
-        using Cratis.Choreography.Availability.Audiences;
+        using Cratis.Arc.Availability.Audiences;
         using Cratis.Specifications;
         using Microsoft.Extensions.DependencyInjection;
         using NSubstitute;
@@ -92,7 +92,7 @@ public class when_building_optional_and_typed_code_provided_values : a_generated
                 var subject = Substitute.For<IAvailabilitySubjectProvider>();
                 subject.GetSubject().Returns(new AudienceSubject("tenant", "alice"));
                 var context = new AvailabilityRequestContext(catalog, Substitute.For<IAudienceResolver>(), subject);
-                var source = new ChoreographyContextValueSource(context, new ArcAvailabilityOptions());
+                var source = new AvailabilityContextValueSource(context, new ArcAvailabilityOptions());
                 var command = new RegisterVessel(Name: "Typed Orion", VesselId: Guid.Empty);
                 var invocation = new AvailabilityInvocation(typeof(RegisterVessel), command, new DateTimeOffset(2026, 11, 24, 10, 0, 0, TimeSpan.Zero));
                 foreach (var name in new[] { "missingText", "missingNumber", "missingBoolean", "missingUuid" })

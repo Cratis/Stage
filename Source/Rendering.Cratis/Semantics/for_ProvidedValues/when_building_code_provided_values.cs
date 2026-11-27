@@ -53,7 +53,7 @@ public class when_building_code_provided_values : a_generated_application
         using System.Security.Claims;
         using Cratis.Arc.Authorization;
         using Cratis.Arc.Availability;
-        using Cratis.Choreography.Availability.Audiences;
+        using Cratis.Arc.Availability.Audiences;
         using Cratis.Specifications;
         using Microsoft.Extensions.DependencyInjection;
         using NSubstitute;
@@ -76,7 +76,7 @@ public class when_building_code_provided_values : a_generated_application
                 subject.GetSubject().Returns(new AudienceSubject("tenant-one", "alice"));
                 var audiences = Substitute.For<IAudienceResolver>();
                 var request = new AvailabilityRequestContext(catalog, audiences, subject);
-                var source = new ChoreographyContextValueSource(request, new ArcAvailabilityOptions());
+                var source = new AvailabilityContextValueSource(request, new ArcAvailabilityOptions());
                 var received = new DateTimeOffset(2026, 11, 23, 10, 0, 0, TimeSpan.Zero);
                 var first = new AvailabilityInvocation(typeof(when_reading_code_values), new ProviderProbe.Arguments("first", "command"), received);
                 var result = await source.ReadForExecution(first, "region", default);

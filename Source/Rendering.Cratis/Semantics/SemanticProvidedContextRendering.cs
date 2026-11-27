@@ -18,7 +18,7 @@ internal static class SemanticProvidedContextRendering
         static class StageProvideContext
         {
             public static async global::System.Threading.Tasks.ValueTask<global::Cratis.Screenplay.Contexts.ProvideContext> Create(
-                global::Cratis.Choreography.Availability.Context.IContextValueResolver resolver,
+                global::Cratis.Arc.Availability.Context.IContextValueResolver resolver,
                 global::Cratis.Arc.Authorization.ICurrentPrincipalAccessor? principalAccessor,
                 global::System.Threading.CancellationToken cancellationToken)
             {
@@ -58,7 +58,7 @@ internal static class SemanticProvidedContextRendering
             }
         }
 
-        sealed class ResolverValues(global::Cratis.Choreography.Availability.Context.IContextValueResolver resolver,
+        sealed class ResolverValues(global::Cratis.Arc.Availability.Context.IContextValueResolver resolver,
             string prefix, global::System.Threading.CancellationToken cancellationToken) : global::System.Dynamic.DynamicObject
         {
             public override bool TryGetMember(global::System.Dynamic.GetMemberBinder binder, out object? result)

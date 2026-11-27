@@ -35,7 +35,10 @@ public class when_rendering_an_unmarked_model : Specification
         foreach (var artifact in QualifiedCommonOutput.Restore(_unmarked, () => invoice_model.Plan(_model)))
         {
             var marked = markedArtifacts.Single(candidate => candidate.RelativePath == artifact.RelativePath);
-            var expected = string.Join('\n', Encoding.UTF8.GetString(marked.Bytes.AsSpan()).Replace("[property: global::Cratis.Arc.Chronicle.Commands.NotAuditedAttribute] ", string.Empty, StringComparison.Ordinal).Split('\n').Where(line => !line.Contains("PIIAttribute]", StringComparison.Ordinal) && !line.Contains("EncryptedAttribute(", StringComparison.Ordinal) && !line.Contains("NotAuditedAttribute]", StringComparison.Ordinal)));
+            var expected = string.Join('\n', Encoding.UTF8.GetString(marked.Bytes.AsSpan())
+                .Replace("[property: global::Cratis.Arc.Chronicle.Commands.NotAuditedAttribute] ", string.Empty, StringComparison.Ordinal)
+                .Split('\n')
+                .Where(line => !IsComplianceAttribute(line.TrimStart())));
             if (Encoding.UTF8.GetString(artifact.Bytes.AsSpan()) != expected) _differences.Add(artifact.RelativePath);
         }
     }
@@ -44,4 +47,14 @@ public class when_rendering_an_unmarked_model : Specification
     [Fact] void should_admit_the_unmarked_model() => _unmarked.Diagnostics.ShouldBeEmpty();
     [Fact] void should_render_the_same_artifact_set() => _unmarked.Artifacts.Select(artifact => artifact.RelativePath).ShouldContainOnly(_marked.Artifacts.Select(artifact => artifact.RelativePath));
     [Fact] void should_change_only_the_compliance_attributes() => _differences.ShouldBeEmpty();
+
+    static bool IsComplianceAttribute(string line) =>
+        line is "[global::Cratis.Chronicle.Compliance.GDPR.PIIAttribute]"
+            or "[global::Cratis.Chronicle.ProtectedValues.EncryptedAttribute]"
+            or "[global::Cratis.Arc.Chronicle.Commands.NotAuditedAttribute]"
+        || IsAttributeWithArguments(line, "[global::Cratis.Chronicle.Compliance.GDPR.PIIAttribute(")
+        || IsAttributeWithArguments(line, "[global::Cratis.Chronicle.ProtectedValues.EncryptedAttribute(");
+
+    static bool IsAttributeWithArguments(string line, string prefix) =>
+        line.StartsWith(prefix, StringComparison.Ordinal) && line.EndsWith(']') && line.IndexOf(')') == line.Length - 2;
 }

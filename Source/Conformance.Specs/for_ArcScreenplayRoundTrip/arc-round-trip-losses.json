@@ -4,7 +4,7 @@
   "corpusVersion": "6.44.0",
   "minimumFixtureCount": 29,
   "budget": {
-    "maximumEntries": 199,
+    "maximumEntries": 196,
     "maximumByDesign": 0,
     "maximumExclusions": 2
   },
@@ -60,30 +60,6 @@
       "direction": "adapter",
       "diagnostics": [],
       "issue": "Cratis/Arc#3547"
-    },
-    {
-      "fixture": "ConceptComplianceCorpus.V13",
-      "change": "missing",
-      "path": "/application/concepts[HealthInformation]/compliance/personal/criminal",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3554"
-    },
-    {
-      "fixture": "ConceptComplianceCorpus.V13",
-      "change": "missing",
-      "path": "/application/concepts[HealthInformation]/compliance/personal/special",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3554"
-    },
-    {
-      "fixture": "ConceptComplianceCorpus.V13",
-      "change": "missing",
-      "path": "/application/concepts[PersonalSecret]/compliance/secret",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3554"
     },
     {
       "fixture": "ConceptComplianceCorpus.V13",

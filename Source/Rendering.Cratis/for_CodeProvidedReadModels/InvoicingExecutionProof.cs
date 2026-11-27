@@ -14,6 +14,9 @@ internal static class InvoicingExecutionProof
         using Cratis.Arc.Availability.Audiences;
         using Cratis.Arc.MongoDB;
         using Cratis.Chronicle;
+        using Cratis.Showrunner.GuestList.Contracts.Audiences;
+        using Cratis.Showrunner.GuestList.Holding;
+        using Cratis.Showrunner.GuestList.Querying;
         using Cratis.Specifications;
         using Microsoft.Extensions.DependencyInjection;
         using Microsoft.Extensions.Hosting;
@@ -92,6 +95,12 @@ internal static class InvoicingExecutionProof
                 subject.GetSubject().Returns(new AudienceSubject("named-tenant", "alice"));
                 builder.Services.AddSingleton(subject);
                 builder.Services.AddSingleton(Substitute.For<IAudienceResolver>());
+                // Keep the real suspension source and gate, but give this probe a tenant with no recorded suspensions.
+                var suspensions = Substitute.For<IPartSuspensions>();
+                IReadOnlyList<PartDecision> noSuspensions = [];
+                suspensions.ForTenant(Arg.Any<TenantId>(), Arg.Any<CancellationToken>()).Returns(noSuspensions);
+                suspensions.ForUser(Arg.Any<TenantId>(), Arg.Any<UserId>(), Arg.Any<CancellationToken>()).Returns(noSuspensions);
+                builder.Services.AddSingleton(suspensions);
                 return builder.Services.BuildServiceProvider();
             }
         }

@@ -118,3 +118,13 @@ into the build output, run `when_round_tripping_every_fixture` with
 `CRATIS_STAGE_WRITE_ROUND_TRIP_OBSERVATIONS` set to an output JSON path. Review
 the observed differences and compiler diagnostics against the existing issues
 before changing the reviewed ledger. The observations do not approve losses.
+
+## Replay an Arc round-trip fixture
+
+The Arc round trip runs in both Debug and Release from `Source/Conformance.Specs`, using the supported cells of this table as its eligible fixtures. To reproduce one fixture's recovery, run the replay with the fixture names and an output directory:
+
+```bash
+CRATIS_STAGE_ARC_REPLAY_FIXTURES="DateComparisonsCorpus.V26" CRATIS_STAGE_ARC_REPLAY_DIRECTORY="$PWD/.ai-work/arc-replay" dotnet test Source/Conformance.Specs/Conformance.Specs.csproj --configuration Release --no-build --filter FullyQualifiedName~when_replaying_a_round_trip_fixture
+```
+
+Each fixture directory holds the emitted C# files, `Recovered.play` (the adapter's output), and `observation.json` (the comparison and diagnostics). A replay never reconciles the loss ledger and cannot satisfy the full gate, which `when_round_tripping_every_fixture` runs unconditionally.

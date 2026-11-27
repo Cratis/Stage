@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using Cratis.Screenplay.Conformance;
 using Cratis.Specifications;
 using Cratis.Stage.Conformance.Specs.for_CanonicalCorpusConformance.given;
@@ -20,7 +19,7 @@ public class when_round_tripping_every_fixture
 
     [Fact] void should_load_the_ledger_without_problems() => Assert.True(fixture.Verdict.Malformed.IsEmpty, arc_round_trip_ledger.Describe(fixture.Verdict.Malformed));
     [Fact] void should_run_the_corpus_version_the_ledger_was_written_for() => fixture.CorpusVersion.ShouldEqual(fixture.Ledger.CorpusVersion);
-    [Fact] void should_compare_at_least_the_minimum_number_of_fixtures() => Assert.True(fixture.Verdict.Vacuous.IsEmpty && fixture.Verdict.Executed >= fixture.Ledger.MinimumFixtureCount, $"{fixture.Verdict.Executed} fixtures observed, {fixture.Verdict.Compared} compared, at least {fixture.Ledger.MinimumFixtureCount} expected.{Environment.NewLine}{arc_round_trip_ledger.Describe(fixture.Verdict.Vacuous)}");
+    [Fact] void should_compare_at_least_the_minimum_number_of_fixtures() => Assert.True(fixture.Verdict.Vacuous.IsEmpty && fixture.ComparedCorpusCount > 0 && fixture.Verdict.Executed >= fixture.Ledger.MinimumFixtureCount, $"{fixture.Verdict.Executed} fixtures observed, {fixture.Verdict.Compared} compared ({fixture.ComparedCorpusCount} corpus), at least {fixture.Ledger.MinimumFixtureCount} expected.{Environment.NewLine}{arc_round_trip_ledger.Describe(fixture.Verdict.Vacuous)}");
     [Fact] void should_compare_every_eligible_fixture() => Assert.True(fixture.Verdict.Executed > 0 && fixture.Verdict.Executed == fixture.Eligible.Count - fixture.Ledger.ExcludedFixtures.Count, $"{fixture.Verdict.Executed} fixtures observed of {fixture.Eligible.Count} eligible with {fixture.Ledger.ExcludedFixtures.Count} excluded.");
     [Fact] void should_have_no_fixture_error() => Assert.True(fixture.FixtureErrors.Count == 0, string.Join(Environment.NewLine, fixture.FixtureErrors));
     [Fact] void should_have_no_unledgered_difference() => Assert.True(fixture.Verdict.Unledgered.IsEmpty, $"Differences no ledger entry accepts:{Environment.NewLine}{arc_round_trip_ledger.Describe(fixture.Verdict.Unledgered)}");
@@ -45,11 +44,17 @@ public class when_round_tripping_every_fixture
             CorpusVersion = canonical_corpus_vectors.CorpusAssembly.GetName().Version!.ToString(3);
             Eligible = round_trip_fixtures.EligibleNames(table);
             var observations = new List<RoundTripObservation>();
-            foreach (var roundTripFixture in round_trip_fixtures.Fixtures(table, Ledger.ExcludedFixtures.Keys))
+
+            // Verify the supported cells even when the recovery ledger excludes a fixture.
+            foreach (var roundTripFixture in round_trip_fixtures.Fixtures(table, []))
             {
                 try
                 {
-                    observations.Add(arc_round_trip.Run(roundTripFixture));
+                    round_trip_fixtures.VerifyRendererCell(table, roundTripFixture);
+                    if (!Ledger.ExcludedFixtures.ContainsKey(roundTripFixture.Name))
+                    {
+                        observations.Add(arc_round_trip.Run(roundTripFixture));
+                    }
                 }
                 catch (Exception exception)
                 {
@@ -57,6 +62,7 @@ public class when_round_tripping_every_fixture
                 }
             }
 
+            ComparedCorpusCount = observations.Count(observation => observation.Comparison is not null && !round_trip_fixtures.InlineNames.Contains(observation.Fixture));
             arc_round_trip_ledger.WriteObservations(CorpusVersion, observations);
             Verdict = Ledger.Reconcile(observations, requireCompleteRun: true, Eligible);
             Console.WriteLine($"Arc round trip: {Eligible.Count} eligible, {Verdict.Executed} observed, {Verdict.Compared} compared, {Ledger.Losses.Length} ledger entries.");
@@ -69,8 +75,8 @@ public class when_round_tripping_every_fixture
         internal SemanticLossLedger Ledger { get; }
         internal string CorpusVersion { get; }
         internal IReadOnlyList<string> Eligible { get; }
+        internal int ComparedCorpusCount { get; }
         internal List<string> FixtureErrors { get; } = [];
         internal SemanticLossVerdict Verdict { get; }
     }
 }
-#endif

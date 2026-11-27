@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip.given;
 using Xunit;
@@ -20,4 +19,3 @@ public class when_recovering_a_routed_command : given.a_rendered_application
     [Fact] void should_keep_the_default_stream_id() => _result.Model.Slices.SelectMany(slice => slice.Commands).Single().Authoring.Route.StreamId.ShouldBeNull();
     [Fact] void should_not_report_source_or_stream_diagnostics() => AssertSourceDiagnosticsAbsent();
 }
-#endif

@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using Cratis.Stage.Conformance.Specs.for_CanonicalCorpusConformance.given;
 using Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip.given;
 using Xunit;
@@ -22,4 +21,3 @@ public class when_replaying_date_and_reaction_fixtures
         Assert.True(verdict.IsClean, arc_round_trip_ledger.Describe(verdict.Findings));
     }
 }
-#endif

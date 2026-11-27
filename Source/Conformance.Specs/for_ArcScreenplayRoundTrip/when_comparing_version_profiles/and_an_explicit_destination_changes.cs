@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip.given;
@@ -36,4 +35,3 @@ public class and_an_explicit_destination_changes : Specification
         comparison_profile_models.Commands(converted).Single().Destination.ShouldEqual(comparison_profile_models.Commands(model).Single().Destination);
     }
 }
-#endif

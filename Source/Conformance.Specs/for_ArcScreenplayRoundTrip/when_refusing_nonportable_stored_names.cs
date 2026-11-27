@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using Cratis.Arc.Screenplay;
 using Cratis.Specifications;
 using Xunit;
@@ -19,4 +18,3 @@ public class when_refusing_nonportable_stored_names : given.a_rendered_applicati
     [Fact] void should_preserve_the_exact_stored_source_in_the_analyzed_binding() => _result.Model.Slices.SelectMany(slice => slice.Commands).Single().EventSource.StoredSource.ShouldEqual("stored\"account\\source");
     [Fact] void should_preserve_the_exact_stored_stream_in_the_analyzed_binding() => _result.Model.Slices.SelectMany(slice => slice.Commands).Single().EventSource.StoredStream.ShouldEqual("stored\"transactions\\stream");
 }
-#endif

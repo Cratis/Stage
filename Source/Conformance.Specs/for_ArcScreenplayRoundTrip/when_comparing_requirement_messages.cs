@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using Cratis.Screenplay.Conformance;
 using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
@@ -51,10 +50,23 @@ public class when_comparing_requirement_messages : Specification
     [Fact] void should_leave_the_raw_omitted_message_unchanged() => Requirement(_omitted).Message.ShouldBeNull();
     [Fact] void should_preserve_the_authored_message_in_the_projection() => Requirement(given.requirement_message_comparison.Project(_authored)).Message.ShouldEqual(AuthoredMessage);
 
+    [Fact]
+    void should_reject_a_changed_authored_value_at_its_exact_path()
+    {
+        var observation = new RoundTripObservation("Inline.ChangedRequirementMessage", _distinct, [], []);
+        var verdict = given.arc_round_trip_ledger.Load().Reconcile([observation], requireCompleteRun: false);
+
+        var difference = Assert.Single(_distinct.Differences);
+        var finding = Assert.Single(verdict.Unledgered);
+        finding.Fixture.ShouldEqual(observation.Fixture);
+        finding.Change.ShouldEqual(SemanticLossChange.Changed);
+        finding.Path.ShouldEqual(difference.Path);
+        Assert.False(verdict.IsClean);
+    }
+
     static ExecutableSemanticModel WithMessage(string message) => given.round_trip_fixtures.Compile(
         Source.Replace("require amount > 0", $"require amount > 0\n            message \"{message}\"", StringComparison.Ordinal));
 
     static SemanticRequirement Requirement(ExecutableSemanticModel model) =>
         model.Application.Modules.Single().Features.Single().Slices.Single().Commands.Single().Requirements.Single();
 }
-#endif

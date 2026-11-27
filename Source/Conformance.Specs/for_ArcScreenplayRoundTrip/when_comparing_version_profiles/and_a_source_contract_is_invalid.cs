@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip.given;
@@ -31,4 +30,3 @@ public class and_a_source_contract_is_invalid : Specification
         Assert.Throws<InvalidSemanticContract>(() => reverse ? round_trip_model_comparison.Compare(invalid, valid) : round_trip_model_comparison.Compare(valid, invalid));
     }
 }
-#endif

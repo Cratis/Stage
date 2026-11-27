@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using System.Globalization;
 using System.Reflection;
 using Cratis.Screenplay.Conformance;
@@ -37,4 +36,3 @@ internal static class round_trip_shared_version
     static bool RequiresUnavailableIntroduction(InvalidSemanticContract exception, SemanticVersion version) =>
         exception.Message.StartsWith($"An ESM v{version.Major.ToString(CultureInfo.InvariantCulture)} model must ", StringComparison.Ordinal);
 }
-#endif

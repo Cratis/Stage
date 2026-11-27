@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using Cratis.Screenplay.Conformance;
 using Cratis.Screenplay.Semantics;
 
@@ -63,4 +62,3 @@ internal static class round_trip_model_profile
 
     static bool AtLeast(LanguageVersion left, LanguageVersion right) => left.Major > right.Major || (left.Major == right.Major && left.Minor >= right.Minor);
 }
-#endif

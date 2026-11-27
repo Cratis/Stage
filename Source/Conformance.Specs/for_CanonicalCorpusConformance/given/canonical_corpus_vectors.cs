@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using System.Collections.Immutable;
 using System.Reflection;
 using System.Security.Cryptography;
@@ -71,4 +70,3 @@ public static class canonical_corpus_vectors
             null,
             Convert.ToHexStringLower(SHA256.HashData(golden.Bytes.AsSpan())));
 }
-#endif

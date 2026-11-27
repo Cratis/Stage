@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using Cratis.Screenplay.Semantics;
 
 namespace Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip.given;
@@ -29,4 +28,3 @@ internal static class requirement_message_comparison
         Requirements = [.. command.Requirements.Select(requirement => requirement with { Message = requirement.Message ?? SemanticRequirement.DefaultMessage })]
     };
 }
-#endif

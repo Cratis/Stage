@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using Cratis.Screenplay.CanonicalCorpus;
 using Cratis.Screenplay.Conformance;
 using Cratis.Screenplay.Semantics;
@@ -67,4 +66,3 @@ public class and_the_versions_differ : Specification
         Assert.Equal(SemanticModelSerializer.Serialize(converted), SemanticModelSerializer.Serialize(round_trip_model_profile.Convert(converted)));
     }
 }
-#endif

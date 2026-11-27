@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using System.Collections;
 using System.Reflection;
 using Cratis.Screenplay.Semantics;
@@ -56,4 +55,3 @@ internal static class round_trip_semantic_nodes
     static bool HasSemanticMembers(Type type) => type.Namespace?.StartsWith("Cratis.Screenplay.Semantics", StringComparison.Ordinal) == true ||
         (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(KeyValuePair<,>));
 }
-#endif

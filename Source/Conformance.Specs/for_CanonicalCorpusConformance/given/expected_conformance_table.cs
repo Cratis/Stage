@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -92,4 +91,3 @@ public class expected_conformance_table
         return $"{{ \"code\": {Text(fingerprint.Code)}{kind}, \"artifact\": {Text(fingerprint.Artifact)}{issue}{design} }}";
     }
 }
-#endif

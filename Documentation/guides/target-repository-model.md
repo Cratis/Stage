@@ -47,6 +47,26 @@ A round trip renders a Screenplay model, recovers it with the ecosystem's source
 
 When the adapter releases, the renderer repository's package updates bump it and run the round trip again. Stage's own Arc round trip already references the published `Cratis.Arc.Screenplay` this way.
 
+A copyable recipe needs only published packages, not a checkout of Stage or of the adapter repository:
+
+1. Create a test project with `IsTestProject=true` and `IsPackable=false`. Reference your renderer and pin `Cratis.Screenplay`, `Cratis.Screenplay.CanonicalCorpus`, and the source-only `Cratis.Screenplay.Conformance` comparator to corresponding versions (for example, `7.0.0`, `7.0.0`, and `7.0.0-preview`). Reference the adapter's published package at a compatible version. Set `PrivateAssets="All"` on these test package references.
+2. Decide which corpus fixtures are eligible before rendering. Check renderer refusals against a reviewed baseline in each configuration; do not choose fixtures based on which ones happened to render.
+3. For each eligible fixture, render the model, compile the emitted code against the application's references, recover Screenplay with the adapter, and compile the recovered source. Use `SemanticModelEquivalence.Compare` on the original and recovered models. Record one `RoundTripObservation` per fixture with the comparison, render and adapter diagnostics, and any recovery compilation errors.
+4. Reconcile against your target's versioned loss ledger. For example, with xUnit and `using Cratis.Screenplay.Conformance;`:
+
+   ```csharp
+   using var ledgerStream = File.OpenRead(ledgerPath);
+   var ledger = SemanticLossLedger.Load(ledgerStream);
+   var verdict = ledger.Reconcile(observations, requireCompleteRun: true, eligibleFixtures);
+   Assert.True(verdict.IsClean, string.Join(Environment.NewLine, verdict.Findings));
+   Assert.Contains(observations, observation =>
+       corpusFixtureNames.Contains(observation.Fixture) && observation.Comparison is not null);
+   ```
+
+5. Run the same spec in both Debug and Release against the same pinned inputs. In CI, require a fresh, nonempty test result in which the full-comparison fact passed. Compiling the spec project or running a filter that matches no tests does not prove recovery.
+
+Stage's own Arc spec project is the worked example. The ledger schema and the comparison rules are in [Screenplay's semantic conformance documentation](https://github.com/Cratis/Screenplay/blob/v6.43.0/Documentation/screenplay/semantic-conformance.md); keep adapter-specific profiles and compiler setup out of what you require of another target.
+
 ## Release each package on its own
 
 Renderers and adapters release on their own schedules. Before a host bundles a package, validate it against that host's locked dependency set, using the published binaries the host restores rather than only the newest common version.

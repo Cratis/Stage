@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using Cratis.Screenplay.CanonicalCorpus;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Serialization;
@@ -48,4 +47,3 @@ public class and_semantic_payload_changes : Specification
         round_trip_model_comparison.Compare(model, changed).IsEquivalent.ShouldBeFalse();
     }
 }
-#endif

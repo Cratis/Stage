@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using Cratis.Screenplay.CanonicalCorpus;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Serialization;
@@ -42,4 +41,3 @@ public class and_a_legacy_destination_is_inferred : Specification
         round_trip_model_comparison.Compare(generated, comparison_profile_models.Calendar(original)).IsEquivalent.ShouldBeFalse();
     }
 }
-#endif

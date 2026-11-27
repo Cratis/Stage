@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using Cratis.Screenplay.Conformance;
 using Cratis.Screenplay.Semantics;
 
@@ -68,4 +67,3 @@ internal static class round_trip_model_comparison
     static SemanticModelComparison Compare(NormalizedSemanticModel expected, NormalizedSemanticModel actual) =>
         SemanticModelEquivalence.Compare(round_trip_invocation_mappings.Normalize(expected), round_trip_invocation_mappings.Normalize(actual));
 }
-#endif

@@ -266,8 +266,8 @@ jobs:
 
       # This job produces Debug binaries without analyzers; the parallel analyzers job enforces them,
       # including inline specs and their test SDK, which exist only in Debug. Every spec lane reuses these
-      # binaries (including Host's isolated specrunner) with --no-build. Release still compiles without
-      # specs and remains the zero-warning/package-validation gate below.
+      # binaries (including Host's isolated specrunner) with --no-build. Release excludes inline specs
+      # and remains the zero-warning/package-validation gate below.
       # Pull requests build only the projects the diff reaches (plus what the selected lanes consume);
       # every other event, ci:full and any routing doubt build the whole solution.
       - name: Build Debug
@@ -443,6 +443,40 @@ jobs:
       - name: Verify standalone packed reducer consumer
         run: python3 Verification/verify-packed-reducer-consumer.py ./Artifacts/NuGet
 
+      # The Arc round trip runs in Debug in the Conformance shards. This runs it against the Release renderer built above, so a Release-only
+      # difference in what is rendered, compiled or recovered fails here. The named fact must have passed in a fresh, nonempty result: a
+      # process that ran nothing, or a filter that matched nothing, is not evidence.
+      - name: Run the Arc round trip against the Release build
+        run: |
+          set -euo pipefail
+          results=TestResults/arc-round-trip-Release
+          mkdir -p "$results"
+          rm -f "$results/arc.trx"
+          dotnet test Source/Conformance.Specs/Conformance.Specs.csproj --no-build --configuration Release --framework net11.0 \
+            --filter "FullyQualifiedName~Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip" \
+            --logger "trx;LogFileName=arc.trx" --results-directory "$results"
+          python3 .github/spec-shards.py require-executed "$results/arc.trx"
+
+      - name: Require the Release Arc corpus comparison fact to have passed
+        env:
+          ARC_TRX: TestResults/arc-round-trip-Release/arc.trx
+        run: &require-arc-comparison |
+          set -euo pipefail
+          node --input-type=module - "$ARC_TRX" <<'JS'
+          import { readFileSync } from 'node:fs';
+
+          const trx = process.argv[2];
+          const fact = 'Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip.' +
+              'when_round_tripping_every_fixture.should_compare_at_least_the_minimum_number_of_fixtures';
+          // The producer step has already parsed the TRX and required a nonempty run.
+          const results = readFileSync(trx, 'utf8').matchAll(/<UnitTestResult\s+([^<>]*)>/g);
+          const passed = [...results].some(([, attributes]) =>
+              /(?:^|\s)testName="([^"]*)"/.exec(attributes)?.[1] === fact &&
+              /(?:^|\s)outcome="Passed"(?:\s|\/|$)/.test(attributes));
+          if (!passed) throw new Error(`${trx}: required Arc corpus comparison fact did not pass: ${fact}`);
+          console.log(`${trx}: ${fact} passed`);
+          JS
+
   specs:
     # An empty matrix cannot expand, so a pull request touching no spec-bearing project skips the job; the
     # `build` aggregate accepts that only when routing explicitly output specs-selected=false.
@@ -510,6 +544,16 @@ jobs:
           SPEC_SHARD: ${{ toJson(matrix) }}
           STAGE_MAX_PARALLEL_APP_BUILDS: '2'
         run: python3 .github/spec-shards.py run "$SPEC_SHARD"
+
+      - name: Require the Debug Arc corpus comparison fact to have passed
+        # Conformance prefixes are assigned by measured weights; the Arc namespace can also land in the complement.
+        if: >-
+          startsWith(matrix.name, 'conformance-') &&
+          (contains(matrix.filter, 'FullyQualifiedName~Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip.') ||
+          (matrix.name == 'conformance-remainder' && !contains(matrix.filter, 'FullyQualifiedName!~Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip.')))
+        env:
+          ARC_TRX: TestResults/${{ matrix.name }}/Conformance.Specs/specs.trx
+        run: *require-arc-comparison
 
       - name: Upload spec results
         if: always()

@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if DEBUG
 using Cratis.Screenplay.Conformance;
 using Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip.given;
 using Xunit;
@@ -71,4 +70,3 @@ public class when_checking_the_loss_ledger_guards
         Assert.False(verdict.IsClean);
     }
 }
-#endif

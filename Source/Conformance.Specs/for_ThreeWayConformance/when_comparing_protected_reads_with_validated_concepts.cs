@@ -77,7 +77,7 @@ public class when_comparing_protected_reads_with_validated_concepts(when_compari
                     when TakeFromPlant
                       id = "unknown"
                       amount = 2
-                    then error "PlantStock 'unknown' does not exist."
+                    then error "PlantStock does not exist."
                   specification TakingAnInvalidAmountFromAStockedPlant
                     given PlantPrepared
                       for "plant"

@@ -16,7 +16,7 @@ public class when_refusing_unrenderable_decision_reads
 {
     const string Generation = "concept Receipt : Uuid\n";
 
-    static string Corpus => ProtectedCommandReadsCorpus.V25.SourceForms.Single(form => form.Name == "single").Documents.Single().Text;
+    static string Corpus => ProtectedReadReplacements.V25R2.SourceForms.Single(form => form.Name == "single").Documents.Single().Text;
 
     [Theory]
     [InlineData("generated-value freshness scopes", "freshness")]

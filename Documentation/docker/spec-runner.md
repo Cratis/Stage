@@ -143,7 +143,8 @@ property, not the event source, and preserve instances at other keys. Optional, 
 parent removal keys remain refused. Empty, whitespace-only,
 exactly `*`, containing `#`, and leading- or trailing-whitespace keys reject before projection lookup, even if an
 instance is stored at that key. These refused keys and absent views reject validation before all requirements and
-generation, with `<View> '<key>' does not exist.`, preserving the supplied key text. This refused-key check is specific
+generation, with `<View> does not exist.` (Screenplay decision 0170). The message does not include the supplied key.
+This refused-key check is specific
 to protected reads; command identifiers keep their existing behavior. The Host delegates to the pinned
 Screenplay evaluator with the same refused-key checks. Read-backed requirements and
 produced-event mappings use that projected state. Non-Error requirements on protected commands remain

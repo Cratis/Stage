@@ -76,7 +76,7 @@ public class when_comparing_protected_reads_with_unique_values(when_comparing_pr
                     when ClaimLabel
                       id = "claim"
                       lookup = "unknown"
-                    then error "RegisteredPlant 'unknown' does not exist."
+                    then error "RegisteredPlant does not exist."
                   specification ClaimingATakenLabel
                     given PlantRegistered
                       for "plant"

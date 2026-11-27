@@ -20,7 +20,7 @@ internal static class protected_read_race_probes
 
     internal static IEnumerable<(string Name, string Source)> Files()
     {
-        var vectors = JsonNode.Parse(ProtectedCommandReadRaceVectors.Bytes.AsSpan())["vectors"].AsArray();
+        var vectors = JsonNode.Parse(ProtectedReadReplacements.RacesV1R3.AsSpan())["vectors"].AsArray();
         foreach (var name in InvocationVectors)
         {
             var vector = vectors.Single(vector => vector["name"].GetValue<string>() == name);

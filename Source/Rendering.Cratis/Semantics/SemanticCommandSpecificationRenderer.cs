@@ -254,30 +254,10 @@ internal static partial class SemanticCommandSpecificationRenderer
             return "[global::Xunit.FactAttribute] void should_report_the_freshness_violation() => _result.ValidationResults.First().Reason.ShouldEqual(global::Cratis.Arc.Validation.ValidationResultReason.ConcurrencyViolation);";
         }
 
-        message = ArcAbsenceMessage(scope, message);
         return message.StartsWith("$strings.", StringComparison.Ordinal)
             ? $"[global::Xunit.FactAttribute] void should_report_the_expected_first_error_key() => _result.ValidationResults.First().State.ShouldEqual({CSharpCodeBuilder.StringLiteral(message)});"
             : $"[global::Xunit.FactAttribute] void should_report_the_expected_first_error() => _result.ValidationResults.First().Message.ShouldEqual({CSharpCodeBuilder.StringLiteral(message)});";
     }
-
-    // Arc 24 does not echo a key it refused (empty, padded, reserved) in the absence message of a protected read: it names the read model alone.
-    static string ArcAbsenceMessage(SpecificationScope scope, string message)
-    {
-        foreach (var read in scope.Command.Reads.IsDefaultOrEmpty ? [] : scope.Command.Reads)
-        {
-            var key = scope.Specification.When?.Values.FirstOrDefault(input => input.TargetProperty == read.Key)?.Value;
-            var name = scope.Context.ReadModels[read.ReadModel].Name;
-            if (key is SemanticTextValue text && IsRefusedKey(text.Value) && message == $"{name} '{text.Value}' does not exist.")
-            {
-                return $"{name} does not exist.";
-            }
-        }
-
-        return message;
-    }
-
-    static bool IsRefusedKey(string key) =>
-        string.IsNullOrWhiteSpace(key) || key == "*" || key.Contains('#', StringComparison.Ordinal) || char.IsWhiteSpace(key[0]) || char.IsWhiteSpace(key[^1]);
 
     static void RenderConstraintViolation(CSharpCodeBuilder builder, SemanticSpecification specification, SemanticApplicationContext context)
     {

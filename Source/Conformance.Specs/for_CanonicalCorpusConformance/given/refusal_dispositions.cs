@@ -34,6 +34,25 @@ public static class refusal_dispositions
         // ESM v29 add/subtract by a product whose factors are not both properties of the event: Chronicle's projection engine adds one event property.
         (["EsmGoldenVectors.V29"], conformance_surface.Renderer, [new("STAGE-ESM-050", null, "sem1:569083a6f62ce80edfc569cac4c7b0cfa3985680155539e45d7e1cfc180f5016")]),
 
+        // The v60 golden exercises the existing unaudited-pair refusal, independently of the model members.
+        (["EsmGoldenVectors.V60"], conformance_surface.Executor,
+        [
+            new("STAGE-ESM-016", null, "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6")
+        ]),
+        (["EsmGoldenVectors.V60"], conformance_surface.Host,
+        [
+            new("STAGE-ESM-016", "application", "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6"),
+            new("STAGE-ESM-016", "specification", "sem1:2e13ee6dbbeea5e71298e0b9733fd8e567128ded49aaecd5d471d3fba58efb5b"),
+            new("STAGE-ESM-016", "specification", "sem1:66f66049eca5fa663300bd7351d84a283b7ba631c9555d6b3220892dbe17beb2"),
+            new("STAGE-ESM-016", "specification", "sem1:92f2d70ee66540e926048129c68aebcc8e8fff6f3ef21c3fdc88602e8472e508"),
+            new("STAGE-ESM-016", "specification", "sem1:a71d62c6c589cdc64b49de0b017e04e7f767806489c5b51c32a142d6c62a9d53"),
+            new("STAGE-ESM-016", "specification", "sem1:bbd3d49ced7c61322b05360264765cb7a23103a74df512b6ea443b5f80c3eac9")
+        ]),
+        (["EsmGoldenVectors.V60"], conformance_surface.Renderer,
+        [
+            new("STAGE-ESM-016", null, "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6")
+        ]),
+
         // Original and replacement ESM v36 vectors retain trigger, join or schedule shapes Stage does not render.
         (["EsmGoldenVectors.V36", "EsmGoldenVectors.LifecycleV36R2"], conformance_surface.Host,
         [

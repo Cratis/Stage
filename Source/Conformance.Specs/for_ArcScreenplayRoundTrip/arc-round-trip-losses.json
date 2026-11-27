@@ -1,16 +1,19 @@
 {
   "schema": "cratis.screenplay.loss-ledger/v1",
   "target": "cratis-arc",
-  "corpusVersion": "6.43.0",
+  "corpusVersion": "7.0.0",
   "minimumFixtureCount": 29,
   "budget": {
-    "maximumEntries": 218,
+    "maximumEntries": 217,
     "maximumByDesign": 0,
-    "maximumExclusions": 2
+    "maximumExclusions": 5
   },
   "excludedFixtures": {
     "AcmeAdmissionsCorpus.V29": "Rendered output does not compile (CS1503), Cratis/Stage#822",
-    "EventRoutesCorpus.CompositesV8": "Rendered output does not compile (CS0246), Cratis/Stage#823"
+    "EventRoutesCorpus.CompositesV8": "Rendered output does not compile (CS0246), Cratis/Stage#823",
+    "ProtectedCommandReadRaceVectors.Model": "Superseded by ProtectedReadReplacements.RaceModelV1R3 (Screenplay decision 0170)",
+    "ProtectedCommandReadRaceVectors.ModelV1R2": "Superseded by ProtectedReadReplacements.RaceModelV1R3 (Screenplay decision 0170)",
+    "ProtectedCommandReadsCorpus.V25": "Superseded by ProtectedReadReplacements.V25R2 (Screenplay decision 0170)"
   },
   "losses": [
     {
@@ -316,27 +319,6 @@
       "direction": "adapter",
       "diagnostics": [],
       "issue": "Cratis/Arc#3547"
-    },
-    {
-      "fixture": "ProtectedCommandReadRaceVectors.Model",
-      "change": "uncompilable",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Stage#515"
-    },
-    {
-      "fixture": "ProtectedCommandReadRaceVectors.ModelV1R2",
-      "change": "uncompilable",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Stage#515"
-    },
-    {
-      "fixture": "ProtectedCommandReadsCorpus.V25",
-      "change": "uncompilable",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Stage#515"
     },
     {
       "fixture": "PublicEventsCorpus.CapturesFromEventsV9",
@@ -1107,16 +1089,6 @@
       "issue": "Cratis/Arc#3547"
     },
     {
-      "fixture": "ProtectedCommandReadsCorpus.V25",
-      "change": "diagnostic",
-      "path": "/diagnostics[SP0039]",
-      "direction": "adapter",
-      "diagnostics": [
-        "SP0039"
-      ],
-      "issue": "Cratis/Arc#3547"
-    },
-    {
       "fixture": "PublicEventsCorpus.CapturesFromEventsV9",
       "change": "diagnostic",
       "path": "/diagnostics[SP0039]",
@@ -1829,6 +1801,30 @@
       "direction": "adapter",
       "diagnostics": [],
       "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "ProtectedReadReplacements.RaceModelV1R3",
+      "change": "uncompilable",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Stage#515"
+    },
+    {
+      "fixture": "ProtectedReadReplacements.V25R2",
+      "change": "uncompilable",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Stage#515"
+    },
+    {
+      "fixture": "ProtectedReadReplacements.V25R2",
+      "change": "diagnostic",
+      "path": "/diagnostics[SP0039]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
     }
   ]
 }

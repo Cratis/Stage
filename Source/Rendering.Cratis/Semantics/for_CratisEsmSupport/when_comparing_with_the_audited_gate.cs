@@ -73,7 +73,7 @@ public class when_comparing_with_the_audited_gate : Specification
     ExecutableSemanticModel _model = null!;
     int _compared;
 
-    void Establish() => _model = SemanticModelSerializer.Deserialize(ProtectedCommandReadsCorpus.V25.EsmBytes.AsSpan());
+    void Establish() => _model = SemanticModelSerializer.Deserialize(ProtectedReadReplacements.V25R2.EsmBytes.AsSpan());
 
     void Because()
     {

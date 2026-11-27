@@ -19,7 +19,7 @@ public class a_populated_model : Specification
 
     void Establish()
     {
-        _model = SemanticModelSerializer.Deserialize(ProtectedCommandReadsCorpus.V25.EsmBytes.AsSpan());
+        _model = SemanticModelSerializer.Deserialize(ProtectedReadReplacements.V25R2.EsmBytes.AsSpan());
         _known = new(SemanticSurfaceLedger.Entries, StringComparer.Ordinal);
         _readingCommands = [.. _model.Application.Modules.SelectMany(module => module.Features)
             .SelectMany(feature => feature.Slices).SelectMany(slice => slice.Commands).Where(command => command.Reads.Length > 0)];

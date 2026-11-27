@@ -18,7 +18,7 @@ public class when_running_refused_read_keys : Specification
     [InlineData("folder")]
     [InlineData("reordered")]
     [InlineData("relocated")]
-    public async Task should_execute_all_six_published_decision_0091_vectors(string formName)
+    public async Task should_execute_all_six_published_keyless_refusals(string formName)
     {
         var plan = refused_read_keys.Compile(formName);
         var selected = plan.Specifications.Values.Where(specification => refused_read_keys.Names.Contains(specification.Name, StringComparer.Ordinal)).ToArray();

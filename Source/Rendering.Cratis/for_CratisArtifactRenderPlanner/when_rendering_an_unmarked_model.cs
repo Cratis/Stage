@@ -13,12 +13,12 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
 public class when_rendering_an_unmarked_model : Specification
 {
-    static readonly HashSet<string> _plainComplianceAttributes = new(StringComparer.Ordinal)
-    {
+    static readonly string[] _plainComplianceAttributes =
+    [
         "[global::Cratis.Chronicle.Compliance.GDPR.PIIAttribute]",
         "[global::Cratis.Chronicle.ProtectedValues.EncryptedAttribute]",
         "[global::Cratis.Arc.Chronicle.Commands.NotAuditedAttribute]"
-    };
+    ];
 
     ArtifactRenderPlan _marked = null!;
     ArtifactRenderPlan _unmarked = null!;
@@ -56,7 +56,7 @@ public class when_rendering_an_unmarked_model : Specification
     [Fact] void should_change_only_the_compliance_attributes() => _differences.ShouldBeEmpty();
 
     static bool IsComplianceAttribute(string line) =>
-        _plainComplianceAttributes.Contains(line)
+        _plainComplianceAttributes.Contains(line, StringComparer.Ordinal)
         || IsAttributeWithArguments(line, "[global::Cratis.Chronicle.Compliance.GDPR.PIIAttribute(")
         || IsAttributeWithArguments(line, "[global::Cratis.Chronicle.ProtectedValues.EncryptedAttribute(");
 

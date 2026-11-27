@@ -56,7 +56,8 @@ public class with_authored_screen_partitions : a_partitioned_screen_plan
     // Recomputed after merging main into the #970 train: the #970 Program.cs change on top of the #1147 pins.
     // Recomputed for Screenplay 6.33.0 (Cratis/Stage#1052): only the Screenplay pins in Directory.Packages.props and the scaffold catalog change.
     // Recomputed for #1146's dependency sync and Arc#3975 together with main's DiagnosticSource 11 and proxy-generator runtime wiring.
-    const string Before = "802d658c3ea3a33aa563d90d11112c091ea3a603b789a84d2d70e26754266414";
+    // Recomputed for the Arc 24.8.1, Showrunner 2.28.1 and Scene 6.2.1 npm pins from main: only package.json changes on top of #1146.
+    const string Before = "5e502253289fefb720736ec540ff655bd57511033a461246aead0ebd62dc4649";
 
     void Because() => _application = AppPlan(_profile);
 

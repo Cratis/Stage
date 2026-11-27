@@ -63,7 +63,7 @@ describe('validation messages of a command form', () => {
         expect(inline[0].classList.contains('stage-form-error')).toBe(false);
     });
 
-    it('keeps only the messages that are not about a rendered field', () => {
+    it('keeps only the further messages about a rendered field, since Arc lists those about no field', () => {
         const fields = [{ name: 'ownerId' }, { name: 'address', sourceProperty: 'shipTo' }];
 
         expect(unboundValidationMessages(fields, [
@@ -72,6 +72,6 @@ describe('validation messages of a command form', () => {
             { message: 'c', members: ['other'] },
             { message: 'c', members: undefined },
             { message: 'd', members: ['ownerId'] },
-        ])).toEqual(['c', 'd']);
+        ])).toEqual(['d']);
     });
 });

@@ -3,11 +3,12 @@
 
 import { render as renderElement } from '@testing-library/react';
 import { StageSourceProvider } from '../stageSource';
+import { FreshQueries } from './freshQueries';
 import { httpStageSource } from './httpStageSource';
 
 export * from '@testing-library/react';
 
 /** Supplies the fixture transport to runtime specifications; an explicit inner provider still wins. */
 export function render(element: Parameters<typeof renderElement>[0], options?: Parameters<typeof renderElement>[1]) {
-    return renderElement(<StageSourceProvider source={httpStageSource}>{element}</StageSourceProvider>, options);
+    return renderElement(<FreshQueries><StageSourceProvider source={httpStageSource}>{element}</StageSourceProvider></FreshQueries>, options);
 }

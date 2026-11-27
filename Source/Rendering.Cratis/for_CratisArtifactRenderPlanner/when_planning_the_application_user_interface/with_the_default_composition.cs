@@ -57,7 +57,8 @@ public class with_the_default_composition : a_register_project_render_request
     // Recomputed after merging main into the #970 train: the #970 Program.cs change on top of the #1147 pins.
     // Recomputed for Screenplay 6.33.0 (Cratis/Stage#1052): only the Screenplay pins in Directory.Packages.props and the scaffold catalog change.
     // Recomputed for #1146's dependency sync and Arc#3975 together with main's DiagnosticSource 11 and proxy-generator runtime wiring.
-    const string Before = "061a18ea1c73de267bf046af0c8b307de2eb31ce9498284de50c91286772cbaa";
+    // Recomputed for the Arc 24.8.1, Showrunner 2.28.1 and Scene 6.2.1 npm pins from main: only package.json changes on top of #1146.
+    const string Before = "6a1099c0705451ca379c4aca1cbdc3989b40468d894a0776749626d1bcc0b9f7";
 
     ArtifactRenderPlan _plan = null!;
 

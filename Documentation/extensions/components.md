@@ -117,7 +117,7 @@ component with `resolveSignalBehaviors` and runs them with the Scene interaction
 once the interaction has run. A signal never starts an application trigger of the same name, and the reverse. The contract is on
 [Binding a raised signal to a screen interaction](https://github.com/Cratis/Scene/blob/main/Documentation/extensions/contract.md).
 
-Stage depends on one Scene release for every Scene package, and on `@cratis/components` 4.40.1, which that release requires. The Notifier sample's
+Stage depends on one Scene release for every Scene package, and on `@cratis/components` 4.63.1, which accepts the Arc 24 the frontend uses. The Notifier sample's
 [`contract.play`](https://github.com/Cratis/Stage/blob/main/Samples/Extensions/Notifier/contract.play) declares the `dismissed` signal, and the
 [end-to-end](https://github.com/Cratis/Stage/blob/main/Documentation/extensions/end-to-end.md) specification raises it.
 

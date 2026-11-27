@@ -75,6 +75,8 @@ internal static class FrozenScaffoldPins
             ("scene.model", frontend.ScenePackageVersion, scene),
             ("scene.primereact", frontend.ScenePackageVersion, scene),
             ("scene.react", frontend.ScenePackageVersion, scene),
+            ("showrunner.notes", frontend.ShowrunnerNotesPackageVersion, "1.0.0"),
+            ("showrunner.notes.react", frontend.ShowrunnerNotesPackageVersion, "1.0.0"),
             ("stage.runtime", ScaffoldPackageVersions.StageRuntime, "1.0.0")
         ];
         foreach (var pin in pins)

@@ -639,15 +639,16 @@ function widthToCss(width: FormWidth | undefined): string | undefined {
 
 /**
  * The validation messages Arc's command form does not already show next to a field. Arc shows one message per field - the first result
- * whose member is the field or a path under it - so exactly those are left out; any further message about the same field, and every
- * message about no field of this form, is listed under the fields.
+ * whose member is the field or a path under it - so exactly those are left out. Arc's own validation summary lists every message about
+ * no field of this form, so those are left out too; only a further message about a field that already shows one is listed here.
  */
 export function unboundValidationMessages(fields: FormField[], validation: { message: string; members?: string[] }[]): string[] {
     const matches = (result: { members?: string[] }, name: string) => !!result.members?.some(member => member === name || member.startsWith(`${name}.`));
     const shown = new Set(fields
         .map(field => validation.find(result => matches(result, field.sourceProperty ?? field.name)))
         .filter(result => result !== undefined));
-    return [...new Set(validation.filter(result => !shown.has(result)).map(result => result.message))];
+    const aboutAField = (result: { members?: string[] }) => fields.some(field => matches(result, field.sourceProperty ?? field.name));
+    return [...new Set(validation.filter(result => aboutAField(result) && !shown.has(result)).map(result => result.message))];
 }
 
 function requiredMessage(fields: FormField[], schema: SchemaProperty[], fieldName: string, value: unknown): string | undefined {

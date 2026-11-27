@@ -1,11 +1,22 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { useContext, useEffect, useState } from 'react';
-import { ArcContext } from '@cratis/arc.react';
-import { availabilityOf, fetchUnavailableParts, type ElementAvailability } from './availabilityClient';
+import { useIsAvailable } from '@cratis/arc.react/availability';
 import type { CommandAvailability } from './commandAvailability';
 import { useStageData } from './stageData';
+
+/** What a renderer shows for one element, from the three things that can withhold it. */
+export type ElementAvailability =
+    /** Offered. */
+    | { kind: 'available' }
+    /** Still asking. Nothing is shown for a part that has not been decided, so a part is never offered before the server said it may be. */
+    | { kind: 'unknown' }
+    /** The part is not in the caller's offer: the element is not rendered. */
+    | { kind: 'notAvailable' }
+    /** An operator suspended the part: the element can say so briefly. */
+    | { kind: 'suspended' }
+    /** The caller may not use the command: the renderer's rule for unauthorized applies, and the reason is the server's. */
+    | { kind: 'unauthorized'; reason?: string };
 
 const available: ElementAvailability = { kind: 'available' };
 const unknown: ElementAvailability = { kind: 'unknown' };
@@ -28,35 +39,14 @@ export function elementLookup(screen: string, kind: GatedElementKind, name: stri
  */
 export function useElementGate(kind: GatedElementKind, name: string, values: Record<string, unknown>): ElementAvailability {
     const { routes, screen } = useStageData();
-    const arc = useContext(ArcContext);
     const part = screen && name ? routes?.elements?.[elementLookup(screen, kind, name)] : undefined;
-    const key = JSON.stringify(values);
-    const question = `${part ?? ''}:${key}`;
-    const [answer, setAnswer] = useState<{ question: string; availability: ElementAvailability }>();
-
-    useEffect(() => {
-        if (!part) return undefined;
-        let abort = new AbortController();
-        const refresh = () => {
-            abort.abort();
-            const request = new AbortController();
-            abort = request;
-            void fetchUnavailableParts(request.signal, arc, { part, arguments: JSON.parse(key) as Record<string, unknown> })
-                .then(unavailable => { if (!request.signal.aborted) setAnswer({ question, availability: availabilityOf(unavailable.get(part)) }); })
-                .catch(() => { if (!request.signal.aborted) setAnswer(undefined); });
-        };
-        refresh();
-        const interval = globalThis.setInterval(refresh, 30_000);
-        globalThis.addEventListener('focus', refresh);
-        return () => {
-            abort.abort();
-            globalThis.clearInterval(interval);
-            globalThis.removeEventListener('focus', refresh);
-        };
-    }, [part, key, question, arc]);
+    // Arc asks the server about the data the part is about only when there is a part with a gate; an element without one needs no request.
+    const answer = useIsAvailable(part ?? '', part ? values : undefined);
 
     if (!part) return available;
-    return answer?.question === question ? answer.availability : unknown;
+    if (!answer.isKnown) return unknown;
+    if (answer.isAvailable) return available;
+    return answer.isSuspended ? { kind: 'suspended' } : { kind: 'notAvailable' };
 }
 
 /** What the renderer does with a command the server refused: the same kinds the element's own gate has, with the reason of an unauthorized one. */

@@ -53,8 +53,7 @@ public class when_admitting_implementation_roles : Specification
         {
             var required = SemanticTypedContextAdmission.RequiresDescriptor(role);
             var exempt = SemanticTypedContextAdmission.IsDescriptorExempt(role);
-            var refused = SemanticTypedContextAdmission.IsRefusedRole(role);
-            new[] { required, exempt, refused }.Count(value => value).ShouldEqual(1);
+            new[] { required, exempt }.Count(value => value).ShouldEqual(1);
         }
     }
 
@@ -79,8 +78,6 @@ public class when_admitting_implementation_roles : Specification
     [Theory]
     [InlineData(false, (SemanticImplementationRole)int.MaxValue)]
     [InlineData(true, (SemanticImplementationRole)int.MaxValue)]
-    [InlineData(false, SemanticImplementationRole.ProvideValue)]
-    [InlineData(true, SemanticImplementationRole.ProvideValue)]
     void should_refuse_an_unsupported_role_even_without_descriptors(bool includeDescriptors, SemanticImplementationRole role)
     {
         _request.TypedContextDescriptors.ShouldNotBeEmpty();

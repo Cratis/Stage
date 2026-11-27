@@ -103,6 +103,22 @@ internal static partial class round_trip_fixtures
         }
     }
 
+    internal static void VerifyRendererCell(expected_conformance_table table, round_trip_fixture fixture)
+    {
+        if (InlineNames.Contains(fixture.Name)) return;
+
+        var expected = table.Vectors[fixture.Name][conformance_surface.Renderer];
+        var rendered = fixture.Plan;
+        Assert.True(rendered.Success, string.Join(Environment.NewLine, rendered.Diagnostics));
+        Assert.NotEmpty(rendered.Artifacts);
+
+        // The matrix fingerprints typed refusals in successful plans by code and full artifact identity.
+        var actual = rendered.Refusals.SelectMany(refusal => refusal.Codes.Select(code => new refusal_fingerprint(code, null, refusal.Artifact.ToString()))).ToHashSet();
+        Assert.Equal(
+            expected.Refusals.Select(record => record.Fingerprint).OrderBy(fingerprint => fingerprint.ToString(), StringComparer.Ordinal),
+            actual.OrderBy(fingerprint => fingerprint.ToString(), StringComparer.Ordinal));
+    }
+
     static string? RendererOutcome(expected_conformance_table table, conformance_vector vector) =>
         table.Vectors.TryGetValue(vector.Name, out var cells) && cells.TryGetValue(conformance_surface.Renderer, out var cell) ? cell.Outcome : null;
 

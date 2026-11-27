@@ -28,6 +28,15 @@ public class when_running_every_canonical_vector(when_running_every_canonical_ve
     [Fact] void should_give_every_refusal_one_disposition() => Assert.True(fixture.DispositionProblems.Count == 0, string.Join(Environment.NewLine, fixture.DispositionProblems));
     [Fact] void should_compile_every_published_render() => Assert.True(fixture.UntrackedCompileErrors.Count == 0, string.Join(Environment.NewLine, fixture.UntrackedCompileErrors));
 
+    [Fact] void should_execute_every_published_replacement() => Assert.All(canonical_corpus_vectors.Replacements.Values.Distinct(StringComparer.Ordinal), replacement =>
+    {
+        Assert.True(fixture.Actual.TryGetValue(replacement, out var cells), $"Missing replacement {replacement}");
+        cells[conformance_surface.Loader].Outcome.ShouldEqual("supported");
+        cells[conformance_surface.Host].Outcome.ShouldEqual("supported");
+        cells[conformance_surface.Renderer].Outcome.ShouldEqual("supported");
+        if (replacement.EndsWith(".V25R2", StringComparison.Ordinal)) cells[conformance_surface.Executor].Outcome.ShouldEqual("supported");
+    });
+
     public class context
     {
         public context()
@@ -41,7 +50,9 @@ public class when_running_every_canonical_vector(when_running_every_canonical_ve
                 var cells = new Dictionary<conformance_surface, conformance_observation>();
                 foreach (var surface in Enum.GetValues<conformance_surface>())
                 {
-                    cells[surface] = conformance_outcomes.Execute(surface, vector).GetAwaiter().GetResult();
+                    cells[surface] = canonical_corpus_vectors.Replacements.TryGetValue(vector.Name, out var replacement)
+                        ? conformance_observation.WithoutRefusals($"superseded-by:{replacement}")
+                        : conformance_outcomes.Execute(surface, vector).GetAwaiter().GetResult();
                 }
 
                 actual[vector.Name] = cells;

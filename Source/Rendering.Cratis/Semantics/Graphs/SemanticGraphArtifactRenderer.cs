@@ -47,6 +47,8 @@ internal static class SemanticGraphArtifactRenderer
                 yield return RenderEdge(context, graph, edge, handlers);
             }
         }
+
+        foreach (var declaration in SemanticGraphProjectionDeclarationRenderer.Render(context)) yield return declaration;
     }
 
     internal static SemanticGraphProperty KeyOf(SemanticGraphNode node) => node.Properties.Single(property => property.IsKey);

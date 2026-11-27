@@ -9,8 +9,16 @@ namespace Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip.given;
 
 internal static class round_trip_model_profile
 {
-    // V48 is the lowest supported pair covering the eligible corpus without a must-use rule; its agents are optional.
+    // V48 is the promotion profile for covered pairs, not the admission ceiling; its agents are optional.
     public static (LanguageVersion Language, SemanticVersion Semantic) Common { get; } = (LanguageVersion.V48, SemanticVersion.V48);
+
+    public static void EnsureSupported(ExecutableSemanticModel model) => EsmSchemaV60Support.EnsureSupported(model.LanguageVersion, model.SemanticVersion);
+
+    public static ExecutableSemanticModel ValidateNative(ExecutableSemanticModel model)
+    {
+        EnsureSupported(model);
+        return ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, model.Application);
+    }
 
     public static bool Covers(ExecutableSemanticModel model) => AtLeast(Common.Language, model.LanguageVersion) && Common.Semantic.IsAtLeast(model.SemanticVersion);
 
@@ -22,7 +30,7 @@ internal static class round_trip_model_profile
     public static ExecutableSemanticModel Convert(ExecutableSemanticModel model)
     {
         // Validate under the declared source contract before any migration; never repair an invalid source graph.
-        var validated = ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, model.Application);
+        var validated = ValidateNative(model);
         EnsureCovered(validated);
         round_trip_meaning_gates.EnsurePreserved(validated);
         return AtCommon(validated);
@@ -31,7 +39,7 @@ internal static class round_trip_model_profile
     // Shape diagnostics only: the comparer must attach its mandatory meaning-loss difference before returning this comparison.
     public static NormalizedSemanticModel NormalizePayload(ExecutableSemanticModel model)
     {
-        var validated = ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, model.Application);
+        var validated = ValidateNative(model);
         EnsureCovered(validated);
         return SemanticModelNormalizer.Normalize(AtCommon(validated));
     }

@@ -213,7 +213,8 @@ internal static class MixedReactionRefusalProbeSource
                     var prefix = await History(store);
                     var baseline = await Failure(store, sequence, initial.Id, 0);
                     var outcome = await store.Reactors.RetryFailedPartitionFor<Worker>("unhandled");
-                    Assert.Equal(ReactorPartitionRetryOutcome.Started, outcome);
+                    // Acceptance queues the job; the newer persisted attempt below proves redelivery.
+                    Assert.Equal(ReactorPartitionRetryOutcome.Accepted, outcome);
                     var retried = await Failure(store, sequence, baseline.Id, baseline.Attempts.Count());
                     Assert.True(retried.Attempts.Count() > baseline.Attempts.Count());
                     var redelivered = await History(store);

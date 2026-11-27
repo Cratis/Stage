@@ -34,7 +34,7 @@ public class with_a_reaction_reading_the_same_view : for_SemanticReactionSpecifi
               specification StartingAnUnknownItem
                 when Start
                   id = "unknown"
-                then error "Item 'unknown' does not exist."
+                then error "Item does not exist."
             slice StateView Items
               event Placed
                 id String

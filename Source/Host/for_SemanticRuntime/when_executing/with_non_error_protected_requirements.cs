@@ -50,7 +50,7 @@ public class with_non_error_protected_requirements : Specification
 
     static SemanticExecutionPlan Plan(SemanticValidationSeverity severity)
     {
-        var model = SemanticModelSerializer.Deserialize(ProtectedCommandReadsCorpus.V25.EsmBytes.AsSpan());
+        var model = SemanticModelSerializer.Deserialize(ProtectedReadReplacements.V25R2.EsmBytes.AsSpan());
         var module = model.Application.Modules.Single();
         var feature = module.Features.Single();
         var slice = feature.Slices.Single(slice => slice.Name == "Use");

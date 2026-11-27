@@ -34,7 +34,14 @@ V3–V24. The catalog belongs to the harness; production rendering still refuses
 
 # Protected command read race coverage (#557)
 
-`ProtectedCommandReadRaceVectors.Model` has renderer `supported` because the
+Screenplay decision 0170 supersedes V25, race V1 and race V1R2 without changing
+published bytes. The matrix records their replacements instead of running the
+superseded behavioral expectations. The round trip follows the matrix's renderer
+surface, so it also runs the replacement models rather than the superseded ones.
+The v60 golden loads but exercises the existing typed refusal for an unaudited
+ESM pair at execution, Host admission, and rendering.
+
+`ProtectedReadReplacements.RaceModelV1R3` has renderer `supported` because the
 whole model renders, including the protected `Update` read and its `UniqueValue`
 append-time constraint. The cell records render admission, not execution of every
 prepared-decision vector.

@@ -22,7 +22,7 @@ public class with_refused_protected_read_keys : Specification
 
     void Establish()
     {
-        _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(ProtectedCommandReadsCorpus.V25.EsmBytes.AsSpan())).Plan;
+        _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(ProtectedReadReplacements.V25R2.EsmBytes.AsSpan())).Plan;
         _log = new();
         _runtime = _log.Runtime(_plan, SemanticWorld.Empty);
     }
@@ -57,7 +57,7 @@ public class with_refused_protected_read_keys : Specification
         var attempts = _log.Attempts.Count;
         var rejected = Assert.IsType<SemanticRejected>(await Execute(command.Name, new { id = "target", sourceId = key }, validateOnly));
         rejected.Category.ShouldEqual(SemanticRejectionCategory.Validation);
-        rejected.Details.ShouldEqual($"Current '{key}' does not exist.");
+        rejected.Details.ShouldEqual("Current does not exist.");
         rejected.Details.ShouldEqual(specification.ThenErrors.Single().Message);
         rejected.World.Facts.Length.ShouldEqual(specification.GivenEvents.Length);
         _log.Facts.Count.ShouldEqual(specification.GivenEvents.Length);

@@ -82,14 +82,18 @@ internal static partial class round_trip_fixtures
     // The names of every fixture that is eligible for the round trip, before the ledger's exclusions.
     public static IReadOnlyList<string> EligibleNames(expected_conformance_table table) =>
     [
-        .. canonical_corpus_vectors.All.Where(vector => IsRendererSupported(table, vector.Name)).Select(vector => vector.Name),
+        .. canonical_corpus_vectors.All.Where(vector =>
+        {
+            var outcome = RendererOutcome(table, vector);
+            return outcome == "supported" || outcome?.StartsWith("superseded-by:", StringComparison.Ordinal) == true;
+        }).Select(vector => vector.Name),
         .. InlineNames
     ];
 
     public static IEnumerable<round_trip_fixture> Fixtures(expected_conformance_table table, IEnumerable<string> excluded)
     {
         var skipped = excluded.ToHashSet(StringComparer.Ordinal);
-        foreach (var vector in canonical_corpus_vectors.All.Where(vector => IsRendererSupported(table, vector.Name) && !skipped.Contains(vector.Name)))
+        foreach (var vector in canonical_corpus_vectors.All.Where(vector => RendererOutcome(table, vector) == "supported" && !skipped.Contains(vector.Name)))
         {
             yield return Corpus(vector);
         }
@@ -100,8 +104,8 @@ internal static partial class round_trip_fixtures
         }
     }
 
-    static bool IsRendererSupported(expected_conformance_table table, string vector) =>
-        table.Vectors.TryGetValue(vector, out var cells) && cells.TryGetValue(conformance_surface.Renderer, out var cell) && cell.Outcome == "supported";
+    static string? RendererOutcome(expected_conformance_table table, conformance_vector vector) =>
+        table.Vectors.TryGetValue(vector.Name, out var cells) && cells.TryGetValue(conformance_surface.Renderer, out var cell) ? cell.Outcome : null;
 
     // Plans the vector the way the conformance matrix's renderer surface does, so both agree on what 'supported' rendered.
     static round_trip_fixture Corpus(conformance_vector vector)

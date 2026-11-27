@@ -456,7 +456,7 @@ DateTime combined with opaque validation returns `Validation` in the reference b
 Stage path. `Unsupported` never counts as a pass. The renderer renders these comparisons (see
 [Stage rendering](../reference/stage-rendering.md)); the legacy engines refuse them with `STAGE-ESM-046`.
 The semantic engine executes `command reads protected`: after authorization and property/concept rules, each
-required view must exist at its declared key. Absence rejects validation with `Current '<key>' does not exist.`
+required view must exist at its declared key. Absence rejects validation with `Current does not exist.` (Screenplay decision 0170)
 (using the view's name), before requirements or generation. All requirements then run, including read-backed
 conditions; produced-event mappings can read the stored view values. `/validate` also reports required absence.
 Protected commands with non-Error requirement severities remain refused with `STAGE-ESM-045` until Screenplay defines their severity semantics.

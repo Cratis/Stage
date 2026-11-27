@@ -69,7 +69,7 @@ public class when_comparing_protected_reads_with_concept_keys(when_comparing_pro
                   specification ApprovingAnUnknownPlant
                     when ApprovePlant
                       plantId = "4fa85f64-5717-4562-b3fc-2c963f66afa7"
-                    then error "PlantReadiness '4fa85f64-5717-4562-b3fc-2c963f66afa7' does not exist."
+                    then error "PlantReadiness does not exist."
                 slice StateChange Withdrawing
                   event PlantWithdrawn
                   command WithdrawPlant

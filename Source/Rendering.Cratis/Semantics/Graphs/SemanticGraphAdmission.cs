@@ -157,6 +157,7 @@ internal static class SemanticGraphAdmission
             }
 
             CheckSharedElements();
+            CheckProjectionOwnership();
         }
 
         public void Queries()
@@ -387,6 +388,19 @@ internal static class SemanticGraphAdmission
                 foreach (var owned in owners)
                 {
                     Refuse($"Graph '{group.Key}' is built by several projections that all handle '{owned.Key}'; a model-bound graph type is the projection of its own element.");
+                }
+            }
+        }
+
+        void CheckProjectionOwnership()
+        {
+            var handlerProjections = context.Application.GraphProjections.Where(projection =>
+                projection.Nodes.Concat(projection.Edges).Any(element => !element.Handlers.IsDefaultOrEmpty));
+            foreach (var group in handlerProjections.GroupBy(projection => projection.Graph, StringComparer.Ordinal))
+            {
+                if (group.Any(projection => projection.DeclaringSlice is not null) && group.Any(projection => projection.DeclaringSlice is null))
+                {
+                    Refuse($"Graph '{group.Key}' mixes projections with a declaring slice and ownerless handler-bearing projections; Arc cannot recover all of them together. Give every handler-bearing projection a declaring slice or leave all of them ownerless.");
                 }
             }
         }

@@ -55,7 +55,7 @@ internal sealed class SemanticDecisionReadRendering(SemanticCommand command, Sem
         foreach (var read in command.Reads)
         {
             var view = context.ReadModels[read.ReadModel];
-            var message = $"{CSharpCodeBuilder.StringLiteral($"{view.Name} '")} + {KeyText(read)} + {CSharpCodeBuilder.StringLiteral("' does not exist.")}";
+            var message = CSharpCodeBuilder.StringLiteral($"{view.Name} does not exist.");
             builder.Line($"if ({Scope.Local(read.Name)} is null) return {result}.FromT1(global::Cratis.Arc.Validation.ValidationResult.Error({message}));");
         }
     }
@@ -71,13 +71,5 @@ internal sealed class SemanticDecisionReadRendering(SemanticCommand command, Sem
         var property = Scope.Property(path.Read, path.PropertyId) ?? throw UnsupportedSemanticRendering.For(nameof(SemanticReadPathExpression), path.Read);
 
         return $"{Scope.Local(path.Read)}.{Identifiers.ToPascalCase(property.Name)}";
-    }
-
-    string KeyText(SemanticDecisionRead read)
-    {
-        var key = command.Properties.Single(property => property.Id == read.Key);
-        var value = SemanticCommandResultRendering.PropertyValue(key, context);
-
-        return key.Type.Kind == SemanticTypeReferenceKind.Concept ? $"{value}.Value" : value;
     }
 }

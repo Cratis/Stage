@@ -14,11 +14,11 @@ namespace Cratis.Stage.Conformance.Specs.for_ThreeWayConformance;
 
 public class when_comparing_protected_command_reads(when_comparing_protected_command_reads.context fixture) : IClassFixture<when_comparing_protected_command_reads.context>
 {
-    // Arc 22.131 rejects the six decision-0091 invalid keys before acquiring protected state.
+    // Screenplay decision 0170 and Arc both report the view without the key.
     // All nineteen specifications must retain parity in every source form.
     const int OutcomeCount = 76;
 
-    static string[] RefusedKeyOutcomes => [.. ProtectedCommandReadsCorpus.V25.SourceForms.SelectMany(form => refused_read_keys.Names.Select(name =>
+    static string[] RefusedKeyOutcomes => [.. ProtectedReadReplacements.V25R2.SourceForms.SelectMany(form => refused_read_keys.Names.Select(name =>
         $"{form.Name}/{name}: Reference=Passed, Stage=Passed, Rendered=Passed"))];
 
     [Fact] void should_have_no_differences() => fixture.Differences.ShouldBeEmpty();
@@ -30,10 +30,10 @@ public class when_comparing_protected_command_reads(when_comparing_protected_com
     {
         protected override string ApplicationName => "ProtectedReads";
         protected override string ProjectFile => "ProtectedReads.csproj";
-        protected override CanonicalCorpusVector? Baseline => ProtectedCommandReadsCorpus.V25;
+        protected override CanonicalCorpusVector? Baseline => ProtectedReadReplacements.V25R2;
         protected override bool RequireStageExecution => true;
         protected override IEnumerable<(string Form, ExecutableSemanticModel Model)> Models =>
-            ProtectedCommandReadsCorpus.V25.SourceForms.Select(form => (form.Name, Compile(ProtectedCommandReadsCorpus.V25, form)));
+            ProtectedReadReplacements.V25R2.SourceForms.Select(form => (form.Name, Compile(ProtectedReadReplacements.V25R2, form)));
 
         Task Because()
         {

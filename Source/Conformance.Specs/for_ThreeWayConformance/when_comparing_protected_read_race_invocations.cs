@@ -28,7 +28,7 @@ public class when_comparing_protected_read_race_invocations(when_comparing_prote
 
         protected override ArtifactRenderPlan CreatePlan()
         {
-            var model = SemanticModelSerializer.Deserialize(ProtectedCommandReadRaceVectors.Model.EsmBytes.AsSpan());
+            var model = SemanticModelSerializer.Deserialize(ProtectedReadReplacements.RaceModelV1R3.EsmBytes.AsSpan());
 
             return CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("ProtectedCommandReadRaces", "ProtectedCommandReadRaces"));
         }

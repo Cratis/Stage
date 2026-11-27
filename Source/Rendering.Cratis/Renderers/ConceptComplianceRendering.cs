@@ -18,14 +18,23 @@ internal static class ConceptComplianceRendering
     {
         var pii = concept.Attributes.FirstOrDefault(attribute => attribute.Name == ConceptAttributeSyntax.Pii);
         var secret = concept.Attributes.FirstOrDefault(attribute => attribute.Name == ConceptAttributeSyntax.Sensitive);
-        RenderProtection(builder, new(pii is not null, pii is not null && complianceDetails ? Details(pii) : string.Empty, secret is not null ? Encrypted(secret.Scope, secret.Reason, complianceDetails, false) : null), false);
+        if (pii is not null)
+        {
+            new PersonalConceptCompliance(pii.SpecialCategory, pii.Criminal, secret is not null).Render(builder, false);
+            RenderDetails(builder, pii, complianceDetails);
+        }
+        else if (secret is not null)
+        {
+            Attribute(builder, "Cratis.Chronicle.ProtectedValues", Encrypted(secret.Scope, secret.Reason, complianceDetails));
+            Attribute(builder, "Cratis.Arc.Chronicle.Commands", "NotAudited");
+        }
     }
 
     internal static void Render(CSharpCodeBuilder builder, SemanticConceptCompliance? compliance)
     {
-        if (compliance?.Personal is not null)
+        if (compliance?.Personal is { } personal)
         {
-            builder.Attribute(builder.Type(new("Cratis.Chronicle.Compliance.GDPR", "PIIAttribute", 0, ReferenceContext.Attribute)));
+            new PersonalConceptCompliance(personal.Special, personal.Criminal, compliance.Secret is not null).Render(builder, true);
         }
         else if (compliance?.Secret is { } secret)
         {
@@ -37,40 +46,30 @@ internal static class ConceptComplianceRendering
         }
     }
 
-    static void RenderProtection(CSharpCodeBuilder builder, Protection protection, bool qualified)
+    static void RenderDetails(CSharpCodeBuilder builder, ConceptAttributeSyntax pii, bool complianceDetails)
     {
-        if (protection.Personal)
+        if (!complianceDetails) return;
+        var details = Details(pii);
+        if (details.Length > 0)
         {
-            Attribute(builder, "Cratis.Chronicle.Compliance.GDPR", qualified ? "PIIAttribute" : "PII", qualified);
-            if (protection.Details.Length > 0)
-            {
-                Attribute(builder, "Cratis.Chronicle.Compliance", $"ComplianceDetails({CSharpCodeBuilder.StringLiteral(protection.Details)})", qualified);
-            }
-        }
-        else if (protection.Encrypted is { } encrypted)
-        {
-            Attribute(builder, "Cratis.Chronicle.ProtectedValues", encrypted, qualified);
-            Attribute(builder, "Cratis.Arc.Chronicle.Commands", qualified ? "NotAuditedAttribute" : "NotAudited", qualified);
+            Attribute(builder, "Cratis.Chronicle.Compliance", $"ComplianceDetails({CSharpCodeBuilder.StringLiteral(details)})");
         }
     }
 
-    static void Attribute(CSharpCodeBuilder builder, string @namespace, string attribute, bool qualified)
+    static void Attribute(CSharpCodeBuilder builder, string @namespace, string attribute)
     {
-        if (!qualified) builder.Using(@namespace);
-        builder.Attribute(qualified ? $"global::{@namespace}.{attribute}" : attribute);
+        builder.Using(@namespace).Attribute(attribute);
     }
 
-    static string Encrypted(string? declaredScope, string? reason, bool complianceDetails, bool qualified)
+    static string Encrypted(string? declaredScope, string? reason, bool complianceDetails)
     {
         var scope = Identifiers.ToPascalCase(declaredScope ?? "subject");
-        var attribute = qualified ? "EncryptedAttribute" : "Encrypted";
-        var scopeType = qualified ? "global::Cratis.Chronicle.ProtectedValues.EncryptionScope" : "EncryptionScope";
         if (complianceDetails && (declaredScope is not null || reason is not null))
         {
-            return $"{attribute}({scopeType}.{scope}, {CSharpCodeBuilder.StringLiteral(reason ?? string.Empty)})";
+            return $"Encrypted(EncryptionScope.{scope}, {CSharpCodeBuilder.StringLiteral(reason ?? string.Empty)})";
         }
 
-        return scope == "Subject" ? attribute : $"{attribute}({scopeType}.{scope})";
+        return scope == "Subject" ? "Encrypted" : $"Encrypted(EncryptionScope.{scope})";
     }
 
     static string Details(ConceptAttributeSyntax pii)
@@ -93,6 +92,4 @@ internal static class ConceptComplianceRendering
 
         return string.Join(' ', parts);
     }
-
-    sealed record Protection(bool Personal, string Details, string? Encrypted);
 }

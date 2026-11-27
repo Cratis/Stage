@@ -16,7 +16,7 @@ public class with_protected_command_reads : Specification
 
     void Because()
     {
-        var model = SemanticModelSerializer.Deserialize(ProtectedCommandReadsCorpus.V25.EsmBytes.AsSpan());
+        var model = SemanticModelSerializer.Deserialize(ProtectedReadReplacements.V25R2.EsmBytes.AsSpan());
         _admission = new(SemanticExecutionPlan.Compile(model, []).Plan);
     }
 

@@ -22,7 +22,7 @@ public class when_diffing_corpus_read_protection : Specification
 
     void Because()
     {
-        foreach (var vector in canonical_corpus_vectors.All) Compare(vector);
+        foreach (var vector in canonical_corpus_vectors.All.Where(vector => !canonical_corpus_vectors.Replacements.ContainsKey(vector.Name))) Compare(vector);
     }
 
     void Compare(conformance_vector vector)
@@ -44,7 +44,7 @@ public class when_diffing_corpus_read_protection : Specification
             }
             : new ArtifactRenderRequest(model, execution, profile, scope);
         var plan = new CratisArtifactRenderPlanner().Plan(request);
-        if (vector.Name == "ProtectedCommandReadsCorpus.V25") Assert.True(plan.Success, string.Join('\n', plan.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        if (vector.Name == "ProtectedReadReplacements.V25R2") Assert.True(plan.Success, string.Join('\n', plan.Diagnostics.Select(diagnostic => diagnostic.Message)));
         if (!plan.Success) return; // Refused models have no generated commands to compare.
 
         var code = string.Join('\n', plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal)).Select(artifact => Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
@@ -63,7 +63,7 @@ public class when_diffing_corpus_read_protection : Specification
     }
 
     [Fact] void should_compare_commands_that_previously_had_protection() => _previouslyProtected.ShouldNotBeEmpty();
-    [Fact] void should_include_all_three_canonical_protected_commands() => _previouslyProtected.Count(identity => identity.StartsWith("ProtectedCommandReadsCorpus.V25/", StringComparison.Ordinal)).ShouldEqual(3);
+    [Fact] void should_include_all_three_canonical_protected_commands() => _previouslyProtected.Count(identity => identity.StartsWith("ProtectedReadReplacements.V25R2/", StringComparison.Ordinal)).ShouldEqual(3);
     [Fact] void should_keep_every_previously_protected_command_under_project_protection() => _projectProtected.ShouldEqual(_previouslyProtected);
 }
 #endif

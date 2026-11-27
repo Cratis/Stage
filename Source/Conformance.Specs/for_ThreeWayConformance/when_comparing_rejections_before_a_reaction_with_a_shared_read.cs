@@ -66,7 +66,7 @@ public class when_comparing_rejections_before_a_reaction_with_a_shared_read(when
                   specification InspectingAnUnknownPlant
                     when InspectPlant
                       id = "unknown"
-                    then error "PlantRecord 'unknown' does not exist."
+                    then error "PlantRecord does not exist."
                 slice Automation TagAfterInspecting
                   reaction TagInspected
                     when PlantInspected

@@ -23,7 +23,7 @@ internal static class arc_round_trip
 {
     public static RoundTripObservation Run(round_trip_fixture fixture, Action<string>? observeSource = null)
     {
-        round_trip_model_profile.EnsureCovered(fixture.Model);
+        round_trip_model_profile.EnsureSupported(fixture.Model);
         var plan = fixture.Plan;
         Assert.True(plan.Success, $"{fixture.Name} did not plan:{Environment.NewLine}{string.Join(Environment.NewLine, plan.Diagnostics)}");
         var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs" && !artifact.RelativePath.StartsWith("Frontend/", StringComparison.Ordinal))
@@ -63,7 +63,7 @@ internal static class arc_round_trip
         ? reference.WithAliases(["ChronicleKernel"])
         : reference));
 
-    static (ExecutableSemanticModel? Model, ImmutableArray<string> Errors) Recover(string applicationName, string source)
+    internal static (ExecutableSemanticModel? Model, ImmutableArray<string> Errors) Recover(string applicationName, string source)
     {
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create(applicationName));
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("roundtrip"), "roundtrip", "RoundTrip.play", source);

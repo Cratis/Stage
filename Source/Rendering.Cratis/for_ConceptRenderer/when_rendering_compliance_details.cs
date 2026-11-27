@@ -46,12 +46,12 @@ public class when_rendering_compliance_details : compliance_concepts
     }.All(entry => _files[entry.Key].Content.Contains($"[ComplianceDetails(\"GDPR Art. 9(1) special category: {entry.Value}.\")]", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_render_criminal_data() => _files["Convictions"].Content.ShouldContain("[ComplianceDetails(\"GDPR Art. 10 criminal offence data.\")]");
     [Fact] void should_order_special_then_criminal_then_reason() => _files["MedicalNote"].Content.ShouldContain("[ComplianceDetails(\"GDPR Art. 9(1) special category: health. GDPR Art. 10 criminal offence data. Clinical evidence.\")]");
-    [Fact] void should_keep_pii_for_every_personal_concept() => _applicationSet.Concepts.Where(entry => entry.Value.AttributeNames.Contains("pii")).All(entry => _files[entry.Key].Content.Contains("[PII]", StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_only_render_personal_details_for_both_markers() => _files["PersonalSecret"].Content.ShouldContain("[PII]\n[ComplianceDetails(\"Personal credential.\")]");
+    [Fact] void should_keep_pii_for_every_personal_concept() => _applicationSet.Concepts.Where(entry => entry.Value.AttributeNames.Contains("pii")).All(entry => _files[entry.Key].Content.Contains("[PII", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_only_render_personal_details_for_both_markers() => _files["PersonalSecret"].Content.ShouldContain("[PII(OperationalSecret = true)]\n[NotAudited]\n[ComplianceDetails(\"Personal credential.\")]");
     [Fact] void should_not_encrypt_both_markers() => _files["PersonalSecret"].Content.ShouldNotContain("Encrypted");
     [Fact] void should_not_render_the_secret_reason_for_both_markers() => _files["PersonalSecret"].Content.ShouldNotContain("Do not expose.");
     [Fact] void should_ignore_explicit_secret_scope_on_personal_data() => _bothWithScope.Content.ShouldEqual(_files["PersonalSecret"].Content);
-    [Fact] void should_not_add_not_audited_for_both_markers() => _files["PersonalSecret"].Content.ShouldNotContain("NotAudited");
+    [Fact] void should_withhold_operational_personal_secrets_from_causation() => _files["PersonalSecret"].Content.ShouldContain("[NotAudited]");
     [Fact] void should_keep_bare_secret_output() => _files["BareSecret"].Content.ShouldContain("[Encrypted]\n[NotAudited]");
     [Fact] void should_use_chronicle_default_scope_for_a_reason_without_scope() => _files["ReasonSecret"].Content.ShouldContain("[Encrypted(EncryptionScope.Subject, \"A credential.\")]\n[NotAudited]");
     [Fact] void should_render_explicit_subject_without_a_reason() => _files["SubjectSecret"].Content.ShouldContain("[Encrypted(EncryptionScope.Subject, \"\")]\n[NotAudited]");

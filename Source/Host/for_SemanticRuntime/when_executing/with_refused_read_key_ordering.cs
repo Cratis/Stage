@@ -16,7 +16,7 @@ public class with_refused_read_key_ordering : Specification
     [InlineData(false, "", SemanticRejectionCategory.Unauthorized, null)]
     [InlineData(false, "target", SemanticRejectionCategory.Unauthorized, null)]
     [InlineData(true, "", SemanticRejectionCategory.Validation, "Id is required.")]
-    [InlineData(true, "target", SemanticRejectionCategory.Validation, "Current '*' does not exist.")]
+    [InlineData(true, "target", SemanticRejectionCategory.Validation, "Current does not exist.")]
     public async Task should_preserve_authorization_then_property_rules_then_reads_then_requirements(bool authenticated, string id, SemanticRejectionCategory category, string? message)
     {
         var plan = compiled_plan.From("""

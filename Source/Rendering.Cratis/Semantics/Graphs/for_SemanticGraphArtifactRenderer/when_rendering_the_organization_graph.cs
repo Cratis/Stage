@@ -18,10 +18,12 @@ public class when_rendering_the_organization_graph : Specification
         _files = [.. SemanticGraphArtifactRenderer.Render(an_organization_graph_model.Context())];
     }
 
+    IEnumerable<RenderedFile> Records => _files.Where(file => file.RelativePath.StartsWith("Graphs/", StringComparison.Ordinal));
+
     string Content(string name) => _files.Single(file => file.RelativePath.EndsWith($"/{name}.cs", StringComparison.Ordinal)).Content;
 
-    [Fact] void should_render_a_record_per_node_and_edge() => _files.Select(file => Path.GetFileName(file.RelativePath)).Order(StringComparer.Ordinal).ShouldEqual(["Group.cs", "HasRole.cs", "MemberOf.cs", "Person.cs"]);
-    [Fact] void should_place_them_under_the_graph_folder() => _files.ShouldEachConformTo(file => file.RelativePath.StartsWith("Graphs/Organization/", StringComparison.Ordinal));
+    [Fact] void should_render_a_record_per_node_and_edge() => Records.Select(file => Path.GetFileName(file.RelativePath)).Order(StringComparer.Ordinal).ShouldEqual(["Group.cs", "HasRole.cs", "MemberOf.cs", "Person.cs"]);
+    [Fact] void should_place_them_under_the_graph_folder() => Records.ShouldEachConformTo(file => file.RelativePath.StartsWith("Graphs/Organization/", StringComparison.Ordinal));
     [Fact] void should_name_the_graph() => Content("Person").ShouldContain("[Graph(\"Organization\")]");
     [Fact] void should_mark_a_node() => Content("Person").ShouldContain("[Node]");
     [Fact] void should_not_let_chronicle_map_what_the_model_did_not_say() => Content("Person").ShouldContain("[NoAutoMap]");

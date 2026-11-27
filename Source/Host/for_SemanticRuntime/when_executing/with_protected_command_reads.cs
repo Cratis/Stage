@@ -25,7 +25,7 @@ public class with_protected_command_reads : Specification
 
     void Establish()
     {
-        _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(ProtectedCommandReadsCorpus.V25.EsmBytes.AsSpan())).Plan;
+        _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(ProtectedReadReplacements.V25R2.EsmBytes.AsSpan())).Plan;
         _log = new();
         _runtime = _log.Runtime(_plan, SemanticWorld.Empty);
     }
@@ -42,7 +42,7 @@ public class with_protected_command_reads : Specification
             var outcome = await Execute(name, new { id = "target", sourceId = "missing", approved = false }, validateOnly);
             var rejected = Assert.IsType<SemanticRejected>(outcome);
             rejected.Category.ShouldEqual(SemanticRejectionCategory.Validation);
-            rejected.Details.ShouldEqual("Current 'missing' does not exist.");
+            rejected.Details.ShouldEqual("Current does not exist.");
             rejected.World.Facts.ShouldBeEmpty();
         }
         _log.Attempts.ShouldBeEmpty();

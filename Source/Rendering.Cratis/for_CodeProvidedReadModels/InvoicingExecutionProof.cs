@@ -11,8 +11,8 @@ internal static class InvoicingExecutionProof
         using System.Security.Claims;
         using Cratis.Arc.Authorization;
         using Cratis.Arc.Availability;
+        using Cratis.Arc.Availability.Audiences;
         using Cratis.Arc.MongoDB;
-        using Cratis.Choreography.Availability.Audiences;
         using Cratis.Chronicle;
         using Cratis.Specifications;
         using Microsoft.Extensions.DependencyInjection;

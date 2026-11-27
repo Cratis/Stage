@@ -18,7 +18,7 @@ public class when_evaluating_versions : given.a_range_model
     public void should_preserve_audited_pairs(int version)
     {
         if (version == 31) Versions(31, 0, 31, 0);
-        if (version == 25) SetModel(SemanticModelSerializer.Deserialize(ProtectedCommandReadsCorpus.V25.EsmBytes.AsSpan()));
+        if (version == 25) SetModel(SemanticModelSerializer.Deserialize(ProtectedReadReplacements.V25R2.EsmBytes.AsSpan()));
         var verdict = CratisEsmRangeAdmission.Evaluate(_request, _context);
         verdict.IsAdmitted.ShouldBeTrue();
         verdict.Standing.Version.ShouldEqual(EsmVersionStanding.Audited);

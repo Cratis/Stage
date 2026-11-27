@@ -59,8 +59,7 @@ public class with_the_default_composition : a_register_project_render_request
     // Recomputed for #1146's dependency sync and Arc#3975 together with main's DiagnosticSource 11 and proxy-generator runtime wiring.
     // Recomputed for the Arc 24.8.1, Showrunner 2.28.1 and Scene 6.2.1 npm pins from main: only package.json changes on top of #1146.
     // Recomputed for Chronicle 19.191.0 (Cratis/Stage#1206): only the Chronicle pins in Directory.Packages.props and docker-compose.yml change.
-    // TODO(#1206 fold): recompute on combined tree
-    const string Before = "6a1099c0705451ca379c4aca1cbdc3989b40468d894a0776749626d1bcc0b9f7";
+    const string Before = "de29645b60e56041a6d36e29bf800a6a480a087e988e9f66c2d94777d5388ecd";
 
     ArtifactRenderPlan _plan = null!;
 

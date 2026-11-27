@@ -112,7 +112,7 @@ public class when_comparing_protected_composite_read_mappings(when_comparing_pro
                   specification ConfirmingAnUnknownOrder
                     when ConfirmOrder
                       id = "unknown"
-                    then error "PlacedOrder 'unknown' does not exist."
+                    then error "PlacedOrder does not exist."
                 slice StateChange Cancelling
                   event OrderCancelled
                   command CancelOrder

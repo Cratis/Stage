@@ -1,16 +1,19 @@
 {
   "schema": "cratis.screenplay.loss-ledger/v1",
   "target": "cratis-arc",
-  "corpusVersion": "6.44.0",
+  "corpusVersion": "7.0.0",
   "minimumFixtureCount": 29,
   "budget": {
-    "maximumEntries": 196,
+    "maximumEntries": 217,
     "maximumByDesign": 0,
-    "maximumExclusions": 2
+    "maximumExclusions": 5
   },
   "excludedFixtures": {
     "AcmeAdmissionsCorpus.V29": "Rendered output does not compile (CS1503), Cratis/Stage#822",
-    "EventRoutesCorpus.CompositesV8": "Rendered output does not compile (CS0246), Cratis/Stage#823"
+    "EventRoutesCorpus.CompositesV8": "Rendered output does not compile (CS0246), Cratis/Stage#823",
+    "ProtectedCommandReadRaceVectors.Model": "Superseded by ProtectedReadReplacements.RaceModelV1R3 (Screenplay decision 0170)",
+    "ProtectedCommandReadRaceVectors.ModelV1R2": "Superseded by ProtectedReadReplacements.RaceModelV1R3 (Screenplay decision 0170)",
+    "ProtectedCommandReadsCorpus.V25": "Superseded by ProtectedReadReplacements.V25R2 (Screenplay decision 0170)"
   },
   "losses": [
     {
@@ -255,14 +258,6 @@
     },
     {
       "fixture": "GenerationSupportCorpus.V21",
-      "change": "changed",
-      "path": "/application/concepts[InvoiceRef]/validations[0]/message",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3554"
-    },
-    {
-      "fixture": "GenerationSupportCorpus.V21",
       "change": "missing",
       "path": "/application/modules[Shop]/features[References]/slices[Record]/specifications[ValidStoredChecksum]",
       "direction": "adapter",
@@ -284,27 +279,6 @@
       "direction": "adapter",
       "diagnostics": [],
       "issue": "Cratis/Arc#3547"
-    },
-    {
-      "fixture": "ProtectedCommandReadRaceVectors.Model",
-      "change": "uncompilable",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Stage#515"
-    },
-    {
-      "fixture": "ProtectedCommandReadRaceVectors.ModelV1R2",
-      "change": "uncompilable",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Stage#515"
-    },
-    {
-      "fixture": "ProtectedCommandReadsCorpus.V25",
-      "change": "uncompilable",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Stage#515"
     },
     {
       "fixture": "PublicEventsCorpus.CapturesFromEventsV9",
@@ -1065,16 +1039,6 @@
       "issue": "Cratis/Arc#3547"
     },
     {
-      "fixture": "ProtectedCommandReadsCorpus.V25",
-      "change": "diagnostic",
-      "path": "/diagnostics[SP0039]",
-      "direction": "adapter",
-      "diagnostics": [
-        "SP0039"
-      ],
-      "issue": "Cratis/Arc#3547"
-    },
-    {
       "fixture": "PublicEventsCorpus.CapturesFromEventsV9",
       "change": "diagnostic",
       "path": "/diagnostics[SP0039]",
@@ -1293,14 +1257,6 @@
       "direction": "adapter",
       "diagnostics": [],
       "issue": "Cratis/Arc#3552"
-    },
-    {
-      "fixture": "QueryValidationCorpus.V18",
-      "change": "changed",
-      "path": "/version-meaning-unproven[V11 numeric literal lowering]/application/Concepts[1]/Validations[0]/Operand",
-      "direction": "adapter",
-      "diagnostics": [],
-      "issue": "Cratis/Arc#3559"
     },
     {
       "fixture": "QueryValidationCorpus.V18",
@@ -1606,6 +1562,46 @@
       "fixture": "EsmGoldenVectors.V34",
       "change": "changed",
       "path": "/version-meaning-unproven[V8 occurrence route admission]/application/Modules[0]/Features[0]/Slices[2]/Events[0]",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "ProtectedReadReplacements.RaceModelV1R3",
+      "change": "uncompilable",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Stage#515"
+    },
+    {
+      "fixture": "ProtectedReadReplacements.V25R2",
+      "change": "uncompilable",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Stage#515"
+    },
+    {
+      "fixture": "ProtectedReadReplacements.V25R2",
+      "change": "diagnostic",
+      "path": "/diagnostics[SP0039]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "GenerationSupportCorpus.V21",
+      "change": "changed",
+      "path": "/application/concepts[InvoiceRef]/validations[0]/message",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3554"
+    },
+    {
+      "fixture": "QueryValidationCorpus.V18",
+      "change": "changed",
+      "path": "/version-meaning-unproven[V11 numeric literal lowering]/application/Concepts[1]/Validations[0]/Operand",
       "direction": "adapter",
       "diagnostics": [],
       "issue": "Cratis/Arc#3559"

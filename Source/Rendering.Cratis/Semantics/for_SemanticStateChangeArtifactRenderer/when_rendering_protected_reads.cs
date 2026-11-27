@@ -21,7 +21,7 @@ public class when_rendering_protected_reads : Specification
 
     void Because()
     {
-        var model = SemanticModelSerializer.Deserialize(ProtectedCommandReadsCorpus.V25.EsmBytes.AsSpan());
+        var model = SemanticModelSerializer.Deserialize(ProtectedReadReplacements.V25R2.EsmBytes.AsSpan());
         var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("ProtectedReads", "ProtectedReads"));
         _code = string.Join('\n', plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal)).Select(artifact => Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
         _properties = Encoding.UTF8.GetString(plan.Artifacts.Single(artifact => artifact.RelativePath == "Directory.Build.props").Bytes.AsSpan());
@@ -32,7 +32,7 @@ public class when_rendering_protected_reads : Specification
     [Fact] void should_enable_read_protection_in_the_project() => XDocument.Parse(_properties).Descendants("CratisReadProtection").Single().Value.ShouldEqual("On");
     [Fact] void should_not_emit_unprotected_commands() => _code.ShouldNotContain("Unprotected");
     [Fact] void should_look_the_view_up_by_its_key() => _code.ShouldContain("[LookUpBy(nameof(Consume.SourceId))] Current? current");
-    [Fact] void should_guard_absence_with_the_reference_message() => _code.ShouldContain("if (current is null) return " + Union + ".FromT1(ValidationResult.Error(\"Current '\" + SourceId + \"' does not exist.\"));");
+    [Fact] void should_guard_absence_with_the_reference_message() => _code.ShouldContain("if (current is null) return " + Union + ".FromT1(ValidationResult.Error(\"Current does not exist.\"));");
     [Fact] void should_guard_absence_before_the_requirement() => _code.IndexOf("current is null", StringComparison.Ordinal).ShouldBeLessThan(_code.IndexOf("The stored value must not be empty.", StringComparison.Ordinal));
     [Fact] void should_guard_the_requirement_inside_handle() => _code.ShouldContain("if (!(!object.Equals(current.Value, \"\"))) return " + Union + ".FromT1(ValidationResult.Error(\"The stored value must not be empty.\"));");
     [Fact] void should_map_the_read_path_into_the_event() => _code.ShouldContain("new Taken(current.Value)");

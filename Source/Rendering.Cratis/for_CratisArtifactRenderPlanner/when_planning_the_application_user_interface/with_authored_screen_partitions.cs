@@ -58,8 +58,7 @@ public class with_authored_screen_partitions : a_partitioned_screen_plan
     // Recomputed for #1146's dependency sync and Arc#3975 together with main's DiagnosticSource 11 and proxy-generator runtime wiring.
     // Recomputed for the Arc 24.8.1, Showrunner 2.28.1 and Scene 6.2.1 npm pins from main: only package.json changes on top of #1146.
     // Recomputed for Chronicle 19.191.0 (Cratis/Stage#1206): only the Chronicle pins in Directory.Packages.props and docker-compose.yml change.
-    // TODO(#1206 fold): recompute on combined tree
-    const string Before = "5e502253289fefb720736ec540ff655bd57511033a461246aead0ebd62dc4649";
+    const string Before = "6efae051df262ca94ef112b232b11e4aa5b850b3d0074885166360cafb319ff1";
 
     void Because() => _application = AppPlan(_profile);
 

@@ -40,7 +40,7 @@ public record Consume(string SourceId, string Id) : ICanProvideEventSourceId
 
     public OneOf<EventForEventSourceId, ValidationResult> Handle([LookUpBy(nameof(Consume.SourceId))] Current? current)
     {
-        if (current is null) return OneOf<EventForEventSourceId, ValidationResult>.FromT1(ValidationResult.Error("Current '" + SourceId + "' does not exist."));
+        if (current is null) return OneOf<EventForEventSourceId, ValidationResult>.FromT1(ValidationResult.Error("Current does not exist."));
         if (!(!object.Equals(current.Value, ""))) return OneOf<EventForEventSourceId, ValidationResult>.FromT1(ValidationResult.Error("The stored value must not be empty."));
         return OneOf<EventForEventSourceId, ValidationResult>.FromT0(new EventForEventSourceId(Id, new Taken(current.Value)));
     }
@@ -51,7 +51,7 @@ The shape follows these rules:
 
 - **Read protection is project-wide.** The rendered `Directory.Build.props` sets `<CratisReadProtection>On</CratisReadProtection>`, which Arc turns into assembly-level protection. Generated commands do not carry a per-command `ReadProtection` attribute. This does not replace `[ProtectedDecision]` or protected-read admission.
 - **Each read is a nullable read-model parameter on `Handle`**, resolved by `[LookUpBy]` on the command property that names the key. `[LookUpBy]` is always emitted, because Arc's convention (the one command property whose type equals the view's key) is ambiguous for primitive keys: the `Consume` command has two string properties.
-- **Absence is an explicit guard, first.** A missing view returns the reference message, `<View> '<key>' does not exist.`, built by concatenation, as a validation failure. Arc's own refusal of a missing read model is not a validation failure and carries a different message, so the parameter must be nullable.
+- **Absence is an explicit guard, first.** A missing view returns the reference message, `<View> does not exist.` (Screenplay decision 0170), as a validation failure. Arc's own refusal of a missing read model is not a validation failure and carries a different message, so the parameter must be nullable.
 - **Every requirement of a protected command runs in `Handle`, in model order, after the absence guards.** They are not rendered in the command validator. Property and concept rules stay in the parameterless validator.
 - **Generation and mappings follow the guards.** Read-path mappings (`value = Current.value`) read the guarded parameter. Generated parameters follow the read parameters.
 - **A command without an outcome is admitted when it reads.** It returns an empty event list: nothing is committed, and Arc still validates the reads it declared.

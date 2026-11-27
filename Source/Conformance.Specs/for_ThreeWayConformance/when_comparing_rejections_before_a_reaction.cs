@@ -75,7 +75,7 @@ public class when_comparing_rejections_before_a_reaction(when_comparing_rejectio
                   specification PruningAnUnknownPlant
                     when PrunePlant
                       id = "unknown"
-                    then error "PlantRecord 'unknown' does not exist."
+                    then error "PlantRecord does not exist."
                 slice StateView Records
                   readmodel PlantRecord
                     id String key

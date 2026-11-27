@@ -18,7 +18,7 @@ public class when_running_protected_command_reads : Specification
     [InlineData("relocated")]
     public async Task should_match_all_nineteen_reference_outcomes(string formName)
     {
-        var corpus = ProtectedCommandReadsCorpus.V25;
+        var corpus = ProtectedReadReplacements.V25R2;
         var form = corpus.SourceForms.Single(form => form.Name == formName);
         var catalog = SemanticIdentityCatalogSerializer.Deserialize(form.IdentityCatalogBytes.AsSpan());
         var documents = form.Documents.Select(document => SemanticSourceDocument.Create(

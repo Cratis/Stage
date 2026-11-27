@@ -67,6 +67,7 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
             : artifact).ToImmutableArray();
         beforeTelemetry.Where(artifact => _plan.Artifacts.Single(current => current.RelativePath == artifact.RelativePath).Sha256 != artifact.Sha256)
             .Select(artifact => artifact.RelativePath).ShouldContainOnly("Directory.Packages.props", "InvoiceApp.csproj");
+
         // Undo only the exact Arc#3975 Program.cs order change when proving these older telemetry/Yarn-only boundaries.
         FrozenScaffoldPins.Digest(_plan, beforeTelemetry.Select(artifact => AvailabilityRegistrationOrder.Restore(artifact, "Invoices"))).ShouldEqual("bbbe4a0deaa8a882180ae935fa855b8f22caddcff252a07b2ffa2a060fcca906");
         var beforeYarn = beforeTelemetry.Select(artifact => artifact.RelativePath == ".gitignore"

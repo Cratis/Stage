@@ -455,22 +455,27 @@ jobs:
           dotnet test Source/Conformance.Specs/Conformance.Specs.csproj --no-build --configuration Release --framework net11.0 \
             --filter "FullyQualifiedName~Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip" \
             --logger "trx;LogFileName=arc.trx" --results-directory "$results"
+          python3 .github/spec-shards.py require-executed "$results/arc.trx"
 
       - name: Require the Release Arc corpus comparison fact to have passed
         env:
           ARC_TRX: TestResults/arc-round-trip-Release/arc.trx
         run: &require-arc-comparison |
           set -euo pipefail
-          python3 .github/spec-shards.py require-executed "$ARC_TRX"
-          python3 - "$ARC_TRX" <<'PY'
-          import sys
-          import xml.etree.ElementTree as ET
+          node --input-type=module - "$ARC_TRX" <<'JS'
+          import { readFileSync } from 'node:fs';
 
-          fact = "when_round_tripping_every_fixture.should_compare_at_least_the_minimum_number_of_fixtures"
-          results = ET.parse(sys.argv[1]).findall(".//{*}UnitTestResult")
-          if not any(result.get("testName", "").endswith(fact) and result.get("outcome") == "Passed" for result in results):
-              raise SystemExit(f"{sys.argv[1]}: required Arc corpus comparison fact did not pass: {fact}")
-          PY
+          const trx = process.argv[2];
+          const fact = 'Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip.' +
+              'when_round_tripping_every_fixture.should_compare_at_least_the_minimum_number_of_fixtures';
+          // The producer step has already parsed the TRX and required a nonempty run.
+          const results = readFileSync(trx, 'utf8').matchAll(/<UnitTestResult\s+([^<>]*)>/g);
+          const passed = [...results].some(([, attributes]) =>
+              /(?:^|\s)testName="([^"]*)"/.exec(attributes)?.[1] === fact &&
+              /(?:^|\s)outcome="Passed"(?:\s|\/|$)/.test(attributes));
+          if (!passed) throw new Error(`${trx}: required Arc corpus comparison fact did not pass: ${fact}`);
+          console.log(`${trx}: ${fact} passed`);
+          JS
 
   specs:
     # An empty matrix cannot expand, so a pull request touching no spec-bearing project skips the job; the
